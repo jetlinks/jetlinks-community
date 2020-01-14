@@ -1,0 +1,22 @@
+package org.jetlinks.community.device.entity.excel;
+
+import com.alibaba.excel.annotation.ExcelProperty;
+import lombok.Data;
+
+@Data
+public class DeviceInstanceImportExportEntity {
+
+    @ExcelProperty("设备ID")
+    private String id;
+
+    @ExcelProperty("设备名称")
+    private String name;
+
+    @ExcelProperty("设备型号")
+    private String productName;
+
+    @ExcelProperty("描述")
+    private String describe;
+
+
+}

@@ -1,0 +1,113 @@
+server:
+  port: 8848
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: jetlinks-platform
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: true
+    default-property-inclusion: non_null
+  resources:
+    static-locations: file:./ui-miniui/,file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    lettuce:
+      pool:
+        max-active: 1024
+    timeout: 20s
+
+  #        max-wait: 10s
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/jetlinks
+    username: postgres
+    password: jetlinks
+    pool:
+      max-size: 32
+easyorm:
+  default-schema: public # 数据库默认的schema
+  dialect: postgres #数据库方言
+elasticsearch:
+  client:
+    host: localhost
+    port: 9200
+    max-conn-total: 128
+    connect-timeout: 5000
+    socket-timeout: 5000
+    connection-request-timeout: 8000
+device:
+  message:
+    writer:
+      elastic:
+        enabled: true #写出设备消息数据到elasticsearch
+hsweb:
+  cors:
+    enable: true
+    configs:
+      - path: /**
+        allowed-headers: "*"
+        allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+        allowed-origins: ["*"]
+        allow-credentials: true
+        max-age: 1800
+  dict:
+    enum-packages: org.jetlinks
+  file:
+    upload:
+      static-file-path: ./static/upload
+      static-location: http://localhost:8844/upload
+  webflux:
+    response-wrapper: enabled #开启响应包装器(将返回值包装为ResponseMessage)
+  auth:   #默认的用户配置
+    users:
+      admin:
+        username: admin
+        password: admin
+        name: 超级管理员
+  authorize:
+    auto-parse: true
+  cache:
+    type: redis
+    redis:
+      local-cache-type: guava
+jetlinks:
+  server-id: ${spring.application.name}:${server.port} #设备服务网关服务ID,不同服务请设置不同的ID
+  transport-limit:
+    MQTT: 1000000
+  logging:
+    system:
+      context:
+        server: ${spring.application.name}
+
+logging:
+  level:
+    org.jetlinks: debug
+    rule.engine: warn
+    org.hswebframework: debug
+    org.springframework.transaction: debug
+    #    org.springframework.data.r2dbc.connectionfactory: debug
+    io.micrometer: warn
+    org.hswebframework.expands: error
+    system: warn
+    org.jetlinks.rule.engine: debug
+    org.jetlinks.gateway: debug
+    org.springframework: warn
+vertx:
+  max-event-loop-execute-time-unit: seconds
+  max-event-loop-execute-time: 30
+  max-worker-execute-time-unit: seconds
+  max-worker-execute-time: 30
+  prefer-native-transport: true
+management:
+  metrics:
+    export:
+      elastic:
+        host: http://${elasticsearch.client.host}:${elasticsearch.client.port}
+        index: metrics
+        index-date-format: yyyy-MM
+        step: 30s
