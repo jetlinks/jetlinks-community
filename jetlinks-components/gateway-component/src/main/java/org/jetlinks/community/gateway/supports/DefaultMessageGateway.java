@@ -111,8 +111,6 @@ public class DefaultMessageGateway implements MessageGateway {
 
     @Override
     public void startup() {
-        Flux.interval(Duration.ofSeconds(10))
-            .subscribe();
         if (!started.getAndSet(true)) {
             for (Connector value : connectors.values()) {
                 if (value.disposable == null) {
