@@ -13,7 +13,7 @@ spring:
       WRITE_DATES_AS_TIMESTAMPS: true
     default-property-inclusion: non_null
   resources:
-    static-locations: file:./ui-miniui/,file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
+    static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
   redis:
     host: 127.0.0.1
     port: 6379
