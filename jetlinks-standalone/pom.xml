@@ -11,7 +11,7 @@
 
     <artifactId>jetlinks-standalone</artifactId>
     <properties>
-        <docker.image.name>registry.cn-shenzhen.aliyuncs.com/jetlinks-community/${project.artifactId}</docker.image.name>
+        <docker.image.name>registry.cn-shenzhen.aliyuncs.com/jetlinks/${project.artifactId}</docker.image.name>
     </properties>
 
     <build>

@@ -1,0 +1,79 @@
+version: '2'
+services:
+  redis:
+    image: redis:5.0.4
+    container_name: jetlinks-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - "./data/redis:/data"
+    command: redis-server --appendonly yes
+    environment:
+      - TZ=Asia/Shanghai
+  elasticsearch:
+    image: elasticsearch:6.7.2
+    container_name: jetlinks-elasticsearch
+    environment:
+      ES_JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Xms1g -Xmx1g
+      transport.host: 0.0.0.0
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      discovery.zen.minimum_master_nodes: 1
+      discovery.zen.ping.unicast.hosts: elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+  kibana:
+    image: kibana:6.7.2
+    container_name: jetlinks-kibana
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    links:
+      - elasticsearch:elasticsearch
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+  postgres:
+    image: postgres:11-alpine
+    container_name: jetlinks-postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - "./data/postgres:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_PASSWORD: jetlinks
+      POSTGRES_DB: jetlinks
+      TZ: Asia/Shanghai
+  jetlinks:
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community
+    container_name: jetlinks-pro
+    ports:
+      - 8844:8844 # API端口
+      - 1884:1883 # MQTT端口
+      - 8000:8000 # 预留
+      - 8001:8001 # 预留
+      - 8002:8002 # 预留
+    volumes:
+      - "./data/upload:/static/upload"  # 持久化上传的文件
+    environment:
+#      - "JAVA_OPTS=-Xms4g -Xmx10g -XX:+UseG1GC"
+      - "hsweb.file.upload.static-location=http://127.0.0.1:9000/upload"  #上传的静态文件访问根地址,为ui的地址.
+      - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
+      - "spring.r2dbc.username=postgres"
+      - "spring.r2dbc.password=jetlinks"
+      - "elasticsearch.client.host=elasticsearch"
+      - "elasticsearch.client.post=9200"
+      - "device.message.writer.elastic.enabled=false"
+      - "spring.redis.host=redis"
+      - "spring.redis.port=6379"
+      - "logging.level.io.r2dbc=warn"
+      - "logging.level.org.springframework.data=warn"
+      - "logging.level.org.springframework=warn"
+      - "logging.level.org.jetlinks=warn"
+      - "logging.level.org.hswebframework=warn"
+      - "logging.level.org.springframework.data.r2dbc.connectionfactory=warn"
+    links:
+      - redis:redis
+      - postgres:postgres
+      - elasticsearch:elasticsearch
