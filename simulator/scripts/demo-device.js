@@ -36,8 +36,11 @@ var events = {
 
 //事件上报
 simulator.onEvent(function (index, session) {
+    //上报属性
     events.reportProperty(index, session);
-    events.fireAlarm(index,session);
+
+    //上报火警
+   // events.fireAlarm(index,session);
 });
 
 simulator.bindHandler("/read-property", function (message, session) {
