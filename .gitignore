@@ -27,3 +27,4 @@ hs_err_pid*
 docker/data
 !ip2region.db
 !device-simulator.jar
+!demo-protocol-1.0.jar
