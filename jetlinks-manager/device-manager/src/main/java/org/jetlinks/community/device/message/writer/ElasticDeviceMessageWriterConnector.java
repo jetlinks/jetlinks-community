@@ -2,6 +2,7 @@ package org.jetlinks.community.device.message.writer;
 
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.MapUtils;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.DeviceOfflineMessage;
@@ -10,6 +11,7 @@ import org.jetlinks.core.message.Headers;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
+import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.EventMetadata;
@@ -110,6 +112,13 @@ public class ElasticDeviceMessageWriterConnector
                 if (response instanceof Map) {
                     thenJob = thenJob.then(doIndexPropertiesMessage(headers, message, ((Map) response)));
                 }
+            }
+        }else if (message instanceof ReportPropertyMessage) {
+            ReportPropertyMessage reply = (ReportPropertyMessage) message;
+            Map<String, Object> properties = reply.getProperties();
+            if (reply.isSuccess() && MapUtils.isNotEmpty(properties)) {
+                operationLog.setContent(properties);
+                thenJob = doIndexPropertiesMessage(headers, message, properties);
             }
         } else if (message instanceof DeviceOfflineMessage) {
             operationLog.setContent("设备离线");

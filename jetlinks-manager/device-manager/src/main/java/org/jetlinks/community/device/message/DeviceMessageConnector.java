@@ -6,10 +6,7 @@ import org.jetlinks.core.message.*;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
-import org.jetlinks.core.message.property.ReadPropertyMessage;
-import org.jetlinks.core.message.property.ReadPropertyMessageReply;
-import org.jetlinks.core.message.property.WritePropertyMessage;
-import org.jetlinks.core.message.property.WritePropertyMessageReply;
+import org.jetlinks.core.message.property.*;
 import org.jetlinks.community.gateway.*;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
@@ -113,7 +110,8 @@ public class DeviceMessageConnector
                     if (message instanceof EventMessage) {   //事件
                         EventMessage event = ((EventMessage) message);
                         topic = "/device/" + deviceMessage.getDeviceId() + "/message/event/".concat(event.getEvent());
-
+                    } else if (message instanceof ReportPropertyMessage) {   //上报属性
+                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/property/report";
                     } else if (message instanceof DeviceOnlineMessage) {   //设备上线
                         topic = "/device/" + deviceMessage.getDeviceId() + "/online";
                     } else if (message instanceof DeviceOfflineMessage) {   //设备离线
