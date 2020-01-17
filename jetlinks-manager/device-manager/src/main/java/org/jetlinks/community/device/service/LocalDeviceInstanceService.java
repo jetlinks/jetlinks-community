@@ -3,21 +3,27 @@ package org.jetlinks.community.device.service;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelWriter;
 import com.alibaba.excel.write.metadata.WriteSheet;
+import com.alibaba.fastjson.JSON;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.Sort;
+import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.logger.ReactiveLogger;
+import org.jetlinks.community.device.response.*;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceOfflineMessage;
 import org.jetlinks.core.message.DeviceOnlineMessage;
+import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.EventMetadata;
+import org.jetlinks.core.metadata.Metadata;
 import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
@@ -25,14 +31,11 @@ import org.jetlinks.community.device.entity.excel.DeviceInstanceImportExportEnti
 import org.jetlinks.community.device.entity.excel.ESDevicePropertiesEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.events.handler.DeviceEventIndex;
-import org.jetlinks.community.device.response.DeviceDeployResult;
-import org.jetlinks.community.device.response.DeviceInfo;
-import org.jetlinks.community.device.response.ImportDeviceInstanceResult;
-import org.jetlinks.community.device.web.response.DeviceRunInfo;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.gateway.EncodableMessage;
 import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.io.excel.ImportExportService;
+import org.jetlinks.supports.official.JetLinksDeviceMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -49,7 +52,6 @@ import reactor.util.function.Tuple2;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -79,6 +81,74 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     @Autowired
     private ElasticSearchService elasticSearchService;
+
+    @Autowired
+    private LogService logService;
+
+    public Mono<DeviceAllInfoResponse> getDeviceAllInfo(String id) {
+        return findById(Mono.justOrEmpty(id))
+            .zipWhen(instance -> deviceProductService.findById(Mono.justOrEmpty(instance.getProductId())), DeviceInfo::of)
+            .switchIfEmpty(Mono.error(NotFoundException::new))
+            .zipWhen(deviceInfo -> getDeviceRunRealInfo(id), DeviceAllInfoResponse::of)
+            .zipWhen(info -> getProperties(info.getDeviceInfo().getProductId(), id)
+                    .collect(Collectors.toMap(ESDevicePropertiesEntity::getProperty, ESDevicePropertiesEntity::getFormatValue)),
+                DeviceAllInfoResponse::ofProperties)
+            .zipWhen(info -> {
+                    DeviceMetadata deviceMetadata = new JetLinksDeviceMetadata(JSON.parseObject(info.getDeviceInfo().getDeriveMetadata()));
+                    return getEventCounts(deviceMetadata.getEvents(), id, info.getDeviceInfo().getProductId());
+                },
+                DeviceAllInfoResponse::ofEventCounts);
+    }
+
+    private Mono<DeviceRunInfo> getDeviceRunRealInfo(String deviceId) {
+        return registry.getDevice(deviceId)
+            .flatMap(deviceOperator -> Mono.zip(
+                deviceOperator.getOnlineTime().switchIfEmpty(Mono.just(0L)),// 1
+                deviceOperator.getOfflineTime().switchIfEmpty(Mono.just(0L)),// 2
+                deviceOperator.checkState()
+                    .switchIfEmpty(deviceOperator.getState())
+                    .map(DeviceState::of)
+                    .defaultIfEmpty(DeviceState.notActive),// 3
+                deviceOperator.getConfig(DeviceConfigKey.metadata).switchIfEmpty(Mono.just(""))//4
+                ).map(tuple4 -> DeviceRunInfo.of(
+                tuple4.getT1(), //1. 上线时间
+                tuple4.getT2(), //2. 离线时间
+                tuple4.getT3(), //3. 状态
+                tuple4.getT4()  //4. 设备模型元数据
+                )
+                ).flatMap(deviceRunInfo -> createUpdate()
+                    .set(DeviceInstanceEntity::getState, deviceRunInfo.getState())
+                    .where(DeviceInstanceEntity::getId, deviceId)
+                    .execute()
+                    .thenReturn(deviceRunInfo))
+            );
+    }
+
+    /**
+     * 获取设备事件上报次数
+     *
+     * @param events    设备事件元数据
+     * @param deviceId  设备Id
+     * @param productId 型号id
+     * @return
+     */
+    private Mono<Map<String, Object>> getEventCounts(List<EventMetadata> events, String deviceId, String productId) {
+        return Flux.merge(events
+            .stream()
+            .map(Metadata::getId)
+            .map(eventId -> {
+                    QueryParam queryParam = Query.of().where(DeviceInstanceEntity::getId, deviceId).getParam();
+                    return logService.queryPagerByDeviceEvent(queryParam, productId, eventId)
+                        .map(PagerResult::getTotal)
+                        .map(count -> new EventCount(eventId, count));
+                }
+            )
+            .collect(Collectors.toList()))
+            .collectList()
+            .map(list -> list.stream().collect(Collectors.toMap(EventCount::getEventId, EventCount::getCount)))
+            ;
+    }
+
 
     /**
      * 发布设备到设备注册中心
@@ -287,7 +357,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     private DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
 
     @SneakyThrows
-    public Mono<Void> doExport(ServerHttpResponse response, QueryParam queryParam, String fileName){
+    public Mono<Void> doExport(ServerHttpResponse response, QueryParam queryParam, String fileName) {
         response.getHeaders()
             .set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=".concat(
                 URLEncoder.encode(fileName, StandardCharsets.UTF_8.displayName())));
@@ -341,7 +411,6 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                     .stream()
                     .map(property -> getElasticSearchProperty(productId, deviceId, property.getId()))
                     .collect(Collectors.toList()));
-
             })
             ;
     }

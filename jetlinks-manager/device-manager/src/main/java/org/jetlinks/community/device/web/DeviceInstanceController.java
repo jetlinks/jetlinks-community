@@ -15,12 +15,9 @@ import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.excel.ESDevicePropertiesEntity;
 import org.jetlinks.community.device.logger.DeviceOperationLog;
-import org.jetlinks.community.device.response.DeviceDeployResult;
-import org.jetlinks.community.device.response.DeviceInfo;
-import org.jetlinks.community.device.response.ImportDeviceInstanceResult;
+import org.jetlinks.community.device.response.*;
 import org.jetlinks.community.device.service.DeviceOperationService;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
-import org.jetlinks.community.device.web.response.DeviceRunInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -41,6 +38,11 @@ public class DeviceInstanceController implements
 
     @Autowired
     private DeviceOperationService operationService;
+
+    @GetMapping("/all-info/{id:.+}")
+    public Mono<DeviceAllInfoResponse> getDeviceAllInfo(@PathVariable String id) {
+        return service.getDeviceAllInfo(id);
+    }
 
     @GetMapping("/info/{id:.+}")
     public Mono<DeviceInfo> getDeviceInfoById(@PathVariable String id) {
