@@ -2,9 +2,9 @@ version: '2'
 services:
   redis:
     image: redis:5.0.4
-    container_name: jetlinks-redis
-    ports:
-      - "6379:6379"
+    container_name: jetlinks-ce-redis
+#    ports:
+#      - "6379:6379"
     volumes:
       - "./data/redis:/data"
     command: redis-server --appendonly yes
@@ -12,7 +12,7 @@ services:
       - TZ=Asia/Shanghai
   elasticsearch:
     image: elasticsearch:6.7.2
-    container_name: jetlinks-elasticsearch
+    container_name: jetlinks-ce-elasticsearch
     environment:
       ES_JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Xms1g -Xmx1g
       transport.host: 0.0.0.0
@@ -20,37 +20,48 @@ services:
       bootstrap.memory_lock: "true"
       discovery.zen.minimum_master_nodes: 1
       discovery.zen.ping.unicast.hosts: elasticsearch
-    ports:
-      - "9200:9200"
-      - "9300:9300"
+#    ports:
+#      - "9200:9200"
+#      - "9300:9300"
   kibana:
     image: kibana:6.7.2
-    container_name: jetlinks-kibana
+    container_name: jetlinks-ce-kibana
     environment:
       ELASTICSEARCH_URL: http://elasticsearch:9200
     links:
       - elasticsearch:elasticsearch
-    ports:
-      - "5601:5601"
+#    ports:
+#      - "5601:5601"
     depends_on:
       - elasticsearch
   postgres:
     image: postgres:11-alpine
-    container_name: jetlinks-postgres
-    ports:
-      - "5432:5432"
+    container_name: jetlinks-ce-postgres
+#    ports:
+#      - "5432:5432"
     volumes:
       - "./data/postgres:/var/lib/postgresql/data"
     environment:
       POSTGRES_PASSWORD: jetlinks
       POSTGRES_DB: jetlinks
       TZ: Asia/Shanghai
-  jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community
-    container_name: jetlinks-pro
+  ui:
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd
+    container_name: jetlinks-ce-ui
     ports:
-      - 8844:8844 # API端口
-      - 1884:1883 # MQTT端口
+      - 9000:80
+    environment:
+      - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
+    volumes:
+      - "./data/upload:/usr/share/nginx/html/upload"
+    links:
+      - jetlinks:jetlinks
+  jetlinks:
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone
+    container_name: jetlinks-ce
+    ports:
+      - 9010:8848 # API端口
+      - 1883:1883 # MQTT端口
       - 8000:8000 # 预留
       - 8001:8001 # 预留
       - 8002:8002 # 预留
