@@ -106,13 +106,8 @@ public class ElasticDeviceMessageWriterConnector
         Mono<Void> thenJob = null;
         if (message instanceof EventMessage) {
             operationLog.setContent(JSON.toJSONString(((EventMessage) message).getData()));
+            //上报属性
             thenJob = doIndexEventMessage(headers, ((EventMessage) message));
-            if (message.getHeader(Headers.reportProperties).isPresent()) {
-                Object response = ((EventMessage) message).getData();
-                if (response instanceof Map) {
-                    thenJob = thenJob.then(doIndexPropertiesMessage(headers, message, ((Map) response)));
-                }
-            }
         }else if (message instanceof ReportPropertyMessage) {
             ReportPropertyMessage reply = (ReportPropertyMessage) message;
             Map<String, Object> properties = reply.getProperties();
