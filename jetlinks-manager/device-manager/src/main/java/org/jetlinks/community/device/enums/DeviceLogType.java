@@ -39,6 +39,8 @@ public enum DeviceLogType implements EnumDict<String> {
                 return offline;
             case CHILD:
                 return child;
+            case REPORT_PROPERTY:
+                return reportProperty;
             case READ_PROPERTY_REPLY:
             case INVOKE_FUNCTION_REPLY:
             case WRITE_PROPERTY_REPLY:
