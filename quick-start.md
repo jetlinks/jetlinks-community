@@ -86,13 +86,13 @@ hsweb:
 - 类名: `org.jetlinks.demo.protocol.DemoProtocolSupportProvider`
 - 上传jar包: 选择项目内文件: `simulator/demo-protocol-1.0.jar`
 
-[添加协议](./quick-start-images/create-protocol.png)
+![添加协议](./quick-start-images/create-protocol.png)
 
 ### 添加设备型号
 
 进入`设备管理`-`型号管理`,点击`导入配置`. 选择项目内文件: `simulator/设备型号-演示设备.json`.
 
-[导入型号配置](./quick-start-images/import-product-properties.png)
+![导入型号配置](./quick-start-images/import-product-properties.png)
 
 导入成功后,点击`操作列`-`发布`,如果状态为`已发布`,则点击`停用`后重新发布.
 
@@ -105,17 +105,17 @@ hsweb:
 - 设备名称: `演示设备0`
 - 设备型号: `演示设备`
 
-[添加设备实例](./quick-start-images/new-device-instance.png)
+![添加设备实例](./quick-start-images/new-device-instance.png)
 
 点击确定,保存成功后, 点击`操作列`-`激活`. 点击`查看`可查看设备的基本信息以及`运行状态`
 
 设备基本信息
 
-[设备基本信息](./quick-start-images/device-instance-general-info.png)
+![设备基本信息](./quick-start-images/device-instance-general-info.png)
 
 运行状态
 
-[运行状态](./quick-start-images/device-instance-run-info.png)
+![运行状态](./quick-start-images/device-instance-run-info.png)
 
 
 ### 启动MQTT服务
@@ -129,11 +129,11 @@ hsweb:
 - PORT: `1883`
 - TLS: `否`
 
-[创建mqtt服务组件](./quick-start-images/create-mqtt-server.png)
+![创建mqtt服务组件](./quick-start-images/create-mqtt-server.png)
 
 点击保存,保存成功后,点击`启动状态`切换启动状态为启动.
 
-[启动mqtt服务](./quick-start-images/mqtt-server-started.png)
+![启动mqtt服务](./quick-start-images/mqtt-server-started.png)
 
 ### 启动设备网关
 
@@ -143,7 +143,7 @@ hsweb:
 - 类型: `MQTT服务设备网关`
 - 网络组件: `MQTT服务` 选择上一步创建的网络组件
 
-[启动mqtt服务](./quick-start-images/create-mqtt-server-gateway.png)
+![启动mqtt服务](./quick-start-images/create-mqtt-server-gateway.png)
 
 点击确定,保存成功后,点击操作列中的`启动`.
 
