@@ -8,4 +8,4 @@ java -jar device-simulator.jar \
   mqtt.eventRate=1000 \
   mqtt.scriptFile=./scripts/demo-device.js \
   mqtt.address=127.0.0.1 \
-  mqtt.port=1889
+  mqtt.port=1883

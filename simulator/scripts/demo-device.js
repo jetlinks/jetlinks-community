@@ -37,13 +37,14 @@ var events = {
 //事件上报
 simulator.onEvent(function (index, session) {
     //上报属性
-    events.reportProperty(index, session);
+   events.reportProperty(index, session);
 
     //上报火警
-   // events.fireAlarm(index,session);
+   events.fireAlarm(index,session);
 });
 
 simulator.bindHandler("/read-property", function (message, session) {
+    _logger.info("读取属性:[{}]", message);
     session.sendMessage("/read-property-reply", JSON.stringify({
         messageId: message.messageId,
         deviceId: message.deviceId,
