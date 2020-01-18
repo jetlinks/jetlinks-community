@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.manager.service;
 
+import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 import org.jetlinks.community.network.NetworkConfigManager;
@@ -8,6 +9,7 @@ import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.manager.entity.NetworkConfigEntity;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -24,6 +26,18 @@ public class NetworkConfigService extends GenericReactiveCrudService<NetworkConf
                 .map(NetworkConfigEntity::toNetworkProperties);
     }
 
+    @Override
+    public Mono<SaveResult> save(Publisher<NetworkConfigEntity> entityPublisher) {
+        return super.save(
+            Flux.from(entityPublisher)
+                .doOnNext(entity -> {
+                    if (StringUtils.isEmpty(entity.getId())) {
+                        entity.setState(NetworkConfigState.disabled);
+                    } else {
+                        entity.setState(null);
+                    }
+                }));
+    }
 
     @Override
     public Mono<Integer> insert(Publisher<NetworkConfigEntity> entityPublisher) {
