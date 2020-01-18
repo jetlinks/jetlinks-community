@@ -70,7 +70,7 @@ public class AuthorizationSettingDetail {
         /**
          * 字段权限
          */
-        private List<FiledAccess> fieldAccess;
+        private List<FieldAccess> fieldAccess;
 
         /**
          * 数据权限
@@ -84,7 +84,7 @@ public class AuthorizationSettingDetail {
             this.dataAccess = new ArrayList<>();
 
             //filed : access
-            Map<String, FiledAccess> filedAccessMap = new LinkedHashMap<>();
+            Map<String, FieldAccess> filedAccessMap = new LinkedHashMap<>();
 
 
             //type : access
@@ -99,7 +99,7 @@ public class AuthorizationSettingDetail {
 
                         for (String field : fields) {
                             filedAccessMap
-                                .computeIfAbsent(field, filedName -> new FiledAccess(filedName, new HashSet<>()))
+                                .computeIfAbsent(field, filedName -> new FieldAccess(filedName, new HashSet<>()))
                                 .getAction().add(access.getAction());
                         }
                     } else {
@@ -127,7 +127,7 @@ public class AuthorizationSettingDetail {
             List<DataAccessEntity> entities = new ArrayList<>();
             if (CollectionUtils.isNotEmpty(fieldAccess)) {
                 Map<String, Set<String>> group = new HashMap<>();
-                for (FiledAccess access : fieldAccess) {
+                for (FieldAccess access : fieldAccess) {
                     for (String action : access.getAction()) {
                         group.computeIfAbsent(action, r -> new HashSet<>())
                             .add(access.name);
@@ -212,7 +212,7 @@ public class AuthorizationSettingDetail {
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class FiledAccess {
+    public static class FieldAccess {
 
         /**
          * 字段名
