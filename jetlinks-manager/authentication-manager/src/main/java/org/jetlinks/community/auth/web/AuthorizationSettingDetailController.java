@@ -35,26 +35,25 @@ public class AuthorizationSettingDetailController {
     @PostMapping("/_save")
     @SaveAction
     public Mono<Boolean> saveSettings(@RequestBody Flux<AuthorizationSettingDetail> detailFlux) {
-
-        return settingService
-            .save(detailFlux
-                .flatMap(detail -> settingService.createDelete()
-                    .where(AuthorizationSettingEntity::getDimensionType, detail.getTargetType())
-                    .and(AuthorizationSettingEntity::getDimensionTarget, detail.getTargetId())
-                    .execute()
-                    .thenReturn(detail))
-                .flatMap(detail ->
-                    Flux.fromIterable(providers)
-                        .flatMap(provider -> provider
-                            .getAllType()
-                            .filter(type -> type.getId().equals(detail.getTargetType()))
-                            .singleOrEmpty()
-                            .flatMap(type -> provider.getDimensionById(type, detail.getTargetId())))
+        return detailFlux
+            //先删除旧的权限设置
+            .flatMap(detail -> settingService.getRepository().createDelete()
+                .where(AuthorizationSettingEntity::getDimensionType, detail.getTargetType())
+                .and(AuthorizationSettingEntity::getDimensionTarget, detail.getTargetId())
+                .execute()
+                .thenReturn(detail))
+            .flatMap(detail ->
+                Flux.fromIterable(providers)
+                    .flatMap(provider -> provider
+                        .getAllType()
+                        .filter(type -> type.getId().equals(detail.getTargetType()))
                         .singleOrEmpty()
-                        .flatMapIterable(detail::toEntity)
-                        .switchIfEmpty(Flux.defer(() -> Flux.fromIterable(detail.toEntity())))
-                )
+                        .flatMap(type -> provider.getDimensionById(type, detail.getTargetId())))
+                    .singleOrEmpty()
+                    .flatMapIterable(detail::toEntity)
+                    .switchIfEmpty(Flux.defer(() -> Flux.fromIterable(detail.toEntity())))
             )
+            .as(settingService::save)
             .thenReturn(true);
     }
 
