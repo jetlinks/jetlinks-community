@@ -116,7 +116,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
         FluxUtils.bufferRate(Flux.<Buffer>create(sink -> this.sink = sink),
             1000, 2000, Duration.ofSeconds(3))
             .flatMap(this::doSave)
-            .doOnNext((len) ->{
+            .doOnNext((len) -> {
                 //System.out.println(len);
                 log.debug("保存ES数据成功:{}", len);
             })
@@ -184,8 +184,13 @@ public class DefaultElasticSearchService implements ElasticSearchService {
     }
 
     private <T> List<T> translate(Class<T> clazz, SearchResponse response) {
+        // TODO: 2020/1/18 临时代码
         return Arrays.stream(response.getHits().getHits())
-            .map(hit -> JSON.toJavaObject(new JSONObject(hit.getSourceAsMap()), clazz))
+            .map(hit -> {
+                Map<String, Object> hitMap = hit.getSourceAsMap();
+                hitMap.put("id", hit.getId());
+                return JSON.toJavaObject(new JSONObject(hitMap), clazz);
+            })
             .collect(Collectors.toList());
     }
 
