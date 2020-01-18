@@ -60,7 +60,7 @@ services:
     image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone
     container_name: jetlinks-ce
     ports:
-      - 9010:8848 # API端口
+      - 8848:8848 # API端口
       - 1883:1883 # MQTT端口
       - 8000:8000 # 预留
       - 8001:8001 # 预留
@@ -69,7 +69,7 @@ services:
       - "./data/upload:/static/upload"  # 持久化上传的文件
     environment:
 #      - "JAVA_OPTS=-Xms4g -Xmx10g -XX:+UseG1GC"
-      - "hsweb.file.upload.static-location=http://127.0.0.1:9000/upload"  #上传的静态文件访问根地址,为ui的地址.
+      - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
       - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
       - "spring.r2dbc.username=postgres"
       - "spring.r2dbc.password=jetlinks"
