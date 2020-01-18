@@ -171,3 +171,10 @@ create mqtt client: 1 ok
 
 进入`设备实例`,点击查看`demo-0`设备,点击`运行状态`,可看到设备上报的数据.
 
+设备运行状态信息
+
+![启动mqtt服务](./quick-start-images/device-run-info.png)
+
+设备上报的事件数据
+
+![启动mqtt服务](./quick-start-images/device-event-info.png)
