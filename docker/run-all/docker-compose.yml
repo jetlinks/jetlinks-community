@@ -30,8 +30,8 @@ services:
       ELASTICSEARCH_URL: http://elasticsearch:9200
     links:
       - elasticsearch:elasticsearch
-#    ports:
-#      - "5601:5601"
+    ports:
+      - "5602:5601"
     depends_on:
       - elasticsearch
   postgres:
@@ -88,3 +88,7 @@ services:
       - redis:redis
       - postgres:postgres
       - elasticsearch:elasticsearch
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch

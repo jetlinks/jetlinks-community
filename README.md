@@ -26,9 +26,22 @@ JetLinks 是一个物联网基础平台,用于快速建立物联网相关业务�
 6. [PostgreSQL](https://www.postgresql.org) 业务功能数据管理
 7. [hsweb framework 4](https://github.com/hs-web) 业务功能基础框架
 
+# 模块
+
+```bash
+--jetlinks-community
+------|----docker
+------|------|----dev-env       # 启动开发环境
+------|------|----run-all       # 启动全部,通过http://localhost:9000 访问系统.
+------|----jetlinks-components  # 公共组件模块
+------|----jetlinks-manager     # 管理模块
+------|----jetlinks-standalone  # 单点方式启动服务
+------|----simulator            # 设备模拟器
+```
+
 # 文档
 
-todo
+[快速开始](quick-start.md)
 
 # 许可版本
 

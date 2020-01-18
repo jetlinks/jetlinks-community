@@ -56,7 +56,7 @@ simulator.bindHandler("/read-property", function (message, session) {
 
 
 simulator.onConnect(function (session) {
-    _logger.info("[{}]:连接成功", session.auth.clientId);
+   // _logger.info("[{}]:连接成功", session.auth.clientId);
 });
 
 simulator.onAuth(function (index, auth) {

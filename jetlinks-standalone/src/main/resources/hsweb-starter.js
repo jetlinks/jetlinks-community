@@ -55,16 +55,18 @@ var autzSettings = [
         "dimensionTargetName": "超级管理员",
         "dimensionTypeName": "用户",
         "state": 1
-    }, {
-        "permission": "certificate",
-        "id": "7dc2cb54ddd22053368c84d8ad8362f3",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
+    },
+    // {
+    //     "permission": "certificate",
+    //     "id": "7dc2cb54ddd22053368c84d8ad8362f3",
+    //     "actions": java.util.Arrays.asList("query", "save", "delete"),
+    //     "dimensionType": "user",
+    //     "dimensionTarget": "1199596756811550720",
+    //     "dimensionTargetName": "超级管理员",
+    //     "dimensionTypeName": "用户",
+    //     "state": 1
+    // },
+    {
         "permission": "user",
         "id": "5f59ccf52ea4c79f5eacc10cbf40d02",
         "actions": java.util.Arrays.asList("query", "save", "delete"),
