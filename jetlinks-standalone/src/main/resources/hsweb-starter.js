@@ -139,7 +139,7 @@ var users = [{
 //版本更新信息
 var versions = [
     {
-        version: "3.0.0",
+        version: "1.0.1",
         upgrade: function (context) {
 
         }
