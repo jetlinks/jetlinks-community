@@ -112,7 +112,7 @@ public class ElasticDeviceMessageWriterConnector
         }else if (message instanceof ReportPropertyMessage) {
             ReportPropertyMessage reply = (ReportPropertyMessage) message;
             Map<String, Object> properties = reply.getProperties();
-            if (reply.isSuccess() && MapUtils.isNotEmpty(properties)) {
+            if (MapUtils.isNotEmpty(properties)) {
                 operationLog.setContent(properties);
                 thenJob = doIndexPropertiesMessage(headers, message, properties);
             }
