@@ -117,7 +117,7 @@ public class DeviceMessageController {
     }
 
     //设备功能调用
-    @PostMapping("invoked/{deviceId}/functionId/{functionId}")
+    @PostMapping("invoked/{deviceId}/function/{functionId}")
     @SneakyThrows
     public Flux<?> invokedFunction(@PathVariable String deviceId, @PathVariable String functionId, @RequestBody Map<String, Object> properties) {
 
