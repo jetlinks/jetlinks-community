@@ -8,14 +8,23 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.core.param.QueryParam;
-import org.hswebframework.ezorm.core.param.Sort;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.logger.ReactiveLogger;
+import org.jetlinks.community.device.entity.DeviceInstanceEntity;
+import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.entity.excel.DeviceInstanceImportExportEntity;
+import org.jetlinks.community.device.entity.excel.ESDevicePropertiesEntity;
+import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.community.device.events.handler.DeviceEventIndex;
 import org.jetlinks.community.device.response.*;
+import org.jetlinks.community.elastic.search.service.ElasticSearchService;
+import org.jetlinks.community.gateway.EncodableMessage;
+import org.jetlinks.community.gateway.MessageGateway;
+import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -25,18 +34,7 @@ import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.Metadata;
 import org.jetlinks.core.utils.FluxUtils;
-import org.jetlinks.community.device.entity.DeviceInstanceEntity;
-import org.jetlinks.community.device.entity.DeviceProductEntity;
-import org.jetlinks.community.device.entity.excel.DeviceInstanceImportExportEntity;
-import org.jetlinks.community.device.entity.excel.ESDevicePropertiesEntity;
-import org.jetlinks.community.device.enums.DeviceState;
-import org.jetlinks.community.device.events.handler.DeviceEventIndex;
-import org.jetlinks.community.elastic.search.service.ElasticSearchService;
-import org.jetlinks.community.gateway.EncodableMessage;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.supports.official.JetLinksDeviceMetadata;
-import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -58,7 +56,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -428,9 +425,9 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         QueryParam queryParam = Query.of()
             .and(ESDevicePropertiesEntity::getDeviceId, deviceId)
             .and(ESDevicePropertiesEntity::getProperty, property)
+            .orderByDesc("timestamp")
             .doPaging(0, 1)
             .getParam();
-        queryParam.setSorts(Collections.singletonList(new Sort("timestamp")));
         return elasticSearchService
             .query(DeviceEventIndex.getDevicePropertiesIndex(productId), queryParam, ESDevicePropertiesEntity.class);
     }
