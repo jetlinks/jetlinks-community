@@ -70,7 +70,7 @@ public class AuthorizationSettingDetail {
         /**
          * 字段权限
          */
-        private List<FiledAccess> filedAccess;
+        private List<FiledAccess> fieldAccess;
 
         /**
          * 数据权限
@@ -80,7 +80,7 @@ public class AuthorizationSettingDetail {
         private PermissionInfo unwrap(AuthorizationSettingEntity entity) {
             this.id = entity.getPermission();
             this.actions = entity.getActions();
-            this.filedAccess = new ArrayList<>();
+            this.fieldAccess = new ArrayList<>();
             this.dataAccess = new ArrayList<>();
 
             //filed : access
@@ -116,7 +116,7 @@ public class AuthorizationSettingDetail {
                 }
             }
             this.dataAccess.addAll(dataAccessMap.values());
-            this.filedAccess.addAll(filedAccessMap.values());
+            this.fieldAccess.addAll(filedAccessMap.values());
 
             return this;
         }
@@ -125,9 +125,9 @@ public class AuthorizationSettingDetail {
             entity.setPermission(id);
             entity.setActions(actions);
             List<DataAccessEntity> entities = new ArrayList<>();
-            if (CollectionUtils.isNotEmpty(filedAccess)) {
+            if (CollectionUtils.isNotEmpty(fieldAccess)) {
                 Map<String, Set<String>> group = new HashMap<>();
-                for (FiledAccess access : filedAccess) {
+                for (FiledAccess access : fieldAccess) {
                     for (String action : access.getAction()) {
                         group.computeIfAbsent(action, r -> new HashSet<>())
                             .add(access.name);
