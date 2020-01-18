@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.device.entity.excel.ESDevicePropertiesEntity;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.FunctionInvokeMessageSender;
@@ -14,6 +15,8 @@ import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.gateway.TopicMessage;
+import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.types.StringType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -76,6 +79,40 @@ public class DeviceMessageController {
             .map(sender -> sender.writeProperty().messageId(IDGenerator.SNOW_FLAKE_STRING.generate()).write(properties))
             .flatMapMany(WritePropertyMessageSender::send)
             .map(WritePropertyMessageReply::getProperties);
+
+    }
+
+    //获取标准设备属性
+    @GetMapping("/standard/{deviceId}/property/{property:.+}")
+    @SneakyThrows
+    public Mono<ESDevicePropertiesEntity> getStandardProperty(@PathVariable String deviceId, @PathVariable String property) {
+        return Mono.from(registry
+            .getDevice(deviceId)
+            .switchIfEmpty(Mono.error(()->new NotFoundException("设备不存在")))
+            .flatMapMany(deviceOperator -> deviceOperator.messageSender()
+                .readProperty(property).messageId(IDGenerator.SNOW_FLAKE_STRING.generate())
+                .send()
+                .map(ReadPropertyMessageReply::getProperties)
+                .flatMap(map -> {
+                    Object value = map.get(property);
+                    return deviceOperator.getMetadata()
+                        .map(deviceMetadata -> deviceMetadata.getProperty(property)
+                            .map(PropertyMetadata::getValueType)
+                            .orElse(new StringType()))
+                        .map(dataType -> {
+                            ESDevicePropertiesEntity entity = new ESDevicePropertiesEntity();
+                            if (value != null) {
+                                entity.setDeviceId(deviceId);
+                                entity.setProperty(property);
+                                entity.setValue(value.toString());
+                                entity.setStringValue(value.toString());
+                                entity.setFormatValue(dataType.format(value).toString());
+
+                            }
+                            return entity;
+                        });
+                })))
+            ;
 
     }
 
