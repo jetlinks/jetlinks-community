@@ -2,10 +2,7 @@ package org.jetlinks.community.network.manager.entity;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
-import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
-import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
-import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
+import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 
@@ -35,6 +32,7 @@ public class DeviceGatewayEntity extends GenericEntity<String> {
     @Column
     @EnumCodec
     @ColumnType(javaType = String.class)
+    @DefaultValue("disabled")
     private NetworkConfigState state;
 
     @Comment("网络组件id")
