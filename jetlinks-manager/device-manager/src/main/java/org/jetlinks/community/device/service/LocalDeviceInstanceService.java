@@ -36,6 +36,7 @@ import org.jetlinks.community.gateway.EncodableMessage;
 import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.supports.official.JetLinksDeviceMetadata;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -63,6 +64,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 设备实例服务
+ *
+ * @author zhouhao
+ * @author bestfeng
+ *
+ * TODO 一团乱，等待重构.
+ */
 @Service
 @Slf4j
 public class LocalDeviceInstanceService extends GenericReactiveCrudService<DeviceInstanceEntity, String> {

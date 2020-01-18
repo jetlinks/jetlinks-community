@@ -63,12 +63,12 @@ hsweb:
       static-location: http://localhost:8844/upload
   webflux:
     response-wrapper: enabled #开启响应包装器(将返回值包装为ResponseMessage)
-  auth:   #默认的用户配置
-    users:
-      admin:
-        username: admin
-        password: admin
-        name: 超级管理员
+#  auth:   #默认的用户配置
+#    users:
+#      admin:
+#        username: admin
+#        password: admin
+#        name: 超级管理员
   authorize:
     auto-parse: true
   cache:
