@@ -16,6 +16,8 @@
         <module>gateway-component</module>
         <module>io-component</module>
         <module>elasticsearch-component</module>
+        <module>timeseries-components</module>
+        <module>dashboard-components</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>
