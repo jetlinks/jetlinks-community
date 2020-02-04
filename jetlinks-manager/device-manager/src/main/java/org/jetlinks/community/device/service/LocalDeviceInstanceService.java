@@ -320,12 +320,13 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     public Flux<ImportDeviceInstanceResult> doBatchImport(String fileUrl) {
         return deviceProductService
             .createQuery()
-            //如果指定了机构,则只查询机构内的设备型号
             .fetch()
             .collectList()
             .flatMapMany(productEntities -> {
+                //按型号名称分组，用于识别excel中的型号。
                 Map<String, String> productNameMap = productEntities.stream()
                     .collect(Collectors.toMap(DeviceProductEntity::getName, DeviceProductEntity::getId, (_1, _2) -> _1));
+
                 return importExportService
                     .doImport(DeviceInstanceImportExportEntity.class, fileUrl)
                     .map(result -> {
