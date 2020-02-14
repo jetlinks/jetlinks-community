@@ -34,6 +34,13 @@ class DeviceEventTimeSeriesMetadata implements TimeSeriesMetadata {
             property.setName("租户ID");
             defaultMetadata.add(property);
         }
+        {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("deviceId");
+            property.setValueType(new StringType());
+            property.setName("设备ID");
+            defaultMetadata.add(property);
+        }
     }
 
     private final List<PropertyMetadata> metadata = new ArrayList<>(defaultMetadata);
