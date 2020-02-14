@@ -4,6 +4,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.core.param.QueryParam;
+import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.ezorm.rdb.exception.DuplicateKeyException;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
@@ -154,7 +155,10 @@ public class DeviceInstanceController implements
                                                                       QueryParamEntity entity) {
         return registry.getDevice(deviceId)
             .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.productId))
-            .flatMap(productId -> timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceLogMetric(productId)).queryPager(entity, data -> data.as(DeviceOperationLogEntity.class)))
+            .flatMap(productId -> timeSeriesManager
+                .getService(DeviceTimeSeriesMetric.deviceLogMetric(productId))
+                .queryPager(entity.and("deviceId", TermType.eq, deviceId),
+                    data -> data.as(DeviceOperationLogEntity.class)))
             .defaultIfEmpty(PagerResult.empty());
     }
 

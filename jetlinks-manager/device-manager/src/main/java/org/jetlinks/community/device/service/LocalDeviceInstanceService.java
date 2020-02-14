@@ -243,15 +243,12 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     }
 
     private Mono<DevicePropertiesEntity> doGetDeviceProperty(String productId, String deviceId, String property) {
-        QueryParam queryParam = Query.of()
+        return Query.of()
             .and(DevicePropertiesEntity::getDeviceId, deviceId)
             .and(DevicePropertiesEntity::getProperty, property)
-            .orderByDesc("timestamp")
             .doPaging(0, 1)
-            .getParam();
-        return timeSeriesManager
-            .getService(DeviceTimeSeriesMetric.devicePropertyMetric(productId))
-            .query(queryParam)
+            .execute(timeSeriesManager
+                .getService(DeviceTimeSeriesMetric.devicePropertyMetric(productId))::query)
             .map(data -> data.as(DevicePropertiesEntity.class))
             .singleOrEmpty();
     }
