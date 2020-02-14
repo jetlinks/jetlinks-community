@@ -53,7 +53,10 @@ public interface TimeSeriesService {
      * @return 查询结果
      */
     default <T> Mono<PagerResult<T>> queryPager(QueryParam queryParam, Function<TimeSeriesData, T> mapper) {
-        return Mono.zip(count(queryParam), query(queryParam).map(mapper).collectList(), PagerResult::of);
+        return Mono.zip(
+            count(queryParam),
+            query(queryParam).map(mapper).collectList(),
+            (total, data) -> PagerResult.of(total, data, queryParam));
     }
 
     /**
