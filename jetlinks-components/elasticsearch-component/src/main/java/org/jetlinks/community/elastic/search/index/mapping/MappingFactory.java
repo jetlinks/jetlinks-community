@@ -1,8 +1,8 @@
 package org.jetlinks.community.elastic.search.index.mapping;
 
 import org.hswebframework.web.exception.BusinessException;
-import org.jetlinks.community.elastic.search.enums.FieldType;
 import org.jetlinks.community.elastic.search.enums.FieldDateFormat;
+import org.jetlinks.community.elastic.search.enums.FieldType;
 import org.jetlinks.community.elastic.search.index.CreateIndex;
 
 import java.util.Arrays;
@@ -44,7 +44,13 @@ public class MappingFactory {
 
     public MappingFactory addFieldDateFormat(FieldDateFormat... dateFormats) {
         continuityOperateHandle(flag);
-        filedMap.put("format", FieldDateFormat.getFormatStr(Arrays.asList(dateFormats)));
+        filedMap.compute("format", (k, v) -> v == null ? FieldDateFormat.getFormat(Arrays.asList(dateFormats)) : v + "||" + FieldDateFormat.getFormat(Arrays.asList(dateFormats)));
+        return this;
+    }
+
+    public MappingFactory addFieldDateFormat(String... dateFormats) {
+        continuityOperateHandle(flag);
+        filedMap.compute("format", (k, v) -> v == null ? FieldDateFormat.getFormatStr(Arrays.asList(dateFormats)) : v + "||" + FieldDateFormat.getFormatStr(Arrays.asList(dateFormats)));
         return this;
     }
 

@@ -60,7 +60,7 @@ public interface DeviceGateway {
      */
     Mono<Void> shutdown();
 
-   default boolean isAlive(){
-       return true;
-   }
+    default boolean isAlive() {
+        return true;
+    }
 }

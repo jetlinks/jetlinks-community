@@ -18,6 +18,8 @@ public class MetricsResponseSingleValue {
 
     private String valueAsString;
 
+    private String name;
+
     public static MetricsResponseSingleValue empty() {
         return new MetricsResponseSingleValue();
     }

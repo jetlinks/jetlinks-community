@@ -1,0 +1,76 @@
+package org.jetlinks.community.network.tcp.device;
+
+import lombok.Getter;
+import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.server.session.DeviceSession;
+import org.jetlinks.community.network.tcp.TcpMessage;
+import org.jetlinks.community.network.tcp.client.TcpClient;
+import reactor.core.publisher.Mono;
+
+class TcpDeviceSession implements DeviceSession {
+
+    @Getter
+    private String id;
+
+    @Getter
+    private DeviceOperator operator;
+
+    private TcpClient client;
+
+    @Getter
+    private Transport transport;
+
+    private long lastPingTime = System.currentTimeMillis();
+
+    private long connectTime = System.currentTimeMillis();
+
+    TcpDeviceSession(String id, DeviceOperator operator, TcpClient client, Transport transport) {
+        this.id = id;
+        this.operator = operator;
+        this.client = client;
+        this.transport = transport;
+    }
+
+    @Override
+    public String getDeviceId() {
+        return operator.getDeviceId();
+    }
+
+    @Override
+    public long lastPingTime() {
+        return lastPingTime;
+    }
+
+    @Override
+    public long connectTime() {
+        return connectTime;
+    }
+
+    @Override
+    public Mono<Boolean> send(EncodedMessage encodedMessage) {
+        return client.send(new TcpMessage(encodedMessage.getPayload()));
+    }
+
+    @Override
+    public void close() {
+        client.shutdown();
+    }
+
+    @Override
+    public void ping() {
+        lastPingTime = System.currentTimeMillis();
+        client.keepAlive();
+    }
+
+    @Override
+    public boolean isAlive() {
+        return client.isAlive();
+    }
+
+    @Override
+    public void onClose(Runnable call) {
+        client.onDisconnect(call);
+    }
+}

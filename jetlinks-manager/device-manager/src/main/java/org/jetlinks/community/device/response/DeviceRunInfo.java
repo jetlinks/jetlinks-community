@@ -24,4 +24,7 @@ public class DeviceRunInfo {
     private DeviceState state;
 
     private String metadata;
+
+    //设备型号ID
+    private String productId;
 }

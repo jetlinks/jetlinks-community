@@ -1,8 +1,8 @@
 package org.jetlinks.community.elastic.search.index.mapping;
 
 import lombok.*;
-import org.jetlinks.community.elastic.search.enums.FieldType;
 import org.jetlinks.community.elastic.search.enums.FieldDateFormat;
+import org.jetlinks.community.elastic.search.enums.FieldType;
 
 /**
  * @author bsetfeng

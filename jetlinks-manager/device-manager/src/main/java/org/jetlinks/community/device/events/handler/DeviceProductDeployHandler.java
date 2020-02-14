@@ -1,27 +1,24 @@
 package org.jetlinks.community.device.events.handler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.jetlinks.community.device.events.DeviceProductDeployEvent;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
-import org.jetlinks.community.elastic.search.enums.FieldDateFormat;
-import org.jetlinks.community.elastic.search.enums.FieldType;
-import org.jetlinks.community.elastic.search.index.CreateIndex;
-import org.jetlinks.community.elastic.search.index.mapping.MappingFactory;
-import org.jetlinks.community.elastic.search.service.IndexOperationService;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
-
-import java.util.function.Function;
 
 /**
+ * 处理设备型号发布事件
+ *
  * @author bsetfeng
+ * @author zhouhao
  * @since 1.0
  **/
 @Component
@@ -29,123 +26,54 @@ import java.util.function.Function;
 @Order(1)
 public class DeviceProductDeployHandler implements CommandLineRunner {
 
-
-    private final IndexOperationService indexOperationService;
-
     private final LocalDeviceProductService productService;
 
     private DeviceMetadataCodec codec = new JetLinksDeviceMetadataCodec();
 
+    private final TimeSeriesManager timeSeriesManager;
+
     @Autowired
-    public DeviceProductDeployHandler(IndexOperationService indexOperationService,
-                                      LocalDeviceProductService productService) {
-        this.indexOperationService = indexOperationService;
+    public DeviceProductDeployHandler(LocalDeviceProductService productService, TimeSeriesManager timeSeriesManager) {
         this.productService = productService;
+        this.timeSeriesManager = timeSeriesManager;
     }
 
     @EventListener
     public void handlerEvent(DeviceProductDeployEvent event) {
-        initDeviceEventIndex(event.getMetadata(), event.getId());
-        initDevicePropertiesIndex(event.getId());
+        initDeviceEventTimeSeriesMetadata(event.getMetadata(), event.getId());
+        initDevicePropertiesTimeSeriesMetadata(event.getId());
+        initDeviceLogTimeSeriesMetadata(event.getId());
     }
 
-    private void initDeviceEventIndex(String metadata, String productId) {
+    private void initDeviceEventTimeSeriesMetadata(String metadata, String productId) {
         codec.decode(metadata)
-            .flatMap(meta -> Mono.justOrEmpty(meta.getEvents()))
-            .flatMapIterable(Function.identity())
-            .subscribe(eventMetadata -> {
-                CreateIndex createIndex = CreateIndex.createInstance()
-                    .addIndex(DeviceEventIndex.getDeviceEventIndex(productId, eventMetadata.getId()).getStandardIndex());
-                MappingFactory mapping = ValueTypeRecordToESHandler.handler(
-                    addEventDefaultMapping(MappingFactory.createInstance(createIndex))
-                    , eventMetadata.getType(),
-                    eventMetadata.getId());
-                init(mapping.end().createIndexRequest());
-            });
+            .flatMapIterable(DeviceMetadata::getEvents)
+            .flatMap(eventMetadata -> timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.event(productId, eventMetadata)))
+            .doOnError(err -> log.error(err.getMessage(), err))
+            .subscribe();
     }
 
-    private void initDevicePropertiesIndex(String productId) {
-        CreateIndex createIndex = CreateIndex.createInstance()
-            .addIndex(DeviceEventIndex.getDevicePropertiesIndex(productId).getStandardIndex());
-        init(addPropertyDefaultMapping(MappingFactory.createInstance(createIndex)).end().createIndexRequest());
+    private void initDevicePropertiesTimeSeriesMetadata(String productId) {
+        timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.properties(productId))
+            .doOnError(err -> log.error(err.getMessage(), err))
+            .subscribe();
     }
 
-    private void init(CreateIndexRequest request) {
-        indexOperationService.init(request).subscribe(bool -> {
-            if (bool) {
-                log.info("初始化 设备事件index:{},成功", request.index());
-            }
-        });
+    private void initDeviceLogTimeSeriesMetadata(String productId) {
+        timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.log(productId))
+            .doOnError(err -> log.error(err.getMessage(), err))
+            .subscribe();
     }
-
-    private MappingFactory addEventDefaultMapping(MappingFactory mappingFactory) {
-        return mappingFactory
-            .addFieldName("deviceId")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("productId")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("orgId")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("createTime")
-            .addFieldType(FieldType.DATE)
-            .addFieldDateFormat(FieldDateFormat.epoch_millis, FieldDateFormat.simple_date, FieldDateFormat.strict_date_time)
-            .commit();
-    }
-
-    private MappingFactory addPropertyDefaultMapping(MappingFactory mappingFactory) {
-        return mappingFactory
-            .addFieldName("deviceId")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("productId")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("propertyName")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("property")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("orgId")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("value")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("objectValue")
-            .addFieldType(FieldType.OBJECT)
-            .commit()
-            .addFieldName("numberValue")
-            .addFieldType(FieldType.DOUBLE)
-            .commit()
-            .addFieldName("timeValue")
-            .addFieldType(FieldType.DATE)
-            .commit()
-            .addFieldName("stringValue")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .commit()
-            .addFieldName("formatValue")
-            .addFieldType(FieldType.KEYWORD)
-            .commit()
-            .addFieldName("timestamp")
-            .addFieldType(FieldType.DATE)
-            .addFieldDateFormat(FieldDateFormat.epoch_millis, FieldDateFormat.simple_date, FieldDateFormat.strict_date_time)
-            .commit();
-    }
-
 
     @Override
     public void run(String... args) throws Exception {
         productService.createQuery()
             .fetch()
-            .filter(productService -> productService.getState() == (byte) 1)
+            .filter(productService -> new Byte((byte) 1).equals(productService.getState()))
             .subscribe(deviceProductEntity -> {
-                initDeviceEventIndex(deviceProductEntity.getMetadata(), deviceProductEntity.getId());
-                initDevicePropertiesIndex(deviceProductEntity.getId());
+                initDeviceEventTimeSeriesMetadata(deviceProductEntity.getMetadata(), deviceProductEntity.getId());
+                initDevicePropertiesTimeSeriesMetadata(deviceProductEntity.getId());
+                initDeviceLogTimeSeriesMetadata(deviceProductEntity.getId());
             });
     }
 }

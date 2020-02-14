@@ -43,7 +43,7 @@ elasticsearch:
 device:
   message:
     writer:
-      elastic:
+      time-series:
         enabled: true #写出设备消息数据到elasticsearch
 hsweb:
   cors:
@@ -101,11 +101,10 @@ vertx:
   max-worker-execute-time-unit: seconds
   max-worker-execute-time: 30
   prefer-native-transport: true
-management:
-  metrics:
-    export:
-      elastic:
-        host: http://${elasticsearch.client.host}:${elasticsearch.client.port}
-        index: metrics
-        index-date-format: yyyy-MM
+micrometer:
+  time-series:
+    tags:
+      server: ${spring.application.name}
+    metrics:
+      default:
         step: 30s

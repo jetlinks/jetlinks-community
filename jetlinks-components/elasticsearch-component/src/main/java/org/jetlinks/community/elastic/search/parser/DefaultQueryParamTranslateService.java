@@ -34,7 +34,7 @@ public class DefaultQueryParamTranslateService extends AbstractQueryParamTransla
     }
 
     @Override
-    protected QueryBuilder  queryBuilder(QueryParam queryParam, IndexMappingMetadata mappingMetaData) {
+    protected QueryBuilder queryBuilder(QueryParam queryParam, IndexMappingMetadata mappingMetaData) {
         BoolQueryBuilder queryBuilders = QueryBuilders.boolQuery();
         queryParam.getTerms()
                 .forEach(term -> parser.process(term, t ->

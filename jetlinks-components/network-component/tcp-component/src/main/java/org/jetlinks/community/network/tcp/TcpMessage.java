@@ -6,10 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jetlinks.core.message.codec.EncodedMessage;
-import org.jetlinks.core.message.codec.MessagePayloadType;
-import org.jetlinks.rule.engine.executor.PayloadType;
-
-import javax.annotation.Nonnull;
 
 /**
  * @author bsetfeng
@@ -23,8 +19,5 @@ import javax.annotation.Nonnull;
 public class TcpMessage implements EncodedMessage {
 
     private ByteBuf payload;
-
-    //private MessagePayloadType payloadType;
-
 
 }

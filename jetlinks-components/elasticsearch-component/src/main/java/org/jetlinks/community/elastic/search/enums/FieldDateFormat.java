@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.hswebframework.web.dict.EnumDict;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author bsetfeng
@@ -28,10 +29,17 @@ public enum FieldDateFormat implements EnumDict<String> {
 
     private String text;
 
-    public static String getFormatStr(List<FieldDateFormat> dateFormats) {
+    public static String getFormat(List<FieldDateFormat> dateFormats) {
+        return getFormatStr(dateFormats.stream()
+            .map(FieldDateFormat::getValue)
+            .collect(Collectors.toList())
+        );
+    }
+
+    public static String getFormatStr(List<String> dateFormats) {
         StringBuffer format = new StringBuffer();
         for (int i = 0; i < dateFormats.size(); i++) {
-            format.append(dateFormats.get(i).getValue());
+            format.append(dateFormats.get(i));
             if (i != dateFormats.size() - 1) {
                 format.append("||");
             }

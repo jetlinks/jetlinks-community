@@ -30,15 +30,12 @@ import reactor.core.publisher.Mono;
 public class ProtocolSupportController implements
         ReactiveServiceCrudController<ProtocolSupportEntity, String> {
 
+    @Autowired
     @Getter
-    private final LocalProtocolSupportService service;
+    private LocalProtocolSupportService service;
 
-    private final ProtocolSupports protocolSupports;
-
-    public ProtocolSupportController(LocalProtocolSupportService service, ProtocolSupports protocolSupports) {
-        this.service = service;
-        this.protocolSupports = protocolSupports;
-    }
+    @Autowired
+    private ProtocolSupports protocolSupports;
 
     @PostMapping("/{id}/_deploy")
     @SaveAction

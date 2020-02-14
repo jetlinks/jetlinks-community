@@ -53,44 +53,45 @@ public class DefaultAggregationService implements AggregationService {
                                                     MetricsAggregationStructure structure,
                                                     ElasticIndex provider) {
         return searchSourceBuilderMono(queryParam, provider)
-                .doOnNext(builder -> builder.aggregation(
-                        structure.getType().aggregationBuilder(structure.getName(), structure.getField())))
-                .map(builder -> new SearchRequest(provider.getStandardIndex())
-                        .source(builder))
-                .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
-                        restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
-                .map(searchResponse -> structure.getType().getResponse(structure.getName(), searchResponse));
+            .doOnNext(builder -> builder.aggregation(
+                structure.getType().aggregationBuilder(structure.getName(), structure.getField())))
+            .map(builder -> new SearchRequest(provider.getStandardIndex())
+                .source(builder))
+            .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
+                restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
+            .map(searchResponse -> structure.getType().getResponse(structure.getName(), searchResponse));
     }
 
     @Override
     public Mono<BucketResponse> bucketAggregation(QueryParam queryParam, BucketAggregationsStructure structure, ElasticIndex provider) {
         return searchSourceBuilderMono(queryParam, provider)
-                .doOnNext(builder ->
-                        builder.aggregation(structure.getType().aggregationBuilder(structure))
-                )
-                .map(builder -> new SearchRequest(provider.getStandardIndex())
-                        .source(builder))
-                .doOnNext(searchRequest ->
-                        log.debug("聚合查询index:{},参数:{}",
-                                provider.getStandardIndex(),
-                                JSON.toJSON(searchRequest.source().toString())))
-                .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
-                        restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
-                .map(response -> structure.getType().convert(response.getAggregations().get(structure.getName())))
-                .map(buckets -> BucketResponse.builder()
-                        .name(structure.getName())
-                        .buckets(buckets)
-                        .build()
-                )
-                ;
+            .doOnNext(builder ->
+                builder.aggregation(structure.getType().aggregationBuilder(structure))
+            )
+            .map(builder -> new SearchRequest(provider.getStandardIndex())
+                .source(builder))
+            .doOnNext(searchRequest ->
+                log.debug("聚合查询index:{},参数:{}",
+                    provider.getStandardIndex(),
+                    JSON.toJSON(searchRequest.source().toString())))
+            .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
+                restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
+            .map(response -> structure.getType().convert(response.getAggregations().get(structure.getName())))
+            .map(buckets -> BucketResponse.builder()
+                .name(structure.getName())
+                .buckets(buckets)
+                .build()
+            )
+            ;
 
     }
 
     private Mono<SearchSourceBuilder> searchSourceBuilderMono(QueryParam queryParam, ElasticIndex provider) {
-        queryParam.setPaging(false);
+        QueryParam tempQueryParam = queryParam.clone();
+        tempQueryParam.setPaging(false);
         return indexOperationService.getIndexMappingMetadata(provider.getStandardIndex())
-                .map(metadata -> translateService.translate(queryParam, metadata))
-                .doOnError(e -> log.error("解析queryParam错误, index:{}", provider.getStandardIndex(), e));
+            .map(metadata -> translateService.translate(tempQueryParam, metadata))
+            .doOnError(e -> log.error("解析queryParam错误, index:{}", provider.getStandardIndex(), e));
         // return Mono.just(translateService.translate(queryParam, IndexMappingMetadata.getInstance(provider.getStandardIndex())));
     }
 

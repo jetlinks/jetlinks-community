@@ -36,9 +36,9 @@ public enum MetricsType {
         public MetricsResponse getResponse(String name, SearchResponse response) {
             Avg avg = response.getAggregations().get(name);
             return MetricsResponse.builder()
-                    .results(Collections.singletonMap(AVG,
-                            new MetricsResponseSingleValue(avg.getValue(), avg.getValueAsString())))
-                    .build();
+                .results(Collections.singletonMap(AVG,
+                    new MetricsResponseSingleValue(avg.getValue(), avg.getName(), avg.getValueAsString())))
+                .build();
         }
     },
     MAX("最大") {
@@ -51,12 +51,12 @@ public enum MetricsType {
         public MetricsResponse getResponse(String name, SearchResponse response) {
             Max max = response.getAggregations().get(name);
             return MetricsResponse.builder()
-                    .results(Collections.singletonMap(MAX,
-                            new MetricsResponseSingleValue(max.getValue(), max.getValueAsString())))
-                    .build();
+                .results(Collections.singletonMap(MAX,
+                    new MetricsResponseSingleValue(max.getValue(), max.getName(), max.getValueAsString())))
+                .build();
         }
     },
-    VALUE_COUNT("非空值计数") {
+    COUNT("非空值计数") {
         @Override
         public AggregationBuilder aggregationBuilder(String name, String filed) {
             return AggregationBuilders.count(name).field(filed);
@@ -66,9 +66,9 @@ public enum MetricsType {
         public MetricsResponse getResponse(String name, SearchResponse response) {
             ValueCount valueCount = response.getAggregations().get(name);
             return MetricsResponse.builder()
-                    .results(Collections.singletonMap(VALUE_COUNT,
-                            new MetricsResponseSingleValue(valueCount.getValue(), valueCount.getValueAsString())))
-                    .build();
+                .results(Collections.singletonMap(COUNT,
+                    new MetricsResponseSingleValue(valueCount.getValue(), valueCount.getName(), valueCount.getValueAsString())))
+                .build();
         }
     },
     MIN("最小") {
@@ -81,9 +81,9 @@ public enum MetricsType {
         public MetricsResponse getResponse(String name, SearchResponse response) {
             Min min = response.getAggregations().get(name);
             return MetricsResponse.builder()
-                    .results(Collections.singletonMap(MIN,
-                            new MetricsResponseSingleValue(min.getValue(), min.getValueAsString())))
-                    .build();
+                .results(Collections.singletonMap(MIN,
+                    new MetricsResponseSingleValue(min.getValue(), min.getName(), min.getValueAsString())))
+                .build();
         }
     },
     SUM("总数") {
@@ -96,9 +96,9 @@ public enum MetricsType {
         public MetricsResponse getResponse(String name, SearchResponse response) {
             Sum sum = response.getAggregations().get(name);
             return MetricsResponse.builder()
-                    .results(Collections.singletonMap(SUM,
-                            new MetricsResponseSingleValue(sum.getValue(), sum.getValueAsString())))
-                    .build();
+                .results(Collections.singletonMap(SUM,
+                    new MetricsResponseSingleValue(sum.getValue(), sum.getName(), sum.getValueAsString())))
+                .build();
         }
     },
     STATS("统计汇总") {
@@ -111,14 +111,14 @@ public enum MetricsType {
         public MetricsResponse getResponse(String name, SearchResponse response) {
             Stats stats = response.getAggregations().get(name);
             Map<MetricsType, MetricsResponseSingleValue> results = new HashMap<>();
-            results.put(AVG, new MetricsResponseSingleValue(stats.getAvg(), stats.getAvgAsString()));
-            results.put(MIN, new MetricsResponseSingleValue(stats.getMin(), stats.getMinAsString()));
-            results.put(MAX, new MetricsResponseSingleValue(stats.getMax(), stats.getMaxAsString()));
-            results.put(SUM, new MetricsResponseSingleValue(stats.getSum(), stats.getMaxAsString()));
-            results.put(VALUE_COUNT, new MetricsResponseSingleValue(stats.getCount(), String.valueOf(stats.getCount())));
+            results.put(AVG, new MetricsResponseSingleValue(stats.getAvg(), stats.getName(), stats.getAvgAsString()));
+            results.put(MIN, new MetricsResponseSingleValue(stats.getMin(), stats.getName(), stats.getMinAsString()));
+            results.put(MAX, new MetricsResponseSingleValue(stats.getMax(), stats.getName(), stats.getMaxAsString()));
+            results.put(SUM, new MetricsResponseSingleValue(stats.getSum(), stats.getName(), stats.getMaxAsString()));
+            results.put(COUNT, new MetricsResponseSingleValue(stats.getCount(), stats.getName(), String.valueOf(stats.getCount())));
             return MetricsResponse.builder()
-                    .results(results)
-                    .build();
+                .results(results)
+                .build();
         }
     };
 
@@ -128,5 +128,14 @@ public enum MetricsType {
     public abstract AggregationBuilder aggregationBuilder(String name, String filed);
 
     public abstract MetricsResponse getResponse(String name, SearchResponse response);
+
+    public static MetricsType of(String name) {
+        for (MetricsType type : MetricsType.values()) {
+            if (type.name().equalsIgnoreCase(name)) {
+                return type;
+            }
+        }
+        throw new UnsupportedOperationException("不支持的聚合度量类型：" + name);
+    }
 
 }

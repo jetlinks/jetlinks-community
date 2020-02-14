@@ -3,7 +3,6 @@ package org.jetlinks.community.device.entity;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
-import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
@@ -28,7 +27,6 @@ public class ProtocolSupportEntity extends GenericEntity<String> {
     private String type;
 
     @Column
-    @DefaultValue("0")
     private Byte state;
 
     @Column

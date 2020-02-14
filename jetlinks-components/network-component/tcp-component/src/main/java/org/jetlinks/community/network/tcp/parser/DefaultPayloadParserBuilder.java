@@ -1,9 +1,10 @@
 package org.jetlinks.community.network.tcp.parser;
 
-import org.jetlinks.community.network.tcp.parser.strateies.ScriptPayloadParserBuilder;
 import org.jetlinks.core.Values;
 import org.jetlinks.community.network.tcp.parser.strateies.DelimitedPayloadParserBuilder;
+import org.jetlinks.community.network.tcp.parser.strateies.DirectPayloadParserBuilder;
 import org.jetlinks.community.network.tcp.parser.strateies.FixLengthPayloadParserBuilder;
+import org.jetlinks.community.network.tcp.parser.strateies.ScriptPayloadParserBuilder;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ public class DefaultPayloadParserBuilder implements PayloadParserBuilder, BeanPo
         register(new FixLengthPayloadParserBuilder());
         register(new DelimitedPayloadParserBuilder());
         register(new ScriptPayloadParserBuilder());
+        register(new DirectPayloadParserBuilder());
     }
     @Override
     public PayloadParser build(PayloadParserType type, Values configuration) {

@@ -29,9 +29,7 @@ public abstract class VertxPayloadParserBuilder implements PayloadParserBuilderS
         public RecordPayloadParser(RecordParser recordParser) {
             this.recordParser = recordParser;
             this.recordParser.handler(buffer -> {
-               // if (processor.hasDownstreams()) {
-                    processor.onNext(buffer);
-               // }
+                processor.onNext(buffer);
             });
         }
 
@@ -47,11 +45,7 @@ public abstract class VertxPayloadParserBuilder implements PayloadParserBuilderS
 
         @Override
         public void close() {
-            try {
-                processor.dispose();
-            } catch (Exception ignore) {
-
-            }
+            processor.onComplete();
         }
     }
 

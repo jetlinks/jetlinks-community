@@ -3,7 +3,10 @@ package org.jetlinks.community.device.entity;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
-import org.hswebframework.ezorm.rdb.mapping.annotation.*;
+import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
+import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
+import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
+import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.generator.Generators;
@@ -86,7 +89,6 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
 
     @Comment("产品状态")
     @Column(name = "state")
-    @DefaultValue("0")
     private Byte state;
 
     @Column(name = "creator_id")

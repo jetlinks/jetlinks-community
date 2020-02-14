@@ -2,9 +2,12 @@ package org.jetlinks.community.device.response;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.community.device.entity.DevicePropertiesEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author bsetfeng
@@ -42,7 +45,7 @@ public class DeviceAllInfoResponse {
     /**
      * 元数据  事件id:事件数量 映射
      */
-    private Map<String, Object> eventCounts;
+    private Map<String, Integer> eventCounts;
 
     public static DeviceAllInfoResponse of(DeviceInfo deviceInfo, DeviceRunInfo deviceRunInfo) {
         DeviceAllInfoResponse info = new DeviceAllInfoResponse();
@@ -53,13 +56,14 @@ public class DeviceAllInfoResponse {
         return info;
     }
 
-    public static DeviceAllInfoResponse ofProperties(DeviceAllInfoResponse info, Map<String, Object> properties) {
-        info.setProperties(properties);
-        return info;
+
+    public DeviceAllInfoResponse ofProperties(List<DevicePropertiesEntity> properties) {
+        this.setProperties(properties.stream().collect(Collectors.toMap(DevicePropertiesEntity::getProperty, DevicePropertiesEntity::getFormatValue)));
+        return this;
     }
 
-    public static DeviceAllInfoResponse ofEventCounts(DeviceAllInfoResponse info, Map<String, Object> eventCounts) {
-        info.setEventCounts(eventCounts);
-        return info;
+    public DeviceAllInfoResponse ofEventCounts(Map<String, Integer> eventCounts) {
+        this.setEventCounts(eventCounts);
+        return this;
     }
 }

@@ -19,12 +19,12 @@ import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.PagerResult;
-import org.jetlinks.community.elastic.search.ElasticRestClient;
-import org.jetlinks.community.elastic.search.index.mapping.IndexMappingMetadata;
 import org.jetlinks.core.utils.FluxUtils;
+import org.jetlinks.community.elastic.search.ElasticRestClient;
 import org.jetlinks.community.elastic.search.index.ElasticIndex;
+import org.jetlinks.community.elastic.search.index.mapping.IndexMappingMetadata;
 import org.jetlinks.community.elastic.search.parser.QueryParamTranslateService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -32,13 +32,9 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -58,13 +54,13 @@ public class DefaultElasticSearchService implements ElasticSearchService {
 
     FluxSink<Buffer> sink;
 
-    @Autowired
     public DefaultElasticSearchService(ElasticRestClient restClient,
                                        QueryParamTranslateService translateService,
                                        IndexOperationService indexOperationService) {
         this.restClient = restClient;
         this.translateService = translateService;
         this.indexOperationService = indexOperationService;
+        init();
     }
 
 
@@ -105,12 +101,19 @@ public class DefaultElasticSearchService implements ElasticSearchService {
         });
     }
 
+    @Override
+    public <T> Mono<Void> commit(ElasticIndex index, Publisher<T> data) {
+        return Flux.from(data)
+            .flatMap(d -> commit(index, d))
+            .then();
+    }
+
     @PreDestroy
     public void shutdown() {
         sink.complete();
     }
 
-    @PostConstruct
+    //@PostConstruct
     public void init() {
 
         FluxUtils.bufferRate(Flux.<Buffer>create(sink -> this.sink = sink),
@@ -243,14 +246,17 @@ public class DefaultElasticSearchService implements ElasticSearchService {
                 }
                 return request;
             })
+            .doOnError(e -> log.error("查询index:" + provider.getStandardIndex() + "元数据错误", e))
             .doOnNext(searchRequest -> log.debug("查询index：{},es查询参数:{}", provider.getStandardIndex(), searchRequest.source().toString()));
     }
 
     private Mono<CountRequest> countRequestStructure(QueryParam queryParam, ElasticIndex provider) {
-        queryParam.setPaging(false);
+        QueryParam tempQueryParam = queryParam.clone();
+        tempQueryParam.setPaging(false);
+        tempQueryParam.setSorts(Collections.emptyList());
         return indexOperationService.getIndexMappingMetadata(provider.getStandardIndex())
             .map(metadata -> new CountRequest(provider.getStandardIndex())
-                .source(translateService.translate(queryParam, metadata)))
+                .source(translateService.translate(tempQueryParam, metadata)))
             .doOnNext(searchRequest -> log.debug("查询index：{},es查询参数:{}", provider.getStandardIndex(), searchRequest.source().toString()));
     }
 }

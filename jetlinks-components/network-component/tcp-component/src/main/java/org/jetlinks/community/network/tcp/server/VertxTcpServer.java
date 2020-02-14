@@ -9,7 +9,6 @@ import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.tcp.client.VertxTcpClient;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 
-
 import java.util.function.Supplier;
 
 /**

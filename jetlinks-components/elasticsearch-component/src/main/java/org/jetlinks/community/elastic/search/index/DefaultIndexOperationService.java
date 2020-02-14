@@ -41,33 +41,38 @@ public class DefaultIndexOperationService implements IndexOperationService {
     @Override
     public Mono<Boolean> indexIsExists(String index) {
         return Mono.create(sink -> {
-            try {
-                GetIndexRequest request = new GetIndexRequest(index);
-                sink.success(restClient.getQueryClient().indices().exists(request, RequestOptions.DEFAULT));
-            } catch (Exception e) {
-                log.error("查询es index 是否存在失败", e);
-                sink.error(e);
-            }
+            restClient.getQueryClient().indices().existsAsync(new GetIndexRequest(index), RequestOptions.DEFAULT, new ActionListener<Boolean>() {
+                @Override
+                public void onResponse(Boolean aBoolean) {
+                    sink.success(aBoolean);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    log.error("查询es index 是否存在失败", e);
+                    sink.error(e);
+                }
+            });
         });
     }
 
     @Override
     public Mono<Boolean> init(CreateIndexRequest request) {
         return indexIsExists(request.index())
-                .filter(bool -> !bool)
-                .flatMap(b -> Mono.create(sink -> {
-                    restClient.getQueryClient().indices().createAsync(request, RequestOptions.DEFAULT, new ActionListener<CreateIndexResponse>() {
-                        @Override
-                        public void onResponse(CreateIndexResponse createIndexResponse) {
-                            sink.success(createIndexResponse.isAcknowledged());
-                        }
+            .filter(bool -> !bool)
+            .flatMap(b -> Mono.create(sink -> {
+                restClient.getQueryClient().indices().createAsync(request, RequestOptions.DEFAULT, new ActionListener<CreateIndexResponse>() {
+                    @Override
+                    public void onResponse(CreateIndexResponse createIndexResponse) {
+                        sink.success(createIndexResponse.isAcknowledged());
+                    }
 
-                        @Override
-                        public void onFailure(Exception e) {
-                            sink.error(e);
-                        }
-                    });
-                }));
+                    @Override
+                    public void onFailure(Exception e) {
+                        sink.error(e);
+                    }
+                });
+            }));
 
     }
 
@@ -75,54 +80,57 @@ public class DefaultIndexOperationService implements IndexOperationService {
     @Override
     public Mono<IndexMappingMetadata> getIndexMappingMetadata(String index) {
         return indicesMappingCenter.getIndexMappingMetaData(index)
-                .map(Mono::just).orElseGet(() ->
-                        getIndexMapping(index)
-                                .doOnNext(indicesMappingCenter::register));
+            .map(Mono::just).orElseGet(() ->
+                getIndexMapping(index)
+                    .doOnNext(indicesMappingCenter::register));
     }
 
     private Mono<IndexMappingMetadata> getIndexMapping(String index) {
         return indexIsExists(index)
-                .filter(Boolean::booleanValue)
-                .flatMap(bool -> Mono.create(sink -> {
-                    if (bool) {
-                        GetMappingsRequest mappingsRequest = new GetMappingsRequest();
-                        mappingsRequest.indices(index);
-                        restClient.getQueryClient().indices().getMappingAsync(mappingsRequest, RequestOptions.DEFAULT, new ActionListener<GetMappingsResponse>() {
-                            @Override
-                            public void onResponse(GetMappingsResponse getMappingsResponse) {
-                                //index存在时 getMappingsResponse.mappings().get(index).getSourceAsMap().get("properties") 不会为空
-                                sink.success(fieldMappingConvert(null, IndexMappingMetadata.getInstance(index), getMappingsResponse.mappings().get(index).getSourceAsMap().get("properties")));
-                            }
+            .filter(Boolean::booleanValue)
+            .flatMap(bool -> Mono.<IndexMappingMetadata>create(sink -> {
+                if (bool) {
+                    GetMappingsRequest mappingsRequest = new GetMappingsRequest();
+                    mappingsRequest.indices(index);
+                    restClient.getQueryClient().indices().getMappingAsync(mappingsRequest, RequestOptions.DEFAULT, new ActionListener<GetMappingsResponse>() {
+                        @Override
+                        public void onResponse(GetMappingsResponse getMappingsResponse) {
+                            //index存在时 getMappingsResponse.mappings().get(index).getSourceAsMap().get("properties") 不会为空
+                            //sink.success(fieldMappingConvert(null, IndexMappingMetadata.getInstance(index), getMappingsResponse.mappings().get(index).getSourceAsMap().get("properties")));
+                            getMappingsResponse.mappings()
+                                .forEach((k, v) -> sink.success(fieldMappingConvert(null, IndexMappingMetadata.getInstance(index), v.getSourceAsMap().get("properties"))));
+                        }
 
-                            @Override
-                            public void onFailure(Exception e) {
-                                sink.error(e);
-                            }
-                        });
-                    }
-                }));
+                        @Override
+                        public void onFailure(Exception e) {
+                            sink.error(e);
+                        }
+                    });
+                }
+            }))
+            .switchIfEmpty(Mono.just(IndexMappingMetadata.getInstance(index)));
 
     }
 
     private IndexMappingMetadata fieldMappingConvert(String baseKey, IndexMappingMetadata indexMappingMetaData, Object properties) {
         FastBeanCopier.copy(properties, new HashMap<String, Object>())
-                .forEach((key, value) -> {
-                    if (StringUtils.hasText(baseKey)) {
-                        key = baseKey.concat(".").concat(key);
+            .forEach((key, value) -> {
+                if (StringUtils.hasText(baseKey)) {
+                    key = baseKey.concat(".").concat(key);
+                }
+                if (value instanceof Map) {
+                    Map tempValue = FastBeanCopier.copy(value, new HashMap<>());
+                    Object childProperties = tempValue.get("properties");
+                    if (childProperties != null) {
+                        fieldMappingConvert(key, indexMappingMetaData, childProperties);
+                        return;
                     }
-                    if (value instanceof Map) {
-                        Map tempValue = FastBeanCopier.copy(value, new HashMap<>());
-                        Object childProperties = tempValue.get("properties");
-                        if (childProperties != null) {
-                            fieldMappingConvert(key, indexMappingMetaData, childProperties);
-                            return;
-                        }
-                        indexMappingMetaData.setMetadata(SingleMappingMetadata.builder()
-                                .name(key)
-                                .type(FieldType.of(tempValue.get("type")))
-                                .build());
-                    }
-                });
+                    indexMappingMetaData.setMetadata(SingleMappingMetadata.builder()
+                        .name(key)
+                        .type(FieldType.of(tempValue.get("type")))
+                        .build());
+                }
+            });
         return indexMappingMetaData;
     }
 }

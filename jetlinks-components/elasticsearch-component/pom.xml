@@ -17,10 +17,12 @@
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.hswebframework</groupId>
             <artifactId>hsweb-easy-orm-elasticsearch</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
@@ -40,6 +42,12 @@
             <groupId>org.jetlinks</groupId>
             <artifactId>jetlinks-core</artifactId>
             <version>${jetlinks.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>timeseries-component</artifactId>
+            <version>${project.version}</version>
         </dependency>
         
     </dependencies>

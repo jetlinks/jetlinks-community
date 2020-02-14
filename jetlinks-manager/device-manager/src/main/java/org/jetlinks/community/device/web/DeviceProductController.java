@@ -7,7 +7,10 @@ import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
-import org.jetlinks.community.device.service.LogService;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
+import org.jetlinks.community.timeseries.TimeSeriesData;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -18,26 +21,29 @@ import java.util.Map;
 @Resource(id = "device-product", name = "设备型号")
 public class DeviceProductController implements ReactiveServiceCrudController<DeviceProductEntity, String> {
 
-    private final LocalDeviceProductService productService;
+    @Autowired
+    private LocalDeviceProductService productService;
 
-    private final LogService logService;
-
-    public DeviceProductController(LocalDeviceProductService productService, LogService logService) {
-        this.productService = productService;
-        this.logService = logService;
-    }
+    @Autowired
+    private TimeSeriesManager timeSeriesManager;
 
     @Override
     public LocalDeviceProductService getService() {
         return productService;
     }
 
-    @PostMapping("/deploy/{productId:.+}")
+    @PostMapping({
+        "/deploy/{productId:.+}",//todo 即将移除
+        "/{productId:.+}/deploy"
+    })
     public Mono<Integer> deviceDeploy(@PathVariable String productId) {
         return productService.deploy(productId);
     }
 
-    @PostMapping("/cancelDeploy/{productId:.+}")
+    @PostMapping({
+        "/cancelDeploy/{productId:.+}",//todo 即将移除
+        "/{productId:.+}/undeploy"
+    })
     public Mono<Integer> cancelDeploy(@PathVariable String productId) {
         return productService.cancelDeploy(productId);
     }
@@ -52,10 +58,12 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
      */
     @GetMapping("{productId}/event/{eventId}")
     @QueryAction
-    public Mono<PagerResult<Map>> queryPagerByDeviceEvent(QueryParam queryParam,
-                                                          @PathVariable String productId,
-                                                          @PathVariable String eventId) {
-        return logService.queryPagerByDeviceEvent(queryParam, productId, eventId);
+    public Mono<PagerResult<Map<String, Object>>> queryPagerByDeviceEvent(QueryParam queryParam,
+                                                                          @PathVariable String productId,
+                                                                          @PathVariable String eventId) {
+        return timeSeriesManager
+            .getService(DeviceTimeSeriesMetric.deviceEventMetric(productId, eventId))
+            .queryPager(queryParam, TimeSeriesData::getData);
     }
 
 }

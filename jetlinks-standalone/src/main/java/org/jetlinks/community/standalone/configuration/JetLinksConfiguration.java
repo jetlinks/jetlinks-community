@@ -4,6 +4,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.device.message.writer.TimeSeriesMessageWriterConnector;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.core.device.DeviceOperationBroker;
@@ -17,8 +19,6 @@ import org.jetlinks.core.server.monitor.GatewayServerMonitor;
 import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.core.spi.ServiceContext;
 import org.jetlinks.community.device.message.DeviceMessageConnector;
-import org.jetlinks.community.device.message.writer.ElasticDeviceMessageWriterConnector;
-import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.gateway.MessageConnector;
 import org.jetlinks.community.gateway.supports.DefaultMessageGateway;
 import org.jetlinks.community.gateway.supports.LocalClientSessionManager;
@@ -37,6 +37,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,6 +54,16 @@ import java.util.concurrent.ScheduledExecutorService;
 @EnableConfigurationProperties(JetLinksProperties.class)
 @Slf4j
 public class JetLinksConfiguration {
+
+    @Bean
+    public WebServerFactoryCustomizer<NettyReactiveWebServerFactory> webServerFactoryWebServerFactoryCustomizer() {
+        //解决请求参数最大长度问题
+        return factory -> factory.addServerCustomizers(httpServer ->
+            httpServer.httpRequestDecoder(spec -> {
+                spec.maxInitialLineLength(10240);
+                return spec;
+            }));
+    }
 
     @Bean
     @ConfigurationProperties(prefix = "vertx")
@@ -96,9 +108,9 @@ public class JetLinksConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "device.message.writer.elastic", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public ElasticDeviceMessageWriterConnector elasticDeviceMessageWriterConnector(ElasticSearchService searchService, DeviceRegistry registry) {
-        return new ElasticDeviceMessageWriterConnector(searchService, registry);
+    @ConditionalOnProperty(prefix = "device.message.writer.time-series", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public TimeSeriesMessageWriterConnector timeSeriesMessageWriterConnector(TimeSeriesManager timeSeriesManager, DeviceRegistry registry) {
+        return new TimeSeriesMessageWriterConnector(timeSeriesManager, registry);
     }
 
     @Bean(destroyMethod = "shutdown")

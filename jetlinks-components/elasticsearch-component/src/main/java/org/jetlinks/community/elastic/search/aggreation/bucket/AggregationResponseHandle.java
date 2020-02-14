@@ -24,58 +24,60 @@ public class AggregationResponseHandle {
     public static <A extends Aggregation> List<Bucket> terms(A a) {
         Terms terms = (Terms) a;
         return terms.getBuckets()
-                .stream()
-                .map(b -> {
-                    Bucket bucket = Bucket.builder()
-                            .key(b.getKeyAsString())
-                            .count(b.getDocCount())
-                            .build();
-                    b.getAggregations().asList()
-                            .forEach(subAggregation -> route(bucket, subAggregation));
-                    return bucket;
-                }).collect(Collectors.toList())
-                ;
+            .stream()
+            .map(b -> {
+                Bucket bucket = Bucket.builder()
+                    .key(b.getKeyAsString())
+                    .count(b.getDocCount())
+                    .name(a.getName())
+                    .build();
+                b.getAggregations().asList()
+                    .forEach(subAggregation -> route(bucket, subAggregation));
+                return bucket;
+            }).collect(Collectors.toList())
+            ;
     }
 
     public static <A extends Aggregation> List<Bucket> range(A a) {
         Range range = (Range) a;
         return range.getBuckets()
-                .stream()
-                .map(b -> {
-                    Bucket bucket = Bucket.builder()
-                            .key(b.getKeyAsString())
-                            .from(b.getFrom())
-                            .to(b.getTo())
-                            .fromAsString(b.getFromAsString())
-                            .toAsString(b.getToAsString())
-                            .count(b.getDocCount()).build();
-                    b.getAggregations().asList()
-                            .forEach(subAggregation -> {
-                                route(bucket, subAggregation);
-                            });
-                    return bucket;
-                }).collect(Collectors.toList())
-                ;
+            .stream()
+            .map(b -> {
+                Bucket bucket = Bucket.builder()
+                    .key(b.getKeyAsString())
+                    .from(b.getFrom())
+                    .to(b.getTo())
+                    .fromAsString(b.getFromAsString())
+                    .toAsString(b.getToAsString())
+                    .count(b.getDocCount()).build();
+                b.getAggregations().asList()
+                    .forEach(subAggregation -> {
+                        route(bucket, subAggregation);
+                    });
+                return bucket;
+            }).collect(Collectors.toList())
+            ;
     }
 
     public static <A extends Aggregation> List<Bucket> dateHistogram(A a) {
         Histogram histogram = (Histogram) a;
-        return bucketsHandle(histogram.getBuckets());
+        return bucketsHandle(histogram.getBuckets(), a.getName());
     }
 
-    private static List<Bucket> bucketsHandle(List<? extends Histogram.Bucket> buckets) {
+    private static List<Bucket> bucketsHandle(List<? extends Histogram.Bucket> buckets, String name) {
         return buckets
-                .stream()
-                .map(b -> {
-                    Bucket bucket = Bucket.builder()
-                            .key(b.getKeyAsString())
-                            .count(b.getDocCount())
-                            .build();
-                    b.getAggregations().asList()
-                            .forEach(subAggregation -> route(bucket, subAggregation));
-                    return bucket;
-                }).collect(Collectors.toList())
-                ;
+            .stream()
+            .map(b -> {
+                Bucket bucket = Bucket.builder()
+                    .key(b.getKeyAsString())
+                    .count(b.getDocCount())
+                    .name(name)
+                    .build();
+                b.getAggregations().asList()
+                    .forEach(subAggregation -> route(bucket, subAggregation));
+                return bucket;
+            }).collect(Collectors.toList())
+            ;
     }
 
     private static <A extends Aggregation> void route(Bucket bucket, A a) {
@@ -103,52 +105,60 @@ public class AggregationResponseHandle {
     public static <A extends Aggregation> MetricsResponseSingleValue avg(A a) {
         Avg avg = (Avg) a;
         return MetricsResponseSingleValue.builder()
-                .value(avg.getValue())
-                .valueAsString(avg.getValueAsString())
-                .build();
+            .value(avg.getValue())
+            .name(a.getName())
+            .valueAsString(avg.getValueAsString())
+            .build();
     }
 
     public static <A extends Aggregation> MetricsResponseSingleValue max(A a) {
         Max max = (Max) a;
         return MetricsResponseSingleValue.builder()
-                .value(max.getValue())
-                .valueAsString(max.getValueAsString())
-                .build();
+            .value(max.getValue())
+            .name(a.getName())
+            .valueAsString(max.getValueAsString())
+            .build();
     }
 
     public static <A extends Aggregation> MetricsResponseSingleValue min(A a) {
         Min min = (Min) a;
         return MetricsResponseSingleValue.builder()
-                .value(min.getValue())
-                .valueAsString(min.getValueAsString())
-                .build();
+            .value(min.getValue())
+            .name(a.getName())
+            .valueAsString(min.getValueAsString())
+            .build();
     }
 
     public static <A extends Aggregation> MetricsResponseSingleValue sum(A a) {
         Sum sum = (Sum) a;
         return MetricsResponseSingleValue.builder()
-                .value(sum.getValue())
-                .valueAsString(sum.getValueAsString())
-                .build();
+            .value(sum.getValue())
+            .name(a.getName())
+            .valueAsString(sum.getValueAsString())
+            .build();
     }
 
     public static <A extends Aggregation> void stats(Bucket bucket, A a) {
         Stats stats = (Stats) a;
         bucket.setAvg(MetricsResponseSingleValue.builder()
-                .value(stats.getAvg())
-                .valueAsString(stats.getAvgAsString())
-                .build());
+            .value(stats.getAvg())
+            .name(a.getName())
+            .valueAsString(stats.getAvgAsString())
+            .build());
         bucket.setMax(MetricsResponseSingleValue.builder()
-                .value(stats.getMax())
-                .valueAsString(stats.getMaxAsString())
-                .build());
+            .value(stats.getMax())
+            .name(a.getName())
+            .valueAsString(stats.getMaxAsString())
+            .build());
         bucket.setMin(MetricsResponseSingleValue.builder()
-                .value(stats.getMin())
-                .valueAsString(stats.getMinAsString())
-                .build());
+            .value(stats.getMin())
+            .name(a.getName())
+            .valueAsString(stats.getMinAsString())
+            .build());
         bucket.setSum(MetricsResponseSingleValue.builder()
-                .value(stats.getSum())
-                .valueAsString(stats.getSumAsString())
-                .build());
+            .value(stats.getSum())
+            .name(a.getName())
+            .valueAsString(stats.getSumAsString())
+            .build());
     }
 }

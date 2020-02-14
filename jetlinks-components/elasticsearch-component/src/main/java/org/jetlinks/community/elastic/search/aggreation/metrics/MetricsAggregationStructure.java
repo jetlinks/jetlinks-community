@@ -21,7 +21,7 @@ public class MetricsAggregationStructure {
     private String name;
 
     @NonNull
-    private MetricsType type = MetricsType.VALUE_COUNT;
+    private MetricsType type = MetricsType.COUNT;
 
     /**
      * 缺失值

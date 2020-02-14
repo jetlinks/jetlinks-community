@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -29,11 +30,15 @@ public class PipePayloadParser implements PayloadParser {
 
     private EmitterProcessor<Buffer> processor = EmitterProcessor.create(true);
 
+    private FluxSink<Buffer> sink = processor.sink();
+
     private List<Consumer<Buffer>> pipe = new CopyOnWriteArrayList<>();
 
     private List<Buffer> result = new CopyOnWriteArrayList<>();
 
     private volatile RecordParser recordParser;
+
+    private Function<Buffer, Buffer> directMapper;
 
     private Consumer<RecordParser> firstInit;
 
@@ -72,6 +77,11 @@ public class PipePayloadParser implements PayloadParser {
         return this;
     }
 
+    public PipePayloadParser direct(Function<Buffer, Buffer> mapper) {
+        this.directMapper = mapper;
+        return this;
+    }
+
     private Consumer<Buffer> getNextHandler() {
         int i = currentPipe.getAndIncrement();
         if (i < pipe.size()) {
@@ -88,18 +98,16 @@ public class PipePayloadParser implements PayloadParser {
 
     public PipePayloadParser complete() {
         currentPipe.set(0);
-        firstInit.accept(recordParser);
-//        if (!processor.hasDownstreams()) {
-//            this.result.clear();
-//            return this;
-//        }
+        if (recordParser != null) {
+            firstInit.accept(recordParser);
+        }
         if (!this.result.isEmpty()) {
             Buffer buffer = Buffer.buffer();
             for (Buffer buf : this.result) {
                 buffer.appendBuffer(buf);
             }
             this.result.clear();
-            processor.onNext(buffer);
+            sink.next(buffer);
         }
         return this;
 
@@ -112,11 +120,18 @@ public class PipePayloadParser implements PayloadParser {
 
     @Override
     public synchronized void handle(Buffer buffer) {
-        if (recordParser == null) {
+        if (recordParser == null && directMapper == null) {
             log.error("record parser not init");
             return;
         }
-        recordParser.handle(buffer);
+        if (recordParser != null) {
+            recordParser.handle(buffer);
+            return;
+        }
+        Buffer buf = directMapper.apply(buffer);
+        if (null != buf) {
+            sink.next(buf);
+        }
     }
 
     @Override

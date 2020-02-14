@@ -7,30 +7,28 @@ import org.hswebframework.web.exception.NotFoundException;
 import org.springframework.util.StringUtils;
 
 @AllArgsConstructor
-
+@Getter
 public enum FieldType implements EnumDict<String> {
 
-    TEXT("text"),
-    BYTE("byte"),
-    SHORT("short"),
-    INTEGER("integer"),
-    LONG("long"),
-    DATE("date"),
-    HALF_FLOAT("half_float"),
-    FLOAT("float"),
-    DOUBLE("double"),
-    BOOLEAN("boolean"),
-    OBJECT("object"),
-    AUTO("auto"),
-    NESTED("nested"),
-    IP("ip"),
-    ATTACHMENT("attachment"),
-    KEYWORD("keyword");
+    TEXT("text", "text"),
+    BYTE("byte", "byte"),
+    SHORT("short", "short"),
+    INTEGER("int", "integer"),
+    LONG("long", "long"),
+    DATE("date", "date"),
+    HALF_FLOAT("half_float", "half_float"),
+    FLOAT("float", "float"),
+    DOUBLE("double", "double"),
+    BOOLEAN("boolean", "boolean"),
+    OBJECT("object", "object"),
+    AUTO("auto", "auto"),
+    NESTED("nested", "nested"),
+    IP("ip", "ip"),
+    ATTACHMENT("attachment", "attachment"),
+    KEYWORD("string", "keyword");
 
-    @Override
-    public String getText() {
-        return value;
-    }
+    @Getter
+    private String text;
 
     @Getter
     private String value;
@@ -39,6 +37,17 @@ public enum FieldType implements EnumDict<String> {
         if (!StringUtils.isEmpty(value)) {
             for (FieldType fieldType : FieldType.values()) {
                 if (fieldType.getValue().equals(value)) {
+                    return fieldType;
+                }
+            }
+        }
+        throw new NotFoundException("未找到数据类型为：" + value + "的枚举");
+    }
+
+    public static FieldType ofJava(Object value) {
+        if (!StringUtils.isEmpty(value)) {
+            for (FieldType fieldType : FieldType.values()) {
+                if (fieldType.getText().equals(value)) {
                     return fieldType;
                 }
             }

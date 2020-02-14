@@ -1,6 +1,5 @@
 package org.jetlinks.community.network.tcp.client;
 
-import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.Network;
 import org.jetlinks.community.network.tcp.TcpMessage;
 import reactor.core.publisher.Flux;
@@ -26,7 +25,7 @@ public interface TcpClient extends Network {
      * 订阅TCP消息,此消息是已经处理过粘拆包的完整消息
      *
      * @return TCP消息
-     * @see PayloadParser
+     * @see org.jetlinks.community.network.tcp.parser.PayloadParser
      */
     Flux<TcpMessage> subscribe();
 
@@ -37,11 +36,7 @@ public interface TcpClient extends Network {
      */
     Mono<Boolean> send(TcpMessage message);
 
-    /**
-     *
-     * @param listener
-     */
-    void onDisconnect(Runnable listener);
+    void onDisconnect(Runnable disconnected);
 
     /**
      * 连接保活

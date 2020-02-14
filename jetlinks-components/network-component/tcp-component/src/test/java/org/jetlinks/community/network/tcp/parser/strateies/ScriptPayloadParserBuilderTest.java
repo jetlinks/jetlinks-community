@@ -20,7 +20,7 @@ class ScriptPayloadParserBuilderTest {
         ScriptPayloadParserBuilder builder = new ScriptPayloadParserBuilder();
         Map<String, Object> config = new HashMap<>();
         config.put("script", "\n" +
-                "var BytesUtils = org.jetlinks.pro.network.utils.BytesUtils;\n" +
+                "var BytesUtils = org.jetlinks.community.network.utils.BytesUtils;\n" +
                 "parser.fixed(4)\n" +
                 "       .handler(function(buffer){\n" +
                 "            var len = BytesUtils.highBytesToInt(buffer.getBytes());\n" +

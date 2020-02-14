@@ -37,8 +37,8 @@ public enum BucketType {
         @Override
         public AggregationBuilder aggregationBuilder(BucketAggregationsStructure structure) {
             TermsAggregationBuilder builder = AggregationBuilders
-                    .terms(structure.getName())
-                    .field(structure.getField());
+                .terms(structure.getName())
+                .field(structure.getField());
             if (structure.getSize() != null) {
                 builder.size(structure.getSize());
             }
@@ -62,15 +62,15 @@ public enum BucketType {
         @Override
         public AggregationBuilder aggregationBuilder(BucketAggregationsStructure structure) {
             RangeAggregationBuilder builder = AggregationBuilders
-                    .range(structure.getName())
-                    .field(structure.getField());
+                .range(structure.getName())
+                .field(structure.getField());
             if (structure.getMissingValue() != null) {
                 builder.missing(structure.getMissingValue());
             }
             structure.getRanges()
-                    .forEach(ranges -> {
-                        builder.addRange(ranges.getKey(), (Double) ranges.getForm(), (Double) ranges.getTo());
-                    });
+                .forEach(ranges -> {
+                    builder.addRange(ranges.getKey(), (Double) ranges.getForm(), (Double) ranges.getTo());
+                });
             commonAggregationSetting(builder, structure);
             return builder;
         }
@@ -84,15 +84,15 @@ public enum BucketType {
         @Override
         public AggregationBuilder aggregationBuilder(BucketAggregationsStructure structure) {
             DateRangeAggregationBuilder builder = AggregationBuilders
-                    .dateRange(structure.getName())
-                    .field(structure.getField());
+                .dateRange(structure.getName())
+                .field(structure.getField());
             if (StringUtils.hasText(structure.getFormat())) {
                 builder.format(structure.getFormat());
             }
             structure.getRanges()
-                    .forEach(ranges -> {
-                        builder.addRange(ranges.getKey(), ranges.getForm().toString(), ranges.getTo().toString());
-                    });
+                .forEach(ranges -> {
+                    builder.addRange(ranges.getKey(), ranges.getForm().toString(), ranges.getTo().toString());
+                });
             if (structure.getMissingValue() != null) {
                 builder.missing(structure.getMissingValue());
             }
@@ -110,21 +110,29 @@ public enum BucketType {
         @Override
         public AggregationBuilder aggregationBuilder(BucketAggregationsStructure structure) {
             DateHistogramAggregationBuilder builder = AggregationBuilders
-                    .dateHistogram(structure.getName())
-                    .field(structure.getField());
+                .dateHistogram(structure.getName())
+                .field(structure.getField());
             if (StringUtils.hasText(structure.getFormat())) {
                 builder.format(structure.getFormat());
             }
             if (StringUtils.hasText(structure.getInterval())) {
                 builder.dateHistogramInterval(new DateHistogramInterval(structure.getInterval()));
             }
+            if (structure.getExtendedBounds() != null) {
+                builder.extendedBounds(structure.getExtendedBounds());
+            }
             if (structure.getMissingValue() != null) {
                 builder.missing(structure.getMissingValue());
+            }
+            Sort sort = structure.getSort();
+            if (sort != null) {
+                builder.order(mapping.get(OrderBuilder.of(sort.getOrder(), sort.getType())));
             }
             builder.timeZone(DateTimeZone.getDefault());
             commonAggregationSetting(builder, structure);
             return builder;
         }
+
 
         @Override
         public <A extends Aggregation> List<Bucket> convert(A a) {
@@ -149,16 +157,16 @@ public enum BucketType {
 
     private static void addMetricsSubAggregation(AggregationBuilder builder, List<MetricsAggregationStructure> subMetricsAggregation) {
         subMetricsAggregation
-                .forEach(subStructure -> {
-                    builder.subAggregation(subStructure.getType().aggregationBuilder(subStructure.getName(), subStructure.getField()));
-                });
+            .forEach(subStructure -> {
+                builder.subAggregation(subStructure.getType().aggregationBuilder(subStructure.getName(), subStructure.getField()));
+            });
     }
 
     private static void addBucketSubAggregation(AggregationBuilder builder, List<BucketAggregationsStructure> subBucketAggregation) {
         subBucketAggregation
-                .forEach(subStructure -> {
-                    builder.subAggregation(subStructure.getType().aggregationBuilder(subStructure));
-                });
+            .forEach(subStructure -> {
+                builder.subAggregation(subStructure.getType().aggregationBuilder(subStructure));
+            });
     }
 
     @Getter
@@ -177,6 +185,10 @@ public enum BucketType {
         mapping.put(OrderBuilder.of("asc", OrderType.COUNT), BucketOrder.count(true));
         mapping.put(OrderBuilder.of("desc", OrderType.COUNT), BucketOrder.count(false));
         mapping.put(OrderBuilder.of("asc", OrderType.KEY), BucketOrder.key(true));
-        mapping.put(OrderBuilder.of("desc", OrderType.KEY), BucketOrder.count(false));
+        mapping.put(OrderBuilder.of("desc", OrderType.KEY), BucketOrder.key(false));
+    }
+
+    public static void main(String[] args) {
+        System.out.println(mapping.get(OrderBuilder.of("desc", OrderType.KEY)).toString());
     }
 }

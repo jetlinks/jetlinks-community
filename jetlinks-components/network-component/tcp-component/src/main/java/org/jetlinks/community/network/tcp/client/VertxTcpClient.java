@@ -58,7 +58,6 @@ public class VertxTcpClient extends AbstractTcpClient {
         this.id = id;
     }
 
-
     private void execute(Runnable runnable) {
         try {
             runnable.run();
@@ -111,9 +110,9 @@ public class VertxTcpClient extends AbstractTcpClient {
         }
         this.payloadParser = payloadParser;
         this.payloadParser
-            .handlePayload()
-            .onErrorContinue((err, res) -> log.error(err.getMessage(), err))
-            .subscribe(buffer -> received(new TcpMessage(buffer.getByteBuf())));
+                .handlePayload()
+                .onErrorContinue((err, res) ->log.error(err.getMessage(),err))
+                .subscribe(buffer -> received(new TcpMessage(buffer.getByteBuf())));
     }
 
     public void setSocket(NetSocket socket) {
@@ -146,6 +145,7 @@ public class VertxTcpClient extends AbstractTcpClient {
                 return;
             }
             Buffer buffer = Buffer.buffer(message.getPayload());
+            int len = buffer.length();
             socket.write(buffer, r -> {
                 keepAlive();
                 if (r.succeeded()) {
