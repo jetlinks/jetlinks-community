@@ -40,6 +40,7 @@ class DevicePropertyMeasurement extends StaticMeasurement {
         return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
             .doPaging(0, history)
             .where("deviceId", deviceId)
+            .and("property",metadata.getId())
             .execute(timeSeriesService::query)
             .map(data -> SimpleMeasurementValue.of(format ?
                 data.get("formatValue").orElse("/") :
