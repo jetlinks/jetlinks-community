@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.time.Duration;
 
 @Component
 @Slf4j
@@ -45,6 +46,7 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
 
         VertxTcpServer tcpServer = new VertxTcpServer(properties.getId());
         initTcpServer(tcpServer, properties);
+
         return tcpServer;
     }
 
@@ -52,6 +54,7 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
         NetServer netServer = vertx.createNetServer(properties.getOptions());
         tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(), Values.of(properties.getParserConfiguration())));
         tcpServer.setServer(netServer);
+        tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout").orElse(Duration.ofMinutes(10).toMillis()));
         netServer.listen(properties.createSocketAddress(), result -> {
             if (result.succeeded()) {
                 log.info("tcp server startup on {}", result.result().actualPort());
@@ -86,10 +89,10 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
             if (config.isSsl()) {
                 config.getOptions().setSsl(true);
                 return certificateManager.getCertificate(config.getCertId())
-                        .map(VertxKeyCertTrustOptions::new)
-                        .doOnNext(config.getOptions()::setKeyCertOptions)
-                        .doOnNext(config.getOptions()::setTrustOptions)
-                        .thenReturn(config);
+                    .map(VertxKeyCertTrustOptions::new)
+                    .doOnNext(config.getOptions()::setKeyCertOptions)
+                    .doOnNext(config.getOptions()::setTrustOptions)
+                    .thenReturn(config);
             }
             return Mono.just(config);
         });

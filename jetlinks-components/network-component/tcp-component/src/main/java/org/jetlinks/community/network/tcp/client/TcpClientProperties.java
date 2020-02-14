@@ -2,16 +2,19 @@ package org.jetlinks.community.network.tcp.client;
 
 import io.vertx.core.net.NetClientOptions;
 import lombok.*;
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TcpClientProperties {
+public class TcpClientProperties implements ValueObject {
 
     private String id;
 
@@ -25,10 +28,14 @@ public class TcpClientProperties {
 
     private PayloadParserType parserType;
 
-    private Map<String,Object> parserConfiguration;
+    private Map<String, Object> parserConfiguration = new HashMap<>();
 
     private NetClientOptions options;
 
     private boolean enabled;
 
+    @Override
+    public Optional<Object> get(String name) {
+        return Optional.ofNullable(parserConfiguration).map(map -> map.get(name));
+    }
 }

@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.time.Duration;
 
 @Component
 @Slf4j
@@ -58,6 +59,7 @@ public class VertxTcpClientProvider implements NetworkProvider<TcpClientProperti
         client.setRecordParser(payloadParserBuilder.build(properties.getParserType(), Values.of(properties.getParserConfiguration())));
         NetClient netClient = vertx.createNetClient(properties.getOptions());
         client.setClient(netClient);
+        client.setKeepAliveTimeout(properties.getLong("keepAliveTimeout").orElse(Duration.ofMinutes(10).toMillis()));
         netClient.connect(properties.getPort(), properties.getHost(), result -> {
             if (result.succeeded()) {
                 log.debug("connect tcp [{}:{}] success", properties.getHost(), properties.getPort());

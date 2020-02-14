@@ -3,12 +3,14 @@ package org.jetlinks.community.network.tcp.server;
 import io.vertx.core.net.NetServer;
 import io.vertx.core.net.NetSocket;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.tcp.client.VertxTcpClient;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 
+import java.time.Duration;
 import java.util.function.Supplier;
 
 /**
@@ -22,6 +24,9 @@ public class VertxTcpServer extends AbstractTcpServer implements TcpServer {
     volatile NetServer server;
 
     private Supplier<PayloadParser> parserSupplier;
+
+    @Setter
+    private long keepAliveTimeout = Duration.ofMinutes(10).toMillis();
 
     @Getter
     private String id;
@@ -52,6 +57,7 @@ public class VertxTcpServer extends AbstractTcpServer implements TcpServer {
 
     protected void acceptTcpConnection(NetSocket socket) {
         VertxTcpClient client = new VertxTcpClient(id + "_" + socket.remoteAddress());
+        client.setKeepAliveTimeout(keepAliveTimeout);
         try {
             socket.exceptionHandler(err -> {
                 log.error("tcp server client [{}] error", socket.remoteAddress(), err);
