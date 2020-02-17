@@ -31,10 +31,10 @@ public class DefaultDeviceGatewayManager implements DeviceGatewayManager, BeanPo
         }
         return propertiesManager
             .getProperties(id)
-            .switchIfEmpty(Mono.error(new UnsupportedOperationException("网关配置[" + id + "]不存在")))
+            .switchIfEmpty(Mono.error(()->new UnsupportedOperationException("网关配置[" + id + "]不存在")))
             .flatMap(properties -> Mono
                 .justOrEmpty(providers.get(properties.getProvider()))
-                .switchIfEmpty(Mono.error(new UnsupportedOperationException("不支持的网络服务[" + properties.getProvider() + "]")))
+                .switchIfEmpty(Mono.error(()->new UnsupportedOperationException("不支持的网络服务[" + properties.getProvider() + "]")))
                 .flatMap(provider -> provider
                     .createDeviceGateway(properties)
                     .flatMap(gateway -> {

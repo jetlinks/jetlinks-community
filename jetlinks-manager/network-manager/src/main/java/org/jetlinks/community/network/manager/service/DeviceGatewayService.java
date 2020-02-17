@@ -47,7 +47,7 @@ public class DeviceGatewayService extends GenericReactiveCrudService<DeviceGatew
     @Override
     public Mono<Integer> deleteById(Publisher<String> idPublisher) {
         return findById(Mono.from(idPublisher))
-            .switchIfEmpty(Mono.error(new NotFoundException("改设备网关不存在")))
+            .switchIfEmpty(Mono.error(()->new NotFoundException("改设备网关不存在")))
             .doOnNext(deviceGatewayEntity -> {
                 if (NetworkConfigState.enabled.equals(deviceGatewayEntity.getState())) {
                     throw new UnsupportedOperationException("该设备网关已启用");

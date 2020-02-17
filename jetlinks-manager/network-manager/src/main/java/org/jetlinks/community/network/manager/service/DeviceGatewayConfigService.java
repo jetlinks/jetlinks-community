@@ -22,7 +22,7 @@ public class DeviceGatewayConfigService implements DeviceGatewayPropertiesManage
 
         return deviceGatewayService
             .findById(id)
-            .switchIfEmpty(Mono.error(new NotFoundException("该设备网关不存在")))
+            .switchIfEmpty(Mono.error(()->new NotFoundException("该设备网关不存在")))
             .map(deviceGatewayEntity -> {
                 DeviceGatewayProperties properties = new DeviceGatewayProperties();
                 FastBeanCopier.copy(deviceGatewayEntity, properties);

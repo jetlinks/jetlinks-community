@@ -49,7 +49,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
     @PostMapping("/{id}/_start")
     public Mono<Void> start(@PathVariable String id) {
         return configService.findById(id)
-                .switchIfEmpty(Mono.error(new NotFoundException("配置[" + id + "]不存在")))
+                .switchIfEmpty(Mono.error(()->new NotFoundException("配置[" + id + "]不存在")))
                 .flatMap(conf -> configService.createUpdate()
                         .set(NetworkConfigEntity::getState, NetworkConfigState.enabled)
                         .where(conf::getId)
@@ -61,7 +61,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
     @PostMapping("/{id}/_shutdown")
     public Mono<Void> shutdown(@PathVariable String id) {
         return configService.findById(id)
-                .switchIfEmpty(Mono.error(new NotFoundException("配置[" + id + "]不存在")))
+                .switchIfEmpty(Mono.error(()->new NotFoundException("配置[" + id + "]不存在")))
                 .flatMap(conf -> configService.createUpdate()
                         .set(NetworkConfigEntity::getState, NetworkConfigState.disabled)
                         .where(conf::getId)
