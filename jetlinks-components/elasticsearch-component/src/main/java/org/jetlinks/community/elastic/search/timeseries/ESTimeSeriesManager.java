@@ -31,35 +31,13 @@ public class ESTimeSeriesManager extends ESAbstractTimeSeriesManager {
 
     private final TimeSeriesServiceRegisterCenter timeSeriesServiceRegisterCenter;
 
-    private final IndexOperationService indexOperationService;
-
-    private final IndexTemplateOperationService indexTemplateOperationService;
-
-    private final StandardsIndexManager standardsIndexManager;
-
     public ESTimeSeriesManager(TimeSeriesServiceRegisterCenter timeSeriesServiceRegisterCenter,
                                IndexOperationService indexOperationService,
                                StandardsIndexManager standardsIndexManager,
                                IndexTemplateOperationService indexTemplateOperationService) {
+        super(indexOperationService,standardsIndexManager,indexTemplateOperationService);
         this.timeSeriesServiceRegisterCenter = timeSeriesServiceRegisterCenter;
-        this.indexOperationService = indexOperationService;
-        this.standardsIndexManager = standardsIndexManager;
-        this.indexTemplateOperationService = indexTemplateOperationService;
-    }
 
-    @Override
-    public StandardsIndexManager getStandardsIndexManager() {
-        return this.standardsIndexManager;
-    }
-
-    @Override
-    public IndexOperationService getIndexOperationService() {
-        return indexOperationService;
-    }
-
-    @Override
-    public IndexTemplateOperationService getIndexTemplateOperationService() {
-        return indexTemplateOperationService;
     }
 
     @Override

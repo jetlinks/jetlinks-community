@@ -27,15 +27,25 @@ public abstract class ESAbstractTimeSeriesManager implements TimeSeriesManager {
 
     private Map<String, LocalTimeSeriesMetric> localMetricMap = new ConcurrentHashMap<>();
 
-    private StandardsIndexManager standardsIndexManager;
+    protected StandardsIndexManager standardsIndexManager;
 
-    private IndexOperationService indexOperationService;
+    protected IndexOperationService indexOperationService;
 
-    private IndexTemplateOperationService indexTemplateOperationService;
+    protected IndexTemplateOperationService indexTemplateOperationService;
+
+    public ESAbstractTimeSeriesManager(IndexOperationService indexOperationService,
+                               StandardsIndexManager standardsIndexManager,
+                               IndexTemplateOperationService indexTemplateOperationService) {
+        this.indexOperationService = indexOperationService;
+        this.standardsIndexManager = standardsIndexManager;
+        this.indexTemplateOperationService = indexTemplateOperationService;
+    }
+
 
     // TODO: 2020/2/11 策略变更动态更新实现
     protected LocalTimeSeriesMetric getLocalTimeSeriesMetric(TimeSeriesMetric metric) {
-        return localMetricMap.computeIfAbsent(metric.getId(), index -> {
+
+        return localMetricMap.computeIfAbsent(metric.getId().toLowerCase(), index -> {
             String standardsIndex = getStandardsIndexManager().getStandardsIndex(index);
             String templateName = IndexTemplateProvider.getIndexTemplate(index);
             return new LocalTimeSeriesMetric(
