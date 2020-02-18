@@ -31,17 +31,7 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
 
     private TimeSeriesManager timeSeriesManager;
 
-    static MeasurementDefinition definition = new MeasurementDefinition() {
-        @Override
-        public String getId() {
-            return "device-status";
-        }
-
-        @Override
-        public String getName() {
-            return "设备状态";
-        }
-    };
+    static MeasurementDefinition definition = MeasurementDefinition.of("change", "设备状态变更");
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
@@ -55,7 +45,7 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
         this.messageGateway = messageGateway;
         this.timeSeriesManager = timeSeriesManager;
         addDimension(new RealTimeDeviceStateDimension());
-        addDimension(new HistoryDeviceStateDimension());
+        addDimension(new CountDeviceStateDimension());
     }
 
     static ConfigMetadata historyConfigMetadata = new DefaultConfigMetadata()
@@ -66,16 +56,18 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
             .addElement(EnumType.Element.of("offline", "离线")))
         .add("limit", "最大数据量", "", new IntType())
         .add("from", "时间从", "", new DateTimeType())
-        .add("to", "时间至", "", new DateTimeType())
-        ;
+        .add("to", "时间至", "", new DateTimeType());
 
     static DataType historyValueType = new IntType();
 
-    class HistoryDeviceStateDimension implements MeasurementDimension {
+    /**
+     * 设备状态统计
+     */
+    class CountDeviceStateDimension implements MeasurementDimension {
 
         @Override
         public DimensionDefinition getDefinition() {
-            return CommonDimensionDefinition.history;
+            return CommonDimensionDefinition.agg;
         }
 
         @Override
@@ -101,7 +93,10 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
                 .groupBy(parameter.getDuration("time").orElse(Duration.ofHours(1)),
                     "time",
                     parameter.getString("format").orElse("MM-dd:HH"))
-                .filter(query -> query.where("name", parameter.getString("type").orElse("online")))
+                .filter(query ->
+                    query.where("name", parameter.getString("type").orElse("online"))
+                        .is("productId", parameter.getString("productId").orElse(null))
+                )
                 .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))

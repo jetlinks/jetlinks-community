@@ -4,10 +4,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
 import org.jetlinks.community.device.measurements.DeviceDashboardDefinition;
 import org.jetlinks.community.device.measurements.DeviceObjectDefinition;
+import org.jetlinks.community.device.message.DeviceMessageUtils;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.gateway.MessageGateway;
+import org.jetlinks.community.gateway.TopicMessage;
 import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.core.message.DeviceMessage;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -22,15 +25,28 @@ public class DeviceMessageMeasurementProvider extends StaticMeasurementProvider 
         super(DeviceDashboardDefinition.instance, DeviceObjectDefinition.message);
         addMeasurement(new DeviceMessageMeasurement(messageGateway, timeSeriesManager));
 
-        //定时提交设备消息量
+
         MeterRegistry registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId());
 
+        //订阅设备消息,用于统计设备消息量
         messageGateway.subscribe("/device/*/message/**")
-            .window(Duration.ofSeconds(5))
-            .flatMap(Flux::count)
-            .subscribe(total -> registry
-                .counter("message-count")
-                .increment(total));
+            .map(this::convertTags)
+            .subscribe(tags -> registry
+                .counter("message-count", tags)
+                .increment());
 
+    }
+
+    static final String[] empty = new String[0];
+
+    private String[] convertTags(TopicMessage msg) {
+        DeviceMessage message = DeviceMessageUtils.convert(msg).orElse(null);
+        if (message == null) {
+            return empty;
+        }
+        return new String[]{
+            "msgType", message.getMessageType().name().toLowerCase(),
+            "productId", message.getHeader("productId").map(String::valueOf).orElse("unknown")
+        };
     }
 }

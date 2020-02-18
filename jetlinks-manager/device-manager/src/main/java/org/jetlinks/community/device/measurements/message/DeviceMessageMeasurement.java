@@ -28,7 +28,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
     static MeasurementDefinition definition = new MeasurementDefinition() {
         @Override
         public String getId() {
-            return "device-message-quantity";
+            return "quantity";
         }
 
         @Override
@@ -49,8 +49,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
     static DataType valueType = new IntType();
 
     static ConfigMetadata realTimeConfigMetadata = new DefaultConfigMetadata()
-        .add("interval", "数据统计周期", "例如: 1s,10s", new StringType())
-        ;
+        .add("interval", "数据统计周期", "例如: 1s,10s", new StringType());
 
     class RealTimeMessageDimension implements MeasurementDimension {
 
@@ -89,10 +88,11 @@ class DeviceMessageMeasurement extends StaticMeasurement {
     static ConfigMetadata historyConfigMetadata = new DefaultConfigMetadata()
         .add("time", "周期", "例如: 1h,10m,30s", new StringType())
         .add("format", "时间格式", "如: MM-dd:HH", new StringType())
+        .add("productId", "设备型号", "", new StringType())
+        .add("msgType", "消息类型", "", new StringType())
         .add("limit", "最大数据量", "", new IntType())
         .add("from", "时间从", "", new DateTimeType())
-        .add("to", "时间至", "", new DateTimeType())
-        ;
+        .add("to", "时间至", "", new DateTimeType());
 
     class AggMessageDimension implements MeasurementDimension {
 
@@ -125,7 +125,12 @@ class DeviceMessageMeasurement extends StaticMeasurement {
                 .groupBy(parameter.getDuration("time").orElse(Duration.ofHours(1)),
                     "time",
                     parameter.getString("format").orElse("MM-dd:HH"))
-                .filter(query -> query.where("name", "message-count"))
+                .filter(query ->
+                    query.where("name", "message-count")
+                        .is("productId", parameter.getString("productId").orElse(null))
+                        .is("msgType", parameter.getString("msgType").orElse(null))
+
+                )
                 .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))
@@ -136,5 +141,6 @@ class DeviceMessageMeasurement extends StaticMeasurement {
                     System.currentTimeMillis()));
         }
     }
+
 
 }

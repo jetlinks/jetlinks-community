@@ -69,7 +69,7 @@ public class DashboardController {
             .flatMap(dash -> dash.getObject(request.getObject()))
             .flatMap(obj -> obj.getMeasurement(request.getMeasurement()))
             .flatMap(meas -> meas.getDimension(request.getDimension()))
-            .filter(dim -> !dim.isRealTime()) //实时数据请使用
+            .filter(dim -> !dim.isRealTime()) //实时数据请使用EventSource方式
             .flatMapMany(dim -> dim.getValue(MeasurementParameter.of(request.getParams())))
             .map(val -> DashboardMeasurementResponse.of(request.getGroup(), val)));
     }

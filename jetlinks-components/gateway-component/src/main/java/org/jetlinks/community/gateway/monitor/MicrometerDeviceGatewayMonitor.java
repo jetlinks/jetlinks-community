@@ -5,69 +5,77 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
+import java.util.concurrent.atomic.AtomicReference;
+
 class MicrometerDeviceGatewayMonitor implements DeviceGatewayMonitor {
     MeterRegistry registry;
-
     String id;
     String[] tags;
 
-    @Override
-    public void totalConnection(long total) {
+    private AtomicReference<Long> totalRef = new AtomicReference<>(0L);
+
+    public MicrometerDeviceGatewayMonitor(MeterRegistry registry, String id, String[] tags) {
+        this.registry = registry;
+        this.id = id;
+        this.tags = tags;
         Gauge
-            .builder(id, total, Number::doubleValue)
+            .builder(id, totalRef, AtomicReference::get)
             .tags(tags)
             .tag("target", "connection")
+            .register(registry);
+
+        this.connected = getCounter("connected");
+        this.rejected = getCounter("rejected");
+        this.disconnected = getCounter("disconnected");
+        this.sentMessage = getCounter("sentMessage");
+        this.receivedMessage = getCounter("receivedMessage");
+
+    }
+
+    final Counter connected;
+    final Counter rejected;
+    final Counter disconnected;
+    final Counter receivedMessage;
+    final Counter sentMessage;
+
+
+    private Counter getCounter(String target) {
+        return Counter
+            .builder(id)
+            .tags(tags)
+            .tag("target", target)
             .register(registry);
     }
 
     @Override
+    public void totalConnection(long total) {
+        totalRef.set(Math.max(0, total));
+    }
+
+    @Override
     public void connected() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "connected")
-            .register(registry)
-            .increment();
+        connected.increment();
     }
 
     @Override
     public void rejected() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "rejected")
-            .register(registry)
-            .increment();
+        rejected.increment();
     }
 
     @Override
     public void disconnected() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "disconnected")
-            .register(registry)
-            .increment();
+        disconnected.increment();
     }
 
     @Override
     public void receivedMessage() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "receivedMessage")
-            .register(registry)
+        receivedMessage
             .increment();
     }
 
     @Override
     public void sentMessage() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "sentMessage")
-            .register(registry)
+        sentMessage
             .increment();
     }
 }

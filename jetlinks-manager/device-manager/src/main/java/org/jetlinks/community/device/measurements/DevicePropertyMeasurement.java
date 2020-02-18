@@ -6,6 +6,7 @@ import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
@@ -13,6 +14,8 @@ import org.jetlinks.community.device.message.DeviceMessageUtils;
 import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.gateway.Subscription;
 import org.jetlinks.community.timeseries.TimeSeriesService;
+import org.jetlinks.core.metadata.types.IntType;
+import org.jetlinks.core.metadata.types.StringType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -77,6 +80,9 @@ class DevicePropertyMeasurement extends StaticMeasurement {
             .filter(msg -> msg.containsKey(metadata.getId()))
             .map(msg -> SimpleMeasurementValue.of(createValue(msg.get(metadata.getId())), System.currentTimeMillis()));
     }
+    static ConfigMetadata configMetadata = new DefaultConfigMetadata()
+        .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"))
+        .add("history", "历史数据量", "查询出历史数据后开始推送实时数据", new IntType().min(0).expand("defaultValue", 10));
 
     /**
      * 实时设备事件
@@ -95,8 +101,7 @@ class DevicePropertyMeasurement extends StaticMeasurement {
 
         @Override
         public ConfigMetadata getParams() {
-            // TODO: 2020/1/15
-            return null;
+            return configMetadata;
         }
 
         @Override

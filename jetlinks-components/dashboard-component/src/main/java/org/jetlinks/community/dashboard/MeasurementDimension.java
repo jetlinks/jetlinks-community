@@ -2,10 +2,12 @@ package org.jetlinks.community.dashboard;
 
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
 /**
  * 指标维度,如: 每小时,服务器1
+ *
  * @author zhouhao
  */
 public interface MeasurementDimension {
@@ -18,6 +20,6 @@ public interface MeasurementDimension {
 
     boolean isRealTime();
 
-    Flux<MeasurementValue> getValue(MeasurementParameter parameter);
+    Publisher<? extends MeasurementValue> getValue(MeasurementParameter parameter);
 
 }

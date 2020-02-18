@@ -17,13 +17,15 @@ public class DimensionInfo {
 
     private ConfigMetadata params;
 
-    public static DimensionInfo of(MeasurementDimension dimension){
-        DimensionInfo dimensionInfo=new DimensionInfo();
+    private boolean realTime;
+
+    public static DimensionInfo of(MeasurementDimension dimension) {
+        DimensionInfo dimensionInfo = new DimensionInfo();
         dimensionInfo.setId(dimension.getDefinition().getId());
         dimensionInfo.setName(dimension.getDefinition().getName());
         dimensionInfo.setParams(dimension.getParams());
         dimensionInfo.setType(dimension.getValueType());
-
+        dimensionInfo.setRealTime(dimension.isRealTime());
         return dimensionInfo;
     }
 }

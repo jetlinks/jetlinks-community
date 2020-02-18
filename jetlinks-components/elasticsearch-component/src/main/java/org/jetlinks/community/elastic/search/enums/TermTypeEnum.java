@@ -36,7 +36,7 @@ public enum TermTypeEnum {
         public QueryBuilder process(Term term) {
             Object between = null;
             Object and = null;
-            List values = TermCommonUtils.convertToList(term.getValue());
+            List<?> values = TermCommonUtils.convertToList(term.getValue());
             if (values.size() > 0) {
                 between = values.get(0);
             }

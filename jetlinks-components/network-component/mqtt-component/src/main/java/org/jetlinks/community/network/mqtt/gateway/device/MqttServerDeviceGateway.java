@@ -3,6 +3,9 @@ package org.jetlinks.community.network.mqtt.gateway.device;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
+import org.jetlinks.community.gateway.monitor.GatewayMonitors;
+import org.jetlinks.community.gateway.monitor.MonitorSupportDeviceGateway;
 import org.jetlinks.core.device.AuthenticationResponse;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -30,10 +33,11 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
 @Slf4j
-class MqttServerDeviceGateway implements DeviceGateway {
+class MqttServerDeviceGateway implements DeviceGateway , MonitorSupportDeviceGateway {
 
     @Getter
     private String id;
@@ -46,11 +50,16 @@ class MqttServerDeviceGateway implements DeviceGateway {
 
     private DecodedClientMessageHandler messageHandler;
 
+    private DeviceGatewayMonitor gatewayMonitor;
+
+    private LongAdder counter = new LongAdder();
+
     public MqttServerDeviceGateway(String id,
                                    DeviceRegistry registry,
                                    DeviceSessionManager sessionManager,
                                    MqttServer mqttServer,
                                    DecodedClientMessageHandler messageHandler) {
+        this.gatewayMonitor = GatewayMonitors.getDeviceGatewayMonitor(id);
         this.id = id;
         this.registry = registry;
         this.sessionManager = sessionManager;
@@ -66,6 +75,11 @@ class MqttServerDeviceGateway implements DeviceGateway {
 
     private Disposable disposable;
 
+    @Override
+    public long totalConnection() {
+        return counter.sum();
+    }
+
     private void doStart() {
         if (started.getAndSet(true) || disposable != null) {
             return;
@@ -75,12 +89,16 @@ class MqttServerDeviceGateway implements DeviceGateway {
             .filter(conn -> {
                 if (!started.get()) {
                     conn.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
+                    gatewayMonitor.rejected();
                 }
                 return started.get();
             })
             .flatMap(con -> Mono.justOrEmpty(con.getAuth())
                 //没有认证信息,则拒绝连接.
-                .switchIfEmpty(Mono.fromRunnable(() -> con.reject(MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED)))
+                .switchIfEmpty(Mono.fromRunnable(() -> {
+                    con.reject(MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED);
+                    gatewayMonitor.rejected();
+                }))
                 .flatMap(auth ->
                     registry.getDevice(con.getClientId())
                         .flatMap(device -> device
@@ -98,22 +116,41 @@ class MqttServerDeviceGateway implements DeviceGateway {
                             })
                         ))
                 //设备注册信息不存在,拒绝连接
-                .switchIfEmpty(Mono.fromRunnable(() -> con.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED)))
+                .switchIfEmpty(Mono.fromRunnable(() -> {
+                    con.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED);
+                    gatewayMonitor.rejected();
+                }))
                 .onErrorContinue((err, res) -> {
+                    gatewayMonitor.rejected();
                     con.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
                     log.error("MQTT连接认证[{}]失败", con.getClientId(), err);
                 }))
             .flatMap(tuple3 -> {
+                counter.increment();
                 DeviceOperator device = tuple3.getT1();
                 AuthenticationResponse resp = tuple3.getT2();
                 MqttConnection con = tuple3.getT3();
                 String deviceId = device.getDeviceId();
                 if (resp.isSuccess()) {
-                    DeviceSession session = new MqttConnectionSession(deviceId, device, getTransport(), con);
+                    DeviceSession session = new MqttConnectionSession(deviceId, device, getTransport(), con) {
+                        @Override
+                        public Mono<Boolean> send(EncodedMessage encodedMessage) {
+                            return super.send(encodedMessage).doOnSuccess(s -> gatewayMonitor.sentMessage());
+                        }
+                    };
                     sessionManager.register(session);
-                    con.onClose(conn -> sessionManager.unregister(deviceId));
+                    gatewayMonitor.connected();
+                    gatewayMonitor.totalConnection(counter.sum());
+                    //监听断开连接
+                    con.onClose(conn -> {
+                        counter.decrement();
+                        sessionManager.unregister(deviceId);
+                        gatewayMonitor.disconnected();
+                        gatewayMonitor.totalConnection(counter.sum());
+                    });
                     return Mono.just(Tuples.of(con.accept(), device, session));
                 } else {
+                    gatewayMonitor.rejected();
                     log.warn("MQTT客户端认证[{}]失败:{}", deviceId, resp.getMessage());
                 }
                 return Mono.empty();
@@ -123,6 +160,7 @@ class MqttServerDeviceGateway implements DeviceGateway {
                 .handleMessage()
                 .filter(pb -> started.get())
                 .takeWhile(pub -> disposable != null)
+                .doOnNext(msg -> gatewayMonitor.receivedMessage())
                 .flatMap(publishing -> tp.getT2()
                     .getProtocol()
                     .flatMap(protocol -> protocol.getMessageCodec(getTransport()))

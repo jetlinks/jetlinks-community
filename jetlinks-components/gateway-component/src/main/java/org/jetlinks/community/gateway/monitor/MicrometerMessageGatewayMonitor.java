@@ -5,59 +5,74 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 @AllArgsConstructor
 class MicrometerMessageGatewayMonitor implements MessageGatewayMonitor {
     MeterRegistry registry;
 
     String id;
     String[] tags;
+    private final AtomicReference<Long> totalRef = new AtomicReference<>(0L);
 
-    @Override
-    public void totalSession(long sessionNumber) {
+    public MicrometerMessageGatewayMonitor(MeterRegistry registry, String id, String[] tags) {
+        this.registry = registry;
+        this.id = id;
+        this.tags = tags;
         Gauge
-            .builder(id, sessionNumber, Number::doubleValue)
+            .builder(id, totalRef, AtomicReference::get)
             .tags(tags)
             .tag("target", "sessionNumber")
             .register(registry);
+
+        this.acceptedSession=getCounter("acceptedSession");
+        this.closedSession=getCounter("closedSession");
+        this.subscribed=getCounter("subscribed");
+        this.unsubscribed=getCounter("unsubscribed");
+        this.acceptMessage=getCounter("acceptMessage");
+
     }
 
+
     @Override
-    public void acceptedSession() {
-        Counter
+    public void totalSession(long sessionNumber) {
+        totalRef.set(Math.max(0, sessionNumber));
+    }
+
+    final Counter acceptedSession;
+    final Counter closedSession;
+    final Counter subscribed;
+    final Counter unsubscribed;
+    final Counter acceptMessage;
+
+    private Counter getCounter(String target) {
+        return Counter
             .builder(id)
             .tags(tags)
-            .tag("target", "acceptedSession")
-            .register(registry)
+            .tag("target", target)
+            .register(registry);
+    }
+    @Override
+    public void acceptedSession() {
+        acceptedSession
             .increment();
     }
 
     @Override
     public void closedSession() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "closedSession")
-            .register(registry)
+        closedSession
             .increment();
     }
 
     @Override
     public void subscribed() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "subscribed")
-            .register(registry)
+        subscribed
             .increment();
     }
 
     @Override
     public void unsubscribed() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "unsubscribed")
-            .register(registry)
+        unsubscribed
             .increment();
     }
 
@@ -67,18 +82,14 @@ class MicrometerMessageGatewayMonitor implements MessageGatewayMonitor {
             .builder(id)
             .tags(tags)
             .tag("target", "dispatched")
-            .tag("connector",connector)
+            .tag("connector", connector)
             .register(registry)
             .increment();
     }
 
     @Override
     public void acceptMessage() {
-        Counter
-            .builder(id)
-            .tags(tags)
-            .tag("target", "acceptMessage")
-            .register(registry)
+        acceptedSession
             .increment();
     }
 

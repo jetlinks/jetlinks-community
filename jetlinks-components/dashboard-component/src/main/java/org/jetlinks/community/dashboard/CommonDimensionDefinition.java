@@ -13,6 +13,7 @@ import lombok.Getter;
 public enum CommonDimensionDefinition implements DimensionDefinition {
     realTime("实时数据"),
     history("历史数据"),
+    current("当前数据"),
     agg("聚合数据");
 
     private String name;

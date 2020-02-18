@@ -87,7 +87,6 @@ public class MeterTimeSeriesData implements TimeSeriesData {
     }
 
     public MeterTimeSeriesData write(Timer timer) {
-        write((Meter) timer);
         data.put("count", timer.count());
         data.put("sum", timer.totalTime(TimeUnit.MILLISECONDS));
         data.put("mean", timer.mean(TimeUnit.MILLISECONDS));
@@ -96,7 +95,6 @@ public class MeterTimeSeriesData implements TimeSeriesData {
     }
 
     public MeterTimeSeriesData write(DistributionSummary summary) {
-        write((Meter) summary);
         data.put("count", summary.count());
         data.put("sum", summary.totalAmount());
         data.put("mean", summary.mean());
@@ -113,6 +111,7 @@ public class MeterTimeSeriesData implements TimeSeriesData {
 
     public static MeterTimeSeriesData of(Meter meter) {
         MeterTimeSeriesData data = new MeterTimeSeriesData();
+        data.write(meter);
         meter.match(
             data::write,
             data::write,
