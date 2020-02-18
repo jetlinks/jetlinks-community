@@ -1,6 +1,7 @@
 package org.jetlinks.community.timeseries.micrometer;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.config.NamingConvention;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetlinks.community.micrometer.MeterRegistrySupplier;
@@ -16,6 +17,16 @@ public class TimeSeriesMeterRegistrySupplier implements MeterRegistrySupplier {
 
     @Getter
     @Setter
+    private String naming = "elastic";
+
+    static Map<String, NamingConvention> namingSupports = new HashMap<>();
+
+    static {
+        namingSupports.put("elastic", new ElasticNamingConvention());
+    }
+
+    @Getter
+    @Setter
     private Map<String, String> tags = new HashMap<>();
 
     @Getter
@@ -28,8 +39,13 @@ public class TimeSeriesMeterRegistrySupplier implements MeterRegistrySupplier {
     }
 
     @Override
-    public MeterRegistry getMeterRegistry(String metric) {
-        return new TimeSeriesMeterRegistry(timeSeriesManager, TimeSeriesMetric.of(metric), metrics.getOrDefault(metric, metrics.get("default")), tags);
+    public MeterRegistry getMeterRegistry(String metric, String... tagKeys) {
+        TimeSeriesMeterRegistry registry = new TimeSeriesMeterRegistry(timeSeriesManager,
+            TimeSeriesMetric.of(metric),
+            metrics.getOrDefault(metric, metrics.get("default")),
+            tags, tagKeys);
+        registry.config().namingConvention(namingSupports.get(naming));
+        return registry;
     }
 
 }

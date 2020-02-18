@@ -25,17 +25,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
     private TimeSeriesManager timeSeriesManager;
 
-    static MeasurementDefinition definition = new MeasurementDefinition() {
-        @Override
-        public String getId() {
-            return "quantity";
-        }
-
-        @Override
-        public String getName() {
-            return "设备消息量";
-        }
-    };
+    static MeasurementDefinition definition = MeasurementDefinition.of("quantity", "设备消息量");
 
     public DeviceMessageMeasurement(MessageGateway messageGateway, TimeSeriesManager timeSeriesManager) {
         super(definition);
@@ -86,9 +76,9 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
 
     static ConfigMetadata historyConfigMetadata = new DefaultConfigMetadata()
+        .add("productId", "设备型号", "", new StringType())
         .add("time", "周期", "例如: 1h,10m,30s", new StringType())
         .add("format", "时间格式", "如: MM-dd:HH", new StringType())
-        .add("productId", "设备型号", "", new StringType())
         .add("msgType", "消息类型", "", new StringType())
         .add("limit", "最大数据量", "", new IntType())
         .add("from", "时间从", "", new DateTimeType())
@@ -129,7 +119,6 @@ class DeviceMessageMeasurement extends StaticMeasurement {
                     query.where("name", "message-count")
                         .is("productId", parameter.getString("productId").orElse(null))
                         .is("msgType", parameter.getString("msgType").orElse(null))
-
                 )
                 .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))

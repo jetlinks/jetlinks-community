@@ -25,11 +25,11 @@ class MicrometerMessageGatewayMonitor implements MessageGatewayMonitor {
             .tag("target", "sessionNumber")
             .register(registry);
 
-        this.acceptedSession=getCounter("acceptedSession");
-        this.closedSession=getCounter("closedSession");
-        this.subscribed=getCounter("subscribed");
-        this.unsubscribed=getCounter("unsubscribed");
-        this.acceptMessage=getCounter("acceptMessage");
+        this.acceptedSession = getCounter("accepted_session");
+        this.closedSession = getCounter("closed_session");
+        this.subscribed = getCounter("subscribed");
+        this.unsubscribed = getCounter("unsubscribed");
+        this.acceptMessage = getCounter("accept_message");
 
     }
 
@@ -52,6 +52,7 @@ class MicrometerMessageGatewayMonitor implements MessageGatewayMonitor {
             .tag("target", target)
             .register(registry);
     }
+
     @Override
     public void acceptedSession() {
         acceptedSession

@@ -42,6 +42,7 @@ class DeviceStatusRecordMeasurement
     }
 
     static ConfigMetadata aggConfigMetadata = new DefaultConfigMetadata()
+        .add("productId", "设备型号", "", new StringType())
         .add("time", "周期", "例如: 1h,10m,30s", new StringType())
         .add("format", "时间格式", "如: MM-dd:HH", new StringType())
         .add("limit", "最大数据量", "", new IntType())
@@ -76,7 +77,10 @@ class DeviceStatusRecordMeasurement
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
             return AggregationQueryParam.of()
                 .max("value")
-                .filter(query -> query.where("name", "online-count"))
+                .filter(query ->
+                    query.where("name", "online-count")
+                        .is("productId", parameter.getString("productId").orElse(null))
+                )
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-30).atZone(ZoneId.systemDefault()).toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))
                 .groupBy(parameter.getDuration("time").orElse(Duration.ofDays(1)),

@@ -32,8 +32,8 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
 
         addMeasurement(new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager));
 
-        MeterRegistry registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId());
-
+        MeterRegistry registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId(),
+            "target", "msgType", "productId");
         Map<String, LongAdder> productCounts = new ConcurrentHashMap<>();
 
         Function<String, LongAdder> counterAdder = productId ->

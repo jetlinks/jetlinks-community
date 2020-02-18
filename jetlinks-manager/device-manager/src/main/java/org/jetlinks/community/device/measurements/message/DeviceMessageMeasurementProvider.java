@@ -26,7 +26,8 @@ public class DeviceMessageMeasurementProvider extends StaticMeasurementProvider 
         addMeasurement(new DeviceMessageMeasurement(messageGateway, timeSeriesManager));
 
 
-        MeterRegistry registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId());
+        MeterRegistry registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId(),
+            "target", "msgType", "productId");
 
         //订阅设备消息,用于统计设备消息量
         messageGateway.subscribe("/device/*/message/**")

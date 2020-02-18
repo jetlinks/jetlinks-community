@@ -17,6 +17,8 @@ class MeterTimeSeriesMetadata implements TimeSeriesMetadata {
     @Getter
     private TimeSeriesMetric metric;
 
+    @Getter
+    private List<String> keys;
 
     static final List<PropertyMetadata> properties = new ArrayList<>();
 
@@ -110,12 +112,19 @@ class MeterTimeSeriesMetadata implements TimeSeriesMetadata {
             property.setValueType(new DoubleType());
             properties.add(property);
         }
-
-
     }
 
     @Override
     public List<PropertyMetadata> getProperties() {
-        return new ArrayList<>(properties);
+
+        List<PropertyMetadata> metadata = new ArrayList<>(properties);
+        for (String key : keys) {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId(key);
+            property.setName(key);
+            property.setValueType(new StringType());
+            metadata.add(property);
+        }
+        return metadata;
     }
 }

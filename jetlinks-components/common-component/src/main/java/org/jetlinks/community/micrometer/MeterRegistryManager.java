@@ -26,16 +26,15 @@ public class MeterRegistryManager {
     @Autowired
     private List<MeterRegistrySupplier> suppliers;
 
-    private MeterRegistry createMeterRegistry(String metric) {
+    private MeterRegistry createMeterRegistry(String metric, String... tagKeys) {
         return new CompositeMeterRegistry(Clock.SYSTEM,
             suppliers.stream()
-                .map(supplier -> supplier.getMeterRegistry(metric))
+                .map(supplier -> supplier.getMeterRegistry(metric, tagKeys))
                 .collect(Collectors.toList()));
     }
 
-    public MeterRegistry getMeterRegister(String metric) {
-        return meterRegistryMap.computeIfAbsent(metric, this::createMeterRegistry);
+    public MeterRegistry getMeterRegister(String metric, String... tagKeys) {
+        return meterRegistryMap.computeIfAbsent(metric, _metric -> createMeterRegistry(_metric, tagKeys));
     }
-
 
 }

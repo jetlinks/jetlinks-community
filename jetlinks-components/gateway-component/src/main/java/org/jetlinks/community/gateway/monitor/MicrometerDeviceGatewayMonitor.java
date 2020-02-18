@@ -27,9 +27,8 @@ class MicrometerDeviceGatewayMonitor implements DeviceGatewayMonitor {
         this.connected = getCounter("connected");
         this.rejected = getCounter("rejected");
         this.disconnected = getCounter("disconnected");
-        this.sentMessage = getCounter("sentMessage");
-        this.receivedMessage = getCounter("receivedMessage");
-
+        this.sentMessage = getCounter("sent_message");
+        this.receivedMessage = getCounter("received_message");
     }
 
     final Counter connected;
@@ -69,13 +68,11 @@ class MicrometerDeviceGatewayMonitor implements DeviceGatewayMonitor {
 
     @Override
     public void receivedMessage() {
-        receivedMessage
-            .increment();
+        receivedMessage.increment();
     }
 
     @Override
     public void sentMessage() {
-        sentMessage
-            .increment();
+        sentMessage.increment();
     }
 }

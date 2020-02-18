@@ -17,11 +17,11 @@ public class MicrometerGatewayMonitorSupplier implements MessageGatewayMonitorSu
 
     @Override
     public MessageGatewayMonitor getMessageGatewayMonitor(String id, String... tags) {
-        return new MicrometerMessageGatewayMonitor(meterRegistryManager.getMeterRegister(GatewayTimeSeriesMetric.messageGatewayMetric), id, tags);
+        return new MicrometerMessageGatewayMonitor(meterRegistryManager.getMeterRegister(GatewayTimeSeriesMetric.messageGatewayMetric, "target", "connector"), id, tags);
     }
 
     @Override
     public DeviceGatewayMonitor getDeviceGatewayMonitor(String id, String... tags) {
-        return new MicrometerDeviceGatewayMonitor(meterRegistryManager.getMeterRegister(GatewayTimeSeriesMetric.deviceGatewayMetric), id, tags);
+        return new MicrometerDeviceGatewayMonitor(meterRegistryManager.getMeterRegister(GatewayTimeSeriesMetric.deviceGatewayMetric, "target"), id, tags);
     }
 }

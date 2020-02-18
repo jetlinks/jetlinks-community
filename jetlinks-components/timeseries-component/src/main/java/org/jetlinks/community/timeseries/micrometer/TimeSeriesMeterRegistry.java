@@ -9,6 +9,9 @@ import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -24,22 +27,26 @@ public class TimeSeriesMeterRegistry extends StepMeterRegistry {
 
     private Map<String, String> customTags;
 
+    private List<String> keys = new ArrayList<>();
 
     public TimeSeriesMeterRegistry(TimeSeriesManager timeSeriesManager,
                                    TimeSeriesMetric metric,
                                    TimeSeriesRegistryProperties config,
-                                   Map<String, String> customTags) {
+                                   Map<String, String> customTags,String ...tagKeys) {
         super(new TimeSeriesPropertiesPropertiesConfigAdapter(config), Clock.SYSTEM);
         this.timeSeriesManager = timeSeriesManager;
         this.metric = metric;
         this.customTags = customTags;
+        keys.addAll(customTags.keySet());
+        keys.addAll(Arrays.asList(tagKeys));
+        keys.addAll(config.getCustomTagKeys());
         start(DEFAULT_THREAD_FACTORY);
     }
 
     @Override
     public void start(ThreadFactory threadFactory) {
         super.start(threadFactory);
-        timeSeriesManager.registerMetadata(MeterTimeSeriesMetadata.of(metric))
+        timeSeriesManager.registerMetadata(MeterTimeSeriesMetadata.of(metric,keys))
             .doOnError(e -> log.error("register metric metadata error", e))
             .subscribe((r) -> log.error("register metric [{}] metadata success", metric.getId()));
     }
