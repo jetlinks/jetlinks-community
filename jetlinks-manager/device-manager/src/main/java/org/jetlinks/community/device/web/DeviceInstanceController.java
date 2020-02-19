@@ -135,31 +135,38 @@ public class DeviceInstanceController implements
             .as(flux -> service.syncStateBatch(flux, true));
     }
 
+    //已废弃
     @GetMapping("/{productId:.+}/{deviceId:.+}/properties")
+    @Deprecated
     @QueryAction
-    public Flux<DevicePropertiesEntity> getDeviceProperties(@PathVariable String productId, @PathVariable String deviceId) {
-        return service.getProperties(productId, deviceId);
+    public Flux<DevicePropertiesEntity> getDeviceLatestProperties(@PathVariable String productId,
+                                                                  @PathVariable String deviceId) {
+        return service.getDeviceLatestProperties(deviceId);
+    }
+
+    @GetMapping("/{deviceId:.+}/properties/latest")
+    @QueryAction
+    public Flux<DevicePropertiesEntity> getDeviceLatestProperties(@PathVariable String deviceId) {
+        return service.getDeviceLatestProperties(deviceId);
     }
 
     @GetMapping("/{deviceId:.+}/property/{property:.+}")
     @QueryAction
-    public Mono<DevicePropertiesEntity> getDeviceProperty(@PathVariable String deviceId, @PathVariable String property) {
-        return service.getProperty(deviceId, property);
+    public Mono<DevicePropertiesEntity> getDeviceLatestProperty(@PathVariable String deviceId, @PathVariable String property) {
+        return service.getDeviceLatestProperty(deviceId, property);
     }
 
-    @GetMapping({
-        "/{deviceId:.+}/logs",
-    })
+    @GetMapping("/{deviceId:.+}/properties/_query")
+    @QueryAction
+    public Mono<PagerResult<DevicePropertiesEntity>> queryDeviceProperties(@PathVariable String deviceId, QueryParamEntity entity) {
+        return service.queryDeviceProperties(deviceId, entity);
+    }
+
+    @GetMapping("/{deviceId:.+}/logs")
     @QueryAction
     public Mono<PagerResult<DeviceOperationLogEntity>> queryDeviceLog(@PathVariable String deviceId,
                                                                       QueryParamEntity entity) {
-        return registry.getDevice(deviceId)
-            .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.productId))
-            .flatMap(productId -> timeSeriesManager
-                .getService(DeviceTimeSeriesMetric.deviceLogMetric(productId))
-                .queryPager(entity.and("deviceId", TermType.eq, deviceId),
-                    data -> data.as(DeviceOperationLogEntity.class)))
-            .defaultIfEmpty(PagerResult.empty());
+        return service.queryDeviceLog(deviceId,entity);
     }
 
     //已废弃
