@@ -20,6 +20,7 @@
         <module>dashboard-component</module>
         <module>common-component</module>
         <module>notify-component</module>
+        <module>logging-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>

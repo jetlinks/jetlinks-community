@@ -16,6 +16,7 @@
         <module>device-manager</module>
         <module>network-manager</module>
         <module>notify-manager</module>
+        <module>logging-manager</module>
     </modules>
 
 </project>
