@@ -58,20 +58,32 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jetlinks.community</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>notify-email</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>org.jetlinks.community</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>notify-voice</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>org.jetlinks.community</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>notify-sms</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>notify-dingtalk</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>notify-wechat</artifactId>
             <version>${project.version}</version>
         </dependency>
 
