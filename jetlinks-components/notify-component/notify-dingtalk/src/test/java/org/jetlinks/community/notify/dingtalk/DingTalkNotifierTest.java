@@ -1,6 +1,8 @@
 package org.jetlinks.community.notify.dingtalk;
 
 import org.jetlinks.core.Values;
+import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
@@ -13,10 +15,11 @@ class DingTalkNotifierTest {
 
 
     @Test
+    @Disabled
     void test(){
         DingTalkProperties properties=new DingTalkProperties();
-        properties.setAppKey("dingd2rgqrqnbvgbvi9xZQ");
-        properties.setAppSecret("rfSNLse4SI1CeAo6aV8cPRzig8HZACwRR6XGS_feOje-3M7rE68WjL9LKWTgko2R");
+        properties.setAppKey("appkey");
+        properties.setAppSecret("appSecuret");
 
         DingTalkMessageTemplate messageTemplate=new DingTalkMessageTemplate();
 

@@ -1,6 +1,7 @@
 package org.jetlinks.community.notify.wechat;
 
 import org.jetlinks.core.Values;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
@@ -13,16 +14,17 @@ class WeixinCorpNotifierTest {
 
 
     @Test
+    @Disabled
     void test(){
         WechatCorpProperties properties=new WechatCorpProperties();
-        properties.setCorpId("wwd7e935e2867897122");
-        properties.setCorpSecret("c0qeMSJK2pJee47Bg4kguBmd1JCBt2OFfsNFVGjc1i0");
+        properties.setCorpId("corpId");
+        properties.setCorpSecret("corpSecret");
 
         WechatMessageTemplate messageTemplate=new WechatMessageTemplate();
 
-        messageTemplate.setAgentId("1000002");
+        messageTemplate.setAgentId("agentId");
         messageTemplate.setMessage("test"+System.currentTimeMillis());
-        messageTemplate.setToUser("zhouhao");
+        messageTemplate.setToUser("userId");
 
         WeixinCorpNotifier notifier=new WeixinCorpNotifier(
                 WebClient.builder().build(),properties,null
