@@ -9,127 +9,209 @@ var info = {
 
 var menus = [
 ];
-var autzSettings = [
-    {
-        "permission": "protocol-supports",
-        "id": "638a9d26f31890b7d59544251bc638db",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "file",
-        "id": "41ef31347373c3020573b5975569de05",
-        "actions": java.util.Arrays.asList("upload-static"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "user-token",
-        "id": "a76877d99938197151ba679af228977b",
-        "actions": java.util.Arrays.asList("query", "save"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "device-product",
-        "id": "f4754ac5a714ec97a4e5d6ef60083975",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "device-instance",
-        "id": "ef85383c8adb52fcbeb7b4fe6686c6c6",
-        "actions": java.util.Arrays.asList("query", "save", "delete", "stop", "start", "execute"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    },
-    // {
-    //     "permission": "certificate",
-    //     "id": "7dc2cb54ddd22053368c84d8ad8362f3",
-    //     "actions": java.util.Arrays.asList("query", "save", "delete"),
-    //     "dimensionType": "user",
-    //     "dimensionTarget": "1199596756811550720",
-    //     "dimensionTargetName": "超级管理员",
-    //     "dimensionTypeName": "用户",
-    //     "state": 1
-    // },
-    {
-        "permission": "user",
-        "id": "5f59ccf52ea4c79f5eacc10cbf40d02",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "dimension",
-        "id": "89884beecc62035bc9b8d6e6b2b6a593",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "permission",
-        "id": "31e57a1df89c14607758e3dbe618912a",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "menu",
-        "id": "7ebc7d1b4316ba444bc64ae6059cd201",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "autz-setting",
-        "id": "4e03a0db0a50c678f6b6e32cf9c31583",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    } , {
-        "permission": "network-config",
-        "id": "4e03a0db0a50c678f6b6e32cf9c31587",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }, {
-        "permission": "device-gateway",
-        "id": "4e03a0db0a50c678f6b6e32cf9c31596",
-        "actions": java.util.Arrays.asList("query", "save", "delete"),
-        "dimensionType": "user",
-        "dimensionTarget": "1199596756811550720",
-        "dimensionTargetName": "超级管理员",
-        "dimensionTypeName": "用户",
-        "state": 1
-    }];
+var autzSettings = [{
+    "id": "47e28ead7d747f91b31231888ae598f4",
+    "permission": "access-logger",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "e12799df0247472c82052b736a9851b0",
+    "permission": "template",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "8b08821516241e189a1a07cef78a49b9",
+    "permission": "network-config",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "da018e7581cbcc123748703f2d6cc587",
+    "permission": "system-logger",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "0918ee9da2b9b477f5f9024a03676593",
+    "permission": "menu",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "824317629a7149d8ce10fd8b9b26589c",
+    "permission": "permission",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "e43775a36ab4a3e465371e732c468f23",
+    "permission": "device-instance",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("stop", "query", "save", "start", "delete", "execute"),
+    "dataAccesses": [],
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "b6632b5cd5bde8cb931e20c73e57dc1d",
+    "permission": "protocol-supports",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "2814b327cf0a124682103a6fdb2ea6e3",
+    "permission": "file",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("upload-static"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "a50469c17d339548d1f3d49d5159e80a",
+    "permission": "user",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "4b7272103890be5ab7f9145abb768dc0",
+    "permission": "user-token",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save"),
+    "dataAccesses": [],
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "06daea99c0d4fef7ebfda30a1acb8752",
+    "permission": "dimension",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "124262526a59e2e3a0045c0b2ca0bae9",
+    "permission": "autz-setting",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "dataAccesses": [],
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "caf2547720e685d7d0ea73e6196385e8",
+    "permission": "device-gateway",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "dataAccesses": [],
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "8331ae2910440f6734b1bf6baea1a2db",
+    "permission": "dictionary",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "eaa6a9edf146762bddefdc739d0fba74",
+    "permission": "notifier",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete", "send"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "7cdcb2af010abc76e3c84a075945a072",
+    "permission": "device-product",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}, {
+    "id": "0e53d98e6f778e089dc9f167bbd244fb",
+    "permission": "certificate",
+    "dimensionType": "user",
+    "dimensionTypeName": "用户",
+    "dimensionTarget": "1199596756811550720",
+    "dimensionTargetName": "1199596756811550720",
+    "state": 1,
+    "actions": java.util.Arrays.asList("query", "save", "delete"),
+    "priority": 10,
+    "merge": true
+}];
 
 var users = [{
     "id" : "1199596756811550720",

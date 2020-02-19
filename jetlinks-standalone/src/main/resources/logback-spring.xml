@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <configuration>
+    <appender name="LOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender" />
 
+    <appender name="ErrorLOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>WARN</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
 
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
@@ -8,22 +16,25 @@
     <springProfile name="dev">
 
         <logger name="system" level="debug">
-            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOGEventPublisher"/>
         </logger>
 
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ErrorLOGEventPublisher"/>
         </root>
     </springProfile>
 
     <springProfile name="test">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ErrorLOGEventPublisher"/>
         </root>
     </springProfile>
 
     <springProfile name="prod">
         <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOGEventPublisher"/>
     </springProfile>
 
 </configuration>
