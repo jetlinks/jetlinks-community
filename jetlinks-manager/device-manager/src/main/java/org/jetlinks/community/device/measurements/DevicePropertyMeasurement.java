@@ -4,10 +4,7 @@ import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.DefaultConfigMetadata;
-import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.*;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.device.message.DeviceMessageUtils;
@@ -43,8 +40,10 @@ class DevicePropertyMeasurement extends StaticMeasurement {
 
     Map<String, Object> createValue(Object value) {
         Map<String, Object> values = new HashMap<>();
+        DataType type = metadata.getValueType();
+        value = type instanceof Converter ? ((Converter<?>) type).convert(value) : value;
         values.put("value", value);
-        values.put("formatValue", metadata.getValueType().format(value));
+        values.put("formatValue", type.format(value));
         return values;
     }
 

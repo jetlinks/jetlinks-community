@@ -19,6 +19,7 @@
         <module>timeseries-component</module>
         <module>dashboard-component</module>
         <module>common-component</module>
+        <module>notify-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>

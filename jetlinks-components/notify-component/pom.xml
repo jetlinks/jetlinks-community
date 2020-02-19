@@ -3,19 +3,23 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>jetlinks-community</artifactId>
+        <artifactId>jetlinks-components</artifactId>
         <groupId>org.jetlinks.community</groupId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
-    <packaging>pom</packaging>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>jetlinks-manager</artifactId>
+    <artifactId>notify-component</artifactId>
+    <packaging>pom</packaging>
     <modules>
-        <module>authentication-manager</module>
-        <module>device-manager</module>
-        <module>network-manager</module>
-        <module>notify-manager</module>
+        <module>notify-core</module>
+        <module>notify-sms</module>
+        <module>notify-email</module>
+        <module>notify-wechat</module>
+        <module>notify-dingtalk</module>
+        <module>notify-voice</module>
     </modules>
+
 
 </project>
