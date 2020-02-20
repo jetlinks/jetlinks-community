@@ -86,13 +86,13 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
         }
 
         @Override
-        public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
+        public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
 
             return AggregationQueryParam.of()
                 .sum("count")
                 .groupBy(parameter.getDuration("time").orElse(Duration.ofHours(1)),
                     "time",
-                    parameter.getString("format").orElse("MM-dd:HH"))
+                    parameter.getString("format").orElse("MM月dd日 HH时"))
                 .filter(query ->
                     query.where("name", parameter.getString("type").orElse("online"))
                         .is("productId", parameter.getString("productId").orElse(null))
@@ -101,10 +101,11 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
-                .map(data -> SimpleMeasurementValue.of(
+                .index((index, data) -> SimpleMeasurementValue.of(
                     data.getInt("count").orElse(0),
                     data.getString("time").orElse(""),
-                    System.currentTimeMillis()));
+                    index))
+                .sort();
         }
     }
 

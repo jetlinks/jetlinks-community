@@ -47,13 +47,14 @@ class DevicePropertyMeasurement extends StaticMeasurement {
         return values;
     }
 
-    Flux<MeasurementValue> fromHistory(String deviceId, int history) {
+    Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
         return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
             .doPaging(0, history)
             .where("deviceId", deviceId)
             .and("property", metadata.getId())
             .execute(timeSeriesService::query)
-            .map(data -> SimpleMeasurementValue.of(createValue(data.get("value").orElse(null)), data.getTimestamp()));
+            .map(data -> SimpleMeasurementValue.of(createValue(data.get("value").orElse(null)), data.getTimestamp()))
+            .sort(MeasurementValue.sort());
     }
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
@@ -79,6 +80,7 @@ class DevicePropertyMeasurement extends StaticMeasurement {
             .filter(msg -> msg.containsKey(metadata.getId()))
             .map(msg -> SimpleMeasurementValue.of(createValue(msg.get(metadata.getId())), System.currentTimeMillis()));
     }
+
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"))
         .add("history", "历史数据量", "查询出历史数据后开始推送实时数据", new IntType().min(0).expand("defaultValue", 10));

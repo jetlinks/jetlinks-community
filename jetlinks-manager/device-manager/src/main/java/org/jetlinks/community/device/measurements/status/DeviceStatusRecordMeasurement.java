@@ -74,7 +74,7 @@ class DeviceStatusRecordMeasurement
         }
 
         @Override
-        public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
+        public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
             return AggregationQueryParam.of()
                 .max("value")
                 .filter(query ->
@@ -84,13 +84,14 @@ class DeviceStatusRecordMeasurement
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-30).atZone(ZoneId.systemDefault()).toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))
                 .groupBy(parameter.getDuration("time").orElse(Duration.ofDays(1)),
-                    parameter.getString("format").orElse("yyyy-MM-dd"))
+                    parameter.getString("format").orElse("yyyy年MM月dd日"))
                 .limit(parameter.getInt("limit").orElse(10))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
-                .map(data ->
-                    SimpleMeasurementValue.of(data.getInt("value").orElse(0),
-                        data.getString("time").orElse("-"),
-                        System.currentTimeMillis()));
+                .index((index, data) -> SimpleMeasurementValue.of(
+                    data.getInt("value").orElse(0),
+                    data.getString("time").orElse("-"),
+                    index))
+                .sort();
         }
     }
 

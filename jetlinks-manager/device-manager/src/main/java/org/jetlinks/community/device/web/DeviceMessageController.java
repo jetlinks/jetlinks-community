@@ -84,25 +84,18 @@ public class DeviceMessageController {
             .flatMapMany(deviceOperator -> deviceOperator.messageSender()
                 .readProperty(property).messageId(IDGenerator.SNOW_FLAKE_STRING.generate())
                 .send()
-                .map(ReadPropertyMessageReply::getProperties)
+                .map(mapReply(ReadPropertyMessageReply::getProperties))
                 .flatMap(map -> {
                     Object value = map.get(property);
                     return deviceOperator.getMetadata()
                         .map(deviceMetadata -> deviceMetadata.getProperty(property)
                             .map(PropertyMetadata::getValueType)
                             .orElse(new StringType()))
-                        .map(dataType -> {
-                            DevicePropertiesEntity entity = new DevicePropertiesEntity();
-                            if (value != null) {
-                                entity.setDeviceId(deviceId);
-                                entity.setProperty(property);
-                                entity.setValue(value.toString());
-                                entity.setStringValue(value.toString());
-                                entity.setFormatValue(dataType.format(value).toString());
-
-                            }
-                            return entity;
-                        });
+                        .map(dataType -> DevicePropertiesEntity.builder()
+                            .deviceId(deviceId)
+                            .productId(property)
+                            .build()
+                            .withValue(dataType, value));
                 })))
             ;
 

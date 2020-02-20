@@ -39,15 +39,14 @@ class DeviceEventMeasurement extends StaticMeasurement {
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"))
         .add("history", "历史数据量", "查询出历史数据后开始推送实时数据", new IntType().min(0).expand("defaultValue", 10));
 
-
-    Flux<MeasurementValue> fromHistory(String deviceId, int history) {
+    Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
         return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
             .doPaging(0, history)
             .where("deviceId", deviceId)
             .execute(eventTsService::query)
-            .map(data -> SimpleMeasurementValue.of(data.getData(), data.getTimestamp()));
+            .map(data -> SimpleMeasurementValue.of(data.getData(), data.getTimestamp()))
+            .sort(MeasurementValue.sort());
     }
-
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
         return messageGateway
