@@ -1,5 +1,9 @@
 # JetLinks 物联网基础平台
 
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
+![Version](https://img.shields.io/badge/Version-1.0--SNAPSHOT-brightgreen)
+![QQ群](https://img.shields.io/badge/QQ群-2021514-brightgreen)
+
 JetLinks 是一个物联网基础平台,用于快速建立物联网相关业务系统.
 
 - 集成了各种常见的网络协议(MQTT,HTTP,TCP,UDP,CoAP)等,并对其进行封装,
@@ -12,8 +16,6 @@ JetLinks 是一个物联网基础平台,用于快速建立物联网相关业务�
 - 统一的设备操作API,屏蔽各个厂家`不同协议`不同设备的差异,支持`跨服务`,同步(RRpc),异步的设备消息收发.
 
 - 可视化拖拽规则引擎设计器,灵活可拓展的多种规则节点支持,可通过规则引擎在线动态配置数据,业务处理逻辑.
-
-官方QQ群: `2021514`
 
 # 技术栈
 
@@ -41,7 +43,9 @@ JetLinks 是一个物联网基础平台,用于快速建立物联网相关业务�
 
 # 文档
 
-[快速开始](http://doc.jetlinks.cn/user-guide/quick-start.html)
+[快速开始](http://doc.jetlinks.cn/basics-guide/quick-start.html) 
+[开发文档](http://doc.jetlinks.cn/dev-guide/start.html) 
+[常见问题](http://doc.jetlinks.cn/common-problems/network-components.html) 
 
 # 许可版本
 
