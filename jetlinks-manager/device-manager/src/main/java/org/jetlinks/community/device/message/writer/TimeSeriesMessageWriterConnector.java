@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.device.entity.DevicePropertiesEntity;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.DeviceOfflineMessage;
@@ -173,36 +174,18 @@ public class TimeSeriesMessageWriterConnector
                         .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity()));
                     return Flux.fromIterable(properties.entrySet())
                         .map(entry -> {
-                            Map<String, Object> data = new HashMap<>();
-                            data.put("deviceId", device.getDeviceId());
-                            data.put("timestamp", message.getTimestamp());
-                            data.put("property", entry.getKey());
-                            data.put("propertyName", entry.getKey());
-                            data.put("orgId", headers.get("orgId"));
-                            data.put("productId", productId);
-                            data.put("value", entry.getValue().toString());
-                            ofNullable(propertyMetadata.get(entry.getKey()))
-                                .ifPresent(prop -> {
-                                    DataType type = prop.getValueType();
-                                    data.put("propertyName", prop.getName());
-                                    if (type instanceof NumberType) {
-                                        NumberType<?> numberType = (NumberType<?>) type;
-                                        data.put("numberValue", new BigDecimal(numberType.convert(entry.getValue()).toString()));
-                                    } else if (type instanceof DateTimeType) {
-                                        DateTimeType dateTimeType = (DateTimeType) type;
-                                        data.put("timeValue", dateTimeType.convert(entry.getValue()));
-                                    } else if (type instanceof ObjectType) {
-                                        ObjectType ObjectType = (ObjectType) type;
-                                        data.put("objectValue", ObjectType.convert(entry.getValue()));
-                                    } else {
-                                        data.put("stringValue", String.valueOf(entry.getValue()));
-                                    }
-                                    ofNullable(type.format(entry.getValue()))
-                                        .map(String::valueOf)
-                                        .ifPresent(val -> data.put("formatValue", val));
-                                });
 
-                            return TimeSeriesData.of(message.getTimestamp(), data);
+                            DevicePropertiesEntity entity = DevicePropertiesEntity.builder()
+                                .deviceId(device.getDeviceId())
+                                .timestamp(message.getTimestamp())
+                                .property(entry.getKey())
+                                .propertyName(entry.getKey())
+                                .orgId((String) headers.get("orgId"))
+                                .productId(productId)
+                                .build()
+                                .withValue(propertyMetadata.get(entry.getKey()), entry.getValue());
+
+                            return TimeSeriesData.of(message.getTimestamp(), entity.toMap());
                         })
                         .flatMap(data -> timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(productId)).save(data))
                         .then();
