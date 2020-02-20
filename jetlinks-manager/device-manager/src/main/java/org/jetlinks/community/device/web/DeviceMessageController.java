@@ -122,7 +122,9 @@ public class DeviceMessageController {
     //设备功能调用
     @PostMapping("invoked/{deviceId}/function/{functionId}")
     @SneakyThrows
-    public Flux<?> invokedFunction(@PathVariable String deviceId, @PathVariable String functionId, @RequestBody Map<String, Object> properties) {
+    public Flux<?> invokedFunction(@PathVariable String deviceId,
+                                   @PathVariable String functionId,
+                                   @RequestBody Map<String, Object> properties) {
 
         return registry
             .getDevice(deviceId)
@@ -134,8 +136,6 @@ public class DeviceMessageController {
                 .setParameter(properties))
             .flatMapMany(FunctionInvokeMessageSender::send)
             .map(mapReply(FunctionInvokeMessageReply::getOutput));
-
-
     }
 
     //获取设备所有属性
@@ -162,7 +162,7 @@ public class DeviceMessageController {
             }
             T mapped = function.apply(reply);
             if (mapped == null) {
-                throw new DeviceOperationException(ErrorCode.NO_REPLY);
+                throw new BusinessException(reply.getMessage(), reply.getCode());
             }
             return mapped;
         };
