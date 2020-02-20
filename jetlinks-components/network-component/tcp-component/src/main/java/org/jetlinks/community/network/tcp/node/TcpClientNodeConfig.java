@@ -16,9 +16,7 @@ public class TcpClientNodeConfig implements RuleNodeConfig {
 
     private PubSubType type;
 
-    private PayloadType sendPayloadType;
-
-    private PayloadType subPayloadType;
+    private PayloadType payloadType;
 
     @Override
     public NodeType getNodeType() {
@@ -34,6 +32,7 @@ public class TcpClientNodeConfig implements RuleNodeConfig {
     public void validate() {
         Assert.hasText(clientId, "clientId can not be empty!");
         Assert.notNull(type, "type can not be null!");
+        Assert.notNull(payloadType, "payloadType can not be null!");
 
     }
 }
