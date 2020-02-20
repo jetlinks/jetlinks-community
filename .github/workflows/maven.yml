@@ -21,6 +21,6 @@ jobs:
     - name: Build with Maven
       run: mvn -B package && cd jetlinks-standalone && mvn docker:build
     - name: Login Docker Repo
-      run: echo "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" | docker login docker.pkg.github.com -u ${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }} --password-stdin
+      run: echo "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" | docker login registry.cn-shenzhen.aliyuncs.com -u ${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }} --password-stdin
     - name: Push Docker
       run: docker push registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
