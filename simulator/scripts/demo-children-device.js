@@ -1,5 +1,12 @@
 /**
- * 子设备消息模拟
+ * 子设备消息模拟,请在启动脚本start.sh中自行修改scriptFile选项
+ *
+ * 在平台中创建对应的设备实例:
+ *
+ * 父设备ID使用: gateway-1
+ * 子设备ID使用: child-device-1
+ * 型号使用演示型号.
+ * 协议使用最新的demo-protocol-1.0.jar,源代码地址: https://github.com/jetlinks/demo-protocol
  */
 var _logger = logger;
 
