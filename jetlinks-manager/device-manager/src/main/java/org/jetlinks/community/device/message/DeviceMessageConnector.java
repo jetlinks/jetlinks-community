@@ -116,8 +116,12 @@ public class DeviceMessageConnector
                         topic = "/device/" + deviceMessage.getDeviceId() + "/online";
                     } else if (message instanceof DeviceOfflineMessage) {   //设备离线
                         topic = "/device/" + deviceMessage.getDeviceId() + "/offline";
+                    } else if (message instanceof ChildDeviceMessage) { //子设备消息
+                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/children";
+                        return onMessage(((ChildDeviceMessage) message).getChildDeviceMessage())
+                            .thenReturn(topic);
                     } else if (message instanceof ChildDeviceMessageReply) { //子设备消息
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/child/reply";
+                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/children/reply";
                         return onMessage(((ChildDeviceMessageReply) message).getChildDeviceMessage())
                             .thenReturn(topic);
                     } else if (message instanceof ReadPropertyMessage) { //读取属性
