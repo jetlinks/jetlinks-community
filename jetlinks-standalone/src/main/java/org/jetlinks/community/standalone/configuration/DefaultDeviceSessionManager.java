@@ -2,6 +2,7 @@ package org.jetlinks.community.standalone.configuration;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.monitor.GatewayServerMonitor;
@@ -231,6 +232,7 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
                 .switchIfEmpty(Mono.fromRunnable(() -> log.warn("children device [{}] not fond in registry", childrenDeviceId)))
                 .flatMap(deviceOperator -> deviceOperator
                     .online(session.getServerId().orElse(serverId), session.getId())
+                    .then(deviceOperator.setConfig(DeviceConfigKey.parentMeshDeviceId, deviceId))
                     .thenReturn(new ChildrenDeviceSession(childrenDeviceId, session, deviceOperator)))
                 .doOnSuccess(s -> children.computeIfAbsent(deviceId, __ -> new ConcurrentHashMap<>()).put(childrenDeviceId, s));
         });
