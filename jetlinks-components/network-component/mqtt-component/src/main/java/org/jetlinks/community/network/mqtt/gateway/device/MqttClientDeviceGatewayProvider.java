@@ -10,6 +10,7 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -24,7 +25,7 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
 
     private final DeviceRegistry registry;
 
-    private final MessageHandler messageHandler;
+    private final DeviceSessionManager sessionManager;
 
     private final DecodedClientMessageHandler clientMessageHandler;
 
@@ -32,12 +33,12 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
 
     public MqttClientDeviceGatewayProvider(NetworkManager networkManager,
                                            DeviceRegistry registry,
-                                           MessageHandler messageHandler,
+                                           DeviceSessionManager sessionManager,
                                            DecodedClientMessageHandler clientMessageHandler,
                                            ProtocolSupports protocolSupports) {
         this.networkManager = networkManager;
         this.registry = registry;
-        this.messageHandler = messageHandler;
+        this.sessionManager = sessionManager;
         this.clientMessageHandler = clientMessageHandler;
         this.protocolSupports = protocolSupports;
     }
@@ -72,8 +73,8 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
                     registry,
                     protocolSupports,
                     protocol,
+                    sessionManager,
                     clientMessageHandler,
-                    messageHandler,
                     Arrays.asList(topics.split("[,;\n]"))
                 );
 
