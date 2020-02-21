@@ -67,6 +67,7 @@ public class DevicePropertiesEntity {
         if (value == null) {
             return this;
         }
+        setValue(String.valueOf(value));
         if (type instanceof NumberType) {
             NumberType<?> numberType = (NumberType<?>) type;
             setNumberValue(new BigDecimal(numberType.convertNumber(value).toString()));
