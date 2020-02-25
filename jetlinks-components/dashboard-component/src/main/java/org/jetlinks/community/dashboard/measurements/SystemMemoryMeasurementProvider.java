@@ -120,7 +120,7 @@ public class SystemMemoryMeasurementProvider extends StaticMeasurementProvider {
             MemoryInfo info = new MemoryInfo();
             info.max = (usage.getMax()) / 1000 / 1000;
             info.used = usage.getUsed() / 1000 / 1000;
-            info.usage = BigDecimal.valueOf(((double) usage.getMax() / usage.getUsed()) / 100D).setScale(2, ROUND_HALF_UP)
+            info.usage = BigDecimal.valueOf(((double) usage.getUsed() / usage.getMax()) / 100D).setScale(2, ROUND_HALF_UP)
                 .doubleValue();
             return info;
         }
