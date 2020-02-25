@@ -6,7 +6,7 @@ import org.jetlinks.community.dashboard.ObjectDefinition;
 
 @Getter
 @AllArgsConstructor
-public enum SystemObjectDefinition implements ObjectDefinition {
+public enum MonitorObjectDefinition implements ObjectDefinition {
 
     cpu("CPU"),
     memory("内存");

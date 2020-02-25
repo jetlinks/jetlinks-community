@@ -8,7 +8,8 @@ import org.hswebframework.web.dict.EnumDict;
 @Getter
 public enum DefaultDashboardDefinition implements DashboardDefinition, EnumDict<String> {
 
-    systemMonitor("系统监控")
+    systemMonitor("系统监控"),
+    jvmMonitor("jvm监控")
 
     ;
 

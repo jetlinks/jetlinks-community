@@ -26,11 +26,11 @@ import static java.math.BigDecimal.ROUND_HALF_UP;
  * @author zhouhao
  */
 @Component
-public class SystemCpuMeasurementProvider
+public class JvmCpuMeasurementProvider
     extends StaticMeasurementProvider {
 
-    public SystemCpuMeasurementProvider() {
-        super(DefaultDashboardDefinition.systemMonitor, MonitorObjectDefinition.cpu);
+    public JvmCpuMeasurementProvider() {
+        super(DefaultDashboardDefinition.jvmMonitor, MonitorObjectDefinition.cpu);
         addMeasurement(cpuUseAgeMeasurement);
     }
 
@@ -67,7 +67,7 @@ public class SystemCpuMeasurementProvider
             //每秒获取系统CPU使用率
             return Flux.interval(Duration.ofSeconds(1))
                 .map(t -> SimpleMeasurementValue.of(BigDecimal
-                        .valueOf(SystemMonitor.systemCpuUsage.getValue())
+                        .valueOf(SystemMonitor.jvmCpuUsage.getValue())
                         .setScale(1, ROUND_HALF_UP),
                     DateFormatter.toString(new Date(), "HH:mm:ss"),
                     System.currentTimeMillis()))

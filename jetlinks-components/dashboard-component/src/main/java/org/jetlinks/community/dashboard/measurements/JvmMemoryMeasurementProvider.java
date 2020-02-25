@@ -17,6 +17,7 @@ import reactor.core.publisher.Flux;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Date;
@@ -26,16 +27,16 @@ import static java.math.BigDecimal.ROUND_HALF_UP;
 /**
  * 实时内存使用率监控
  * <pre>
- *     /dashboard/systemMonitor/memory/info/realTime
+ *     /dashboard/jvmMonitor/memory/info/realTime
  * </pre>
  *
  * @author zhouhao
  */
 @Component
-public class SystemMemoryMeasurementProvider extends StaticMeasurementProvider {
-    public SystemMemoryMeasurementProvider() {
-        super(DefaultDashboardDefinition.systemMonitor, MonitorObjectDefinition.memory);
-        addMeasurement(systemMemoryInfo);
+public class JvmMemoryMeasurementProvider extends StaticMeasurementProvider {
+    public JvmMemoryMeasurementProvider() {
+        super(DefaultDashboardDefinition.jvmMonitor, MonitorObjectDefinition.memory);
+        addMeasurement(jvmMemoryInfo);
     }
 
     static ObjectType type = new ObjectType();
@@ -67,10 +68,12 @@ public class SystemMemoryMeasurementProvider extends StaticMeasurementProvider {
 
     }
 
-    static StaticMeasurement systemMemoryInfo = new StaticMeasurement(CommonMeasurementDefinition.info)
+    static StaticMeasurement jvmMemoryInfo = new StaticMeasurement(CommonMeasurementDefinition.info)
         .addDimension(new JvmMemoryInfoDimension());
 
     static class JvmMemoryInfoDimension implements MeasurementDimension {
+
+        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 
         @Override
         public DimensionDefinition getDefinition() {
@@ -94,8 +97,9 @@ public class SystemMemoryMeasurementProvider extends StaticMeasurementProvider {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
+            // TODO: 2020/1/15 性能优化
             return Flux.interval(Duration.ofSeconds(1))
-                .map(t -> SimpleMeasurementValue.of(MemoryInfo.of(),
+                .map(t -> SimpleMeasurementValue.of(MemoryInfo.of(memoryMXBean.getHeapMemoryUsage()),
                     DateFormatter.toString(new Date(), "HH:mm:ss"),
                     System.currentTimeMillis()))
                 .cast(MeasurementValue.class);
@@ -112,13 +116,11 @@ public class SystemMemoryMeasurementProvider extends StaticMeasurementProvider {
 
         private double usage;
 
-        public static MemoryInfo of() {
+        public static MemoryInfo of(MemoryUsage usage) {
             MemoryInfo info = new MemoryInfo();
-            long total = (long) SystemMonitor.totalSystemMemory.getValue();
-
-            info.max = total;
-            info.used = (long) (total - SystemMonitor.freeSystemMemory.getValue());
-            info.usage = BigDecimal.valueOf(((double)info.getUsed() / info.getMax()) * 100D).setScale(2, ROUND_HALF_UP)
+            info.max = (usage.getMax()) / 1000 / 1000;
+            info.used = usage.getUsed() / 1000 / 1000;
+            info.usage = BigDecimal.valueOf(((double) usage.getUsed() / usage.getMax()) * 100D).setScale(2, ROUND_HALF_UP)
                 .doubleValue();
             return info;
         }
