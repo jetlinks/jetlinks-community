@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.Resource;
+import org.hswebframework.web.authorization.annotation.ResourceAction;
 import org.jetlinks.community.network.manager.web.response.TopicMessageResponse;
 import org.jetlinks.community.gateway.*;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
@@ -26,7 +27,9 @@ public class MessageGatewayController {
         this.messageGatewayManager = gatewayManager;
     }
 
+
     @GetMapping(value = "/{id}/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResourceAction(id = "subscribe", name = "订阅消息")
     public Flux<TopicMessage> subscribe(@PathVariable String id, @RequestParam String topic) {
 
         return messageGatewayManager
@@ -35,6 +38,7 @@ public class MessageGatewayController {
     }
 
     @PostMapping(value = "/{id}/publish")
+    @ResourceAction(id = "publish", name = "推送消息")
     public Mono<Long> publish(@PathVariable String id, @RequestBody TopicMessageResponse response) {
         return messageGatewayManager
             .getGateway(id)
@@ -44,6 +48,7 @@ public class MessageGatewayController {
 
 
     @GetMapping(value = "/all")
+    @Authorize(merge = false)
     public Flux<GatewayInfo> getAllGateway() {
         return messageGatewayManager
             .getAllGateway()

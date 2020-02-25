@@ -117,9 +117,8 @@ public class SystemMemoryMeasurementProvider extends StaticMeasurementProvider {
             long total = (long) SystemMonitor.totalSystemMemory.getValue();
 
             info.max = total;
-            info.used = (long) (total - SystemMonitor.freeSystemMemory.getValue());
-            info.usage = BigDecimal.valueOf(((double)info.getUsed() / info.getMax()) * 100D).setScale(2, ROUND_HALF_UP)
-                .doubleValue();
+            info.used = (long) (total-  SystemMonitor.freeSystemMemory.getValue());
+            info.usage = BigDecimal.valueOf(((double) info.getUsed() / info.getMax()) * 100D).setScale(2, ROUND_HALF_UP).doubleValue();
             return info;
         }
     }

@@ -3,6 +3,7 @@ package org.jetlinks.community.dashboard.measurements;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import reactor.core.publisher.Flux;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
@@ -64,8 +65,8 @@ public enum SystemMonitor {
                 register(systemCpuUsage.name(), "getSystemCpuLoad", usage -> usage * 100D);
                 register(jvmCpuUsage.name(), "getProcessCpuLoad", usage -> usage * 100D);
                 register(freeSystemMemory.name(), "getFreePhysicalMemorySize", val -> val / 1024 / 1024);
-                register(freeSystemMemory.name(), "getFreePhysicalMemorySize", val -> val / 1024 / 1024);
                 register(totalSystemMemory.name(), "getTotalPhysicalMemorySize", val -> val / 1024 / 1024);
+                register("virtualMemory", "getCommittedVirtualMemorySize", val -> val / 1024 / 1024);
                 register(openFileCount.name(), "getOpenFileDescriptorCount", Function.identity());
                 register(maxOpenFileCount.name(), "getMaxFileDescriptorCount", Function.identity());
             }
