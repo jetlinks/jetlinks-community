@@ -21,6 +21,7 @@
         <module>common-component</module>
         <module>notify-component</module>
         <module>logging-component</module>
+        <module>rule-engine-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>

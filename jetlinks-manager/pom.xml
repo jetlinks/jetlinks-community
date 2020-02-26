@@ -17,6 +17,7 @@
         <module>network-manager</module>
         <module>notify-manager</module>
         <module>logging-manager</module>
+        <module>rule-engine-manager</module>
     </modules>
 
 </project>
