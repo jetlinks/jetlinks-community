@@ -14,6 +14,7 @@ import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -97,10 +98,12 @@ public class JvmMemoryMeasurementProvider extends StaticMeasurementProvider {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
-            return Flux.interval(Duration.ofSeconds(1))
-                .map(t -> MemoryInfo.of(memoryMXBean.getHeapMemoryUsage()))
-                .windowUntilChanged(MemoryInfo::getUsage)
-                .flatMap(Flux::last)
+            return Flux.concat(
+                Flux.just(MemoryInfo.of(memoryMXBean.getHeapMemoryUsage())),
+                Flux.interval(Duration.ofSeconds(1))
+                    .map(t -> MemoryInfo.of(memoryMXBean.getHeapMemoryUsage()))
+                    .windowUntilChanged(MemoryInfo::getUsage)
+                    .flatMap(Flux::last))
                 .map(val -> SimpleMeasurementValue.of(val,
                     DateFormatter.toString(new Date(), "HH:mm:ss"),
                     System.currentTimeMillis()))

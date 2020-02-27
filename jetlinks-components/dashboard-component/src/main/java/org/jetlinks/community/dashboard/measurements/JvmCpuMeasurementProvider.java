@@ -65,7 +65,9 @@ public class JvmCpuMeasurementProvider
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
             //每秒获取系统CPU使用率
-            return Flux.interval(Duration.ofSeconds(1))
+            return Flux.concat(
+                Flux.just(1),
+                Flux.interval(Duration.ofSeconds(1)))
                 .map(t -> SimpleMeasurementValue.of(BigDecimal
                         .valueOf(SystemMonitor.jvmCpuUsage.getValue())
                         .setScale(1, ROUND_HALF_UP),

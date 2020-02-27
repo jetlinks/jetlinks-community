@@ -94,8 +94,13 @@ public class SystemMemoryMeasurementProvider extends StaticMeasurementProvider {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
-            return Flux.interval(Duration.ofSeconds(1))
-                .map(t -> SimpleMeasurementValue.of(MemoryInfo.of(),
+            return Flux.concat(
+                Flux.just(MemoryInfo.of()),
+                Flux.interval(Duration.ofSeconds(1))
+                    .map(t -> MemoryInfo.of())
+                    .windowUntilChanged(MemoryInfo::getUsage)
+                    .flatMap(Flux::last))
+                .map(val -> SimpleMeasurementValue.of(val,
                     DateFormatter.toString(new Date(), "HH:mm:ss"),
                     System.currentTimeMillis()))
                 .cast(MeasurementValue.class);
