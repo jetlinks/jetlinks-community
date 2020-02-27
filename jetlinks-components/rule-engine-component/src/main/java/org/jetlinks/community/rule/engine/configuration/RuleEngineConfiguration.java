@@ -20,6 +20,7 @@ import org.jetlinks.rule.engine.model.antv.AntVG6RuleModelParserStrategy;
 import org.jetlinks.rule.engine.standalone.StandaloneRuleEngine;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -118,7 +119,6 @@ public class RuleEngineConfiguration {
     public RouteEventNode routeEventNode() {
         return new RouteEventNode();
     }
-
 
 
 }

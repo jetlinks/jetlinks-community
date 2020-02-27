@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteEventInfo;
-import org.jetlinks.community.rule.engine.entity.ExecuteLogInfo;
+import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteLogInfo;
 import org.jetlinks.rule.engine.api.events.NodeExecuteEvent;
 import org.jetlinks.rule.engine.api.events.RuleEvent;
 import org.jetlinks.rule.engine.cluster.logger.LogInfo;
@@ -25,7 +25,7 @@ public class RuleLogHandler {
 
     @EventListener
     public void handleRuleLog(LogInfo event) {
-        ExecuteLogInfo logInfo = FastBeanCopier.copy(event, new ExecuteLogInfo());
+        RuleEngineExecuteLogInfo logInfo = FastBeanCopier.copy(event, new RuleEngineExecuteLogInfo());
         elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_LOG, Mono.just(logInfo))
             .subscribe();
     }
@@ -36,7 +36,7 @@ public class RuleLogHandler {
         if (!RuleEvent.NODE_EXECUTE_BEFORE.equals(event.getEvent())
             && !RuleEvent.NODE_EXECUTE_RESULT.equals(event.getEvent())) {
             RuleEngineExecuteEventInfo eventInfo = FastBeanCopier.copy(event, new RuleEngineExecuteEventInfo());
-            elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_LOG, Mono.just(eventInfo))
+            elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG, Mono.just(eventInfo))
                 .subscribe();
         }
     }

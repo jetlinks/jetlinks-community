@@ -10,6 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RuleEngineExecuteEventInfo {
+    private String id;
 
     private String event;
 

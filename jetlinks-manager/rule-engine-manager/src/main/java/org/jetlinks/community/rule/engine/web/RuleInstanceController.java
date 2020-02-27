@@ -9,7 +9,7 @@ import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.id.IDGenerator;
-import org.jetlinks.community.rule.engine.entity.ExecuteLogInfo;
+import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteLogInfo;
 import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteEventInfo;
 import org.jetlinks.community.rule.engine.entity.RuleInstanceEntity;
 import org.jetlinks.community.rule.engine.service.RuleInstanceService;
@@ -48,8 +48,8 @@ public class RuleInstanceController implements ReactiveServiceCrudController<Rul
 
     @GetMapping("/{id}/logs")
     @QueryAction
-    public Mono<PagerResult<ExecuteLogInfo>> queryLog(@PathVariable String id,
-                                                      QueryParamEntity paramEntity) {
+    public Mono<PagerResult<RuleEngineExecuteLogInfo>> queryLog(@PathVariable String id,
+                                                                QueryParamEntity paramEntity) {
         return paramEntity.toQuery()
             .is("instanceId", id)
             .execute(instanceService::queryExecuteLog);

@@ -9,7 +9,9 @@ import lombok.Setter;
  **/
 @Getter
 @Setter
-public class ExecuteLogInfo {
+public class RuleEngineExecuteLogInfo {
+
+    private String id;
 
     private String instanceId;
 

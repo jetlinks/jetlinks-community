@@ -91,8 +91,8 @@ logging:
     #    org.springframework.data.r2dbc.connectionfactory: debug
     io.micrometer: warn
     org.hswebframework.expands: error
-    system: warn
-    org.jetlinks.rule.engine: debug
+    system: debug
+    org.jetlinks.rule.engine: warn
     org.jetlinks.gateway: debug
     org.springframework: warn
 vertx:

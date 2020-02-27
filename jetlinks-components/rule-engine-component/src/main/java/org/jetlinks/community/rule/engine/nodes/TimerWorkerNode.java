@@ -40,7 +40,7 @@ public class TimerWorkerNode extends CommonExecutableRuleNodeFactoryStrategy<Tim
         });
         TimerJob job = jobs.computeIfAbsent(id, _id -> new TimerJob(config, context));
 
-        job.doStart();
+        job.start();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class TimerWorkerNode extends CommonExecutableRuleNodeFactoryStrategy<Tim
             }
             running = true;
             Mono.delay(Duration.ofMillis(configuration.nextMillis()))
-                .subscribe(t -> execute(this::start));
+                .subscribe(t -> execute(this::doStart));
         }
 
         void execute(Runnable runnable) {
