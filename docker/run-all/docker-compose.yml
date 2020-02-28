@@ -3,10 +3,10 @@ services:
   redis:
     image: redis:5.0.4
     container_name: jetlinks-ce-redis
-#    ports:
-#      - "6379:6379"
+    #    ports:
+    #      - "6379:6379"
     volumes:
-      - "./data/redis:/data"
+      - "redis-volume:/data"
     command: redis-server --appendonly yes
     environment:
       - TZ=Asia/Shanghai
@@ -20,9 +20,11 @@ services:
       bootstrap.memory_lock: "true"
       discovery.zen.minimum_master_nodes: 1
       discovery.zen.ping.unicast.hosts: elasticsearch
-#    ports:
-#      - "9200:9200"
-#      - "9300:9300"
+    volumes:
+      - elasticsearch-volume:/usr/share/elasticsearch/data
+  #    ports:
+  #      - "9200:9200"
+  #      - "9300:9300"
   kibana:
     image: kibana:6.7.2
     container_name: jetlinks-ce-kibana
@@ -37,27 +39,25 @@ services:
   postgres:
     image: postgres:11-alpine
     container_name: jetlinks-ce-postgres
-#    ports:
-#      - "5432:5432"
     volumes:
-      - "./data/postgres:/var/lib/postgresql/data"
+      - "postgres-volume:/var/lib/postgresql/data"
     environment:
       POSTGRES_PASSWORD: jetlinks
       POSTGRES_DB: jetlinks
       TZ: Asia/Shanghai
   ui:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd:1.0-SNAPSHOT
     container_name: jetlinks-ce-ui
     ports:
       - 9000:80
     environment:
       - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
     volumes:
-      - "./data/upload:/usr/share/nginx/html/upload"
+      - "jetlinks-volume:/usr/share/nginx/html/upload"
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.0-SNAPSHOT
     container_name: jetlinks-ce
     ports:
       - 8848:8848 # API端口
@@ -66,9 +66,9 @@ services:
       - 8001:8001 # 预留
       - 8002:8002 # 预留
     volumes:
-      - "./data/upload:/static/upload"  # 持久化上传的文件
+      - "jetlinks-volume:/static/upload"  # 持久化上传的文件
     environment:
-#      - "JAVA_OPTS=-Xms4g -Xmx10g -XX:+UseG1GC"
+      #      - "JAVA_OPTS=-Xms4g -Xmx10g -XX:+UseG1GC"
       - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
       - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
       - "spring.r2dbc.username=postgres"
@@ -92,3 +92,8 @@ services:
       - postgres
       - redis
       - elasticsearch
+volumes:
+  postgres-volume:
+  redis-volume:
+  elasticsearch-volume:
+  jetlinks-volume:
