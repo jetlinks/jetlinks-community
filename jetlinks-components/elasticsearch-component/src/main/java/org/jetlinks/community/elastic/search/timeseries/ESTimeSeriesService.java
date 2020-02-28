@@ -44,8 +44,7 @@ public class ESTimeSeriesService extends AbstractTimeSeriesService {
         return elasticSearchService.query(
             cleverGetIndex(),
             filterAddDefaultSort(queryParam),
-            Map.class
-        )
+            Map.class)
             .map(map -> new TimeSeriesData() {
 
                 @Override
@@ -75,20 +74,23 @@ public class ESTimeSeriesService extends AbstractTimeSeriesService {
         return aggregationService.bucketAggregation(
             filterAddDefaultSort(addQueryTimeRange(param.getQueryParam(), param)),
             structure,
-            cleverGetIndex()
-        ).flatMapMany(bucketResponse -> Flux.fromIterable(new BucketsParser(bucketResponse.getBuckets()).result)
-            .take(param.getLimit())
-            .map(ESAggregationData::new));
+            cleverGetIndex())
+            .onErrorResume(err -> Mono.empty())
+            .flatMapMany(bucketResponse -> Flux.fromIterable(new BucketsParser(bucketResponse.getBuckets()).result)
+                .take(param.getLimit())
+                .map(ESAggregationData::new))
+            ;
     }
 
     @Override
     public Mono<Void> save(Publisher<TimeSeriesData> data) {
-        return elasticSearchService.commit(getDefaultIndex(), Flux.from(data)
+        return Flux.from(data)
             .map(timeSeriesData -> {
                 Map<String, Object> map = timeSeriesData.getData();
                 map.put("timestamp", timeSeriesData.getTimestamp());
                 return map;
-            }));
+            })
+            .as(stream -> elasticSearchService.commit(getDefaultIndex(), stream));
     }
 
     @Override

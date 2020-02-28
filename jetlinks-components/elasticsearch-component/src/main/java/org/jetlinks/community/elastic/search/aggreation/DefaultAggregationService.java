@@ -53,10 +53,8 @@ public class DefaultAggregationService implements AggregationService {
                                                     MetricsAggregationStructure structure,
                                                     ElasticIndex provider) {
         return searchSourceBuilderMono(queryParam, provider)
-            .doOnNext(builder -> builder.aggregation(
-                structure.getType().aggregationBuilder(structure.getName(), structure.getField())))
             .map(builder -> new SearchRequest(provider.getStandardIndex())
-                .source(builder))
+                .source(builder.aggregation(structure.getType().aggregationBuilder(structure.getName(), structure.getField()))))
             .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
                 restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
             .map(searchResponse -> structure.getType().getResponse(structure.getName(), searchResponse));
@@ -65,23 +63,18 @@ public class DefaultAggregationService implements AggregationService {
     @Override
     public Mono<BucketResponse> bucketAggregation(QueryParam queryParam, BucketAggregationsStructure structure, ElasticIndex provider) {
         return searchSourceBuilderMono(queryParam, provider)
-            .doOnNext(builder ->
-                builder.aggregation(structure.getType().aggregationBuilder(structure))
-            )
             .map(builder -> new SearchRequest(provider.getStandardIndex())
-                .source(builder))
+                .source(builder.aggregation(structure.getType().aggregationBuilder(structure))))
             .doOnNext(searchRequest ->
-                log.debug("聚合查询index:{},参数:{}",
-                    provider.getStandardIndex(),
-                    JSON.toJSON(searchRequest.source().toString())))
+                log.debug("聚合查询index:{},参数:{}", provider.getStandardIndex(), JSON.toJSON(searchRequest.source().toString())))
             .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
-                restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
-            .map(response -> structure.getType().convert(response.getAggregations().get(structure.getName())))
-            .map(buckets -> BucketResponse.builder()
+                restClient
+                    .getQueryClient()
+                    .searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
+            .map(response -> BucketResponse.builder()
                 .name(structure.getName())
-                .buckets(buckets)
-                .build()
-            )
+                .buckets(structure.getType().convert(response.getAggregations().get(structure.getName())))
+                .build())
             ;
 
     }
