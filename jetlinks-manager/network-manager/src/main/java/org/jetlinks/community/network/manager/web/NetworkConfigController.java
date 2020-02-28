@@ -2,6 +2,8 @@ package org.jetlinks.community.network.manager.web;
 
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.Resource;
+import org.hswebframework.web.authorization.annotation.ResourceAction;
+import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.network.NetworkProvider;
@@ -47,6 +49,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
     }
 
     @PostMapping("/{id}/_start")
+    @SaveAction
     public Mono<Void> start(@PathVariable String id) {
         return configService.findById(id)
                 .switchIfEmpty(Mono.error(()->new NotFoundException("配置[" + id + "]不存在")))
@@ -59,6 +62,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
     }
 
     @PostMapping("/{id}/_shutdown")
+    @SaveAction
     public Mono<Void> shutdown(@PathVariable String id) {
         return configService.findById(id)
                 .switchIfEmpty(Mono.error(()->new NotFoundException("配置[" + id + "]不存在")))

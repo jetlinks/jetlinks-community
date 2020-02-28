@@ -5,7 +5,7 @@
     <parent>
         <artifactId>jetlinks-community</artifactId>
         <groupId>org.jetlinks.community</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0-RC</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -144,12 +144,6 @@
         <dependency>
             <groupId>org.jetlinks</groupId>
             <artifactId>jetlinks-supports</artifactId>
-            <version>${jetlinks.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetlinks</groupId>
-            <artifactId>jetlinks-gateway</artifactId>
             <version>${jetlinks.version}</version>
         </dependency>
 

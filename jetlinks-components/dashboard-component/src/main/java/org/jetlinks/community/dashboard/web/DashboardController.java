@@ -1,6 +1,9 @@
 package org.jetlinks.community.dashboard.web;
 
 import com.alibaba.fastjson.JSON;
+import org.hswebframework.web.authorization.annotation.Authorize;
+import org.hswebframework.web.authorization.annotation.QueryAction;
+import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.web.request.DashboardMeasurementRequest;
@@ -16,6 +19,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/dashboard")
+@Resource(id="dashboard",name = "仪表盘")
+@Authorize
 public class DashboardController {
 
     private final DashboardManager dashboardManager;
@@ -25,6 +30,7 @@ public class DashboardController {
     }
 
     @GetMapping("/defs")
+    @QueryAction
     public Flux<DashboardInfo> getDefinitions() {
         return dashboardManager
             .getDashboards()
@@ -32,6 +38,7 @@ public class DashboardController {
     }
 
     @GetMapping("/def/{dashboard}/{object}/measurements")
+    @QueryAction
     public Flux<MeasurementInfo> getMeasurementDefinitions(@PathVariable String dashboard,
                                                            @PathVariable String object) {
         return dashboardManager
@@ -42,6 +49,7 @@ public class DashboardController {
     }
 
     @GetMapping(value = "/{dashboard}/{object}/{measurement}/{dimension}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Authorize(merge = false)
     public Flux<MeasurementValue> getMeasurementValue(@PathVariable String dashboard,
                                                       @PathVariable String object,
                                                       @PathVariable String dimension,
@@ -63,6 +71,7 @@ public class DashboardController {
      * @return 仪表数据
      */
     @PostMapping(value = "/_multi")
+    @Authorize(merge = false)
     public Flux<DashboardMeasurementResponse> getMultiMeasurementValue(@RequestBody Flux<DashboardMeasurementRequest> requests) {
         return requests.flatMap(request -> dashboardManager
             .getDashboard(request.getDashboard())
@@ -81,6 +90,7 @@ public class DashboardController {
      * @return 仪表数据
      */
     @GetMapping(value = "/_multi", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Authorize(merge = false)
     public Flux<DashboardMeasurementResponse> getMultiMeasurementValue(@RequestParam String requestJson) {
         return Flux.fromIterable(JSON.parseArray(requestJson, DashboardMeasurementRequest.class))
             .flatMap(request -> dashboardManager

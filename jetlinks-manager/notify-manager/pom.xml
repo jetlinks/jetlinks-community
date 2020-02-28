@@ -7,14 +7,10 @@
     <parent>
         <groupId>org.jetlinks.community</groupId>
         <artifactId>jetlinks-manager</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0-RC</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>notify-manager</artifactId>
-
-    <properties>
-        <hsweb.framework.version>4.0.0-SNAPSHOT</hsweb.framework.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -89,49 +85,4 @@
 
     </dependencies>
 
-    <repositories>
-        <repository>
-            <id>aliyun-nexus</id>
-            <name>aliyun</name>
-            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
-        </repository>
-
-        <repository>
-            <id>hsweb-nexus</id>
-            <name>Nexus Release Repository</name>
-            <url>http://nexus.hsweb.me/content/groups/public/</url>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </snapshots>
-        </repository>
-
-        <repository>
-            <id>spring.io</id>
-            <name>spring</name>
-            <url>https://repo.spring.io/milestone</url>
-        </repository>
-
-    </repositories>
-
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <name>Nexus Release Repository</name>
-            <url>http://nexus.hsweb.me/content/repositories/releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <name>Nexus Snapshot Repository</name>
-            <url>http://nexus.hsweb.me/content/repositories/snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>aliyun-nexus</id>
-            <name>aliyun</name>
-            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
-        </pluginRepository>
-    </pluginRepositories>
 </project>

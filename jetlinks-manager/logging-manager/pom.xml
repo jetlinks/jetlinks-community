@@ -7,17 +7,11 @@
     <parent>
         <groupId>org.jetlinks.community</groupId>
         <artifactId>jetlinks-manager</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0-RC</version>
     </parent>
     <artifactId>logging-manager</artifactId>
 
-
-    <properties>
-        <hsweb.framework.version>4.0.0-SNAPSHOT</hsweb.framework.version>
-    </properties>
-
     <dependencies>
-
         <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-access-logging-aop</artifactId>
@@ -50,7 +44,6 @@
             <groupId>org.hswebframework</groupId>
             <artifactId>hsweb-easy-orm-rdb</artifactId>
         </dependency>
-
 
     </dependencies>
 

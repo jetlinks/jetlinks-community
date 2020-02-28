@@ -6,7 +6,7 @@
 
     <groupId>org.jetlinks.community</groupId>
     <artifactId>jetlinks-community</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0-RC</version>
     <modules>
         <module>jetlinks-components</module>
         <module>jetlinks-manager</module>
@@ -16,15 +16,14 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.2.2.RELEASE</spring.boot.version>
+        <spring.boot.version>2.2.5.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.0-SNAPSHOT</hsweb.framework.version>
+        <hsweb.framework.version>4.0.0</hsweb.framework.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.0.0-BUILD-SNAPSHOT</jetlinks.version>
-        <reactor.version>Dysprosium-RELEASE</reactor.version>
+        <jetlinks.version>1.0.0</jetlinks.version>
         <r2dbc.version>Arabba-RELEASE</r2dbc.version>
-        <vertx.version>3.8.3</vertx.version>
+        <vertx.version>3.8.5</vertx.version>
     </properties>
 
     <build>

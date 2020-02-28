@@ -7,15 +7,10 @@
     <parent>
         <groupId>org.jetlinks.community</groupId>
         <artifactId>jetlinks-manager</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0-RC</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>rule-engine-manager</artifactId>
-
-    <properties>
-        <hsweb.framework.version>4.0.0-SNAPSHOT</hsweb.framework.version>
-    </properties>
-
     <dependencies>
 
         <dependency>
