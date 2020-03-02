@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.TermType;
+import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
@@ -37,6 +38,7 @@ import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.supports.official.JetLinksDeviceMetadata;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -84,7 +86,12 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     private TimeSeriesManager timeSeriesManager;
 
 
-
+    @Override
+    public Mono<SaveResult> save(Publisher<DeviceInstanceEntity> entityPublisher) {
+        return Flux.from(entityPublisher)
+            .doOnNext(instance -> instance.setState(null))
+            .as(super::save);
+    }
     /**
      * 获取设备所有信息
      *
