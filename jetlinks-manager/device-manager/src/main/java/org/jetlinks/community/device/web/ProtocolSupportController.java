@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
 @Authorize
 @Resource(id = "protocol-supports", name = "协议管理")
 public class ProtocolSupportController implements
-        ReactiveServiceCrudController<ProtocolSupportEntity, String> {
+    ReactiveServiceCrudController<ProtocolSupportEntity, String> {
 
     @Autowired
     @Getter
@@ -53,7 +53,7 @@ public class ProtocolSupportController implements
     @Authorize(merge = false)
     public Flux<ProtocolInfo> allProtocols() {
         return protocolSupports.getProtocols()
-                .map(ProtocolInfo::of);
+            .map(ProtocolInfo::of);
     }
 
     @GetMapping("/{id}/{transport}/configuration")
@@ -61,16 +61,17 @@ public class ProtocolSupportController implements
     @Authorize(merge = false)
     public Mono<ConfigMetadata> getTransportConfiguration(@PathVariable String id, @PathVariable DefaultTransport transport) {
         return protocolSupports.getProtocol(id)
-                .flatMap(support -> support.getConfigMetadata(transport));
+            .flatMap(support -> support.getConfigMetadata(transport));
     }
 
     @GetMapping("/{id}/transports")
     @Authorize(merge = false)
     public Flux<TransportInfo> getAllTransport(@PathVariable String id) {
         return protocolSupports
-                .getProtocol(id)
-                .flatMapMany(ProtocolSupport::getSupportedTransport)
-                .map(TransportInfo::of);
+            .getProtocol(id)
+            .flatMapMany(ProtocolSupport::getSupportedTransport)
+            .distinct()
+            .map(TransportInfo::of);
     }
 
     @GetMapping("/units")
