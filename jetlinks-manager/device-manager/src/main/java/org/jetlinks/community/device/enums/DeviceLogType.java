@@ -14,8 +14,11 @@ public enum DeviceLogType implements EnumDict<String> {
     writeProperty("属性修改"),
     reportProperty("属性上报"),
     child("子设备消息"),
-    call("调用功能"),
-    reply("回复"),
+    functionInvoke("调用功能"),
+    readPropertyReply("读取属性回复"),
+    writePropertyReply("修改属性回复"),
+    functionReply("调用功能回复"),
+
     offline("离线"),
     online("上线"),
     other("其它");
@@ -41,10 +44,12 @@ public enum DeviceLogType implements EnumDict<String> {
                 return child;
             case REPORT_PROPERTY:
                 return reportProperty;
-            case READ_PROPERTY_REPLY:
             case INVOKE_FUNCTION_REPLY:
+                return functionReply;
+            case READ_PROPERTY_REPLY:
+                return readPropertyReply;
             case WRITE_PROPERTY_REPLY:
-                return reply;
+                return writePropertyReply;
             default:
                 return other;
         }
