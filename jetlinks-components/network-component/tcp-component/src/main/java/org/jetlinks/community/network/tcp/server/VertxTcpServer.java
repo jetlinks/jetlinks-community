@@ -62,7 +62,7 @@ public class VertxTcpServer extends AbstractTcpServer implements TcpServer {
             socket.exceptionHandler(err -> {
                 log.error("tcp server client [{}] error", socket.remoteAddress(), err);
             }).closeHandler((nil) -> {
-                log.info("tcp server client [{}] closed", socket.remoteAddress());
+                log.debug("tcp server client [{}] closed", socket.remoteAddress());
                 client.shutdown();
             });
             client.setRecordParser(parserSupplier.get());

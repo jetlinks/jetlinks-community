@@ -82,6 +82,7 @@ public class VertxTcpClient extends AbstractTcpClient {
 
     @Override
     public void shutdown() {
+        log.debug("tcp client [{}] disconnect", getId());
         if (null != client) {
             execute(client::close);
             client = null;
@@ -93,6 +94,9 @@ public class VertxTcpClient extends AbstractTcpClient {
         if (null != payloadParser) {
             execute(payloadParser::close);
             payloadParser = null;
+        }
+        for (Runnable runnable : disconnectListener) {
+            execute(runnable);
         }
         disconnectListener.clear();
     }
@@ -110,9 +114,9 @@ public class VertxTcpClient extends AbstractTcpClient {
         }
         this.payloadParser = payloadParser;
         this.payloadParser
-                .handlePayload()
-                .onErrorContinue((err, res) ->log.error(err.getMessage(),err))
-                .subscribe(buffer -> received(new TcpMessage(buffer.getByteBuf())));
+            .handlePayload()
+            .onErrorContinue((err, res) -> log.error(err.getMessage(), err))
+            .subscribe(buffer -> received(new TcpMessage(buffer.getByteBuf())));
     }
 
     public void setSocket(NetSocket socket) {
@@ -122,10 +126,7 @@ public class VertxTcpClient extends AbstractTcpClient {
         }
         this.socket = socket;
         this.socket.closeHandler(v -> {
-            for (Runnable runnable : disconnectListener) {
-                runnable.run();
-            }
-            disconnectListener.clear();
+            shutdown();
         });
         this.socket.handler(buffer -> {
             keepAlive();

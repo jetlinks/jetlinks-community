@@ -23,11 +23,11 @@ public class ScriptPayloadParserBuilder implements PayloadParserBuilderStrategy 
     @SneakyThrows
     public PayloadParser build(Values config) {
         String script = config.getValue("script")
-                .map(Value::asString)
-                .orElseThrow(() -> new IllegalArgumentException("script不能为空"));
+            .map(Value::asString)
+            .orElseThrow(() -> new IllegalArgumentException("script不能为空"));
         String lang = config.getValue("lang")
-                .map(Value::asString)
-                .orElseThrow(() -> new IllegalArgumentException("lang不能为空"));
+            .map(Value::asString)
+            .orElseThrow(() -> new IllegalArgumentException("lang不能为空"));
 
         DynamicScriptEngine engine = DynamicScriptEngineFactory.getEngine(lang);
         if (engine == null) {
@@ -35,8 +35,9 @@ public class ScriptPayloadParserBuilder implements PayloadParserBuilderStrategy 
         }
         PipePayloadParser parser = new PipePayloadParser();
         String id = DigestUtils.md5Hex(script);
-
-        engine.compile(id, script);
+        if (!engine.compiled(id)) {
+            engine.compile(id, script);
+        }
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("parser", parser);
         engine.execute(id, ctx).getIfSuccess();

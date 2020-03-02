@@ -147,7 +147,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
 
                             @Override
                             public DeviceOperator getDevice() {
-                                throw new UnsupportedOperationException();
+                                return null;
                             }
                         })))
                     .cast(DeviceMessage.class)
