@@ -5,15 +5,14 @@ import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.*;
+import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.device.message.DeviceMessageUtils;
 import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.gateway.Subscription;
 import org.jetlinks.community.timeseries.TimeSeriesService;
-import org.jetlinks.core.metadata.types.IntType;
-import org.jetlinks.core.metadata.types.ObjectType;
-import org.jetlinks.core.metadata.types.StringType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -22,40 +21,52 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class DevicePropertyMeasurement extends StaticMeasurement {
-
-    private PropertyMetadata metadata;
+class DevicePropertiesMeasurement extends StaticMeasurement {
 
     private MessageGateway messageGateway;
 
     private TimeSeriesService timeSeriesService;
 
-    public DevicePropertyMeasurement(MessageGateway messageGateway, PropertyMetadata metadata, TimeSeriesService timeSeriesService) {
-        super(MetadataMeasurementDefinition.of(metadata));
+    private DeviceMetadata metadata;
+
+    public DevicePropertiesMeasurement(MessageGateway messageGateway, DeviceMetadata deviceMetadata, TimeSeriesService timeSeriesService) {
+        super(MeasurementDefinition.of("properties", "属性记录"));
         this.messageGateway = messageGateway;
-        this.metadata = metadata;
         this.timeSeriesService = timeSeriesService;
+        this.metadata = deviceMetadata;
         addDimension(new RealTimeDevicePropertyDimension());
     }
 
-
-    Map<String, Object> createValue(Object value) {
-        Map<String, Object> values = new HashMap<>();
-        DataType type = metadata.getValueType();
-        value = type instanceof Converter ? ((Converter<?>) type).convert(value) : value;
-        values.put("value", value);
-        values.put("formatValue", type.format(value));
-        return values;
+    Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
+        return history <= 0 ? Flux.empty() : Flux.fromIterable(metadata.getProperties())
+            .flatMap(propertyMetadata -> QueryParamEntity.newQuery()
+                .doPaging(0, history)
+                .where("deviceId", deviceId)
+                .and("property", propertyMetadata.getId())
+                .execute(timeSeriesService::query)
+                .map(data -> SimpleMeasurementValue.of(createValue(propertyMetadata.getId(), data.get("value").orElse(null)), data.getTimestamp()))
+                .sort(MeasurementValue.sort()));
     }
 
-    Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
-        return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
-            .doPaging(0, history)
-            .where("deviceId", deviceId)
-            .and("property", metadata.getId())
-            .execute(timeSeriesService::query)
-            .map(data -> SimpleMeasurementValue.of(createValue(data.get("value").orElse(null)), data.getTimestamp()))
-            .sort(MeasurementValue.sort());
+    Map<String, Object> createValue(String property, Object value) {
+        return metadata.getProperty(property)
+            .map(meta -> {
+                Map<String, Object> values = new HashMap<>();
+                DataType type = meta.getValueType();
+                Object val = type instanceof Converter ? ((Converter<?>) type).convert(value) : value;
+                values.put("formatValue", type.format(val));
+                values.put("value", val);
+                values.put("property", property);
+
+                return values;
+            })
+            .orElseGet(() -> {
+                Map<String, Object> values = new HashMap<>();
+                values.put("formatValue", value);
+                values.put("value", value);
+                values.put("property", property);
+                return values;
+            });
     }
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
@@ -78,13 +89,12 @@ class DevicePropertyMeasurement extends StaticMeasurement {
                 }
                 return Mono.empty();
             })
-            .filter(msg -> msg.containsKey(metadata.getId()))
-            .map(msg -> SimpleMeasurementValue.of(createValue(msg.get(metadata.getId())), System.currentTimeMillis()));
+            .flatMap(map -> Flux.fromIterable(map.entrySet()))
+            .map(kv -> SimpleMeasurementValue.of(createValue(kv.getKey(), kv.getValue()), System.currentTimeMillis()));
     }
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
-        .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"))
-        .add("history", "历史数据量", "查询出历史数据后开始推送实时数据", new IntType().min(0).expand("defaultValue", 10));
+        .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
 
     /**
      * 实时设备事件
@@ -98,11 +108,15 @@ class DevicePropertyMeasurement extends StaticMeasurement {
 
         @Override
         public DataType getValueType() {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("property");
+            property.setName("属性");
+            property.setValueType(new StringType());
 
             SimplePropertyMetadata value = new SimplePropertyMetadata();
             value.setId("value");
             value.setName("值");
-            value.setValueType(metadata.getValueType());
+            value.setValueType(new StringType());
 
             SimplePropertyMetadata formatValue = new SimplePropertyMetadata();
             value.setId("formatValue");
@@ -110,6 +124,7 @@ class DevicePropertyMeasurement extends StaticMeasurement {
             value.setValueType(new StringType());
 
             return new ObjectType()
+                .addPropertyMetadata(property)
                 .addPropertyMetadata(value)
                 .addPropertyMetadata(formatValue);
         }

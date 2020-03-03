@@ -112,17 +112,16 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
             return AggregationQueryParam.of()
                 .sum("count")
-                .groupBy(parameter.getDuration("time").orElse(Duration.ofHours(1)),
-                    "time",
-                    parameter.getString("format").orElse("MM月dd日 HH时"))
+                .groupBy(parameter.getDuration("time", Duration.ofHours(1)),
+                    parameter.getString("format", "MM月dd日 HH时"))
                 .filter(query ->
                     query.where("name", "message-count")
-                        .is("productId", parameter.getString("productId").orElse(null))
-                        .is("msgType", parameter.getString("msgType").orElse(null))
+                        .is("productId", parameter.getString("productId", null))
+                        .is("msgType", parameter.getString("msgType", null))
                 )
-                .limit(parameter.getInt("limit").orElse(1))
+                .limit(parameter.getInt("limit", 1))
                 .from(parameter.getDate("from").orElseGet(() -> Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
-                .to(parameter.getDate("to").orElse(new Date()))
+                .to(parameter.getDate("to").orElseGet(Date::new))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
                 .index((index, data) -> SimpleMeasurementValue.of(
                     data.getInt("count").orElse(0),
