@@ -6,7 +6,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - "./data/redis:/data"
+      - "redis-volume:/data"
     command: redis-server --appendonly yes
     environment:
       - TZ=Asia/Shanghai
@@ -20,8 +20,6 @@ services:
       bootstrap.memory_lock: "true"
       discovery.zen.minimum_master_nodes: 1
       discovery.zen.ping.unicast.hosts: elasticsearch
-#    volumes:
-#      - ./data/elasticsearch:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -42,8 +40,11 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - "./data/postgres:/var/lib/postgresql/data"
+      - "postgres-volume:/var/lib/postgresql/data"
     environment:
       POSTGRES_PASSWORD: jetlinks
       POSTGRES_DB: jetlinks
       TZ: Asia/Shanghai
+volumes:
+  postgres-volume:
+  redis-volume:
