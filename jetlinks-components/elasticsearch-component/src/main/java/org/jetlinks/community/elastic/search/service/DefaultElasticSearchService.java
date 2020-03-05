@@ -86,8 +86,9 @@ public class DefaultElasticSearchService implements ElasticSearchService {
 
     @Override
     public Mono<Long> count(String index, QueryParam queryParam) {
-        QueryParam param=queryParam.clone();
+        QueryParam param = queryParam.clone();
         param.setPaging(false);
+        param.setSorts(Collections.emptyList());
         return doCount(createCountRequest(param, index))
             .map(CountResponse::getCount)
             .defaultIfEmpty(0L)

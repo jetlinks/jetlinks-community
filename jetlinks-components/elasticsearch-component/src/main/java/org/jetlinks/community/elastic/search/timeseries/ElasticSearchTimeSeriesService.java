@@ -3,6 +3,7 @@ package org.jetlinks.community.elastic.search.timeseries;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.core.param.QueryParam;
+import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.jetlinks.community.elastic.search.service.AggregationService;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.timeseries.TimeSeriesData;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
+import java.util.function.Function;
 
 @AllArgsConstructor
 @Slf4j
@@ -47,6 +49,16 @@ public class ElasticSearchTimeSeriesService implements TimeSeriesService {
             })
             .map(AggregationData::of);
 
+    }
+
+    @Override
+    public Mono<PagerResult<TimeSeriesData>> queryPager(QueryParam queryParam) {
+        return elasticSearchService.queryPager(index, queryParam, map -> TimeSeriesData.of((Long) map.get("timestamp"), map));
+    }
+
+    @Override
+    public <T> Mono<PagerResult<T>> queryPager(QueryParam queryParam, Function<TimeSeriesData, T> mapper) {
+        return elasticSearchService.queryPager(index, queryParam, map -> mapper.apply(TimeSeriesData.of((Long) map.get("timestamp"), map)));
     }
 
 
