@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.timeseries;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
@@ -48,7 +49,7 @@ class DeviceEventTimeSeriesMetadata implements TimeSeriesMetadata {
     public DeviceEventTimeSeriesMetadata(String productId, EventMetadata eventMetadata) {
         metric = DeviceTimeSeriesMetric.deviceEventMetric(productId, eventMetadata.getId());
         DataType type = eventMetadata.getType();
-        if (type instanceof ObjectType) {
+        if (CollectionUtils.isNotEmpty(((ObjectType) type).getProperties())) {
             metadata.addAll(((ObjectType) type).getProperties());
         } else {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
