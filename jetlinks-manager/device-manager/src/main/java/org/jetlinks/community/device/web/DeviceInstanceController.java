@@ -33,6 +33,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping({"/device-instance", "/device/instance"})
@@ -154,6 +155,15 @@ public class DeviceInstanceController implements
     @QueryAction
     public Mono<DevicePropertiesEntity> getDeviceLatestProperty(@PathVariable String deviceId, @PathVariable String property) {
         return service.getDeviceLatestProperty(deviceId, property);
+    }
+
+    @GetMapping("/{deviceId:.+}/event/{eventId}")
+    @QueryAction
+    public Mono<PagerResult<Map<String, Object>>> queryPagerByDeviceEvent(QueryParamEntity queryParam,
+                                                                          @RequestParam(defaultValue = "false") boolean format,
+                                                                          @PathVariable String deviceId,
+                                                                          @PathVariable String eventId) {
+        return service.queryDeviceEvent(deviceId, eventId, queryParam, format);
     }
 
     @GetMapping("/{deviceId:.+}/properties/_query")

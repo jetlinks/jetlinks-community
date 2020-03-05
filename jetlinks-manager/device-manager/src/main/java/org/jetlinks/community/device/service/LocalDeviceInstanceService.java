@@ -22,9 +22,11 @@ import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceOfflineMessage;
 import org.jetlinks.core.message.DeviceOnlineMessage;
+import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.Metadata;
+import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
@@ -60,6 +62,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -245,6 +248,34 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 .getService(devicePropertyMetric(productId))
                 .queryPager(entity.and("deviceId", TermType.eq, deviceId), data -> data.as(DevicePropertiesEntity.class)))
             .defaultIfEmpty(PagerResult.empty());
+    }
+
+    public Mono<PagerResult<Map<String, Object>>> queryDeviceEvent(String deviceId, String eventId, QueryParamEntity entity, boolean format) {
+        return registry
+            .getDevice(deviceId)
+            .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.productId).zipWith(operator.getMetadata()))
+            .flatMap(tp -> timeSeriesManager
+                .getService(DeviceTimeSeriesMetric.deviceEventMetric(tp.getT1(), eventId))
+                .queryPager(entity.and("deviceId", TermType.eq, deviceId), data -> {
+                    if (!format) {
+                        return data.getData();
+                    }
+                    Map<String, Object> formatData = new HashMap<>(data.getData());
+                    tp.getT2()
+                        .getEvent(eventId)
+                        .ifPresent(eventMetadata -> {
+                            DataType type = eventMetadata.getType();
+                            if (type instanceof ObjectType) {
+                                @SuppressWarnings("all")
+                                Map<String, Object> val = (Map<String, Object>) type.format(formatData);
+                                val.forEach((k, v) -> formatData.put(k + "_format", v));
+                            } else {
+                                formatData.put("value_format", type.format(data.get("value")));
+                            }
+                        });
+                    return formatData;
+                })
+                .defaultIfEmpty(PagerResult.empty()));
     }
 
     public Mono<DevicePropertiesEntity> getDeviceLatestProperty(String deviceId, String property) {

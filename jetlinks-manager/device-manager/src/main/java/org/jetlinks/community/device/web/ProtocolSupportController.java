@@ -18,10 +18,13 @@ import org.jetlinks.core.metadata.unit.ValueUnit;
 import org.jetlinks.core.metadata.unit.ValueUnits;
 import org.jetlinks.community.device.entity.ProtocolSupportEntity;
 import org.jetlinks.community.device.service.LocalProtocolSupportService;
+import org.jetlinks.supports.protocol.management.ProtocolSupportLoaderProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/protocol")
@@ -37,6 +40,9 @@ public class ProtocolSupportController implements
     @Autowired
     private ProtocolSupports protocolSupports;
 
+    @Autowired
+    private List<ProtocolSupportLoaderProvider> providers;
+
     @PostMapping("/{id}/_deploy")
     @SaveAction
     public Mono<Boolean> deploy(@PathVariable String id) {
@@ -47,6 +53,14 @@ public class ProtocolSupportController implements
     @SaveAction
     public Mono<Boolean> unDeploy(@PathVariable String id) {
         return service.unDeploy(id);
+    }
+
+    //获取支持的协议类型
+    @GetMapping("/providers")
+    @Authorize(merge = false)
+    public Flux<String> getProviders() {
+        return Flux.fromIterable(providers)
+            .map(ProtocolSupportLoaderProvider::getProvider);
     }
 
     @GetMapping("/supports")
