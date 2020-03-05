@@ -12,10 +12,8 @@ import org.jetlinks.community.elastic.search.index.ElasticIndex;
 @AllArgsConstructor
 public enum LoggerIndexProvider implements ElasticIndex {
 
-    ACCESS("access_log", "_doc"),
-    SYSTEM("system_log", "_doc");
+    ACCESS("access_logger"),
+    SYSTEM("system_logger");
 
     private String index;
-
-    private String type;
 }

@@ -188,7 +188,4 @@ public enum BucketType {
         mapping.put(OrderBuilder.of("desc", OrderType.KEY), BucketOrder.key(false));
     }
 
-    public static void main(String[] args) {
-        System.out.println(mapping.get(OrderBuilder.of("desc", OrderType.KEY)).toString());
-    }
 }

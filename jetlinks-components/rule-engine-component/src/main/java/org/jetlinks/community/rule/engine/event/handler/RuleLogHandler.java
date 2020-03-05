@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 @Component
 @Slf4j
@@ -26,7 +25,7 @@ public class RuleLogHandler {
     @EventListener
     public void handleRuleLog(LogInfo event) {
         RuleEngineExecuteLogInfo logInfo = FastBeanCopier.copy(event, new RuleEngineExecuteLogInfo());
-        elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_LOG, Mono.just(logInfo))
+        elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_LOG, logInfo)
             .subscribe();
     }
 
@@ -36,7 +35,7 @@ public class RuleLogHandler {
         if (!RuleEvent.NODE_EXECUTE_BEFORE.equals(event.getEvent())
             && !RuleEvent.NODE_EXECUTE_RESULT.equals(event.getEvent())) {
             RuleEngineExecuteEventInfo eventInfo = FastBeanCopier.copy(event, new RuleEngineExecuteEventInfo());
-            elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG, Mono.just(eventInfo))
+            elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG, eventInfo)
                 .subscribe();
         }
     }

@@ -24,7 +24,7 @@ public class TermCommonUtils {
             return new ArrayList<Object>(((Collection) value));
         }
 
-        return Arrays.asList(value);
+        return Collections.singletonList(value);
     }
 
     public static Object getStandardsTermValue(List<Object> value) {

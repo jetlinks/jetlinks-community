@@ -8,21 +8,34 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.search.aggregations.bucket.histogram.ExtendedBounds;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.hswebframework.ezorm.core.param.QueryParam;
+import org.hswebframework.ezorm.core.param.TermType;
 import org.jetlinks.community.elastic.search.ElasticRestClient;
+import org.jetlinks.community.elastic.search.aggreation.bucket.Bucket;
 import org.jetlinks.community.elastic.search.aggreation.bucket.BucketAggregationsStructure;
 import org.jetlinks.community.elastic.search.aggreation.bucket.BucketResponse;
+import org.jetlinks.community.elastic.search.aggreation.bucket.Sort;
+import org.jetlinks.community.elastic.search.aggreation.enums.BucketType;
+import org.jetlinks.community.elastic.search.aggreation.enums.MetricsType;
+import org.jetlinks.community.elastic.search.aggreation.enums.OrderType;
 import org.jetlinks.community.elastic.search.aggreation.metrics.MetricsAggregationStructure;
 import org.jetlinks.community.elastic.search.aggreation.metrics.MetricsResponse;
-import org.jetlinks.community.elastic.search.index.ElasticIndex;
-import org.jetlinks.community.elastic.search.parser.QueryParamTranslateService;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.service.AggregationService;
-import org.jetlinks.community.elastic.search.service.IndexOperationService;
+import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
+import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
+
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author bsetfeng
@@ -32,28 +45,22 @@ import reactor.core.publisher.MonoSink;
 @Slf4j
 public class DefaultAggregationService implements AggregationService {
 
-    private final QueryParamTranslateService translateService;
-
     private final ElasticRestClient restClient;
 
-    private final IndexOperationService indexOperationService;
+    private final ElasticSearchIndexManager indexManager;
 
     @Autowired
-    public DefaultAggregationService(IndexOperationService indexOperationService,
-                                     ElasticRestClient restClient,
-                                     QueryParamTranslateService translateService) {
-        this.indexOperationService = indexOperationService;
+    public DefaultAggregationService(ElasticSearchIndexManager indexManager,
+                                     ElasticRestClient restClient) {
         this.restClient = restClient;
-        this.translateService = translateService;
+        this.indexManager = indexManager;
     }
 
-
     @Override
-    public Mono<MetricsResponse> metricsAggregation(QueryParam queryParam,
-                                                    MetricsAggregationStructure structure,
-                                                    ElasticIndex provider) {
-        return searchSourceBuilderMono(queryParam, provider)
-            .map(builder -> new SearchRequest(provider.getStandardIndex())
+    public Mono<MetricsResponse> metricsAggregation(String index, QueryParam queryParam,
+                                                    MetricsAggregationStructure structure) {
+        return createSearchSourceBuilder(queryParam, index)
+            .map(builder -> new SearchRequest(index)
                 .source(builder.aggregation(structure.getType().aggregationBuilder(structure.getName(), structure.getField()))))
             .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
                 restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
@@ -61,12 +68,15 @@ public class DefaultAggregationService implements AggregationService {
     }
 
     @Override
-    public Mono<BucketResponse> bucketAggregation(QueryParam queryParam, BucketAggregationsStructure structure, ElasticIndex provider) {
-        return searchSourceBuilderMono(queryParam, provider)
-            .map(builder -> new SearchRequest(provider.getStandardIndex())
+    public Mono<BucketResponse> bucketAggregation(String index, QueryParam queryParam, BucketAggregationsStructure structure) {
+        return createSearchSourceBuilder(queryParam, index)
+            .map(builder -> new SearchRequest(index)
                 .source(builder.aggregation(structure.getType().aggregationBuilder(structure))))
-            .doOnNext(searchRequest ->
-                log.debug("聚合查询index:{},参数:{}", provider.getStandardIndex(), JSON.toJSON(searchRequest.source().toString())))
+            .doOnNext(searchRequest -> {
+                if (log.isDebugEnabled()) {
+                    log.debug("聚合查询ElasticSearch:{},参数:{}", index, JSON.toJSON(searchRequest.source().toString()));
+                }
+            })
             .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
                 restClient
                     .getQueryClient()
@@ -79,13 +89,11 @@ public class DefaultAggregationService implements AggregationService {
 
     }
 
-    private Mono<SearchSourceBuilder> searchSourceBuilderMono(QueryParam queryParam, ElasticIndex provider) {
-        QueryParam tempQueryParam = queryParam.clone();
-        tempQueryParam.setPaging(false);
-        return indexOperationService.getIndexMappingMetadata(provider.getStandardIndex())
-            .map(metadata -> translateService.translate(tempQueryParam, metadata))
-            .doOnError(e -> log.error("解析queryParam错误, index:{}", provider.getStandardIndex(), e));
-        // return Mono.just(translateService.translate(queryParam, IndexMappingMetadata.getInstance(provider.getStandardIndex())));
+    private Mono<SearchSourceBuilder> createSearchSourceBuilder(QueryParam queryParam, String index) {
+
+        return indexManager.getIndexMetadata(index)
+            .map(metadata -> ElasticSearchConverter.convertSearchSourceBuilder(queryParam, metadata))
+            .doOnError(e -> log.error("解析queryParam错误:{}", index, e));
     }
 
     private <T> ActionListener<T> translatorActionListener(MonoSink<T> sink) {
@@ -108,5 +116,165 @@ public class DefaultAggregationService implements AggregationService {
                 sink.error(e);
             }
         };
+    }
+
+    @Override
+    public Flux<Map<String, Object>> aggregation(String index, AggregationQueryParam aggregationQueryParam) {
+        QueryParam queryParam = prepareQueryParam(aggregationQueryParam);
+        BucketAggregationsStructure structure = createAggParameter(aggregationQueryParam);
+        return indexManager
+            .getIndexStrategy(index)
+            .flatMap(strategy ->
+                createSearchSourceBuilder(queryParam, index)
+                    .map(builder ->
+                        new SearchRequest(strategy.getIndexForSearch(index))
+                            .source(builder.aggregation(structure.getType().aggregationBuilder(structure)))))
+            .doOnNext(searchRequest -> {
+                if (log.isDebugEnabled()) {
+                    log.debug("聚合查询ElasticSearch:{},参数:{}", index, JSON.toJSON(searchRequest.source().toString()));
+                }
+            })
+            .flatMap(searchRequest ->
+                ReactorActionListener
+                    .<SearchResponse>mono(listener ->
+                        restClient.getQueryClient()
+                            .searchAsync(searchRequest, RequestOptions.DEFAULT, listener)
+                    ))
+            .map(response -> BucketResponse.builder()
+                .name(structure.getName())
+                .buckets(structure.getType().convert(response.getAggregations().get(structure.getName())))
+                .build())
+            .flatMapIterable(BucketsParser::convert)
+            .take(aggregationQueryParam.getLimit())
+            ;
+    }
+
+    static class BucketsParser {
+
+        private List<Map<String, Object>> result = new ArrayList<>();
+
+        public static List<Map<String, Object>> convert(BucketResponse response) {
+            return new BucketsParser(response).result;
+        }
+
+        public BucketsParser(BucketResponse response) {
+            this(response.getBuckets());
+        }
+
+        public BucketsParser(List<Bucket> buckets) {
+            buckets.forEach(bucket -> parser(bucket, new HashMap<>()));
+        }
+
+        public void parser(Bucket bucket, Map<String, Object> fMap) {
+            addBucketProperty(bucket, fMap);
+            if (bucket.getBuckets() != null && !bucket.getBuckets().isEmpty()) {
+                bucket.getBuckets().forEach(b -> {
+                    Map<String, Object> map = new HashMap<>(fMap);
+                    addBucketProperty(b, map);
+                    parser(b, map);
+                });
+            } else {
+                result.add(fMap);
+            }
+        }
+
+        private void addBucketProperty(Bucket bucket, Map<String, Object> fMap) {
+            fMap.put(bucket.getName(), bucket.getKey());
+            fMap.putAll(bucket.toMap());
+        }
+    }
+
+    protected static QueryParam prepareQueryParam(AggregationQueryParam param) {
+        QueryParam queryParam = param.getQueryParam().clone();
+        queryParam.setPaging(false);
+        queryParam.and(param.getTimeProperty(), TermType.btw, Arrays.asList(calculateStartWithTime(param), param.getEndWithTime()));
+        if (queryParam.getSorts().isEmpty()) {
+            queryParam.orderBy(param.getTimeProperty()).desc();
+        }
+        return queryParam;
+    }
+
+    protected BucketAggregationsStructure createAggParameter(AggregationQueryParam param) {
+        List<BucketAggregationsStructure> structures = new ArrayList<>();
+        if (param.getGroupByTime() != null) {
+            structures.add(convertAggGroupTimeStructure(param));
+        }
+        if (param.getGroupBy() != null && !param.getGroupBy().isEmpty()) {
+            structures.addAll(getTermTypeStructures(param));
+        }
+        for (int i = 0, size = structures.size(); i < size; i++) {
+            if (i < size - 1) {
+                structures.get(i).setSubBucketAggregation(Collections.singletonList(structures.get(i + 1)));
+            }
+            if (i == size - 1) {
+                structures.get(i)
+                    .setSubMetricsAggregation(param
+                        .getAggColumns()
+                        .stream()
+                        .map(agg -> {
+                            MetricsAggregationStructure metricsAggregationStructure = new MetricsAggregationStructure();
+                            metricsAggregationStructure.setField(agg.getProperty());
+                            metricsAggregationStructure.setName(agg.getAlias());
+                            metricsAggregationStructure.setType(MetricsType.of(agg.getAggregation().name()));
+                            return metricsAggregationStructure;
+                        }).collect(Collectors.toList()));
+            }
+        }
+        return structures.get(0);
+    }
+
+    protected BucketAggregationsStructure convertAggGroupTimeStructure(AggregationQueryParam param) {
+        BucketAggregationsStructure structure = new BucketAggregationsStructure();
+        structure.setInterval(durationFormat(param.getGroupByTime().getInterval()));
+        structure.setType(BucketType.DATE_HISTOGRAM);
+        structure.setFormat(param.getGroupByTime().getFormat());
+        structure.setName(param.getGroupByTime().getAlias());
+        structure.setField(param.getGroupByTime().getProperty());
+        structure.setSort(Sort.desc(OrderType.KEY));
+        structure.setExtendedBounds(getExtendedBounds(param));
+        return structure;
+    }
+
+    protected static ExtendedBounds getExtendedBounds(AggregationQueryParam param) {
+        return new ExtendedBounds(calculateStartWithTime(param), param.getEndWithTime());
+    }
+
+    private static long calculateStartWithTime(AggregationQueryParam param) {
+        long startWithParam = param.getStartWithTime();
+        if (param.getGroupByTime() != null && param.getGroupByTime().getInterval() != null) {
+            long timeInterval = param.getGroupByTime().getInterval().toMillis() * param.getLimit();
+            long tempStartWithParam = param.getEndWithTime() - timeInterval;
+            startWithParam = Math.max(tempStartWithParam, startWithParam);
+        }
+        return startWithParam;
+    }
+
+    protected List<BucketAggregationsStructure> getTermTypeStructures(AggregationQueryParam param) {
+        return param.getGroupBy()
+            .stream()
+            .map(group -> {
+                BucketAggregationsStructure structure = new BucketAggregationsStructure();
+                structure.setType(BucketType.TERMS);
+                structure.setSize(param.getLimit());
+                structure.setField(group.getProperty());
+                structure.setName(group.getAlias());
+                return structure;
+            }).collect(Collectors.toList());
+    }
+
+    protected static String durationFormat(Duration duration) {
+        String durationStr = duration.toString();
+        if (durationStr.contains("S")) {
+            return duration.toMillis() / 1000 + "s";
+        } else if (!durationStr.contains("S") && durationStr.contains("M")) {
+            return duration.toMinutes() + "m";
+        } else if (!durationStr.contains("S") && !durationStr.contains("M")) {
+            if (duration.toHours() % 24 == 0) {
+                return duration.toDays() + "d";
+            } else {
+                return duration.toHours() + "h";
+            }
+        }
+        throw new UnsupportedOperationException("不支持的时间周期:" + duration.toString());
     }
 }

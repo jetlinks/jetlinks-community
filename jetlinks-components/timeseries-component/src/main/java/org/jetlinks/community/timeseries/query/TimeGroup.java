@@ -13,6 +13,8 @@ import java.time.Duration;
 @NoArgsConstructor
 public class TimeGroup {
 
+    private String property;
+
     //时间分组间隔,如: 1d , 30s
     private Duration interval;
 
@@ -23,5 +25,9 @@ public class TimeGroup {
      */
     private String format;
 
-
+    public TimeGroup(Duration interval, String alias, String format) {
+        this.interval = interval;
+        this.alias = alias;
+        this.format = format;
+    }
 }

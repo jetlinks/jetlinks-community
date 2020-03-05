@@ -1,8 +1,8 @@
 package org.jetlinks.community.elastic.search.index.mapping;
 
 import lombok.*;
-import org.jetlinks.community.elastic.search.enums.FieldDateFormat;
-import org.jetlinks.community.elastic.search.enums.FieldType;
+import org.jetlinks.community.elastic.search.enums.ElasticDateFormat;
+import org.jetlinks.community.elastic.search.enums.ElasticPropertyType;
 
 /**
  * @author bsetfeng
@@ -17,7 +17,7 @@ public class SingleMappingMetadata {
 
     private String name;
 
-    private FieldDateFormat format;
+    private ElasticDateFormat format;
 
-    private FieldType type;
+    private ElasticPropertyType type;
 }

@@ -21,15 +21,11 @@ public class ElasticSearchConfiguration {
     @Autowired
     private ElasticSearchProperties properties;
 
-
     @Bean
     public ElasticRestClient elasticRestClient() {
-        RestHighLevelClient queryClient = new RestHighLevelClient(RestClient.builder(properties.createHosts())
-                .setRequestConfigCallback(properties::applyRequestConfigBuilder)
-                .setHttpClientConfigCallback(properties::applyHttpAsyncClientBuilder));
-        RestHighLevelClient writeClient = new RestHighLevelClient(RestClient.builder(properties.createHosts())
-                .setRequestConfigCallback(properties::applyRequestConfigBuilder)
-                .setHttpClientConfigCallback(properties::applyHttpAsyncClientBuilder));
-        return new ElasticRestClient(queryClient, writeClient);
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(properties.createHosts())
+            .setRequestConfigCallback(properties::applyRequestConfigBuilder)
+            .setHttpClientConfigCallback(properties::applyHttpAsyncClientBuilder));
+        return new ElasticRestClient(client, client);
     }
 }

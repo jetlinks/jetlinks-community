@@ -2,7 +2,7 @@ package org.jetlinks.community.elastic.search.index.mapping;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.jetlinks.community.elastic.search.enums.FieldType;
+import org.jetlinks.community.elastic.search.enums.ElasticPropertyType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -33,14 +33,14 @@ public class IndexMappingMetadata {
         return metadata.get(fieldName);
     }
 
-    public List<SingleMappingMetadata> getMetaDataByType(FieldType type) {
+    public List<SingleMappingMetadata> getMetaDataByType(ElasticPropertyType type) {
         return getAllMetaData()
                 .stream()
                 .filter(singleMapping -> singleMapping.getType().equals(type))
                 .collect(Collectors.toList());
     }
 
-    public Map<String, SingleMappingMetadata> getMetaDataByTypeToMap(FieldType type) {
+    public Map<String, SingleMappingMetadata> getMetaDataByTypeToMap(ElasticPropertyType type) {
         return getMetaDataByType(type)
                 .stream()
                 .collect(Collectors.toMap(SingleMappingMetadata::getName, Function.identity()));

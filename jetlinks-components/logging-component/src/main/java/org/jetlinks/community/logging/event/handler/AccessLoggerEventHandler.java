@@ -1,12 +1,12 @@
 package org.jetlinks.community.logging.event.handler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.jetlinks.community.elastic.search.enums.FieldDateFormat;
-import org.jetlinks.community.elastic.search.enums.FieldType;
-import org.jetlinks.community.elastic.search.index.CreateIndex;
+import org.jetlinks.core.metadata.types.DateTimeType;
+import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.elastic.search.index.DefaultElasticSearchIndexMetadata;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
-import org.jetlinks.community.elastic.search.service.IndexOperationService;
 import org.jetlinks.community.logging.access.SerializableAccessLog;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
@@ -24,23 +24,23 @@ public class AccessLoggerEventHandler {
 
     private final ElasticSearchService elasticSearchService;
 
-    public AccessLoggerEventHandler(ElasticSearchService elasticSearchService, IndexOperationService indexOperationService) {
+
+    public AccessLoggerEventHandler(ElasticSearchService elasticSearchService, ElasticSearchIndexManager indexManager) {
         this.elasticSearchService = elasticSearchService;
-        CreateIndexRequest accessLoggerIndex = CreateIndex.createInstance()
-            .addIndex(LoggerIndexProvider.ACCESS.getStandardIndex())
-            .createMapping()
-            .addFieldName("requestTime").addFieldType(FieldType.DATE).addFieldDateFormat(FieldDateFormat.epoch_millis, FieldDateFormat.simple_date, FieldDateFormat.strict_date_time).commit()
-            .addFieldName("responseTime").addFieldType(FieldType.DATE).addFieldDateFormat(FieldDateFormat.epoch_millis, FieldDateFormat.simple_date, FieldDateFormat.strict_date_time).commit()
-            .addFieldName("action").addFieldType(FieldType.KEYWORD).commit()
-            .addFieldName("ip").addFieldType(FieldType.KEYWORD).commit()
-            .addFieldName("url").addFieldType(FieldType.KEYWORD).commit()
-            .addFieldName("httpHeaders").addFieldType(FieldType.OBJECT).commit()
-            .addFieldName("context").addFieldType(FieldType.OBJECT).commit()
-            .end()
-            .createIndexRequest();
-        indexOperationService.init(accessLoggerIndex)
-            .doOnError(err -> log.error(err.getMessage(), err))
-            .subscribe();
+        indexManager.putIndex(
+            new DefaultElasticSearchIndexMetadata(LoggerIndexProvider.ACCESS.getIndex())
+                .addProperty("requestTime", new DateTimeType())
+                .addProperty("responseTime", new DateTimeType())
+                .addProperty("action", new StringType())
+                .addProperty("ip", new StringType())
+                .addProperty("url", new StringType())
+                .addProperty("httpHeaders", new ObjectType())
+                .addProperty("context", new ObjectType()
+                    .addProperty("userId",new StringType())
+                    .addProperty("username",new StringType())
+                )
+        ).subscribe();
+
     }
 
 

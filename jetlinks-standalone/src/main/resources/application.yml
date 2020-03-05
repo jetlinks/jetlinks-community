@@ -40,6 +40,8 @@ elasticsearch:
     connect-timeout: 5000
     socket-timeout: 5000
     connection-request-timeout: 8000
+  index:
+    default-strategy: time-by-month #默认es的索引按月进行分表, direct则为直接操作索引.
 device:
   message:
     writer:

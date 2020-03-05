@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.hswebframework.web.dict.EnumDict;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,7 +15,7 @@ import java.util.stream.Collectors;
  **/
 @Getter
 @AllArgsConstructor
-public enum FieldDateFormat implements EnumDict<String> {
+public enum ElasticDateFormat implements EnumDict<String> {
 
     epoch_millis("epoch_millis", "毫秒"),
     epoch_second("epoch_second", "秒"),
@@ -29,9 +30,13 @@ public enum FieldDateFormat implements EnumDict<String> {
 
     private String text;
 
-    public static String getFormat(List<FieldDateFormat> dateFormats) {
+    public static String getFormat(ElasticDateFormat... dateFormats) {
+        return getFormat(Arrays.asList(dateFormats));
+    }
+
+    public static String getFormat(List<ElasticDateFormat> dateFormats) {
         return getFormatStr(dateFormats.stream()
-            .map(FieldDateFormat::getValue)
+            .map(ElasticDateFormat::getValue)
             .collect(Collectors.toList())
         );
     }

@@ -18,6 +18,8 @@ public interface TimeSeriesManager {
      */
     TimeSeriesService getService(TimeSeriesMetric metric);
 
+    TimeSeriesService getService(String metric);
+
     /**
      * 注册元数据
      *
