@@ -13,7 +13,7 @@ import java.time.Duration;
 @NoArgsConstructor
 public class TimeGroup {
 
-    private String property;
+    private String property = "timestamp";
 
     //时间分组间隔,如: 1d , 30s
     private Duration interval;
