@@ -36,11 +36,11 @@ public class ElasticSearchConverter {
                 geoData.put("lat", point.getLat());
                 geoData.put("lon", point.getLon());
                 data.put(property.getId(), geoData);
-            }if (type instanceof DateTimeType) {
-                Date point = ((DateTimeType) type).convert(val);
-                data.put(property.getId(), point.getTime());
-            }  else if (type instanceof Converter) {
-                data.put(property.getId(), ((Converter) type).convert(val));
+            } else if (type instanceof DateTimeType) {
+                Date date = ((DateTimeType) type).convert(val);
+                data.put(property.getId(), date.getTime());
+            } else if (type instanceof Converter) {
+                data.put(property.getId(), ((Converter<?>) type).convert(val));
             }
         }
         return data;
@@ -56,6 +56,11 @@ public class ElasticSearchConverter {
             //处理地理位置类型
             if (type instanceof GeoType) {
                 data.put(property.getId(), ((GeoType) type).convertToMap(val));
+            } else if (type instanceof DateTimeType) {
+                Date date = ((DateTimeType) type).convert(val);
+                data.put(property.getId(), date);
+            } else if (type instanceof Converter) {
+                data.put(property.getId(), ((Converter<?>) type).convert(val));
             }
         }
         return data;

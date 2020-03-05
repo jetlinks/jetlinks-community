@@ -49,8 +49,10 @@ class DeviceEventTimeSeriesMetadata implements TimeSeriesMetadata {
     public DeviceEventTimeSeriesMetadata(String productId, EventMetadata eventMetadata) {
         metric = DeviceTimeSeriesMetric.deviceEventMetric(productId, eventMetadata.getId());
         DataType type = eventMetadata.getType();
-        if (CollectionUtils.isNotEmpty(((ObjectType) type).getProperties())) {
-            metadata.addAll(((ObjectType) type).getProperties());
+        if (type instanceof ObjectType) {
+            if (CollectionUtils.isNotEmpty(((ObjectType) type).getProperties())) {
+                metadata.addAll(((ObjectType) type).getProperties());
+            }
         } else {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("value");
