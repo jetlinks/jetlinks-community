@@ -24,6 +24,8 @@
         <jetlinks.version>1.0.1-BUILD-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Arabba-RELEASE</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
+        <netty.version>4.1.46.Final</netty.version>
+        <elasticsearch.version>6.8.6</elasticsearch.version>
     </properties>
 
     <build>
@@ -183,10 +185,6 @@
                 <scope>import</scope>
                 <exclusions>
                     <exclusion>
-                        <groupId>org.redisson</groupId>
-                        <artifactId>redisson</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-dependencies</artifactId>
                     </exclusion>
@@ -196,10 +194,11 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
-                <version>4.1.32.Final</version>
+                <version>${netty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
 
             <dependency>
                 <groupId>org.jetlinks</groupId>
@@ -212,7 +211,6 @@
                 <artifactId>jetlinks-supports</artifactId>
                 <version>${jetlinks.version}</version>
             </dependency>
-
 
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -238,6 +236,12 @@
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-mqtt</artifactId>
                 <version>${vertx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                <version>${elasticsearch.version}</version>
             </dependency>
 
         </dependencies>
