@@ -14,12 +14,12 @@ public class DirectElasticSearchIndexStrategy extends AbstractElasticSearchIndex
 
     @Override
     public String getIndexForSave(String index) {
-        return index;
+        return wrapIndex(index);
     }
 
     @Override
     public String getIndexForSearch(String index) {
-        return index;
+        return wrapIndex(index);
     }
 
     @Override

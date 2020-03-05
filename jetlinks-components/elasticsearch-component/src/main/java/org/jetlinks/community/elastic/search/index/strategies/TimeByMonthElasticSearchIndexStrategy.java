@@ -23,6 +23,6 @@ public class TimeByMonthElasticSearchIndexStrategy extends TemplateElasticSearch
 
     @Override
     public String getIndexForSave(String index) {
-        return index.concat("_").concat(DateFormatter.toString(new Date(), format));
+        return wrapIndex(index).concat("_").concat(DateFormatter.toString(new Date(), format));
     }
 }

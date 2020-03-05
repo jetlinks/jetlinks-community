@@ -21,15 +21,15 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
     }
 
     protected String getTemplate(String index) {
-        return index.concat("_template");
+        return wrapIndex(index).concat("_template");
     }
 
     protected String getAlias(String index) {
-        return index.concat("_alias");
+        return wrapIndex(index).concat("_alias");
     }
 
     protected List<String> getIndexPatterns(String index) {
-        return Collections.singletonList(index.concat("*"));
+        return Collections.singletonList(wrapIndex(index).concat("*"));
     }
 
     @Override
@@ -51,7 +51,7 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
     }
 
     protected PutIndexTemplateRequest createIndexTemplateRequest(ElasticSearchIndexMetadata metadata) {
-        String index = metadata.getIndex();
+        String index = wrapIndex(metadata.getIndex());
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(getTemplate(index));
         request.alias(new Alias(getAlias(index)));
         request.mapping(Collections.singletonMap("properties", createElasticProperties(metadata.getProperties())));
@@ -61,6 +61,7 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
 
     @Override
     public Mono<ElasticSearchIndexMetadata> loadIndexMetadata(String index) {
+
         return ReactorActionListener
             .<GetIndexTemplatesResponse>mono(listener -> client.getQueryClient()
                 .indices()

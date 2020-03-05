@@ -31,11 +31,11 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
 
     protected ElasticRestClient client;
 
-    private String wrapIndex(String index) {
+    protected String wrapIndex(String index) {
         return index.toLowerCase();
     }
 
-    public Mono<Boolean> indexExists(String index) {
+    protected Mono<Boolean> indexExists(String index) {
         return ReactorActionListener.mono(
             actionListener ->
                 client.getQueryClient()
@@ -43,7 +43,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
                     .existsAsync(new GetIndexRequest(wrapIndex(index)), RequestOptions.DEFAULT, actionListener));
     }
 
-    public Mono<Void> doCreateIndex(ElasticSearchIndexMetadata metadata) {
+    protected Mono<Void> doCreateIndex(ElasticSearchIndexMetadata metadata) {
         return ReactorActionListener.<CreateIndexResponse>mono(
             actionListener -> client.getQueryClient()
                 .indices()
@@ -93,7 +93,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         Map<String, Object> properties = createElasticProperties(metadata.getProperties());
         Map<String, Object> ignoreProperties = createElasticProperties(ignore.getProperties());
         for (Map.Entry<String, Object> en : ignoreProperties.entrySet()) {
-            log.debug("ignore update index [{}] mapping property:{},{}", wrapIndex(metadata.getIndex()), en.getKey(), en.getValue());
+            log.trace("ignore update index [{}] mapping property:{},{}", wrapIndex(metadata.getIndex()), en.getKey(), en.getValue());
             properties.remove(en.getKey());
         }
         if (properties.isEmpty()) {
