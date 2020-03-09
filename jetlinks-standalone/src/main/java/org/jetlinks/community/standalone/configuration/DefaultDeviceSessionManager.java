@@ -232,7 +232,7 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
                 .switchIfEmpty(Mono.fromRunnable(() -> log.warn("children device [{}] not fond in registry", childrenDeviceId)))
                 .flatMap(deviceOperator -> deviceOperator
                     .online(session.getServerId().orElse(serverId), session.getId())
-                    .then(deviceOperator.setConfig(DeviceConfigKey.parentMeshDeviceId, deviceId))
+                    .then(deviceOperator.setConfig(DeviceConfigKey.parentGatewayId, deviceId))
                     .thenReturn(new ChildrenDeviceSession(childrenDeviceId, session, deviceOperator)))
                 .doOnSuccess(s -> children.computeIfAbsent(deviceId, __ -> new ConcurrentHashMap<>()).put(childrenDeviceId, s));
         });

@@ -3,6 +3,7 @@ package org.jetlinks.community.device.service;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
+import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.ProductInfo;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+
+import static org.jetlinks.community.device.enums.DeviceType.gateway;
 
 @Service
 @Slf4j
@@ -26,7 +29,13 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
 
     public Mono<Integer> deploy(String id) {
         return findById(Mono.just(id))
-            .flatMap(product -> registry.registry(new ProductInfo(id, product.getMessageProtocol(), product.getMetadata()))
+            .flatMap(product -> registry.registry(
+                ProductInfo.builder()
+                    .id(id)
+                    .protocol(product.getMessageProtocol())
+                    .metadata(product.getMetadata())
+                    .build()
+                    .addConfig(DeviceConfigKey.isGatewayDevice, product.getDeviceType() == gateway))
                 .flatMap(deviceProductOperator -> deviceProductOperator.setConfigs(product.getConfiguration()))
                 .flatMap(re -> createUpdate()
                     .set(DeviceProductEntity::getState, DeviceProductState.registered.getValue())
