@@ -81,4 +81,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @Comment("所属机构id")
     private String orgId;
 
+    @Column(name = "parent_id", length = 32)
+    @Comment("父级设备ID")
+    private String parentId;
 }

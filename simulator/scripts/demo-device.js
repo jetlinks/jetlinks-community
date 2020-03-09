@@ -54,6 +54,18 @@ simulator.bindHandler("/read-property", function (message, session) {
     }));
 });
 
+simulator.bindHandler("/children/read-property", function (message, session) {
+    _logger.info("读取子设备属性:[{}]", message);
+    session.sendMessage("/children/read-property-reply", JSON.stringify({
+        messageId: message.messageId,
+        deviceId: message.deviceId,
+        timestamp: new Date().getTime(),
+        properties: {"temperature": java.util.concurrent.ThreadLocalRandom.current().nextInt(20, 30)},
+        success: true
+    }));
+});
+
+
 simulator.bindHandler("/invoke-function", function (message, session) {
     _logger.info("调用功能:[{}]", message);
     session.sendMessage("/invoke-function", JSON.stringify({

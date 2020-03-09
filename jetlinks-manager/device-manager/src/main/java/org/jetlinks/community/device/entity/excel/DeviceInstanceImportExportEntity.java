@@ -18,5 +18,8 @@ public class DeviceInstanceImportExportEntity {
     @ExcelProperty("描述")
     private String describe;
 
+    @ExcelProperty("父级设备ID")
+    private String parentId;
+
 
 }
