@@ -1,11 +1,8 @@
 package org.jetlinks.community.auth.web;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
-import org.hswebframework.web.authorization.Authentication;
-import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.system.authorization.api.entity.DimensionEntity;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionService;
@@ -13,9 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RequestMapping("/organization")
 @RestController
