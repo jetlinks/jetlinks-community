@@ -54,8 +54,13 @@ public class DefaultMessageGateway implements MessageGateway {
 
     @Override
     public Flux<TopicMessage> subscribe(Collection<Subscription> subscriptions, boolean shareCluster) {
+        return subscribe(subscriptions, "local:".concat(IDGenerator.SNOW_FLAKE_STRING.generate()), shareCluster);
+    }
+
+    @Override
+    public Flux<TopicMessage> subscribe(Collection<Subscription> subscriptions, String id, boolean shareCluster) {
         return Flux.defer(() -> {
-            LocalMessageConnection networkConnection = localGatewayConnector.addConnection("local:" + IDGenerator.SNOW_FLAKE_STRING.generate(), shareCluster);
+            LocalMessageConnection networkConnection = localGatewayConnector.addConnection(id, shareCluster);
             return networkConnection
                 .onLocalMessage()
                 .doOnSubscribe(sub -> subscriptions.forEach(networkConnection::addSubscription))

@@ -19,6 +19,7 @@ import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
 import org.jetlinks.community.device.message.DeviceMessageUtils;
+import org.jetlinks.community.gateway.Subscription;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -326,13 +327,12 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
         //订阅设备上下线
         FluxUtils.bufferRate(messageGateway
-            .subscribe("/device/*/online", "/device/*/offline")
+            .subscribe(Subscription.asList("/device/*/online", "/device/*/offline"), "device-state-synchronizer", false)
             .flatMap(message -> Mono.justOrEmpty(DeviceMessageUtils.convert(message))
                 .map(DeviceMessage::getDeviceId)), 800, 200, Duration.ofSeconds(2))
             .flatMap(list -> syncStateBatch(Flux.just(list), false).count())
             .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))
             .subscribe((i) -> log.info("同步设备状态成功:{}", i));
-
     }
 
     public Mono<DeviceInfo> getDeviceInfoById(String id) {
