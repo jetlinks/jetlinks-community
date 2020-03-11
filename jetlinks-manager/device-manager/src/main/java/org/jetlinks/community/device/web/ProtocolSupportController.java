@@ -1,9 +1,11 @@
 package org.jetlinks.community.device.web;
 
+import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hswebframework.utils.StringUtils;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
@@ -110,21 +112,24 @@ public class ProtocolSupportController implements
 
     @PostMapping("/decode")
     @SaveAction
-    public Flux<Message> decode(@RequestBody Mono<ProtocolDecodeRequest> entity) {
+    public Mono<String> decode(@RequestBody Mono<ProtocolDecodeRequest> entity) {
         return entity
-            .flatMapMany(request -> {
+            .<Object>flatMapMany(request -> {
                 ProtocolSupportDefinition supportEntity = request.getEntity().toDeployDefinition();
                 supportEntity.setId("_debug");
                 return supportLoader.load(supportEntity)
                     .flatMapMany(protocol -> request
                         .getRequest()
                         .doDecode(protocol, null));
-            });
+            })
+            .collectList()
+            .map(JSON::toJSONString)
+            .onErrorResume(err-> Mono.just(StringUtils.throwable2String(err)));
     }
 
     @PostMapping("/encode")
     @SaveAction
-    public Flux<Object> encode(@RequestBody Mono<ProtocolEncodeRequest> entity) {
+    public  Mono<String> encode(@RequestBody Mono<ProtocolEncodeRequest> entity) {
         return entity
             .flatMapMany(request -> {
                 ProtocolSupportDefinition supportEntity = request.getEntity().toDeployDefinition();
@@ -133,9 +138,11 @@ public class ProtocolSupportController implements
                     .flatMapMany(protocol -> request
                         .getRequest()
                         .doEncode(protocol, null));
-            });
+            })
+            .collectList()
+            .map(JSON::toJSONString)
+            .onErrorResume(err-> Mono.just(StringUtils.throwable2String(err)));
     }
-
 
     @GetMapping("/units")
     @Authorize(merge = false)

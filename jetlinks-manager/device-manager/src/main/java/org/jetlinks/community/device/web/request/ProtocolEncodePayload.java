@@ -45,10 +45,11 @@ public class ProtocolEncodePayload {
                     return operator;
                 }
             }))
-            .map(msg->{
-                if(msg instanceof MqttMessage){
-                    JSONObject obj=(JSONObject)JSON.toJSON(msg);
-                    obj.put("payload",payloadType.read(msg.getPayload()));
+            .map(msg -> {
+                if (msg instanceof MqttMessage) {
+                    JSONObject obj = (JSONObject) JSON.toJSON(msg);
+                    obj.put("payload", payloadType.read(msg.getPayload()));
+                    obj.remove("bytes");
                     return obj;
                 }
                 return getPayloadType().read(msg.getPayload());
