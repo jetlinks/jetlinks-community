@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.message;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.*;
 import org.jetlinks.core.message.event.EventMessage;
@@ -14,6 +15,7 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.util.HashMap;
 import java.util.function.Function;
 
 /**
@@ -89,7 +91,6 @@ public class DeviceMessageConnector
             .then();
     }
 
-
     public Mono<String> getTopic(Message message) {
         if (message instanceof DeviceMessage) {
             DeviceMessage deviceMessage = ((DeviceMessage) message);
@@ -101,49 +102,65 @@ public class DeviceMessageConnector
                 .getDevice(deviceId)
                 //获取设备配置是可能存在的性能瓶颈
                 .flatMap(operator -> operator.getSelfConfigs(appendConfigHeader))
+                .switchIfEmpty(Mono.fromSupplier(() -> Values.of(new HashMap<>())))
                 .flatMap(configs -> {
                     configs.getAllValues().forEach(deviceMessage::addHeader);
-                    String topic;
-
-                    // TODO: 2019/12/28 自定义topic支持?
-
-                    if (message instanceof EventMessage) {   //事件
-                        EventMessage event = ((EventMessage) message);
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/event/".concat(event.getEvent());
-                    } else if (message instanceof ReportPropertyMessage) {   //上报属性
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/property/report";
-                    } else if (message instanceof DeviceOnlineMessage) {   //设备上线
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/online";
-                    } else if (message instanceof DeviceOfflineMessage) {   //设备离线
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/offline";
-                    } else if (message instanceof ChildDeviceMessage) { //子设备消息
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/children";
+                    String topic = "/device/".concat(deviceId).concat(createDeviceMessageTopic(message));
+                    if (message instanceof ChildDeviceMessage) { //子设备消息
                         return onMessage(((ChildDeviceMessage) message).getChildDeviceMessage())
                             .thenReturn(topic);
                     } else if (message instanceof ChildDeviceMessageReply) { //子设备消息
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/children/reply";
                         return onMessage(((ChildDeviceMessageReply) message).getChildDeviceMessage())
                             .thenReturn(topic);
-                    } else if (message instanceof ReadPropertyMessage) { //读取属性
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/property/read";
-                    } else if (message instanceof WritePropertyMessage) { //修改属性
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/property/write";
-                    } else if (message instanceof FunctionInvokeMessage) { //调用功能
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/function/reply";
-                    } else if (message instanceof ReadPropertyMessageReply) { //读取属性回复
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/property/read/reply";
-                    } else if (message instanceof WritePropertyMessageReply) { //修改属性回复
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/property/write/reply";
-                    } else if (message instanceof FunctionInvokeMessageReply) { //调用功能回复
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/function/reply";
-                    } else {
-                        topic = "/device/" + deviceMessage.getDeviceId() + "/message/unknown";
                     }
                     return Mono.just(topic);
                 });
 
         }
         return Mono.just("/device/unknown/message/unknown");
+    }
+
+    public String createDeviceMessageTopic(Message message) {
+        if (message instanceof EventMessage) {   //事件
+            EventMessage event = ((EventMessage) message);
+            return "/message/event/".concat(event.getEvent());
+        } else if (message instanceof ReportPropertyMessage) {   //上报属性
+            return "/message/property/report";
+        } else if (message instanceof DeviceOnlineMessage) {   //设备上线
+            return "/online";
+        } else if (message instanceof DeviceOfflineMessage) {   //设备离线
+            return "/offline";
+        } else if (message instanceof ChildDeviceMessage) { //子设备消息
+            Message msg = ((ChildDeviceMessage) message).getChildDeviceMessage();
+            if (msg instanceof DeviceMessage) {
+                return "/message/children/".concat(((DeviceMessage) msg).getDeviceId()).concat(createDeviceMessageTopic(msg));
+            }
+            return "/message/children/".concat(createDeviceMessageTopic(message));
+        } else if (message instanceof ChildDeviceMessageReply) { //子设备消息
+            Message msg = ((ChildDeviceMessageReply) message).getChildDeviceMessage();
+            if (msg instanceof DeviceMessage) {
+                return "/message/children/reply/".concat(((DeviceMessage) msg).getDeviceId()).concat(createDeviceMessageTopic(msg));
+            }
+            return "/message/children/reply/".concat(createDeviceMessageTopic(message));
+        } else if (message instanceof ReadPropertyMessage) { //读取属性
+            return "/message/property/read";
+        } else if (message instanceof WritePropertyMessage) { //修改属性
+            return "/message/property/write";
+        } else if (message instanceof FunctionInvokeMessage) { //调用功能
+            return "/message/function/reply";
+        } else if (message instanceof ReadPropertyMessageReply) { //读取属性回复
+            return "/message/property/read/reply";
+        } else if (message instanceof WritePropertyMessageReply) { //修改属性回复
+            return "/message/property/write/reply";
+        } else if (message instanceof FunctionInvokeMessageReply) { //调用功能回复
+            return "/message/function/reply";
+        } else if (message instanceof DeviceRegisterMessage) { //注册
+            return "/register";
+        } else if (message instanceof DeviceUnRegisterMessage) { //注销
+            return "/unregister";
+        } else {
+            return "/message/unknown";
+        }
     }
 
     @Nonnull

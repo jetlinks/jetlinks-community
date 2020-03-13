@@ -21,12 +21,11 @@ import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
 import org.jetlinks.community.device.message.DeviceMessageUtils;
 import org.jetlinks.community.gateway.Subscription;
+import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.DeviceOfflineMessage;
-import org.jetlinks.core.message.DeviceOnlineMessage;
+import org.jetlinks.core.message.*;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.EventMetadata;
@@ -388,5 +387,49 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                             ).defaultIfEmpty(0), Math::addExact);
                 }));
     }
+
+
+    @Subscribe("/device/*/message/children/*/register")
+    public Mono<Void> autoBindChildrenDevice(ChildDeviceMessage message) {
+        String childId = message.getChildDeviceId();
+        Message childMessage = message.getChildDeviceMessage();
+        if (childMessage instanceof DeviceRegisterMessage) {
+            return registry.getDevice(message.getDeviceId())
+                .flatMap(DeviceOperator::getState)
+                .flatMap(state -> createUpdate()
+                    .set(DeviceInstanceEntity::getParentId, message.getDeviceId())
+                    .set(DeviceInstanceEntity::getState, DeviceState.of(state))
+                    .where(DeviceInstanceEntity::getId, childId)
+                    .execute()
+                    .then(registry
+                        .getDevice(childId)
+                        .flatMap(dev -> dev.setConfig(DeviceConfigKey.parentGatewayId, message.getDeviceId())))
+                    .then());
+        }
+        return Mono.empty();
+    }
+
+    @Subscribe("/device/*/message/children/*/unregister")
+    public Mono<Void> autoUnbindChildrenDevice(ChildDeviceMessage message) {
+        String childId = message.getChildDeviceId();
+        Message childMessage = message.getChildDeviceMessage();
+        if (childMessage instanceof DeviceUnRegisterMessage) {
+
+            return registry.getDevice(childId)
+                .flatMap(dev -> dev
+                    .removeConfig(DeviceConfigKey.parentGatewayId.getKey())
+                    .then(dev.checkState()))
+                .flatMap(state -> createUpdate()
+                    .setNull(DeviceInstanceEntity::getParentId)
+                    .set(DeviceInstanceEntity::getState, DeviceState.of(state))
+                    .where(DeviceInstanceEntity::getId, childId)
+                    .execute()
+                    .then());
+
+
+        }
+        return Mono.empty();
+    }
+
 
 }
