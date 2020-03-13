@@ -459,10 +459,8 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 };
                 ExcelWriter excelWriter = EasyExcel.write(outputStream, DeviceInstanceImportExportEntity.class).build();
                 WriteSheet writeSheet = EasyExcel.writerSheet().build();
-                sink.onCancel(query(queryParam)
-                    .map(entity -> {
-                        return FastBeanCopier.copy(entity, new DeviceInstanceImportExportEntity());
-                    })
+                sink.onDispose(query(queryParam)
+                    .map(entity -> FastBeanCopier.copy(entity, new DeviceInstanceImportExportEntity()))
                     .buffer(100)
                     .doOnNext(list -> excelWriter.write(list, writeSheet))
                     .doFinally(s -> excelWriter.finish())
