@@ -6,6 +6,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
+import java.time.Duration;
 
 /**
  * TCP 客户端
@@ -43,4 +44,10 @@ public interface TcpClient extends Network {
      */
     void keepAlive();
 
+    /**
+     * 设置客户端心跳超时时间
+     *
+     * @param timeout 超时时间
+     */
+    void setKeepAliveTimeout(Duration timeout);
 }

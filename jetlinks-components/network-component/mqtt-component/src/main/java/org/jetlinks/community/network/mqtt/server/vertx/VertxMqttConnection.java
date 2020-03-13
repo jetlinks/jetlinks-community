@@ -5,6 +5,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.mqtt.MqttEndpoint;
 import io.vertx.mqtt.MqttTopicSubscription;
 import io.vertx.mqtt.messages.MqttPublishMessage;
@@ -26,7 +27,9 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -36,7 +39,7 @@ import java.util.stream.Collectors;
 class VertxMqttConnection implements MqttConnection {
 
     private MqttEndpoint endpoint;
-    private long keepAliveTimeout;
+    private long keepAliveTimeoutMs;
     @Getter
     private long lastPingTime = System.currentTimeMillis();
     private volatile boolean closed = false, accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = true;
@@ -50,7 +53,7 @@ class VertxMqttConnection implements MqttConnection {
 
     public VertxMqttConnection(MqttEndpoint endpoint) {
         this.endpoint = endpoint;
-        this.keepAliveTimeout = (endpoint.keepAliveTimeSeconds() + 10) * 1000L;
+        this.keepAliveTimeoutMs = (endpoint.keepAliveTimeSeconds() + 10) * 1000L;
     }
 
     private final Consumer<MqttConnection> defaultListener = mqttConnection -> {
@@ -58,6 +61,7 @@ class VertxMqttConnection implements MqttConnection {
         subscription.onComplete();
         unsubscription.onComplete();
         messageProcessor.onComplete();
+
     };
 
     private Consumer<MqttConnection> disconnectConsumer = defaultListener;
@@ -111,6 +115,11 @@ class VertxMqttConnection implements MqttConnection {
         }
         init();
         return this;
+    }
+
+    @Override
+    public void keepAlive() {
+        ping();
     }
 
     void ping() {
@@ -184,6 +193,20 @@ class VertxMqttConnection implements MqttConnection {
             });
     }
 
+    @Override
+    public void setKeepAliveTimeout(Duration duration) {
+        keepAliveTimeoutMs = duration.toMillis();
+    }
+
+    @Override
+    public InetSocketAddress getClientAddress() {
+
+        SocketAddress address = endpoint.remoteAddress();
+        if (address != null) {
+            return new InetSocketAddress(address.host(), address.port());
+        }
+        return null;
+    }
 
     @Override
     public String getClientId() {
@@ -236,7 +259,7 @@ class VertxMqttConnection implements MqttConnection {
 
     @Override
     public boolean isAlive() {
-        return endpoint.isConnected() && ((System.currentTimeMillis() - lastPingTime) < keepAliveTimeout);
+        return endpoint.isConnected() && (keepAliveTimeoutMs < 0 || ((System.currentTimeMillis() - lastPingTime) < keepAliveTimeoutMs));
     }
 
     @Override
@@ -255,6 +278,7 @@ class VertxMqttConnection implements MqttConnection {
         }
         closed = true;
         disconnectConsumer.accept(this);
+        disconnectConsumer = defaultListener;
     }
 
     @AllArgsConstructor

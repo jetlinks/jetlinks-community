@@ -9,6 +9,10 @@ import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.client.TcpClient;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.Optional;
+
 class TcpDeviceSession implements DeviceSession {
 
     @Getter
@@ -64,9 +68,20 @@ class TcpDeviceSession implements DeviceSession {
         client.keepAlive();
     }
 
+
+    @Override
+    public void setKeepAliveTimeout(Duration timeout) {
+        client.setKeepAliveTimeout(timeout);
+    }
+
     @Override
     public boolean isAlive() {
         return client.isAlive();
+    }
+
+    @Override
+    public Optional<InetSocketAddress> getClientAddress() {
+        return Optional.ofNullable(client.getRemoteAddress());
     }
 
     @Override
