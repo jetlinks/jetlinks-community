@@ -33,7 +33,7 @@ public class VertxTcpClient extends AbstractTcpClient {
     private String id;
 
     @Setter
-    private long keepAliveTimeout = Duration.ofMinutes(10).toMillis();
+    private long keepAliveTimeoutMs = Duration.ofMinutes(10).toMillis();
 
     private volatile long lastKeepAliveTime = System.currentTimeMillis();
 
@@ -45,8 +45,13 @@ public class VertxTcpClient extends AbstractTcpClient {
     }
 
     @Override
+    public void setKeepAliveTimeout(Duration timeout) {
+        keepAliveTimeoutMs = timeout.toMillis();
+    }
+
+    @Override
     public boolean isAlive() {
-        return socket != null && (System.currentTimeMillis() - lastKeepAliveTime < keepAliveTimeout);
+        return socket != null && (keepAliveTimeoutMs < 0 || System.currentTimeMillis() - lastKeepAliveTime < keepAliveTimeoutMs);
     }
 
     @Override

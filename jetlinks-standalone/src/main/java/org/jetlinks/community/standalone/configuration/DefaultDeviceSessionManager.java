@@ -121,7 +121,7 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
                         return session
                             .getOperator()
                             .online(serverId, session.getId())
-                            .then(Mono.fromRunnable(()-> registerListener.next(session)));
+                            .then(Mono.fromRunnable(() -> registerListener.next(session)));
                     })
                     .flatMap(ignore -> session.getOperator().online(serverId, session.getId()))
                     .thenReturn(false);
@@ -283,7 +283,7 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
 
         //注册中心上线
         session.getOperator()
-            .online(session.getServerId().orElse(serverId), session.getId())
+            .online(session.getServerId().orElse(serverId), session.getId(), session.getClientAddress().map(String::valueOf).orElse(null))
             .doFinally(s -> {
                 //通知
                 if (onDeviceRegister.hasDownstreams()) {

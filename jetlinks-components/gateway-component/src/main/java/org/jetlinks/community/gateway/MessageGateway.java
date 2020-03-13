@@ -74,6 +74,9 @@ public interface MessageGateway {
         return subscribe(Stream.of(topics).map(Subscription::new).collect(Collectors.toList()), false);
     }
 
+    Flux<TopicMessage> subscribe(Collection<Subscription> subscription, String id, boolean shareCluster);
+
+
     /**
      * 注册一个消息连接器,用于进行真实的消息收发
      *

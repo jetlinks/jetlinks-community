@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -55,9 +56,12 @@ public class SpringMessageConnector implements MessageConnector, BeanPostProcess
             if (CollectionUtils.isEmpty(subscribes)) {
                 return;
             }
+            String id = subscribes.getString("id");
+            if (!StringUtils.hasText(id)) {
+                id = type.getSimpleName().concat(".").concat(method.getName());
+            }
             SpringMessageConnection connection = new SpringMessageConnection(
-                type.getSimpleName().concat(".").concat(method.getName())
-                , Stream.of(subscribes.getStringArray("value")).map(Subscription::new).collect(Collectors.toList())
+                id, Stream.of(subscribes.getStringArray("value")).map(Subscription::new).collect(Collectors.toList())
                 , new ProxyMessageListener(bean, method),
                 subscribes.getBoolean("shareCluster")
             );

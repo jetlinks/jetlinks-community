@@ -6,6 +6,8 @@ import org.jetlinks.core.server.mqtt.MqttAuth;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -117,4 +119,10 @@ public interface MqttConnection {
     Mono<Void> close();
 
     long getLastPingTime();
+
+    void keepAlive();
+
+    void setKeepAliveTimeout(Duration duration);
+
+    InetSocketAddress getClientAddress();
 }

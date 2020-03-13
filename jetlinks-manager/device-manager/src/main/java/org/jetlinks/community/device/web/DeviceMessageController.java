@@ -157,6 +157,9 @@ public class DeviceMessageController {
 
     private static <R extends DeviceMessageReply, T> Function<R, T> mapReply(Function<R, T> function) {
         return reply -> {
+            if (ErrorCode.REQUEST_HANDLING.name().equals(reply.getCode())) {
+                throw new DeviceOperationException(ErrorCode.REQUEST_HANDLING, reply.getMessage());
+            }
             if (!reply.isSuccess()) {
                 throw new BusinessException(reply.getMessage(), reply.getCode());
             }

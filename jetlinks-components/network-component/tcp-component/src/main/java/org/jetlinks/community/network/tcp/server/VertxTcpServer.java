@@ -57,7 +57,7 @@ public class VertxTcpServer extends AbstractTcpServer implements TcpServer {
 
     protected void acceptTcpConnection(NetSocket socket) {
         VertxTcpClient client = new VertxTcpClient(id + "_" + socket.remoteAddress());
-        client.setKeepAliveTimeout(keepAliveTimeout);
+        client.setKeepAliveTimeoutMs(keepAliveTimeout);
         try {
             socket.exceptionHandler(err -> {
                 log.error("tcp server client [{}] error", socket.remoteAddress(), err);

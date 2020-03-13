@@ -9,6 +9,10 @@ import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.community.network.mqtt.server.MqttConnection;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.Optional;
+
 public class MqttConnectionSession implements DeviceSession {
 
     @Getter
@@ -23,11 +27,11 @@ public class MqttConnectionSession implements DeviceSession {
     @Getter
     private MqttConnection connection;
 
-    public MqttConnectionSession(String id,DeviceOperator operator,Transport transport,MqttConnection connection){
-        this.id=id;
-        this.operator=operator;
-        this.transport=transport;
-        this.connection=connection;
+    public MqttConnectionSession(String id, DeviceOperator operator, Transport transport, MqttConnection connection) {
+        this.id = id;
+        this.operator = operator;
+        this.transport = transport;
+        this.connection = connection;
     }
 
     private long connectTime = System.currentTimeMillis();
@@ -60,7 +64,12 @@ public class MqttConnectionSession implements DeviceSession {
 
     @Override
     public void ping() {
+        connection.keepAlive();
+    }
 
+    @Override
+    public void setKeepAliveTimeout(Duration timeout) {
+        connection.setKeepAliveTimeout(timeout);
     }
 
     @Override
@@ -70,6 +79,11 @@ public class MqttConnectionSession implements DeviceSession {
 
     @Override
     public void onClose(Runnable call) {
+        connection.onClose(c -> call.run());
+    }
 
+    @Override
+    public Optional<InetSocketAddress> getClientAddress() {
+        return Optional.ofNullable(connection.getClientAddress());
     }
 }

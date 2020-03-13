@@ -1,16 +1,24 @@
 package org.jetlinks.community.device.web;
 
+import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hswebframework.utils.StringUtils;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
+import org.jetlinks.community.device.web.protocol.ProtocolDetail;
+import org.jetlinks.community.device.web.protocol.ProtocolInfo;
+import org.jetlinks.community.device.web.protocol.TransportInfo;
+import org.jetlinks.community.device.web.request.ProtocolDecodeRequest;
+import org.jetlinks.community.device.web.request.ProtocolEncodeRequest;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.metadata.ConfigMetadata;
@@ -18,6 +26,8 @@ import org.jetlinks.core.metadata.unit.ValueUnit;
 import org.jetlinks.core.metadata.unit.ValueUnits;
 import org.jetlinks.community.device.entity.ProtocolSupportEntity;
 import org.jetlinks.community.device.service.LocalProtocolSupportService;
+import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
+import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoaderProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -42,6 +52,9 @@ public class ProtocolSupportController implements
 
     @Autowired
     private List<ProtocolSupportLoaderProvider> providers;
+
+    @Autowired
+    private ProtocolSupportLoader supportLoader;
 
     @PostMapping("/{id}/_deploy")
     @SaveAction
@@ -88,37 +101,53 @@ public class ProtocolSupportController implements
             .map(TransportInfo::of);
     }
 
+    @PostMapping("/convert")
+    @QueryAction
+    public Mono<ProtocolDetail> convertToDetail(@RequestBody Mono<ProtocolSupportEntity> entity) {
+        return entity.map(ProtocolSupportEntity::toDeployDefinition)
+            .doOnNext(def -> def.setId("_debug"))
+            .flatMap(def -> supportLoader.load(def))
+            .flatMap(ProtocolDetail::of);
+    }
+
+    @PostMapping("/decode")
+    @SaveAction
+    public Mono<String> decode(@RequestBody Mono<ProtocolDecodeRequest> entity) {
+        return entity
+            .<Object>flatMapMany(request -> {
+                ProtocolSupportDefinition supportEntity = request.getEntity().toDeployDefinition();
+                supportEntity.setId("_debug");
+                return supportLoader.load(supportEntity)
+                    .flatMapMany(protocol -> request
+                        .getRequest()
+                        .doDecode(protocol, null));
+            })
+            .collectList()
+            .map(JSON::toJSONString)
+            .onErrorResume(err-> Mono.just(StringUtils.throwable2String(err)));
+    }
+
+    @PostMapping("/encode")
+    @SaveAction
+    public  Mono<String> encode(@RequestBody Mono<ProtocolEncodeRequest> entity) {
+        return entity
+            .flatMapMany(request -> {
+                ProtocolSupportDefinition supportEntity = request.getEntity().toDeployDefinition();
+                supportEntity.setId("_debug");
+                return supportLoader.load(supportEntity)
+                    .flatMapMany(protocol -> request
+                        .getRequest()
+                        .doEncode(protocol, null));
+            })
+            .collectList()
+            .map(JSON::toJSONString)
+            .onErrorResume(err-> Mono.just(StringUtils.throwable2String(err)));
+    }
+
     @GetMapping("/units")
     @Authorize(merge = false)
     public Flux<ValueUnit> allUnits() {
         return Flux.fromIterable(ValueUnits.getAllUnit());
     }
 
-    @Getter
-    @Setter
-    @AllArgsConstructor(staticName = "of")
-    @NoArgsConstructor
-    public static class TransportInfo {
-        private String id;
-
-        private String name;
-
-        static TransportInfo of(Transport support) {
-            return of(support.getId(), support.getName());
-        }
-    }
-
-    @Getter
-    @Setter
-    @AllArgsConstructor(staticName = "of")
-    @NoArgsConstructor
-    public static class ProtocolInfo {
-        private String id;
-
-        private String name;
-
-        static ProtocolInfo of(ProtocolSupport support) {
-            return of(support.getId(), support.getName());
-        }
-    }
 }

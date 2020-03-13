@@ -23,6 +23,8 @@ public @interface Subscribe {
     @AliasFor("topics")
     String[] value() default {};
 
+    String id() default "";
+
     boolean shareCluster() default false;
 
 }

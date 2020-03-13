@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -189,6 +190,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
                         }));
             })
             .collectList()
+            .filter(CollectionUtils::isNotEmpty)
             .flatMap(lst -> {
                 BulkRequest request = new BulkRequest();
                 lst.forEach(request::add);
