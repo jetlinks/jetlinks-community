@@ -31,6 +31,7 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.util.Map;
@@ -132,8 +133,10 @@ public class DeviceInstanceController implements
         return service
             .query(query.includes("id"))
             .map(DeviceInstanceEntity::getId)
-            .buffer(50)
-            .as(flux -> service.syncStateBatch(flux, true));
+            .buffer(200)
+            .publishOn(Schedulers.single())
+            .concatMap(flux -> service.syncStateBatch(Flux.just(flux), true))
+            .defaultIfEmpty(0);
     }
 
     //已废弃
@@ -198,11 +201,8 @@ public class DeviceInstanceController implements
     }
 
     @PostMapping("/export")
-    public Mono<Void> export(ServerHttpResponse response, QueryParam parameter) throws IOException {
-        return Authentication
-            .currentReactive()
-            .flatMap(auth -> {
-                return Mono.fromCallable(() -> service.doExport(response, parameter, "设备实例.xlsx"));
-            }).then();
+    @QueryAction
+    public Mono<Void> export(ServerHttpResponse response, QueryParam parameter){
+        return service.doExport(response, parameter, "设备实例.xlsx");
     }
 }
