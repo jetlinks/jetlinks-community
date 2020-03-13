@@ -186,7 +186,7 @@ public class DefaultMessageGateway implements MessageGateway {
             //加载会话已有的订阅信息
             session.getSubscriptions()
                 .map(Subscription::getTopic)
-                .flatMap(topic -> root.find(topic))
+                .flatMap(topic -> root.get(topic))
                 .subscribe(part -> part.addSessionId(getId()));
         }
 
