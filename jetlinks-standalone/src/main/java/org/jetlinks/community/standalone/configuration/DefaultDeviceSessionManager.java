@@ -271,7 +271,7 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
         if (null != old) {
             //1. 可能是多个设备使用了相同的id.
             //2. 可能是同一个设备,注销后立即上线,由于种种原因,先处理了上线后处理了注销逻辑.
-            log.warn("device[{}] session exists,disconnect old session:{}", old.getDeviceId(), session);
+            log.warn("device[{}] session exists,disconnect old session:{}", old.getDeviceId(), old);
             //加入关闭连接队列
             scheduleJobQueue.add(old::close);
         } else {

@@ -110,13 +110,11 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
             return new HashMap<>();
         }
         return metadata.stream()
-            .collect(Collectors.toMap(PropertyMetadata::getId, this::createElasticProperty));
+            .collect(Collectors.toMap(PropertyMetadata::getId, prop -> this.createElasticProperty(prop.getValueType())));
     }
 
-    protected Map<String, Object> createElasticProperty(PropertyMetadata metadata) {
+    protected Map<String, Object> createElasticProperty(DataType type) {
         Map<String, Object> property = new HashMap<>();
-
-        DataType type = metadata.getValueType();
         if (type instanceof DateTimeType) {
             property.put("type", "date");
             property.put("format", ElasticDateFormat.getFormat(ElasticDateFormat.epoch_millis, ElasticDateFormat.simple_date, ElasticDateFormat.strict_date));
@@ -132,6 +130,9 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
             property.put("type", "boolean");
         } else if (type instanceof GeoType) {
             property.put("type", "geo_point");
+        } else if (type instanceof ArrayType) {
+            ArrayType arrayType = ((ArrayType) type);
+            return createElasticProperty(arrayType.getElementType());
         } else if (type instanceof ObjectType) {
             property.put("type", "nested");
             ObjectType objectType = ((ObjectType) type);
