@@ -258,7 +258,9 @@ public class DeviceInstanceController implements
                 .buffer(20)
                 .publishOn(Schedulers.single())
                 .concatMap(list -> service.save(Flux.fromIterable(list)))
-                .map(ImportDeviceInstanceResult::success));
+                .map(ImportDeviceInstanceResult::success))
+            .onErrorResume(err -> Mono.just(ImportDeviceInstanceResult.error(err)))
+            ;
     }
 
     DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
