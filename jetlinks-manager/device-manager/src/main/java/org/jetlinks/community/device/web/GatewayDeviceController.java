@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.web;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
@@ -132,6 +133,12 @@ public class GatewayDeviceController {
                                               @RequestBody Flux<String> deviceId) {
 
         return deviceId
+            .flatMapIterable(str -> {
+                if (str.startsWith("[")) {
+                    return JSON.parseArray(str, String.class);
+                }
+                return Collections.singletonList(str);
+            })
             .collectList()
             .filter(CollectionUtils::isNotEmpty)
             .flatMap(deviceIdList -> instanceService
