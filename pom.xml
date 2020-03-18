@@ -26,6 +26,7 @@
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.46.Final</netty.version>
         <elasticsearch.version>6.8.6</elasticsearch.version>
+        <reactor.excel.version>1.0-BUILD-SNAPSHOT</reactor.excel.version>
     </properties>
 
     <build>
@@ -150,7 +151,14 @@
     </build>
 
     <dependencyManagement>
+
         <dependencies>
+            <dependency>
+                <groupId>org.hswebframework</groupId>
+                <artifactId>reactor-excel</artifactId>
+                <version>${reactor.excel.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.vavr</groupId>
                 <artifactId>vavr</artifactId>

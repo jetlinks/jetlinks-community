@@ -10,6 +10,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.TermType;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
@@ -18,7 +19,7 @@ import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.logger.ReactiveLogger;
-import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
+import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.message.DeviceMessageUtils;
 import org.jetlinks.community.gateway.Subscription;
 import org.jetlinks.community.gateway.annotation.Subscribe;
@@ -32,9 +33,6 @@ import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.Metadata;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.utils.FluxUtils;
-import org.jetlinks.community.device.entity.DeviceInstanceEntity;
-import org.jetlinks.community.device.entity.DeviceProductEntity;
-import org.jetlinks.community.device.entity.DevicePropertiesEntity;
 import org.jetlinks.community.device.entity.excel.DeviceInstanceImportExportEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.*;
@@ -86,13 +84,14 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     private LocalDeviceProductService deviceProductService;
 
     @Autowired
-    private ImportExportService importExportService;
-
-    @Autowired
     private MessageGateway messageGateway;
 
     @Autowired
     private TimeSeriesManager timeSeriesManager;
+
+    @Autowired
+    @SuppressWarnings("all")
+    private ReactiveRepository<DeviceTagEntity, String> tagRepository;
 
 
     @Override
@@ -108,6 +107,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      * @param id 设备ID
      * @return 设备详情信息
      */
+    @Deprecated
     public Mono<DeviceAllInfoResponse> getDeviceAllInfo(String id) {
 
         return findById(id)//设备信息
@@ -167,7 +167,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     public Flux<DeviceDeployResult> deploy(Flux<DeviceInstanceEntity> flux) {
         return flux
             .flatMap(instance ->
-                registry.registry(org.jetlinks.core.device.DeviceInfo.builder()
+                registry.register(org.jetlinks.core.device.DeviceInfo.builder()
                     .id(instance.getId())
                     .productId(instance.getProductId())
                     .build()
@@ -212,17 +212,46 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     public Mono<Integer> cancelDeploy(String id) {
         return findById(Mono.just(id))
             .flatMap(product -> registry
-                .unRegistry(id)
+                .unregisterDevice(id)
                 .then(createUpdate()
                     .set(DeviceInstanceEntity::getState, DeviceState.notActive.getValue())
                     .where(DeviceInstanceEntity::getId, id)
                     .execute()));
     }
 
+    public Mono<DeviceDetail> getDeviceDetail(String deviceId) {
+        return this.findById(deviceId)
+            .zipWhen(device -> deviceProductService.findById(device.getProductId()),
+                (device, product) -> new DeviceDetail().with(device).with(product))
+            .flatMap(detail -> registry.getDevice(deviceId).flatMap(detail::with))
+            .flatMap(detail -> tagRepository
+                .createQuery()
+                .where(DeviceTagEntity::getDeviceId, deviceId)
+                .fetch()
+                .collectList()
+                .map(detail::with)
+                .defaultIfEmpty(detail));
+    }
+
+    public Mono<DeviceState> getDeviceState(String deviceId) {
+        return registry.getDevice(deviceId)
+            .flatMap(DeviceOperator::checkState)
+            .flatMap(state -> {
+                DeviceState deviceState = DeviceState.of(state);
+                return createUpdate().set(DeviceInstanceEntity::getState, deviceState)
+                    .where(DeviceInstanceEntity::getId, deviceId)
+                    .execute()
+                    .thenReturn(deviceState);
+            })
+            .defaultIfEmpty(DeviceState.notActive);
+    }
+
+    @Deprecated
     public Mono<DeviceRunInfo> getDeviceRunInfo(String deviceId) {
         return getDeviceRunRealInfo(deviceId);
     }
 
+    @Deprecated
     private Mono<DeviceRunInfo> getDeviceRunRealInfo(String deviceId) {
         return registry.getDevice(deviceId)
             .flatMap(deviceOperator -> Mono.zip(

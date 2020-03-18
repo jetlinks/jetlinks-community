@@ -18,10 +18,10 @@ import java.io.InputStream;
 @Component
 public class DefaultImportExportService implements ImportExportService {
 
-    private final WebClient.Builder builder;
+    private WebClient client;
 
     public DefaultImportExportService(WebClient.Builder builder) {
-        this.builder = builder;
+        client = builder.build();
     }
 
     public <T> Flux<RowResult<T>> doImport(Class<T> clazz, String fileUrl) {
@@ -38,7 +38,7 @@ public class DefaultImportExportService implements ImportExportService {
 
         return Mono.defer(() -> {
             if (fileUrl.startsWith("http")) {
-                return builder.build()
+                return client
                     .get()
                     .uri(fileUrl)
                     .accept(MediaType.APPLICATION_OCTET_STREAM)

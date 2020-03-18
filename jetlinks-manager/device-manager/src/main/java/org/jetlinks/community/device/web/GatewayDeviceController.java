@@ -173,5 +173,4 @@ public class GatewayDeviceController {
                 .flatMap(operator -> operator.removeConfig(DeviceConfigKey.parentGatewayId.getKey())))
             .then(getGatewayInfo(gatewayId));
     }
-
 }
