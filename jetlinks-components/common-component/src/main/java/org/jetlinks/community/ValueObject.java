@@ -81,16 +81,6 @@ public interface ValueObject {
     }
 
     static ValueObject of(Map<String, Object> mapVal) {
-        return new ValueObject() {
-            @Override
-            public Optional<Object> get(String name) {
-                return Optional.empty();
-            }
-
-            @Override
-            public Map<String, Object> getAll() {
-                return mapVal;
-            }
-        };
+        return () -> mapVal;
     }
 }
