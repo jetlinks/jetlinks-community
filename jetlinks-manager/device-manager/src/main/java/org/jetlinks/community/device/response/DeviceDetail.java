@@ -2,6 +2,7 @@ package org.jetlinks.community.device.response;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
@@ -49,6 +50,9 @@ public class DeviceDetail {
 
     //设备状态
     private DeviceState state;
+
+    //设备类型
+    private DeviceType deviceType;
 
     //客户端地址 /id:port
     private String address;
@@ -120,6 +124,7 @@ public class DeviceDetail {
 
         setProductId(productEntity.getId());
         setProductName(productEntity.getName());
+        setDeviceType(productEntity.getDeviceType());
         return this;
     }
 
