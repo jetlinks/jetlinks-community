@@ -21,4 +21,8 @@ public class MeasurementParameter implements ValueObject {
         return Optional.ofNullable(params).map(p -> p.get(name));
     }
 
+    @Override
+    public Map<String, Object> getAll() {
+        return params;
+    }
 }

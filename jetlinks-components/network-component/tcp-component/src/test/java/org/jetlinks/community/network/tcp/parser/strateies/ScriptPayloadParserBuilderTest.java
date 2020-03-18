@@ -1,6 +1,7 @@
 package org.jetlinks.community.network.tcp.parser.strateies;
 
 import io.vertx.core.buffer.Buffer;
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.utils.BytesUtils;
 import org.jetlinks.core.Values;
@@ -31,7 +32,7 @@ class ScriptPayloadParserBuilderTest {
                 "                   .complete();\n" +
                 "        });");
         config.put("lang", "javascript");
-        PayloadParser parser = builder.build(Values.of(config));
+        PayloadParser parser = builder.build(ValueObject.of(config));
 
         parser.handlePayload()
                 .doOnSubscribe(sb -> {

@@ -53,9 +53,9 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
     private void initTcpServer(VertxTcpServer tcpServer, TcpServerProperties properties) {
         NetServer netServer = vertx.createNetServer(properties.getOptions());
 
-        payloadParserBuilder.build(properties.getParserType(), Values.of(properties.getParserConfiguration()));
+        payloadParserBuilder.build(properties.getParserType(), properties);
 
-        tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(), Values.of(properties.getParserConfiguration())));
+        tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(),properties));
         tcpServer.setServer(netServer);
         tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout").orElse(Duration.ofMinutes(10).toMillis()));
         netServer.listen(properties.createSocketAddress(), result -> {
