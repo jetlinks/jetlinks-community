@@ -50,7 +50,7 @@ public class TcpServerProperties implements ValueObject {
     }
 
     @Override
-    public Optional<Object> get(String name) {
-        return Optional.ofNullable(parserConfiguration).map(map -> map.get(name));
+    public Map<String, Object> getAll() {
+        return parserConfiguration;
     }
 }

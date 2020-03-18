@@ -2,6 +2,7 @@ package org.jetlinks.community.network.tcp.parser.strateies;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.core.Values;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilderStrategy;
@@ -15,10 +16,10 @@ public abstract class VertxPayloadParserBuilder implements PayloadParserBuilderS
     @Override
     public abstract PayloadParserType getType();
 
-    protected abstract RecordParser createParser(Values config);
+    protected abstract RecordParser createParser(ValueObject config);
 
     @Override
-    public PayloadParser build(Values config) {
+    public PayloadParser build(ValueObject config) {
         return new RecordPayloadParser(createParser(config));
     }
 

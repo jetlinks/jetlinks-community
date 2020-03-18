@@ -35,7 +35,7 @@ public class TcpClientProperties implements ValueObject {
     private boolean enabled;
 
     @Override
-    public Optional<Object> get(String name) {
-        return Optional.ofNullable(parserConfiguration).map(map -> map.get(name));
+    public Map<String, Object> getAll() {
+        return parserConfiguration;
     }
 }

@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.tcp.parser;
 
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.core.Values;
 import org.jetlinks.community.network.tcp.parser.strateies.DelimitedPayloadParserBuilder;
 import org.jetlinks.community.network.tcp.parser.strateies.DirectPayloadParserBuilder;
@@ -25,7 +26,7 @@ public class DefaultPayloadParserBuilder implements PayloadParserBuilder, BeanPo
         register(new DirectPayloadParserBuilder());
     }
     @Override
-    public PayloadParser build(PayloadParserType type, Values configuration) {
+    public PayloadParser build(PayloadParserType type, ValueObject configuration) {
         return Optional.ofNullable(strategyMap.get(type))
                 .map(builder -> builder.build(configuration))
                 .orElseThrow(() -> new UnsupportedOperationException("unsupported parser:" + type));

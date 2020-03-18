@@ -14,7 +14,12 @@ public interface AggregationData extends ValueObject {
         return Optional.ofNullable(asMap().get(name));
     }
 
-    static AggregationData of(Map<String,Object> map){
-        return ()->map;
+    @Override
+    default Map<String, Object> getAll() {
+        return asMap();
+    }
+
+    static AggregationData of(Map<String, Object> map) {
+        return () -> map;
     }
 }

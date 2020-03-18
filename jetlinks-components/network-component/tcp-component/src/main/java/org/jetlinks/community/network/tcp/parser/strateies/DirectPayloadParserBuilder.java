@@ -1,6 +1,7 @@
 package org.jetlinks.community.network.tcp.parser.strateies;
 
 import lombok.SneakyThrows;
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.core.Values;
 import org.jetlinks.community.network.tcp.parser.DirectRecordParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
@@ -16,7 +17,7 @@ public class DirectPayloadParserBuilder implements PayloadParserBuilderStrategy 
 
     @Override
     @SneakyThrows
-    public PayloadParser build(Values config) {
+    public PayloadParser build(ValueObject config) {
         return new DirectRecordParser();
     }
 }

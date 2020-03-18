@@ -14,6 +14,11 @@ public interface TimeSeriesData extends ValueObject {
     Map<String, Object> getData();
 
     @Override
+    default Map<String, Object> getAll() {
+        return getData();
+    }
+
+    @Override
     default Optional<Object> get(String name) {
         return Optional.ofNullable(getData().get(name));
     }

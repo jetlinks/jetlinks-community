@@ -56,7 +56,7 @@ public class VertxTcpClientProvider implements NetworkProvider<TcpClientProperti
     }
 
     public void initClient(VertxTcpClient client, TcpClientProperties properties) {
-        client.setRecordParser(payloadParserBuilder.build(properties.getParserType(), Values.of(properties.getParserConfiguration())));
+        client.setRecordParser(payloadParserBuilder.build(properties.getParserType(), properties));
         NetClient netClient = vertx.createNetClient(properties.getOptions());
         client.setClient(netClient);
         client.setKeepAliveTimeoutMs(properties.getLong("keepAliveTimeout").orElse(Duration.ofMinutes(10).toMillis()));

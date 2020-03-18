@@ -1,6 +1,7 @@
 package org.jetlinks.community.network.tcp.parser.strateies;
 
 import io.vertx.core.buffer.Buffer;
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.core.Values;
 import org.junit.Assert;
@@ -17,7 +18,7 @@ class FixLengthPayloadParserBuilderTest {
     @Test
     void testFixLength() {
         FixLengthPayloadParserBuilder builder = new FixLengthPayloadParserBuilder();
-        PayloadParser parser = builder.build(Values.of(Collections.singletonMap("size", 5)));
+        PayloadParser parser = builder.build(ValueObject.of(Collections.singletonMap("size", 5)));
         List<String>  arr = new ArrayList<>();
 
         parser.handlePayload()
@@ -37,7 +38,7 @@ class FixLengthPayloadParserBuilderTest {
     @Test
     void testDelimited() {
         DelimitedPayloadParserBuilder builder = new DelimitedPayloadParserBuilder();
-        PayloadParser parser = builder.build(Values.of(Collections.singletonMap("delimited", "@@")));
+        PayloadParser parser = builder.build(ValueObject.of(Collections.singletonMap("delimited", "@@")));
         List<String>  arr = new ArrayList<>();
 
         parser.handlePayload()

@@ -5,11 +5,17 @@ import org.jetlinks.community.utils.TimeUtils;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ValueObject {
 
-    Optional<Object> get(String name);
+    Map<String, Object> getAll();
+
+    default Optional<Object> get(String name) {
+        return Optional.ofNullable(getAll())
+            .map(map -> map.get(name));
+    }
 
     default Optional<Integer> getInt(String name) {
         return get(name, Integer.class);
@@ -74,4 +80,17 @@ public interface ValueObject {
             .map(obj -> FastBeanCopier.DEFAULT_CONVERT.convert(obj, type, FastBeanCopier.EMPTY_CLASS_ARRAY));
     }
 
+    static ValueObject of(Map<String, Object> mapVal) {
+        return new ValueObject() {
+            @Override
+            public Optional<Object> get(String name) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Map<String, Object> getAll() {
+                return mapVal;
+            }
+        };
+    }
 }

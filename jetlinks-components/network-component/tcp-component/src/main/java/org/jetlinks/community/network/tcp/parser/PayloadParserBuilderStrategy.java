@@ -1,9 +1,9 @@
 package org.jetlinks.community.network.tcp.parser;
 
-import org.jetlinks.core.Values;
+import org.jetlinks.community.ValueObject;
 
 public interface PayloadParserBuilderStrategy {
     PayloadParserType getType();
 
-    PayloadParser build(Values config);
+    PayloadParser build(ValueObject config);
 }
