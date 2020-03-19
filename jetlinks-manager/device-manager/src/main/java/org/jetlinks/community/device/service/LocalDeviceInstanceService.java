@@ -389,11 +389,10 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 })
                 .collect(Collectors.groupingBy(Tuple2::getT1))
                 .flatMapIterable(Map::entrySet)
-                .publishOn(Schedulers.single())
                 .flatMap(group -> {
                     DeviceState state = DeviceState.of(group.getKey());
                     return Mono.zip(
-                        //修改设备状态
+                        //批量修改设备状态
                         getRepository()
                             .createUpdate()
                             .set(DeviceInstanceEntity::getState, state)
@@ -401,6 +400,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                             .in(DeviceInstanceEntity::getId, group.getValue().stream().map(Tuple3::getT2).collect(Collectors.toList()))
                             .execute()
                             .defaultIfEmpty(0),
+                        //修改子设备状态
                         Flux.fromIterable(group.getValue())
                             .filter(Tuple3::getT3)
                             .map(Tuple3::getT2)
@@ -412,8 +412,9 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                                     .set(DeviceInstanceEntity::getState, state)
                                     .where()
                                     .in(DeviceInstanceEntity::getParentId, parents)
-                                    .execute()
-                            ).defaultIfEmpty(0), Math::addExact);
+                                    .execute())
+                            .defaultIfEmpty(0),
+                        Math::addExact);
                 }));
     }
 
