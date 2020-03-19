@@ -42,7 +42,7 @@ public class DeviceTagEntity extends GenericEntity<String> {
     private String type;
 
     @Column(updatable = false)
-    @DefaultValue(Generators.CURRENT_TIME)
+    @DefaultValue(generator = Generators.CURRENT_TIME)
     private Date createTime;
 
     @Column
