@@ -399,7 +399,8 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                             .where()
                             .in(DeviceInstanceEntity::getId, group.getValue().stream().map(Tuple3::getT2).collect(Collectors.toList()))
                             .execute()
-                            .defaultIfEmpty(0),
+                            .thenReturn(group.getValue().size())//mysql下可能不会返回更新数量
+                        ,
                         //修改子设备状态
                         Flux.fromIterable(group.getValue())
                             .filter(Tuple3::getT3)
