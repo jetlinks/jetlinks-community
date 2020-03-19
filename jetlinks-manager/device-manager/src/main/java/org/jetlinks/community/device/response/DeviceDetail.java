@@ -12,10 +12,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -133,7 +130,10 @@ public class DeviceDetail {
         setId(device.getId());
         setName(device.getName());
         setState(device.getState());
-        setRegisterTime(device.getRegistryTime());
+
+        Optional.ofNullable(device.getRegistryTime())
+            .ifPresent(this::setRegisterTime);
+
         setCreateTime(device.getCreateTime());
 
         if (!CollectionUtils.isEmpty(device.getConfiguration())) {

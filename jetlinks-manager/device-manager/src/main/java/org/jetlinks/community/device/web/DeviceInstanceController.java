@@ -278,8 +278,8 @@ public class DeviceInstanceController implements
     //保存设备标签
     @PatchMapping("/{deviceId}/tag")
     @SaveAction
-    public Mono<Void> saveDeviceTag(@PathVariable String deviceId,
-                                    @RequestBody Flux<DeviceTagEntity> tags) {
+    public Flux<DeviceTagEntity> saveDeviceTag(@PathVariable String deviceId,
+                                               @RequestBody Flux<DeviceTagEntity> tags) {
         return tags
             .doOnNext(tag -> {
                 tag.setId(deviceId.concat(":").concat(tag.getKey()));
@@ -287,7 +287,7 @@ public class DeviceInstanceController implements
                 tag.tryValidate();
             })
             .as(tagRepository::save)
-            .then();
+            .thenMany(getDeviceTags(deviceId));
     }
 
     //已废弃

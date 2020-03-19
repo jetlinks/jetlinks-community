@@ -223,7 +223,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         return this.findById(deviceId)
             .zipWhen(device -> deviceProductService.findById(device.getProductId()),
                 (device, product) -> new DeviceDetail().with(device).with(product))
-            .flatMap(detail -> registry.getDevice(deviceId).flatMap(detail::with))
+            .flatMap(detail -> registry.getDevice(deviceId).flatMap(detail::with).defaultIfEmpty(detail))
             .flatMap(detail -> tagRepository
                 .createQuery()
                 .where(DeviceTagEntity::getDeviceId, deviceId)
