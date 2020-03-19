@@ -150,9 +150,7 @@ public class VertxTcpClient extends AbstractTcpClient {
                 sink.error(new SocketException("socket closed"));
                 return;
             }
-            Buffer buffer = Buffer.buffer(message.getPayload());
-            int len = buffer.length();
-            socket.write(buffer, r -> {
+            socket.write(Buffer.buffer(message.getPayload()), r -> {
                 keepAlive();
                 if (r.succeeded()) {
                     sink.success(true);
