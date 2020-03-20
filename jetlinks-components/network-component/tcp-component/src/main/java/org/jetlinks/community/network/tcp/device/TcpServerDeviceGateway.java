@@ -206,7 +206,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                     sessionManager.unregister(device.getDeviceId());
                                     return Mono.empty();
                                 }
-                                message.addHeaderIfAbsent(Headers.clientAddress, client.getRemoteAddress().toString());
+                                message.addHeaderIfAbsent(Headers.clientAddress, String.valueOf(client.getRemoteAddress()));
 
                                 if (processor.hasDownstreams()) {
                                     sink.next(message);
@@ -221,6 +221,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                     );
             }).subscribe());
     }
+
     @Override
     public Flux<Message> onMessage() {
         return processor.map(Function.identity());
