@@ -282,7 +282,7 @@ public class DeviceInstanceController implements
                                                @RequestBody Flux<DeviceTagEntity> tags) {
         return tags
             .doOnNext(tag -> {
-                tag.setId(deviceId.concat(":").concat(tag.getKey()));
+                tag.setId(DeviceTagEntity.createTagId(deviceId,tag.getKey()));
                 tag.setDeviceId(deviceId);
                 tag.tryValidate();
             })

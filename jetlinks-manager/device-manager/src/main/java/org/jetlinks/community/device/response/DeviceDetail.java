@@ -106,6 +106,11 @@ public class DeviceDetail {
         this.tags = new ArrayList<>(map.values());
         this.tags.sort(Comparator.comparing(DeviceTagEntity::getCreateTime));
 
+        if (StringUtils.hasText(id)) {
+            for (DeviceTagEntity tag : getTags()) {
+                tag.setId(DeviceTagEntity.createTagId(id, tag.getKey()));
+            }
+        }
         return this;
     }
 
@@ -135,12 +140,17 @@ public class DeviceDetail {
             .ifPresent(this::setRegisterTime);
 
         setCreateTime(device.getCreateTime());
+        setOrgId(device.getOrgId());
 
         if (!CollectionUtils.isEmpty(device.getConfiguration())) {
             setConfiguration(device.getConfiguration());
         }
         if (StringUtils.hasText(device.getDeriveMetadata())) {
             setMetadata(device.getDeriveMetadata());
+        }
+
+        for (DeviceTagEntity tag : getTags()) {
+            tag.setId(DeviceTagEntity.createTagId(id, tag.getKey()));
         }
 
         return this;

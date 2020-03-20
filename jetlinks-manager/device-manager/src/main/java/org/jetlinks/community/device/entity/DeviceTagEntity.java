@@ -57,4 +57,8 @@ public class DeviceTagEntity extends GenericEntity<String> {
         entity.setCreateTime(new Date());
         return entity;
     }
+
+    public static String createTagId(String deviceId,String key){
+        return deviceId.concat(":").concat(key);
+    }
 }
