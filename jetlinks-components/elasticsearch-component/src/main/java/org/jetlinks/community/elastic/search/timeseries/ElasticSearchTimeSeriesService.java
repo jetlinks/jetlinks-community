@@ -2,6 +2,7 @@ package org.jetlinks.community.elastic.search.timeseries;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.jetlinks.community.elastic.search.service.AggregationService;
@@ -32,7 +33,7 @@ public class ElasticSearchTimeSeriesService implements TimeSeriesService {
 
     @Override
     public Flux<TimeSeriesData> query(QueryParam queryParam) {
-        return elasticSearchService.query(index, queryParam, map -> TimeSeriesData.of(timeType.convert(map.get("timestamp")), map));
+        return elasticSearchService.query(index, applySort(queryParam), map -> TimeSeriesData.of(timeType.convert(map.get("timestamp")), map));
     }
 
     @Override
@@ -44,12 +45,12 @@ public class ElasticSearchTimeSeriesService implements TimeSeriesService {
 
     @Override
     public Mono<PagerResult<TimeSeriesData>> queryPager(QueryParam queryParam) {
-        return elasticSearchService.queryPager(index, queryParam, map -> TimeSeriesData.of(timeType.convert(map.get("timestamp")), map));
+        return elasticSearchService.queryPager(index, applySort(queryParam), map -> TimeSeriesData.of(timeType.convert(map.get("timestamp")), map));
     }
 
     @Override
     public <T> Mono<PagerResult<T>> queryPager(QueryParam queryParam, Function<TimeSeriesData, T> mapper) {
-        return elasticSearchService.queryPager(index, queryParam, map -> mapper.apply(TimeSeriesData.of(timeType.convert(map.get("timestamp")), map)));
+        return elasticSearchService.queryPager(index, applySort(queryParam), map -> mapper.apply(TimeSeriesData.of(timeType.convert(map.get("timestamp")), map)));
     }
 
     @Override
@@ -64,6 +65,12 @@ public class ElasticSearchTimeSeriesService implements TimeSeriesService {
 
     }
 
+    protected QueryParam applySort(QueryParam param){
+        if(CollectionUtils.isEmpty(param.getSorts())){
+            param.orderBy("timestamp").desc();
+        }
+        return param;
+    }
     @Override
     public Mono<Void> save(Publisher<TimeSeriesData> data) {
         return Flux.from(data)
