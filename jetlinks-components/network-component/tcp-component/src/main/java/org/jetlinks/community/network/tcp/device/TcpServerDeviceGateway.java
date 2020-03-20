@@ -29,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nonnull;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -128,6 +129,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                         .flatMap(pt -> pt.getMessageCodec(getTransport()))
                         .flatMapMany(codec -> codec.decode(new FromDeviceMessageContext() {
                             @Override
+                            @Nonnull
                             public EncodedMessage getMessage() {
                                 return tcpMessage;
                             }
@@ -153,7 +155,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
 
                             @Override
                             public DeviceOperator getDevice() {
-                                return null;
+                                return getSession().getOperator();
                             }
                         }))
                         .switchIfEmpty(Mono.fromRunnable(() ->
