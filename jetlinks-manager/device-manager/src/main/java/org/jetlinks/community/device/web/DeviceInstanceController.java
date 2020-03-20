@@ -371,12 +371,15 @@ public class DeviceInstanceController implements
             .publishOn(Schedulers.single())
             .concatMap(buffer ->
                 Mono.zip(
+                    //保存设备
                     service.save(Flux.fromIterable(buffer).map(Tuple2::getT1)),
+                    //保存设备标签
                     tagRepository
                         .save(Flux.fromIterable(buffer).flatMapIterable(Tuple2::getT2))
                         .defaultIfEmpty(SaveResult.of(0, 0))
                 ))
             .map(res -> ImportDeviceInstanceResult.success(res.getT1()))
+            //保存返回错误消息而不是抛出异常,抛异常SSE无法获取到错误消息.
             .onErrorResume(err -> Mono.just(ImportDeviceInstanceResult.error(err)));
     }
 
