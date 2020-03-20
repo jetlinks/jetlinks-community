@@ -21,6 +21,13 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
     }
 
     static {
+        {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("id");
+            property.setValueType(new StringType());
+            property.setName("ID");
+            metadata.add(property);
+        }
 
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
