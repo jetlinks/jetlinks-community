@@ -191,7 +191,7 @@ public class JetLinksConfiguration {
             .flatMap(session -> {
                 DeviceOfflineMessage message = new DeviceOfflineMessage();
                 message.setDeviceId(session.getDeviceId());
-                message.setTimestamp(session.connectTime());
+                message.setTimestamp(System.currentTimeMillis());
                 return messageConnector.onMessage(message);
             })
             .onErrorContinue((err, r) -> log.error(err.getMessage(), err))
