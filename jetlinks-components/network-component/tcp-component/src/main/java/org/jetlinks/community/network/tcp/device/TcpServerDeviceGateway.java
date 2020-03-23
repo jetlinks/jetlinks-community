@@ -177,12 +177,12 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                 );
                             }))
                             .flatMap(device -> {
+                                DeviceSession fSession = sessionRef.get() == null ?
+                                    sessionManager.getSession(device.getDeviceId()) :
+                                    sessionRef.get();
+
                                 //处理设备上线消息
                                 if (message instanceof DeviceOnlineMessage) {
-                                    DeviceSession fSession = sessionRef.get() == null ?
-                                        sessionManager.getSession(device.getDeviceId()) :
-                                        sessionRef.get();
-
                                     if (fSession == null) {
                                         fSession = new TcpDeviceSession(client.getId(), device, client, getTransport()) {
                                             @Override
@@ -199,10 +199,14 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                         sessionRef.set(fSession);
                                         sessionManager.register(fSession);
                                     }
+                                    fSession.keepAlive();
                                     if (keepaliveTimeout.get() != null) {
                                         fSession.setKeepAliveTimeout(keepaliveTimeout.get());
                                     }
                                     return Mono.empty();
+                                }
+                                if (fSession != null) {
+                                    fSession.keepAlive();
                                 }
                                 //设备下线
                                 if (message instanceof DeviceOfflineMessage) {
