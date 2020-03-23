@@ -40,6 +40,9 @@ public class TcpServerProperties implements ValueObject {
 
     private boolean ssl;
 
+    //服务实例数量(线程数)
+    private int instance = Runtime.getRuntime().availableProcessors();
+
     private String certId;
 
     public SocketAddress createSocketAddress() {
