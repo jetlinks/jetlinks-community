@@ -30,6 +30,7 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -113,6 +114,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
         disposable.add(tcpServer
             .handleConnection()
             .flatMap(client -> {
+                InetSocketAddress clientAddr=client.getRemoteAddress();
                 counter.increment();
                 gatewayMonitor.totalConnection(counter.intValue());
                 client.onDisconnect(() -> {
@@ -160,7 +162,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                         }))
                         .switchIfEmpty(Mono.fromRunnable(() ->
                             log.warn("无法识别的TCP客户端[{}]消息:[{}]",
-                                client.getRemoteAddress(),
+                                clientAddr,
                                 ByteBufUtil.hexDump(tcpMessage.getPayload())
                             )))
                         .cast(DeviceMessage.class)
@@ -169,7 +171,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                             .switchIfEmpty(Mono.fromRunnable(() -> {
                                 log.warn("设备[{}]未注册,TCP[{}]消息:[{}],设备消息:{}",
                                     message.getDeviceId(),
-                                    client.getRemoteAddress(),
+                                    clientAddr,
                                     ByteBufUtil.hexDump(tcpMessage.getPayload()),
                                     message
                                 );
@@ -206,7 +208,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                     sessionManager.unregister(device.getDeviceId());
                                     return Mono.empty();
                                 }
-                                message.addHeaderIfAbsent(Headers.clientAddress, String.valueOf(client.getRemoteAddress()));
+                                message.addHeaderIfAbsent(Headers.clientAddress, String.valueOf(clientAddr));
 
                                 if (processor.hasDownstreams()) {
                                     sink.next(message);
@@ -215,10 +217,9 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                             }))
                         .onErrorContinue((err, o) ->
                             log.error("处理TCP[{}]消息[{}]失败",
-                                client.getRemoteAddress(),
+                                clientAddr,
                                 ByteBufUtil.hexDump(tcpMessage.getPayload())
-                                , err))
-                    );
+                                , err)));
             }).subscribe());
     }
 
