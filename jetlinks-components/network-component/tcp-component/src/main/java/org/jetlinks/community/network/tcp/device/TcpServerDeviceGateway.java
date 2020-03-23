@@ -215,11 +215,14 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                 }
                                 return clientMessageHandler.handleMessage(device, message);
                             }))
-                        .onErrorContinue((err, o) ->
-                            log.error("处理TCP[{}]消息[{}]失败",
-                                clientAddr,
-                                ByteBufUtil.hexDump(tcpMessage.getPayload())
-                                , err)));
+                        .onErrorResume((err) -> {
+                                log.error("处理TCP[{}]消息[{}]失败",
+                                    clientAddr,
+                                    ByteBufUtil.hexDump(tcpMessage.getPayload())
+                                    , err);
+                                return Mono.empty();
+                            }
+                        ));
             }).subscribe());
     }
 
