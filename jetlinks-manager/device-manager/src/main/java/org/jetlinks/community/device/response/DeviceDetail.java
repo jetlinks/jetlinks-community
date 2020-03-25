@@ -135,12 +135,13 @@ public class DeviceDetail {
         setId(device.getId());
         setName(device.getName());
         setState(device.getState());
+        setOrgId(device.getOrgId());
 
         Optional.ofNullable(device.getRegistryTime())
             .ifPresent(this::setRegisterTime);
 
-        setCreateTime(device.getCreateTime());
-        setOrgId(device.getOrgId());
+        Optional.ofNullable(device.getCreateTime())
+            .ifPresent(this::setCreateTime);
 
         if (!CollectionUtils.isEmpty(device.getConfiguration())) {
             setConfiguration(device.getConfiguration());
