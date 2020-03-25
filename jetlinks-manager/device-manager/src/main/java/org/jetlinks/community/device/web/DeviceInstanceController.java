@@ -12,6 +12,7 @@ import org.hswebframework.ezorm.rdb.exception.DuplicateKeyException;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.reactor.excel.ReactorExcel;
+import org.hswebframework.reactor.excel.utils.StreamUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
@@ -282,7 +283,7 @@ public class DeviceInstanceController implements
                                                @RequestBody Flux<DeviceTagEntity> tags) {
         return tags
             .doOnNext(tag -> {
-                tag.setId(DeviceTagEntity.createTagId(deviceId,tag.getKey()));
+                tag.setId(DeviceTagEntity.createTagId(deviceId, tag.getKey()));
                 tag.setDeviceId(deviceId);
                 tag.tryValidate();
             })
@@ -290,13 +291,6 @@ public class DeviceInstanceController implements
             .thenMany(getDeviceTags(deviceId));
     }
 
-    //已废弃
-    @GetMapping("/operation/log")
-    @QueryAction
-    @Deprecated
-    public Mono<PagerResult<DeviceOperationLogEntity>> queryOperationLog(QueryParamEntity queryParam) {
-        return timeSeriesManager.getService(TimeSeriesMetric.of("device_operation")).queryPager(queryParam, data -> data.as(DeviceOperationLogEntity.class));
-    }
 
     @GetMapping(value = "/import", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ApiOperation("批量导入数据")
@@ -346,12 +340,12 @@ public class DeviceInstanceController implements
 
     DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
 
-    //按产品型号导入数据
+
+    //按型号导入数据
     @GetMapping(value = "/{productId}/import", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @SaveAction
     public Flux<ImportDeviceInstanceResult> doBatchImportByProduct(@PathVariable String productId,
                                                                    @RequestParam String fileUrl) {
-
         return registry.getProduct(productId)
             .flatMap(DeviceProductOperator::getMetadata)
             .map(metadata -> new DeviceWrapper(metadata.getTags()))
@@ -371,19 +365,16 @@ public class DeviceInstanceController implements
             .publishOn(Schedulers.single())
             .concatMap(buffer ->
                 Mono.zip(
-                    //保存设备
                     service.save(Flux.fromIterable(buffer).map(Tuple2::getT1)),
-                    //保存设备标签
                     tagRepository
                         .save(Flux.fromIterable(buffer).flatMapIterable(Tuple2::getT2))
                         .defaultIfEmpty(SaveResult.of(0, 0))
                 ))
             .map(res -> ImportDeviceInstanceResult.success(res.getT1()))
-            //保存返回错误消息而不是抛出异常,抛异常SSE无法获取到错误消息.
             .onErrorResume(err -> Mono.just(ImportDeviceInstanceResult.error(err)));
     }
 
-    //获取导入模版
+    //获取导出模版
     @GetMapping("/{productId}/template.{format}")
     @QueryAction
     public Mono<Void> downloadExportTemplate(ServerHttpResponse response,
@@ -392,27 +383,23 @@ public class DeviceInstanceController implements
                                              @PathVariable String productId) throws IOException {
         response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=".concat(URLEncoder.encode("设备导入模版." + format, StandardCharsets.UTF_8.displayName())));
-        return Authentication
-            .currentReactive()
-            .flatMap(auth -> {
-                parameter.setPaging(false);
-                parameter.toNestQuery(q -> q.is(DeviceInstanceEntity::getProductId, productId));
-                return registry.getProduct(productId)
-                    .flatMap(DeviceProductOperator::getMetadata)
-                    .map(meta -> DeviceExcelInfo.getTemplateHeaderMapping(meta.getTags()))
-                    .defaultIfEmpty(DeviceExcelInfo.getTemplateHeaderMapping(Collections.emptyList()))
-                    .flatMapMany(headers ->
-                        ReactorExcel.<DeviceExcelInfo>writer(format)
-                            .headers(headers)
-                            .converter(DeviceExcelInfo::toMap)
-                            .writeBuffer(Flux.empty()))
-                    .doOnError(err -> log.error(err.getMessage(), err))
-                    .map(bufferFactory::wrap)
-                    .as(response::writeWith);
-            });
+        parameter.setPaging(false);
+        parameter.toNestQuery(q -> q.is(DeviceInstanceEntity::getProductId, productId));
+        return registry.getProduct(productId)
+            .flatMap(DeviceProductOperator::getMetadata)
+            .map(meta -> DeviceExcelInfo.getTemplateHeaderMapping(meta.getTags()))
+            .defaultIfEmpty(DeviceExcelInfo.getTemplateHeaderMapping(Collections.emptyList()))
+            .flatMapMany(headers ->
+                ReactorExcel.<DeviceExcelInfo>writer(format)
+                    .headers(headers)
+                    .converter(DeviceExcelInfo::toMap)
+                    .writeBuffer(Flux.empty()))
+            .doOnError(err -> log.error(err.getMessage(), err))
+            .map(bufferFactory::wrap)
+            .as(response::writeWith);
     }
 
-    //按照型号导出数据
+    //按照型号导出数据.
     @GetMapping("/{productId}/export.{format}")
     @QueryAction
     public Mono<Void> export(ServerHttpResponse response,
@@ -454,31 +441,48 @@ public class DeviceInstanceController implements
             .as(response::writeWith);
     }
 
+
+    //直接导出数据,不支持导出标签.
+    @GetMapping("/export.{format}")
+    @QueryAction
+    public Mono<Void> export(ServerHttpResponse response,
+                             QueryParamEntity parameter,
+                             @PathVariable String format) throws IOException {
+        response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
+            "attachment; filename=".concat(URLEncoder.encode("设备实例." + format, StandardCharsets.UTF_8.displayName())));
+        return ReactorExcel.<DeviceExcelInfo>writer(format)
+            .headers(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList()))
+            .converter(DeviceExcelInfo::toMap)
+            .writeBuffer(
+                service.query(parameter)
+                    .map(entity -> FastBeanCopier.copy(entity, new DeviceExcelInfo()))
+                , 512 * 1024)//缓冲512k
+            .doOnError(err -> log.error(err.getMessage(), err))
+            .map(bufferFactory::wrap)
+            .as(response::writeWith);
+    }
+
     @PostMapping("/export")
     @QueryAction
     @SneakyThrows
     public Mono<Void> export(ServerHttpResponse response, QueryParamEntity parameter) {
         response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=".concat(URLEncoder.encode("设备实例.xlsx", StandardCharsets.UTF_8.displayName())));
-        return Authentication
-            .currentReactive()
-            .flatMap(auth -> {
-                parameter.setPaging(false);
-                return response.writeWith(Mono.create(sink -> {
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    ExcelWriter excelWriter = EasyExcel.write(out, DeviceInstanceImportExportEntity.class).build();
-                    WriteSheet writeSheet = EasyExcel.writerSheet().build();
-                    service.query(parameter)
-                        .map(entity -> FastBeanCopier.copy(entity, new DeviceInstanceImportExportEntity()))
-                        .buffer(100)
-                        .doOnNext(list -> excelWriter.write(list, writeSheet))
-                        .doFinally(s -> {
-                            excelWriter.finish();
-                            sink.success(bufferFactory.wrap(out.toByteArray()));
-                        })
-                        .doOnError(sink::error)
-                        .subscribe();
-                }));
-            });
+        parameter.setPaging(false);
+
+        return StreamUtils.buffer(
+            512 * 1024,
+            output -> {
+                ExcelWriter excelWriter = EasyExcel.write(output, DeviceInstanceImportExportEntity.class).build();
+                WriteSheet writeSheet = EasyExcel.writerSheet().build();
+                return service.query(parameter)
+                    .map(entity -> FastBeanCopier.copy(entity, new DeviceInstanceImportExportEntity()))
+                    .buffer(100)
+                    .doOnNext(list -> excelWriter.write(list, writeSheet))
+                    .doOnComplete(excelWriter::finish)
+                    .then();
+            })
+            .map(bufferFactory::wrap)
+            .as(response::writeWith);
     }
 }
