@@ -42,6 +42,9 @@ elasticsearch:
     connection-request-timeout: 8000
   index:
     default-strategy: time-by-month #默认es的索引按月进行分表, direct则为直接操作索引.
+    settings:
+      number-of-shards: 1 # es 分片数量
+      number-of-replicas: 0 # 副本数量
 device:
   message:
     writer:
@@ -65,12 +68,12 @@ hsweb:
       static-location: http://localhost:8848/upload
   webflux:
     response-wrapper: enabled #开启响应包装器(将返回值包装为ResponseMessage)
-#  auth:   #默认的用户配置
-#    users:
-#      admin:
-#        username: admin
-#        password: admin
-#        name: 超级管理员
+  #  auth:   #默认的用户配置
+  #    users:
+  #      admin:
+  #        username: admin
+  #        password: admin
+  #        name: 超级管理员
   authorize:
     auto-parse: true
   cache:
