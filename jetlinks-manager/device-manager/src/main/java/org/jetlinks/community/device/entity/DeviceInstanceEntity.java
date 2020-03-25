@@ -8,12 +8,19 @@ import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.core.device.DeviceConfigKey;
+import org.jetlinks.core.device.DeviceInfo;
+import org.jetlinks.core.device.DeviceOperator;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
+import reactor.core.publisher.Mono;
 
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import java.sql.JDBCType;
+import java.util.Collections;
 import java.util.Map;
 
 @Getter
@@ -37,7 +44,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     private String describe;
 
     @Comment("产品id")
-    @Column(name = "product_id",length = 32)
+    @Column(name = "product_id", length = 32)
     @NotBlank(message = "产品ID不能为空", groups = CreateGroup.class)
     private String productId;
 
@@ -84,4 +91,20 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @Column(name = "parent_id", length = 32)
     @Comment("父级设备ID")
     private String parentId;
+
+    public DeviceInfo toDeviceInfo() {
+        DeviceInfo info = org.jetlinks.core.device.DeviceInfo.builder()
+            .id(this.getId())
+            .productId(this.getProductId())
+            .build()
+            .addConfig(DeviceConfigKey.parentGatewayId, this.getParentId());
+
+        if (!CollectionUtils.isEmpty(configuration)) {
+            configuration.forEach(info::addConfig);
+        }
+        if (StringUtils.hasText(deriveMetadata)) {
+            info.addConfig(DeviceConfigKey.metadata, deriveMetadata);
+        }
+        return info;
+    }
 }

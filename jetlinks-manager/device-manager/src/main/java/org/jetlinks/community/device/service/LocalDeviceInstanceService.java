@@ -166,26 +166,21 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      */
     public Flux<DeviceDeployResult> deploy(Flux<DeviceInstanceEntity> flux) {
         return flux
-            .flatMap(instance ->
-                registry.register(org.jetlinks.core.device.DeviceInfo.builder()
-                    .id(instance.getId())
-                    .productId(instance.getProductId())
-                    .build()
-                    .addConfig(DeviceConfigKey.parentGatewayId, instance.getParentId()))
-                    //设置其他配置信息
-                    .flatMap(deviceOperator -> deviceOperator.getState()
-                        .flatMap(r -> {
-                            if (r.equals(org.jetlinks.core.device.DeviceState.unknown) ||
-                                r.equals(org.jetlinks.core.device.DeviceState.noActive)) {
-                                instance.setState(DeviceState.offline);
-                                return deviceOperator.putState(org.jetlinks.core.device.DeviceState.offline);
-                            }
-                            instance.setState(DeviceState.of(r));
-                            return Mono.just(true);
-                        })
-                        .flatMap(success -> success ? Mono.just(deviceOperator) : Mono.empty())
-                    )
-                    .thenReturn(instance))
+            .flatMap(instance -> registry
+                .register(instance.toDeviceInfo())
+                .flatMap(deviceOperator -> deviceOperator.getState()
+                    .flatMap(r -> {
+                        if (r.equals(org.jetlinks.core.device.DeviceState.unknown) ||
+                            r.equals(org.jetlinks.core.device.DeviceState.noActive)) {
+                            instance.setState(DeviceState.offline);
+                            return deviceOperator.putState(org.jetlinks.core.device.DeviceState.offline);
+                        }
+                        instance.setState(DeviceState.of(r));
+                        return Mono.just(true);
+                    })
+                    .flatMap(success -> success ? Mono.just(deviceOperator) : Mono.empty())
+                )
+                .thenReturn(instance))
             .buffer(50)
             .publishOn(Schedulers.single())
             .flatMap(all -> Flux.fromIterable(all)
