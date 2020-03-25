@@ -457,7 +457,7 @@ public class DeviceInstanceController implements
     @PostMapping("/export")
     @QueryAction
     @SneakyThrows
-    public Mono<Void> export(ServerHttpResponse response, QueryParam parameter) {
+    public Mono<Void> export(ServerHttpResponse response, QueryParamEntity parameter) {
         response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=".concat(URLEncoder.encode("设备实例.xlsx", StandardCharsets.UTF_8.displayName())));
         return Authentication
