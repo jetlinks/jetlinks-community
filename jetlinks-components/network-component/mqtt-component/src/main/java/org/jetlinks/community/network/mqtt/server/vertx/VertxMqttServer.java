@@ -18,7 +18,7 @@ public class VertxMqttServer implements MqttServer {
 
     private EmitterProcessor<MqttConnection> connectionProcessor = EmitterProcessor.create(false);
 
-    FluxSink<MqttConnection> sink = connectionProcessor.sink();
+    FluxSink<MqttConnection> sink = connectionProcessor.sink(FluxSink.OverflowStrategy.BUFFER);
 
     private Collection<io.vertx.mqtt.MqttServer> mqttServer;
 

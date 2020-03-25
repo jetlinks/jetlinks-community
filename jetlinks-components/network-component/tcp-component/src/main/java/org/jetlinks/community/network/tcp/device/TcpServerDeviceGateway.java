@@ -30,6 +30,7 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -113,6 +114,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
         disposable.add(tcpServer
             .handleConnection()
             .flatMap(client -> {
+                InetSocketAddress clientAddr = client.getRemoteAddress();
                 counter.increment();
                 gatewayMonitor.totalConnection(counter.intValue());
                 client.onDisconnect(() -> {
@@ -121,7 +123,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                     gatewayMonitor.totalConnection(counter.sum());
                 });
                 AtomicReference<Duration> keepaliveTimeout = new AtomicReference<>();
-                DeviceSession session = sessionManager.getSession(client.getId());
+                AtomicReference<DeviceSession> sessionRef = new AtomicReference<>(sessionManager.getSession(client.getId()));
                 return client.subscribe()
                     .filter(r -> started.get())
                     .doOnNext(r -> gatewayMonitor.receivedMessage())
@@ -137,7 +139,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                             @Override
                             public DeviceSession getSession() {
                                 //session还未注册
-                                if (session == null) {
+                                if (sessionRef.get() == null) {
                                     return new UnknownTcpDeviceSession(client.getId(), client, getTransport()) {
                                         @Override
                                         public Mono<Boolean> send(EncodedMessage encodedMessage) {
@@ -150,7 +152,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                         }
                                     };
                                 }
-                                return session;
+                                return sessionRef.get();
                             }
 
                             @Override
@@ -160,7 +162,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                         }))
                         .switchIfEmpty(Mono.fromRunnable(() ->
                             log.warn("无法识别的TCP客户端[{}]消息:[{}]",
-                                client.getRemoteAddress(),
+                                clientAddr,
                                 ByteBufUtil.hexDump(tcpMessage.getPayload())
                             )))
                         .cast(DeviceMessage.class)
@@ -169,18 +171,18 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                             .switchIfEmpty(Mono.fromRunnable(() -> {
                                 log.warn("设备[{}]未注册,TCP[{}]消息:[{}],设备消息:{}",
                                     message.getDeviceId(),
-                                    client.getRemoteAddress(),
+                                    clientAddr,
                                     ByteBufUtil.hexDump(tcpMessage.getPayload()),
                                     message
                                 );
                             }))
                             .flatMap(device -> {
+                                DeviceSession fSession = sessionRef.get() == null ?
+                                    sessionManager.getSession(device.getDeviceId()) :
+                                    sessionRef.get();
+
                                 //处理设备上线消息
                                 if (message instanceof DeviceOnlineMessage) {
-                                    DeviceSession fSession = session == null ?
-                                        sessionManager.getSession(device.getDeviceId()) :
-                                        session;
-
                                     if (fSession == null) {
                                         fSession = new TcpDeviceSession(client.getId(), device, client, getTransport()) {
                                             @Override
@@ -192,34 +194,42 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                         if (message.getHeader(Headers.keepOnline).orElse(false)) {
                                             fSession = new KeepOnlineSession(fSession, Duration.ofMillis(-1));
                                         } else {
-                                            client.onDisconnect(() -> sessionManager.unregister(client.getId()));
+                                            client.onDisconnect(() -> sessionManager.unregister(device.getDeviceId()));
                                         }
+                                        sessionRef.set(fSession);
                                         sessionManager.register(fSession);
                                     }
+                                    fSession.keepAlive();
                                     if (keepaliveTimeout.get() != null) {
                                         fSession.setKeepAliveTimeout(keepaliveTimeout.get());
                                     }
                                     return Mono.empty();
+                                }
+                                if (fSession != null) {
+                                    fSession.keepAlive();
                                 }
                                 //设备下线
                                 if (message instanceof DeviceOfflineMessage) {
                                     sessionManager.unregister(device.getDeviceId());
                                     return Mono.empty();
                                 }
-                                message.addHeaderIfAbsent(Headers.clientAddress, String.valueOf(client.getRemoteAddress()));
+                                message.addHeaderIfAbsent(Headers.clientAddress, String.valueOf(clientAddr));
 
                                 if (processor.hasDownstreams()) {
                                     sink.next(message);
                                 }
                                 return clientMessageHandler.handleMessage(device, message);
                             }))
-                        .onErrorContinue((err, o) ->
-                            log.error("处理TCP[{}]消息[{}]失败",
-                                client.getRemoteAddress(),
-                                ByteBufUtil.hexDump(tcpMessage.getPayload())
-                                , err))
-                    );
-            }).subscribe());
+                        .onErrorResume((err) -> {
+                                log.error("处理TCP[{}]消息[{}]失败",
+                                    clientAddr,
+                                    ByteBufUtil.hexDump(tcpMessage.getPayload())
+                                    , err);
+                                return Mono.empty();
+                            }
+                        ));
+            })
+            .subscribe());
     }
 
     @Override

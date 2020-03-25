@@ -7,6 +7,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.*;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
@@ -30,6 +31,8 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
     private String id;
 
     protected ElasticRestClient client;
+
+    protected ElasticSearchIndexProperties properties;
 
     protected String wrapIndex(String index) {
         return index.toLowerCase();
@@ -185,4 +188,23 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         }
         return metadata;
     }
+
+    protected List<?> createDynamicTemplates() {
+        List<Map<String, Object>> maps = new ArrayList<>();
+        {
+            Map<String, Object> config = new HashMap<>();
+            config.put("match_mapping_type", "string");
+            config.put("mapping", createElasticProperty(new StringType()));
+            maps.add(Collections.singletonMap("string_fields", config));
+        }
+        {
+            Map<String, Object> config = new HashMap<>();
+            config.put("match_mapping_type", "date");
+            config.put("mapping", createElasticProperty(new DateTimeType()));
+            maps.add(Collections.singletonMap("date_fields", config));
+        }
+
+        return maps;
+    }
+
 }

@@ -2,14 +2,15 @@ package org.jetlinks.community.elastic.search.index.strategies;
 
 import org.jetlinks.community.elastic.search.ElasticRestClient;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 @Component
 public class DirectElasticSearchIndexStrategy extends AbstractElasticSearchIndexStrategy {
 
-    public DirectElasticSearchIndexStrategy(ElasticRestClient client) {
-        super("direct", client);
+    public DirectElasticSearchIndexStrategy(ElasticRestClient client, ElasticSearchIndexProperties properties) {
+        super("direct", client,properties);
     }
 
     @Override

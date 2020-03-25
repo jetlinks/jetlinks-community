@@ -17,6 +17,8 @@ import reactor.core.publisher.Mono;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -51,20 +53,24 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
     }
 
     private void initTcpServer(VertxTcpServer tcpServer, TcpServerProperties properties) {
-        NetServer netServer = vertx.createNetServer(properties.getOptions());
-
+        int instance = Math.max(2, properties.getInstance());
+        List<NetServer> instances = new ArrayList<>(instance);
+        for (int i = 0; i < instance; i++) {
+            instances.add(vertx.createNetServer(properties.getOptions()));
+        }
         payloadParserBuilder.build(properties.getParserType(), properties);
-
-        tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(),properties));
-        tcpServer.setServer(netServer);
-        tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout").orElse(Duration.ofMinutes(10).toMillis()));
-        netServer.listen(properties.createSocketAddress(), result -> {
-            if (result.succeeded()) {
-                log.info("tcp server startup on {}", result.result().actualPort());
-            } else {
-                log.error("startup tcp server error", result.cause());
-            }
-        });
+        tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(), properties));
+        tcpServer.setServer(instances);
+        tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout", Duration.ofMinutes(10).toMillis()));
+        for (NetServer netServer : instances) {
+            netServer.listen(properties.createSocketAddress(), result -> {
+                if (result.succeeded()) {
+                    log.info("tcp server startup on {}", result.result().actualPort());
+                } else {
+                    log.error("startup tcp server error", result.cause());
+                }
+            });
+        }
     }
 
     @Override

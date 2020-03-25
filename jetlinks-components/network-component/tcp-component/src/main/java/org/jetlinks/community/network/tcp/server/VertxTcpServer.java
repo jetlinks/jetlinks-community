@@ -11,6 +11,7 @@ import org.jetlinks.community.network.tcp.client.VertxTcpClient;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.function.Supplier;
 
 /**
@@ -20,8 +21,7 @@ import java.util.function.Supplier;
 @Slf4j
 public class VertxTcpServer extends AbstractTcpServer implements TcpServer {
 
-    @Getter
-    volatile NetServer server;
+    Collection<NetServer> tcpServers;
 
     private Supplier<PayloadParser> parserSupplier;
 
@@ -47,13 +47,18 @@ public class VertxTcpServer extends AbstractTcpServer implements TcpServer {
         this.parserSupplier = parserSupplier;
     }
 
-    public void setServer(NetServer server) {
-        if (this.server != null && this.server != server) {
-            this.server.close();
+    public void setServer(Collection<NetServer> mqttServer) {
+        if (this.tcpServers != null && !this.tcpServers.isEmpty()) {
+            shutdown();
         }
-        this.server = server;
-        this.server.connectHandler(this::acceptTcpConnection);
+        this.tcpServers = mqttServer;
+
+        for (NetServer tcpServer : this.tcpServers) {
+            tcpServer.connectHandler(this::acceptTcpConnection);
+        }
+
     }
+
 
     protected void acceptTcpConnection(NetSocket socket) {
         VertxTcpClient client = new VertxTcpClient(id + "_" + socket.remoteAddress());
@@ -82,15 +87,17 @@ public class VertxTcpServer extends AbstractTcpServer implements TcpServer {
 
     @Override
     public void shutdown() {
-        if (null != server) {
-            execute(server::close);
-            server = null;
+        if (null != tcpServers) {
+            for (NetServer tcpServer : tcpServers) {
+                execute(tcpServer::close);
+            }
+            tcpServers = null;
         }
     }
 
     @Override
     public boolean isAlive() {
-        return server != null;
+        return tcpServers != null;
     }
 
     @Override

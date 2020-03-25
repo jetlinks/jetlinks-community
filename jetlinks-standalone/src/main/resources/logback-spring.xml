@@ -3,10 +3,8 @@
     <appender name="LOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender" />
 
     <appender name="ErrorLOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender">
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>WARN</level>
-            <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
         </filter>
     </appender>
 

@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.jetlinks.community.elastic.search.ElasticRestClient;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
  **/
 @Configuration
 @Slf4j
-@EnableConfigurationProperties(ElasticSearchProperties.class)
+@EnableConfigurationProperties({ElasticSearchProperties.class, ElasticSearchIndexProperties.class})
 public class ElasticSearchConfiguration {
 
     @Autowired

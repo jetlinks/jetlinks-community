@@ -8,16 +8,19 @@ import org.elasticsearch.client.indices.GetIndexTemplatesResponse;
 import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.jetlinks.community.elastic.search.ElasticRestClient;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
 import reactor.core.publisher.Mono;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class TemplateElasticSearchIndexStrategy extends AbstractElasticSearchIndexStrategy {
 
-    public TemplateElasticSearchIndexStrategy(String id, ElasticRestClient client) {
-        super(id, client);
+    public TemplateElasticSearchIndexStrategy(String id, ElasticRestClient client, ElasticSearchIndexProperties properties) {
+        super(id, client,properties);
     }
 
     protected String getTemplate(String index) {
@@ -50,14 +53,20 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
             .then(doPutIndex(metadata.newIndexName(getIndexForSave(metadata.getIndex())), true));
     }
 
+
     protected PutIndexTemplateRequest createIndexTemplateRequest(ElasticSearchIndexMetadata metadata) {
         String index = wrapIndex(metadata.getIndex());
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(getTemplate(index));
         request.alias(new Alias(getAlias(index)));
-        request.mapping(Collections.singletonMap("properties", createElasticProperties(metadata.getProperties())));
+        request.settings(properties.toSettings());
+        Map<String, Object> mappingConfig = new HashMap<>();
+        mappingConfig.put("properties", createElasticProperties(metadata.getProperties()));
+        mappingConfig.put("dynamic_templates", createDynamicTemplates());
+        request.mapping(mappingConfig);
         request.patterns(getIndexPatterns(index));
         return request;
     }
+
 
     @Override
     public Mono<ElasticSearchIndexMetadata> loadIndexMetadata(String index) {

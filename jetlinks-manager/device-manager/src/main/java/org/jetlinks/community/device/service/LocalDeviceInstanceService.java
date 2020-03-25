@@ -216,9 +216,25 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     public Mono<DeviceDetail> getDeviceDetail(String deviceId) {
         return this.findById(deviceId)
-            .zipWhen(device -> deviceProductService.findById(device.getProductId()),
-                (device, product) -> new DeviceDetail().with(device).with(product))
-            .flatMap(detail -> registry.getDevice(deviceId).flatMap(detail::with).defaultIfEmpty(detail))
+            .zipWhen(
+                //合并设备和型号信息
+                (device) -> deviceProductService.findById(device.getProductId()),
+                (device, product) -> new DeviceDetail().with(device).with(product)
+            ).flatMap(detail -> registry
+                .getDevice(deviceId)
+                .flatMap(
+                    operator -> operator.checkState() //检查设备的真实状态,设备已经离线,但是数据库状态未及时更新的.
+                        .map(DeviceState::of)
+                        .filter(state -> state != detail.getState())
+                        .doOnNext(detail::setState)
+                        .flatMap(state -> createUpdate()
+                            .set(DeviceInstanceEntity::getState, state)
+                            .where(DeviceInstanceEntity::getId, deviceId)
+                            .execute())
+                        .thenReturn(operator))
+                .flatMap(detail::with)
+                .defaultIfEmpty(detail))
+            //设备标签信息
             .flatMap(detail -> tagRepository
                 .createQuery()
                 .where(DeviceTagEntity::getDeviceId, deviceId)
