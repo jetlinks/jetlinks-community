@@ -41,6 +41,8 @@ services:
     container_name: jetlinks-ce-postgres
     volumes:
       - "postgres-volume:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: jetlinks
       POSTGRES_DB: jetlinks
@@ -68,14 +70,13 @@ services:
     volumes:
       - "jetlinks-volume:/static/upload"  # 持久化上传的文件
     environment:
-      #      - "JAVA_OPTS=-Xms4g -Xmx10g -XX:+UseG1GC"
+     # - "JAVA_OPTS=-Xms4g -Xmx18g -XX:+UseG1GC"
       - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
       - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
       - "spring.r2dbc.username=postgres"
       - "spring.r2dbc.password=jetlinks"
       - "elasticsearch.client.host=elasticsearch"
       - "elasticsearch.client.post=9200"
-      - "device.message.writer.elastic.enabled=false"
       - "spring.redis.host=redis"
       - "spring.redis.port=6379"
       - "logging.level.io.r2dbc=warn"
