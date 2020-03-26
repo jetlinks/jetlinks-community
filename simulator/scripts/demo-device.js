@@ -79,7 +79,20 @@ simulator.bindHandler("/invoke-function", function (message, session) {
 
 
 simulator.onConnect(function (session) {
-    // _logger.info("[{}]:连接成功", session.auth.clientId);
+    //自动绑定下级设备
+    // session.sendMessage("/children/register", JSON.stringify({
+    //     deviceId: "test202278", //子设备ID
+    //     timestamp: new Date().getTime(),
+    //     success: true
+    // }));
+    //注销子设备
+    // simulator.runDelay(function () {
+    //     session.sendMessage("/children/unregister", JSON.stringify({
+    //         deviceId: "test202278",
+    //         timestamp: new Date().getTime(),
+    //         success: true
+    //     }));
+    // },2000)
 });
 
 simulator.onAuth(function (index, auth) {
