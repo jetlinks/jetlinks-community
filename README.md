@@ -1,8 +1,8 @@
 # JetLinks 物联网基础平台
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
-![Version](https://img.shields.io/badge/Version-1.0--SNAPSHOT-brightgreen)
-![QQ群](https://img.shields.io/badge/QQ群-2021514-brightgreen)
+![Version](https://img.shields.io/badge/Version-1.0--RELEASE-brightgreen)
+![QQ群2021514](https://img.shields.io/badge/QQ群-2021514-brightgreen)
 
 JetLinks 是一个物联网基础平台,用于快速建立物联网相关业务系统.
 
