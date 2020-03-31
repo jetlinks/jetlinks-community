@@ -44,6 +44,7 @@ public class DeviceWrapper extends RowWrapper<DeviceExcelInfo> {
         } else {
             deviceExcelInfo.with(headerMapping.getOrDefault(headerText, headerText), cell.value().orElse(null));
         }
+        deviceExcelInfo.setRowNumber(cell.getRowIndex());
 
         return deviceExcelInfo;
     }

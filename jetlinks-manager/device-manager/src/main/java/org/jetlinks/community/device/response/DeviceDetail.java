@@ -70,7 +70,7 @@ public class DeviceDetail {
     private String metadata;
 
     //设备配置信息
-    private Map<String, Object> configuration;
+    private Map<String, Object> configuration = new HashMap<>();
 
     //标签
     private List<DeviceTagEntity> tags = new ArrayList<>();

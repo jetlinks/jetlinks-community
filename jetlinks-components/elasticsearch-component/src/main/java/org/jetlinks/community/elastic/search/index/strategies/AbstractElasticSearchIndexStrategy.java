@@ -88,7 +88,11 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
 
     public CreateIndexRequest createIndexRequest(ElasticSearchIndexMetadata metadata) {
         CreateIndexRequest request = new CreateIndexRequest(wrapIndex(metadata.getIndex()));
-        request.mapping(Collections.singletonMap("properties", createElasticProperties(metadata.getProperties())));
+        request.settings(properties.toSettings());
+        Map<String, Object> mappingConfig = new HashMap<>();
+        mappingConfig.put("properties", createElasticProperties(metadata.getProperties()));
+        mappingConfig.put("dynamic_templates", createDynamicTemplates());
+        request.mapping(mappingConfig);
         return request;
     }
 

@@ -357,7 +357,7 @@ public class DeviceInstanceController implements
                 DeviceInstanceEntity entity = FastBeanCopier.copy(info, new DeviceInstanceEntity());
                 entity.setProductId(productId);
                 if (StringUtils.isEmpty(entity.getId())) {
-                    throw new BusinessException("设备ID不能为空");
+                    throw new BusinessException("第" + info.getRowNumber() + 1 + "行:设备ID不能为空");
                 }
                 return Tuples.of(entity, info.getTags());
             })

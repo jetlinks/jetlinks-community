@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
+import javax.persistence.Index;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import java.sql.JDBCType;
@@ -25,7 +26,9 @@ import java.util.Map;
 
 @Getter
 @Setter
-@Table(name = "dev_device_instance")
+@Table(name = "dev_device_instance", indexes = {
+    @Index(name = "idx_dev_product_id", columnList = "product_id"),
+})
 public class DeviceInstanceEntity extends GenericEntity<String> implements RecordCreationEntity {
 
     @Override

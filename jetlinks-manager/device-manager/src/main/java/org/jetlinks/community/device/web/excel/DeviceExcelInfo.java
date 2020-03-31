@@ -30,6 +30,9 @@ public class DeviceExcelInfo {
 
     private List<DeviceTagEntity> tags = new ArrayList<>();
 
+    private long rowNumber;
+
+
     public void tag(String key, String name, Object value) {
         if (value == null) {
             return;

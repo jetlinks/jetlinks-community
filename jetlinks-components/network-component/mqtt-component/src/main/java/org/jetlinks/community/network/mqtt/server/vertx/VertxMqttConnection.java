@@ -329,12 +329,7 @@ class VertxMqttConnection implements MqttConnection {
 
         @Override
         public String toString() {
-            return "{" +
-                "topic=" + getTopic() +
-                ",messageId=" + getMessageId() +
-                ",qos=" + getQosLevel() +
-                ",payload=" + message.payload().toString(StandardCharsets.UTF_8) +
-                '}';
+            return print();
         }
     }
 
