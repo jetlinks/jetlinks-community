@@ -21,7 +21,7 @@
         <project.build.jdk>${java.version}</project.build.jdk>
         <hsweb.framework.version>4.0.1</hsweb.framework.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.0.1</jetlinks.version>
+        <jetlinks.version>1.0.2-BUILD-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Arabba-RELEASE</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.46.Final</netty.version>
