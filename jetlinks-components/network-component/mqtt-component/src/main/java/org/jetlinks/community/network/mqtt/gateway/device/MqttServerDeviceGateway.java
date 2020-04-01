@@ -156,7 +156,7 @@ class MqttServerDeviceGateway implements DeviceGateway , MonitorSupportDeviceGat
                 }
                 return Mono.empty();
             })
-            .onErrorResume((err) -> Mono.fromRunnable(() -> log.error("处理MQTT连接失败", err)))
+            .onErrorContinue((err,obj) -> log.error("处理MQTT连接失败", err))
             .subscribe(tp -> tp.getT1()
                 .handleMessage()
                 .filter(pb -> started.get())
