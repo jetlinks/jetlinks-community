@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 @Setter
 public class MeterRegistryManager {
 
-    private Map<String, MeterRegistry> meterRegistryMap = new HashMap<>();
+    private Map<String, MeterRegistry> meterRegistryMap = new ConcurrentHashMap<>();
 
     @Autowired
     private List<MeterRegistrySupplier> suppliers;
