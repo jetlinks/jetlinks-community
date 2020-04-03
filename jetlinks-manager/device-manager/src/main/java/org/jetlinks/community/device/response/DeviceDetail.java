@@ -118,7 +118,7 @@ public class DeviceDetail {
         if (StringUtils.isEmpty(metadata)) {
             setMetadata(productEntity.getMetadata());
         }
-        if (CollectionUtils.isEmpty(configuration)) {
+        if (CollectionUtils.isEmpty(configuration) && !CollectionUtils.isEmpty(productEntity.getConfiguration())) {
             setConfiguration(productEntity.getConfiguration());
         }
         setProtocol(productEntity.getMessageProtocol());
