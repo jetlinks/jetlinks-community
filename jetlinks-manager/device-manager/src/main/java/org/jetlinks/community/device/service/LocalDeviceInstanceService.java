@@ -323,8 +323,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                             }
                         });
                     return formatData;
-                })
-                .defaultIfEmpty(PagerResult.empty()));
+                })).defaultIfEmpty(PagerResult.empty());
     }
 
     public Mono<DevicePropertiesEntity> getDeviceLatestProperty(String deviceId, String property) {
