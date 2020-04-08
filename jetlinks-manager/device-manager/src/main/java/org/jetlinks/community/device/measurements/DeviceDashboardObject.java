@@ -24,7 +24,8 @@ public class DeviceDashboardObject implements DashboardObject {
 
     private DeviceDashboardObject(String id, String name,
                                   DeviceProductOperator productOperator,
-                                  MessageGateway messageGateway, TimeSeriesManager timeSeriesManager) {
+                                  MessageGateway messageGateway,
+                                  TimeSeriesManager timeSeriesManager) {
         this.id = id;
         this.name = name;
         this.productOperator = productOperator;
@@ -34,7 +35,8 @@ public class DeviceDashboardObject implements DashboardObject {
 
     public static DeviceDashboardObject of(String id, String name,
                                            DeviceProductOperator productOperator,
-                                           MessageGateway messageGateway, TimeSeriesManager timeSeriesManager) {
+                                           MessageGateway messageGateway,
+                                           TimeSeriesManager timeSeriesManager) {
         return new DeviceDashboardObject(id, name, productOperator, messageGateway, timeSeriesManager);
     }
 
@@ -59,17 +61,17 @@ public class DeviceDashboardObject implements DashboardObject {
 
             productOperator.getMetadata()
                 .flatMapIterable(DeviceMetadata::getEvents)
-                .map(event -> new DeviceEventMeasurement(messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceEventMetric(id, event.getId())))),
+                .map(event -> new DeviceEventMeasurement(productOperator.getId(), messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceEventMetric(id, event.getId())))),
 
             productOperator.getMetadata()
-                .map(metadata -> new DevicePropertiesMeasurement(messageGateway, metadata, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(id)))),
+                .map(metadata -> new DevicePropertiesMeasurement(productOperator.getId(),messageGateway, metadata, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(id)))),
 
             productOperator.getMetadata()
                 .map(metadata -> new DeviceEventsMeasurement(productOperator.getId(), messageGateway, metadata, timeSeriesManager)),
 
             productOperator.getMetadata()
                 .flatMapIterable(DeviceMetadata::getProperties)
-                .map(event -> new DevicePropertyMeasurement(messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(id))))
+                .map(event -> new DevicePropertyMeasurement(productOperator.getId(),messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(id))))
         );
     }
 
@@ -77,7 +79,7 @@ public class DeviceDashboardObject implements DashboardObject {
     public Mono<Measurement> getMeasurement(String id) {
         if ("properties".equals(id)) {
             return productOperator.getMetadata()
-                .map(metadata -> new DevicePropertiesMeasurement(messageGateway, metadata, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(this.id))));
+                .map(metadata -> new DevicePropertiesMeasurement(productOperator.getId(),messageGateway, metadata, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(this.id))));
         }
         if ("events".equals(id)) {
             return productOperator.getMetadata()
@@ -85,10 +87,10 @@ public class DeviceDashboardObject implements DashboardObject {
         }
         return productOperator.getMetadata()
             .flatMap(metadata -> Mono.justOrEmpty(metadata.getEvent(id)))
-            .<Measurement>map(event -> new DeviceEventMeasurement(messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceEventMetric(this.id, event.getId()))))
+            .<Measurement>map(event -> new DeviceEventMeasurement(productOperator.getId(),messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceEventMetric(this.id, event.getId()))))
             //事件没获取到则尝试获取属性
             .switchIfEmpty(productOperator.getMetadata()
                 .flatMap(metadata -> Mono.justOrEmpty(metadata.getProperty(id)))
-                .map(event -> new DevicePropertyMeasurement(messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(this.id)))));
+                .map(event -> new DevicePropertyMeasurement(productOperator.getId(),messageGateway, event, timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(this.id)))));
     }
 }

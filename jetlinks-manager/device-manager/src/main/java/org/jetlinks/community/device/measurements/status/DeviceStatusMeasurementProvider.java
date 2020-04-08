@@ -51,7 +51,7 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
             "target", "msgType", "productId");
     }
 
-    @Subscribe("/device/*/online")
+    @Subscribe("/device/*/*/online")
     public Mono<Void> incrementOnline(TopicMessage msg){
         return Mono.fromRunnable(()->{
             String productId = parseProductId(msg);
@@ -62,7 +62,7 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
         });
     }
 
-    @Subscribe("/device/*/offline")
+    @Subscribe("/device/*/*/offline")
     public Mono<Void> incrementOffline(TopicMessage msg){
         return Mono.fromRunnable(()->{
             String productId = parseProductId(msg);

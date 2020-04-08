@@ -35,8 +35,7 @@ public class DeviceMessageConnector
     private FluxSink<TopicMessage> sink = messageProcessor.sink();
 
     //将设备注册中心到配置追加到消息header中,下游订阅者可直接使用.
-    private String[] appendConfigHeader = {"orgId", "productId"};
-
+    private String[] appendConfigHeader = { "orgId", "productId","deviceName"};
     //设备注册中心
     private final DeviceRegistry registry;
 
@@ -105,7 +104,10 @@ public class DeviceMessageConnector
                 .switchIfEmpty(Mono.fromSupplier(() -> Values.of(new HashMap<>())))
                 .flatMap(configs -> {
                     configs.getAllValues().forEach(deviceMessage::addHeader);
-                    String topic = "/device/".concat(deviceId).concat(createDeviceMessageTopic(message));
+                    String productId = deviceMessage.getHeader("productId").map(String::valueOf).orElse("null");
+                    String topic = String.join("",
+                        "/device", "/", productId, "/", deviceId, createDeviceMessageTopic(message)
+                    );
                     if (message instanceof ChildDeviceMessage) { //子设备消息
                         return onMessage(((ChildDeviceMessage) message).getChildDeviceMessage())
                             .thenReturn(topic);

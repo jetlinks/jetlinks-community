@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,14 +29,21 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
     private TimeSeriesService timeSeriesService;
 
     private DeviceMetadata metadata;
+    private String productId;
 
-    public DevicePropertiesMeasurement(MessageGateway messageGateway, DeviceMetadata deviceMetadata, TimeSeriesService timeSeriesService) {
+    public DevicePropertiesMeasurement(String productId,
+                                       MessageGateway messageGateway,
+                                       DeviceMetadata deviceMetadata,
+                                       TimeSeriesService timeSeriesService) {
         super(MeasurementDefinition.of("properties", "属性记录"));
+        this.productId = productId;
         this.messageGateway = messageGateway;
         this.timeSeriesService = timeSeriesService;
         this.metadata = deviceMetadata;
         addDimension(new RealTimeDevicePropertyDimension());
     }
+
+    static AtomicLong num = new AtomicLong();
 
     Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
         return history <= 0 ? Flux.empty() : Flux.fromIterable(metadata.getProperties())
@@ -71,11 +79,11 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
         return messageGateway
-            .subscribe(Stream.of(
-                "/device/" + deviceId + "/message/property/report"
-                , "/device/" + deviceId + "/message/property/*/reply")
-                .map(Subscription::new)
-                .collect(Collectors.toList()), true)
+            .subscribe(Subscription.asList(
+                "/device/" + productId + "/" + deviceId + "/message/property/report",
+                "/device/" + productId + "/" + deviceId + "/message/property/*/reply")
+                , "realtime-device-properties-measurement:" + Math.abs(num.incrementAndGet())
+                , true)
             .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
             .flatMap(msg -> {
                 if (msg instanceof ReportPropertyMessage) {

@@ -27,6 +27,7 @@
         <netty.version>4.1.46.Final</netty.version>
         <elasticsearch.version>6.8.6</elasticsearch.version>
         <reactor.excel.version>1.0-BUILD-SNAPSHOT</reactor.excel.version>
+        <reactor.ql.version>1.0-SNAPSHOT</reactor.ql.version>
     </properties>
 
     <build>
@@ -153,6 +154,12 @@
     <dependencyManagement>
 
         <dependencies>
+            <dependency>
+                <groupId>org.jetlinks</groupId>
+                <artifactId>reactor-ql</artifactId>
+                <version>${reactor.ql.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.hswebframework</groupId>
                 <artifactId>reactor-excel</artifactId>

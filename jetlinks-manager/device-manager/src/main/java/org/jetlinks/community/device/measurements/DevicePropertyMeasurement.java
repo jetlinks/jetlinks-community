@@ -30,8 +30,14 @@ class DevicePropertyMeasurement extends StaticMeasurement {
 
     private TimeSeriesService timeSeriesService;
 
-    public DevicePropertyMeasurement(MessageGateway messageGateway, PropertyMetadata metadata, TimeSeriesService timeSeriesService) {
+    private String productId;
+
+    public DevicePropertyMeasurement(String productId,
+                                     MessageGateway messageGateway,
+                                     PropertyMetadata metadata,
+                                     TimeSeriesService timeSeriesService) {
         super(MetadataMeasurementDefinition.of(metadata));
+        this.productId=productId;
         this.messageGateway = messageGateway;
         this.metadata = metadata;
         this.timeSeriesService = timeSeriesService;
@@ -61,8 +67,8 @@ class DevicePropertyMeasurement extends StaticMeasurement {
     Flux<MeasurementValue> fromRealTime(String deviceId) {
         return messageGateway
             .subscribe(Stream.of(
-                "/device/" + deviceId + "/message/property/report"
-                , "/device/" + deviceId + "/message/property/*/reply")
+                "/device/"+productId+"/" + deviceId + "/message/property/report"
+                , "/device/"+productId+"/" + deviceId + "/message/property/*/reply")
                 .map(Subscription::new)
                 .collect(Collectors.toList()), true)
             .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))

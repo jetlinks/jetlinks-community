@@ -101,7 +101,8 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
             .productId(this.getProductId())
             .build()
             .addConfig(DeviceConfigKey.parentGatewayId, this.getParentId());
-
+        info.addConfig("deviceName", name);
+        info.addConfig("productName", productName);
         if (!CollectionUtils.isEmpty(configuration)) {
             configuration.forEach(info::addConfig);
         }

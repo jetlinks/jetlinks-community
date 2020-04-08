@@ -64,8 +64,7 @@ public class GatewayDeviceController {
         return getGatewayProductList()
             .flatMap(productIdList ->
                 param.toNestQuery(q -> q.in(DeviceInstanceEntity::getProductId, productIdList))
-                    .execute(Mono::just)
-                    .as(instanceService::queryPager)
+                    .execute(instanceService::queryPager)
                     .filter(r -> r.getTotal() > 0)
                     .flatMap(result -> {
                         Map<String, DeviceInstanceEntity> mapping =

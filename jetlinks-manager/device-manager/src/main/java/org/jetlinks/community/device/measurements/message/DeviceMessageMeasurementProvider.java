@@ -21,6 +21,7 @@ import java.time.Duration;
 @Component
 public class DeviceMessageMeasurementProvider extends StaticMeasurementProvider {
 
+
     MeterRegistry registry;
 
     public DeviceMessageMeasurementProvider(MessageGateway messageGateway,
@@ -34,7 +35,7 @@ public class DeviceMessageMeasurementProvider extends StaticMeasurementProvider 
 
     }
 
-    @Subscribe("/device/*/message/**")
+    @Subscribe("/device/*/*/message/**")
     public Mono<Void> incrementMessage(TopicMessage message) {
         return Mono.fromRunnable(() -> {
             registry

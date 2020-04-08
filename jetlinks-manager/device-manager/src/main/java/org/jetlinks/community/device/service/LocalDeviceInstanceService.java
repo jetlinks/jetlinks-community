@@ -368,7 +368,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
         //订阅设备上下线
         FluxUtils.bufferRate(messageGateway
-            .subscribe(Subscription.asList("/device/*/online", "/device/*/offline"), "device-state-synchronizer", false)
+            .subscribe(Subscription.asList("/device/*/*/online", "/device/*/*/offline"), "device-state-synchronizer", false)
             .flatMap(message -> Mono.justOrEmpty(DeviceMessageUtils.convert(message))
                 .map(DeviceMessage::getDeviceId)), 800, 200, Duration.ofSeconds(2))
             .publishOn(Schedulers.parallel())
@@ -431,7 +431,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     }
 
 
-    @Subscribe("/device/*/message/children/*/register")
+    @Subscribe("/device/*/*/message/children/*/register")
     public Mono<Void> autoBindChildrenDevice(ChildDeviceMessage message) {
         String childId = message.getChildDeviceId();
         Message childMessage = message.getChildDeviceMessage();
@@ -451,7 +451,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         return Mono.empty();
     }
 
-    @Subscribe("/device/*/message/children/*/unregister")
+    @Subscribe("/device/*/*/message/children/*/unregister")
     public Mono<Void> autoUnbindChildrenDevice(ChildDeviceMessage message) {
         String childId = message.getChildDeviceId();
         Message childMessage = message.getChildDeviceMessage();

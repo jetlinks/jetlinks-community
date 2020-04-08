@@ -27,8 +27,14 @@ class DeviceEventMeasurement extends StaticMeasurement {
 
     private TimeSeriesService eventTsService;
 
-    public DeviceEventMeasurement(MessageGateway messageGateway, EventMetadata eventMetadata, TimeSeriesService eventTsService) {
+    private String productId;
+
+    public DeviceEventMeasurement(String productId,
+                                  MessageGateway messageGateway,
+                                  EventMetadata eventMetadata,
+                                  TimeSeriesService eventTsService) {
         super(MetadataMeasurementDefinition.of(eventMetadata));
+        this.productId=productId;
         this.messageGateway = messageGateway;
         this.eventMetadata = eventMetadata;
         this.eventTsService = eventTsService;
@@ -39,6 +45,7 @@ class DeviceEventMeasurement extends StaticMeasurement {
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"))
         .add("history", "历史数据量", "查询出历史数据后开始推送实时数据", new IntType().min(0).expand("defaultValue", 10));
 
+
     Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
         return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
             .doPaging(0, history)
@@ -48,9 +55,10 @@ class DeviceEventMeasurement extends StaticMeasurement {
             .sort(MeasurementValue.sort());
     }
 
+
     Flux<MeasurementValue> fromRealTime(String deviceId) {
         return messageGateway
-            .subscribe(Collections.singletonList(new Subscription("/device/" + deviceId + "/message/event/" + eventMetadata.getId())), true)
+            .subscribe(Collections.singletonList(new Subscription("/device/"+productId+"/" + deviceId + "/message/event/" + eventMetadata.getId())), true)
             .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
             .cast(EventMessage.class)
             .map(msg -> SimpleMeasurementValue.of(msg.getData(), msg.getTimestamp()));

@@ -12,7 +12,10 @@
     </parent>
     <artifactId>rule-engine-manager</artifactId>
     <dependencies>
-
+        <dependency>
+            <groupId>org.jetlinks</groupId>
+            <artifactId>reactor-ql</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-authorization-api</artifactId>

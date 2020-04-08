@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 class DeviceEventsMeasurement extends StaticMeasurement {
 
+
     private MessageGateway messageGateway;
 
     private TimeSeriesManager timeSeriesManager;
@@ -62,7 +63,7 @@ class DeviceEventsMeasurement extends StaticMeasurement {
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
         return messageGateway
-            .subscribe(Subscription.asList("/device/" + deviceId + "/message/event/*")
+            .subscribe(Subscription.asList("/device/"+productId+"/" + deviceId + "/message/event/*")
                 , "realtime-device-events-measurement:" + Math.abs(num.incrementAndGet())
                 , true)
             .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))

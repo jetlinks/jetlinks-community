@@ -61,7 +61,7 @@ public class TimeSeriesMessageWriterConnector{
     private Mono<Void> doIndex(DeviceMessage message) {
         Map<String, Object> headers = Optional.ofNullable(message.getHeaders()).orElse(Collections.emptyMap());
 
-        String productId = (String) headers.get("productId");
+        String productId = (String) headers.getOrDefault("productId","null");
 
         DeviceOperationLogEntity operationLog = new DeviceOperationLogEntity();
         operationLog.setId(IDGenerator.MD5.generate());

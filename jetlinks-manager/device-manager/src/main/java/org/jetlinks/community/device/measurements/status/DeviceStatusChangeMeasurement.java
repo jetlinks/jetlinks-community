@@ -142,8 +142,8 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
                     //从消息网关订阅消息
                     return messageGateway
                         .subscribe(Arrays.asList(
-                            new Subscription("/device/" + deviceId + "/online"),
-                            new Subscription("/device/" + deviceId + "/offline")), true)
+                            new Subscription("/device/*/" + deviceId + "/online"),
+                            new Subscription("/device/*/" + deviceId + "/offline")), true)
                         .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
                         .map(msg -> SimpleMeasurementValue.of(msg.getMessageType().name().toLowerCase(), msg.getTimestamp()))
                         ;

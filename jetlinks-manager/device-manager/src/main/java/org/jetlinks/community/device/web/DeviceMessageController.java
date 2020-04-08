@@ -52,7 +52,7 @@ public class DeviceMessageController {
     @GetMapping(value = "/{deviceId}/event", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<Object> getEvent(@PathVariable String deviceId) {
         return messageGateway
-            .subscribe("/device/".concat(deviceId).concat("/message/event/**"))
+            .subscribe("/device/*/".concat(deviceId).concat("/message/event/**"))
             .map(TopicMessage::getMessage)
             .map(msg -> msg.getPayload().toString(StandardCharsets.UTF_8))
             ;
