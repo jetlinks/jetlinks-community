@@ -41,6 +41,7 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
         this.timeSeriesService = timeSeriesService;
         this.metadata = deviceMetadata;
         addDimension(new RealTimeDevicePropertyDimension());
+        addDimension(new HistoryDevicePropertyDimension());
     }
 
     static AtomicLong num = new AtomicLong();
@@ -103,6 +104,60 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
+
+    /**
+     * 历史设备事件
+     */
+    private class HistoryDevicePropertyDimension implements MeasurementDimension {
+
+        @Override
+        public DimensionDefinition getDefinition() {
+            return CommonDimensionDefinition.history;
+        }
+
+        @Override
+        public DataType getValueType() {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("property");
+            property.setName("属性");
+            property.setValueType(new StringType());
+
+            SimplePropertyMetadata value = new SimplePropertyMetadata();
+            value.setId("value");
+            value.setName("值");
+            value.setValueType(new StringType());
+
+            SimplePropertyMetadata formatValue = new SimplePropertyMetadata();
+            value.setId("formatValue");
+            value.setName("格式化值");
+            value.setValueType(new StringType());
+
+            return new ObjectType()
+                .addPropertyMetadata(property)
+                .addPropertyMetadata(value)
+                .addPropertyMetadata(formatValue);
+        }
+
+        @Override
+        public ConfigMetadata getParams() {
+            return configMetadata;
+        }
+
+        @Override
+        public boolean isRealTime() {
+            return false;
+        }
+
+        @Override
+        public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
+            return Mono.justOrEmpty(parameter.getString("deviceId"))
+                .flatMapMany(deviceId -> {
+                    int history = parameter.getInt("history").orElse(1);
+                    //合并历史数据和实时数据
+                    return fromHistory(deviceId, history);
+                });
+        }
+    }
 
     /**
      * 实时设备事件
