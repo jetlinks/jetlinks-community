@@ -78,11 +78,11 @@ public class DefaultElasticSearchService implements ElasticSearchService {
     public <T> Mono<PagerResult<T>> queryPager(String index, QueryParam queryParam, Function<Map<String, Object>, T> mapper) {
         return doSearch(createSearchRequest(queryParam, index))
             .map(response -> translatePageResult(mapper, queryParam, response))
-            .switchIfEmpty(Mono.just(PagerResult.empty()))
             .onErrorReturn(err -> {
                 log.error("query elastic error", err);
                 return true;
-            }, PagerResult.empty());
+            }, PagerResult.empty())
+            .defaultIfEmpty(PagerResult.empty());
     }
 
     @Override
