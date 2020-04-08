@@ -10,6 +10,8 @@ import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 public class MqttClientSession implements DeviceSession {
     @Getter
     private String id;
@@ -18,6 +20,12 @@ public class MqttClientSession implements DeviceSession {
     private DeviceOperator operator;
 
     private MqttClient client;
+
+    private long connectTime = System.currentTimeMillis();
+
+    private long lastPingTime = System.currentTimeMillis();
+
+    private long keepAliveTimeout = -1;
 
     public MqttClientSession(String id,
                              DeviceOperator operator,
@@ -34,12 +42,12 @@ public class MqttClientSession implements DeviceSession {
 
     @Override
     public long lastPingTime() {
-        return 0;
+        return lastPingTime;
     }
 
     @Override
     public long connectTime() {
-        return 0;
+        return connectTime;
     }
 
     @Override
@@ -63,16 +71,29 @@ public class MqttClientSession implements DeviceSession {
 
     @Override
     public void ping() {
-
+        lastPingTime = System.currentTimeMillis();
     }
 
     @Override
     public boolean isAlive() {
-        return client.isAlive();
+        return client.isAlive() &&
+            (keepAliveTimeout <= 0 || System.currentTimeMillis() - lastPingTime < keepAliveTimeout);
     }
 
     @Override
     public void onClose(Runnable call) {
 
+    }
+
+    @Override
+    public void setKeepAliveTimeout(Duration timeout) {
+        this.keepAliveTimeout = timeout.toMillis();
+    }
+
+    @Override
+    public String toString() {
+        return "MqttClientSession{" +
+            "id=" + id + ",device=" + getDeviceId() +
+            '}';
     }
 }
