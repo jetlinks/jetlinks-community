@@ -29,6 +29,7 @@ import org.jetlinks.supports.protocol.management.ClusterProtocolSupportManager;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportManager;
 import org.jetlinks.supports.protocol.management.jar.JarProtocolSupportLoader;
+import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.jetlinks.supports.server.DefaultClientMessageHandler;
 import org.jetlinks.supports.server.DefaultDecodedClientMessageHandler;
 import org.jetlinks.supports.server.DefaultSendToDeviceMessageHandler;
@@ -136,8 +137,9 @@ public class JetLinksConfiguration {
     public DefaultSendToDeviceMessageHandler defaultSendToDeviceMessageHandler(JetLinksProperties properties,
                                                                                DeviceSessionManager sessionManager,
                                                                                DeviceRegistry registry,
-                                                                               MessageHandler messageHandler) {
-        return new DefaultSendToDeviceMessageHandler(properties.getServerId(), sessionManager, messageHandler, registry);
+                                                                               MessageHandler messageHandler,
+                                                                               DecodedClientMessageHandler clientMessageHandler) {
+        return new DefaultSendToDeviceMessageHandler(properties.getServerId(), sessionManager, messageHandler, registry,clientMessageHandler);
     }
 
     @Bean
