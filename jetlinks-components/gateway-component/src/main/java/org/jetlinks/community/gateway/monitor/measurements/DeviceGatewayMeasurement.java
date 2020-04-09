@@ -1,6 +1,7 @@
 package org.jetlinks.community.gateway.monitor.measurements;
 
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.Interval;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
@@ -137,7 +138,7 @@ class DeviceGatewayMeasurement extends StaticMeasurement {
 
             return AggregationQueryParam.of()
                 .agg(property, parameter.get("agg", Aggregation.class).orElse(defaultAgg))
-                .groupBy(parameter.getDuration("time").orElse(Duration.ofHours(1)),
+                .groupBy(parameter.getInterval("time").orElse(Interval.ofHours(1)),
                     "time",
                     parameter.getString("format").orElse("MM-dd:HH"))
                 .filter(query -> query

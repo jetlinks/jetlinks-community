@@ -225,7 +225,7 @@ public class DefaultAggregationService implements AggregationService {
 
     protected BucketAggregationsStructure convertAggGroupTimeStructure(AggregationQueryParam param) {
         BucketAggregationsStructure structure = new BucketAggregationsStructure();
-        structure.setInterval(durationFormat(param.getGroupByTime().getInterval()));
+        structure.setInterval(param.getGroupByTime().toString());
         structure.setType(BucketType.DATE_HISTOGRAM);
         structure.setFormat(param.getGroupByTime().getFormat());
         structure.setName(param.getGroupByTime().getAlias());
@@ -241,11 +241,11 @@ public class DefaultAggregationService implements AggregationService {
 
     private static long calculateStartWithTime(AggregationQueryParam param) {
         long startWithParam = param.getStartWithTime();
-        if (param.getGroupByTime() != null && param.getGroupByTime().getInterval() != null) {
-            long timeInterval = param.getGroupByTime().getInterval().toMillis() * param.getLimit();
-            long tempStartWithParam = param.getEndWithTime() - timeInterval;
-            startWithParam = Math.max(tempStartWithParam, startWithParam);
-        }
+//        if (param.getGroupByTime() != null && param.getGroupByTime().getInterval() != null) {
+//            long timeInterval = param.getGroupByTime().getInterval().toMillis() * param.getLimit();
+//            long tempStartWithParam = param.getEndWithTime() - timeInterval;
+//            startWithParam = Math.max(tempStartWithParam, startWithParam);
+//        }
         return startWithParam;
     }
 

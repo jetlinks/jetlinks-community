@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.measurements.status;
 
+import org.jetlinks.community.Interval;
 import org.jetlinks.core.message.MessageType;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
@@ -90,8 +91,7 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
 
             return AggregationQueryParam.of()
                 .sum("count")
-                .groupBy(parameter.getDuration("time").orElse(Duration.ofHours(1)),
-                    "time",
+                .groupBy(parameter.getInterval("time").orElse(Interval.ofHours(1)),
                     parameter.getString("format").orElse("MM月dd日 HH时"))
                 .filter(query ->
                     query.where("name", parameter.getString("type").orElse("online"))

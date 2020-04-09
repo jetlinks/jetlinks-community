@@ -38,6 +38,17 @@ public interface ValueObject {
             .map(TimeUtils::parse);
     }
 
+    default Optional<Interval> getInterval(String name) {
+        return getString(name)
+            .map(Interval::of);
+    }
+
+    default Interval getInterval(String name,Interval defaultValue) {
+        return getString(name)
+            .map(Interval::of)
+            .orElse(defaultValue);
+    }
+
     default Duration getDuration(String name, Duration defaultValue) {
         return getDuration(name)
             .orElse(defaultValue);

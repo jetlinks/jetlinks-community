@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jetlinks.community.Interval;
 
 import java.time.Duration;
 
@@ -16,7 +17,7 @@ public class TimeGroup {
     private String property = "timestamp";
 
     //时间分组间隔,如: 1d , 30s
-    private Duration interval;
+    private Interval interval;
 
     private String alias;
 
@@ -25,7 +26,7 @@ public class TimeGroup {
      */
     private String format;
 
-    public TimeGroup(Duration interval, String alias, String format) {
+    public TimeGroup(Interval interval, String alias, String format) {
         this.interval = interval;
         this.alias = alias;
         this.format = format;

@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.measurements.status;
 
+import org.jetlinks.community.Interval;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
@@ -83,7 +84,7 @@ class DeviceStatusRecordMeasurement
                 )
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-30).atZone(ZoneId.systemDefault()).toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))
-                .groupBy(parameter.getDuration("time").orElse(Duration.ofDays(1)),
+                .groupBy(parameter.getInterval("time").orElse(Interval.ofDays(1)),
                     parameter.getString("format").orElse("yyyy年MM月dd日"))
                 .limit(parameter.getInt("limit").orElse(10))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)

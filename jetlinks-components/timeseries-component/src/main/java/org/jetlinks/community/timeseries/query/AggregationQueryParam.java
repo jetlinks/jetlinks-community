@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.core.param.QueryParam;
+import org.jetlinks.community.Interval;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -115,11 +116,11 @@ public class AggregationQueryParam {
         return agg(property, Aggregation.MIN);
     }
 
-    public AggregationQueryParam groupBy(Duration time, String alias, String format) {
+    public AggregationQueryParam groupBy(Interval time, String alias, String format) {
         return groupBy(new TimeGroup(time, alias, format));
     }
 
-    public AggregationQueryParam groupBy(Duration time, String format) {
+    public AggregationQueryParam groupBy(Interval time, String format) {
         return groupBy(time, "time", format);
     }
 

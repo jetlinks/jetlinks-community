@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.measurements.message;
 
+import org.jetlinks.community.Interval;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
@@ -112,7 +113,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
             return AggregationQueryParam.of()
                 .sum("count")
-                .groupBy(parameter.getDuration("time", Duration.ofHours(1)),
+                .groupBy(parameter.getInterval("time", Interval.ofHours(1)),
                     parameter.getString("format", "MM月dd日 HH时"))
                 .filter(query ->
                     query.where("name", "message-count")
