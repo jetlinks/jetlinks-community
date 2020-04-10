@@ -33,6 +33,11 @@ easyorm:
   default-schema: public # 数据库默认的schema
   dialect: postgres #数据库方言
 elasticsearch:
+  embedded:
+    enabled: true # 为true时使用内嵌的elasticsearch,不建议在生产环境中使用
+    data-path: ./data/elasticsearch
+    port: 9200
+    host: 0.0.0.0
   client:
     host: localhost
     port: 9200
@@ -100,6 +105,7 @@ logging:
     org.jetlinks.rule.engine: warn
     org.jetlinks.gateway: debug
     org.springframework: warn
+    org.elasticsearch: error
 vertx:
   max-event-loop-execute-time-unit: seconds
   max-event-loop-execute-time: 30
