@@ -35,13 +35,13 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
     private final MessageGateway messageGateway;
 
     @Override
-    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context, org.jetlinks.community.rule.engine.device.DeviceAlarmRuleNode.Config config) {
+    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context, DeviceAlarmRuleNode.Config config) {
 
         return Mono::just;
     }
 
     @Override
-    protected void onStarted(ExecutionContext context, org.jetlinks.community.rule.engine.device.DeviceAlarmRuleNode.Config config) {
+    protected void onStarted(ExecutionContext context, DeviceAlarmRuleNode.Config config) {
         context.onStop(
             config.doSubscribe(messageGateway)
                 .flatMap(result -> {
@@ -65,14 +65,14 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
     @Setter
     public static class Config implements RuleNodeConfig {
         static List<String> default_columns = Arrays.asList(
-            "timestamp", "deviceId"
+            "timestamp", "deviceId", "this.header.deviceName deviceName"
         );
 
         private DeviceAlarmRule rule;
 
         @Override
         public void validate() {
-            if (CollectionUtils.isEmpty(rule.getConditions())) {
+            if (CollectionUtils.isEmpty(rule.getTriggers())) {
                 throw new IllegalArgumentException("预警条件不能为空");
             }
         }
@@ -82,12 +82,16 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
             List<String> wheres = new ArrayList<>();
             columns.addAll(rule.getPlainColumns());
 
-            for (DeviceAlarmRule.Condition condition : rule.getConditions()) {
-                wheres.add(condition.createExpression(rule.getType()));
+            for (DeviceAlarmRule.Trigger trigger : rule.getTriggers()) {
+                trigger.createExpression()
+                    .ifPresent(expr -> wheres.add("(" + expr + ")"));
             }
 
-            String sql = "select " + String.join(",", columns) +
-                " from msg where " + String.join(" or ", wheres);
+            String sql = "select " + String.join(",", columns) + " from msg ";
+
+            if (!wheres.isEmpty()) {
+                sql = "where " + String.join(" or ", wheres);
+            }
 
             log.debug("create device alarm sql : {}", sql);
             return ReactorQL.builder().sql(sql).build();
@@ -98,10 +102,10 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
 
             List<Object> binds = new ArrayList<>();
 
-            for (DeviceAlarmRule.Condition condition : rule.getConditions()) {
-                String topic = rule.getType().getTopic(rule.getProductId(), rule.getDeviceId(), condition.getModelId());
+            for (DeviceAlarmRule.Trigger trigger : rule.getTriggers()) {
+                String topic = trigger.getType().getTopic(rule.getProductId(), rule.getDeviceId(), trigger.getModelId());
                 topics.add(topic);
-                binds.add(condition.convertValue());
+                binds.add(trigger.getFilterValues());
             }
             List<Subscription> subscriptions = topics.stream().map(Subscription::new).collect(Collectors.toList());
 
@@ -147,15 +151,15 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
                         map.putIfAbsent("productName", map.get("productId"));
                     }
                     if (log.isDebugEnabled()) {
-                        log.debug("发生设备预警:{}", map);
+                        log.debug("发生设备告警:{}", map);
                     }
-                    // 推送警告到消息网关中
+                    // 推送告警信息到消息网关中
                     // /rule-engine/device/alarm/{productId}/{deviceId}/{ruleId}
                     return gateway
                         .publish(String.format(
                             "/rule-engine/device/alarm/%s/%s/%s",
                             rule.getProductId(), map.get("deviceId"), rule.getId()
-                        ), map)
+                        ), map, true)
                         .then(Mono.just(map));
                 });
         }

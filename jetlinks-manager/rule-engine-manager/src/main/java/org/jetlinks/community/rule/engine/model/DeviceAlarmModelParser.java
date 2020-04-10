@@ -43,20 +43,20 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
 
         //处理定时触发
         {
-            List<DeviceAlarmRule.Condition> timerConditions = alarmRule.getConditions().stream()
-                .filter(condition -> condition.getTrigger() == DeviceAlarmRule.ConditionType.timer)
+            List<DeviceAlarmRule.Trigger> timerTriggers = alarmRule.getTriggers().stream()
+                .filter(trigger -> trigger.getTrigger() == DeviceAlarmRule.TriggerType.timer)
                 .collect(Collectors.toList());
             int index = 0;
-            for (DeviceAlarmRule.Condition timerCondition : timerConditions) {
-                DeviceMessage msg = alarmRule.getType().createMessage(timerCondition).orElse(null);
+            for (DeviceAlarmRule.Trigger timerTrigger : timerTriggers) {
+                DeviceMessage msg = timerTrigger.getType().createMessage(timerTrigger).orElse(null);
                 if (msg == null) {
-                    throw new UnsupportedOperationException("不支持定时条件类型:" + alarmRule.getType());
+                    throw new UnsupportedOperationException("不支持定时条件类型:" + timerTrigger.getType());
                 }
                 RuleNodeModel timer = new RuleNodeModel();
                 timer.setId("timer:" + (++index));
                 timer.setName("定时发送设备消息");
                 timer.setExecutor("timer");
-                timer.setConfiguration(Collections.singletonMap("cron", timerCondition.getCron()));
+                timer.setConfiguration(Collections.singletonMap("cron", timerTrigger.getCron()));
 
                 DeviceMessageSendNode.Config senderConfig = new DeviceMessageSendNode.Config();
                 senderConfig.setAsync(true);
@@ -88,9 +88,9 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
         conditionNode.setExecutor("device_alarm");
         conditionNode.setConfiguration(Collections.singletonMap("rule", rule.getAlarmRule()));
         model.getNodes().add(conditionNode);
-        if (CollectionUtils.isNotEmpty(rule.getAlarmRule().getOperations())) {
+        if (CollectionUtils.isNotEmpty(rule.getAlarmRule().getActions())) {
             int index = 0;
-            for (DeviceAlarmRule.Operation operation : rule.getAlarmRule().getOperations()) {
+            for (DeviceAlarmRule.Action operation : rule.getAlarmRule().getActions()) {
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("device_alarm_action:" + index);
                 action.setName("执行动作:" + index);

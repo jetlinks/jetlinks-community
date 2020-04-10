@@ -10,6 +10,7 @@ import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.rule.engine.api.executor.RuleNodeConfiguration;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.jetlinks.rule.engine.executor.ExecutableRuleNodeFactoryStrategy;
+import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * 设备预警规则
+ * 设备告警规则
  *
  * @author zhouhao
  * @since 1.1
@@ -27,6 +28,7 @@ import java.util.stream.Stream;
 @Getter
 @Setter
 public class DeviceAlarmRule implements Serializable {
+    private static final long serialVersionUID = -1L;
 
     /**
      * 规则ID
@@ -59,9 +61,9 @@ public class DeviceAlarmRule implements Serializable {
     private String deviceName;
 
     /**
-     * 类型类型,属性或者事件.
+     * 触发条件,不能为空
      */
-    private MessageType type;
+    private List<Trigger> triggers;
 
     /**
      * 要单独获取哪些字段信息
@@ -69,40 +71,35 @@ public class DeviceAlarmRule implements Serializable {
     private List<Property> properties;
 
     /**
-     * 执行条件
-     */
-    private List<Condition> conditions;
-
-    /**
      * 警告发生后的操作,指向其他规则节点,如发送消息通知.
      */
-    private List<Operation> operations;
+    private List<Action> actions;
 
 
     public void validate() {
-        if (org.apache.commons.collections.CollectionUtils.isEmpty(getConditions())) {
-            throw new IllegalArgumentException("conditions不能为空");
+        if (org.apache.commons.collections.CollectionUtils.isEmpty(getTriggers())) {
+            throw new IllegalArgumentException("触发条件不能为空");
         }
-
+        getTriggers().forEach(Trigger::validate);
     }
 
     public List<String> getPlainColumns() {
-        Stream<String> conditionColumns = conditions
+        Stream<String> conditionColumns = triggers
             .stream()
-            .map(condition -> condition.getColumn(type));
+            .flatMap(trigger -> trigger.getColumns().stream());
 
         if (CollectionUtils.isEmpty(properties)) {
             return conditionColumns.collect(Collectors.toList());
         }
         return Stream.concat(conditionColumns, properties
             .stream()
-            .map(property -> type.getPropertyPrefix() + property.toString()))
+            .map(Property::toString))
             .collect(Collectors.toList());
     }
 
     @Getter
     @Setter
-    public static class Operation implements Serializable {
+    public static class Action implements Serializable {
 
         /**
          * 执行器
@@ -146,12 +143,13 @@ public class DeviceAlarmRule implements Serializable {
             }
 
             @Override
-            public Optional<DeviceMessage> createMessage(Condition condition) {
+            public Optional<DeviceMessage> createMessage(Trigger trigger) {
                 ReadPropertyMessage readPropertyMessage = new ReadPropertyMessage();
+                readPropertyMessage.setProperties(new ArrayList<>(
+                    StringUtils.hasText(trigger.getModelId())
+                        ? Collections.singletonList(trigger.getModelId())
+                        : Collections.emptyList()));
 
-                String property = StringUtils.hasText(condition.getModelId()) ? condition.getModelId() : condition.getKey();
-
-                readPropertyMessage.setProperties(new ArrayList<>(Collections.singletonList(property)));
                 return Optional.of(readPropertyMessage);
             }
         },
@@ -170,10 +168,10 @@ public class DeviceAlarmRule implements Serializable {
             }
 
             @Override
-            public Optional<DeviceMessage> createMessage(Condition condition) {
+            public Optional<DeviceMessage> createMessage(Trigger trigger) {
                 FunctionInvokeMessage message = new FunctionInvokeMessage();
-                message.setFunctionId(condition.getModelId());
-                message.setInputs(condition.getParameters());
+                message.setFunctionId(trigger.getModelId());
+                message.setInputs(trigger.getParameters());
                 message.setTimestamp(System.currentTimeMillis());
                 return Optional.of(message);
             }
@@ -185,20 +183,17 @@ public class DeviceAlarmRule implements Serializable {
 
         public abstract String getTopic(String productId, String deviceId, String key);
 
-        public Optional<DeviceMessage> createMessage(Condition condition) {
+        public Optional<DeviceMessage> createMessage(Trigger trigger) {
             return Optional.empty();
         }
     }
 
     @Getter
     @AllArgsConstructor
-    public enum ConditionType implements Serializable {
+    public enum TriggerType implements Serializable {
         //设备消息
-        message(Arrays.asList(
-            MessageType.online,
-            MessageType.offline,
-            MessageType.properties,
-            MessageType.event
+        device(Arrays.asList(
+            MessageType.values()
         )),
         //定时,定时获取只支持获取设备属性和调用功能.
         timer(Arrays.asList(
@@ -212,13 +207,16 @@ public class DeviceAlarmRule implements Serializable {
 
     @Getter
     @Setter
-    public static class Condition implements Serializable {
+    public static class Trigger implements Serializable {
 
-        //条件类型,定时
-        private ConditionType trigger = ConditionType.message;
+        //触发方式,定时,设备
+        private TriggerType trigger = TriggerType.device;
 
         //trigger为定时任务时的cron表达式
         private String cron;
+
+        //类型,属性或者事件.
+        private MessageType type;
 
         //trigger为定时任务并且消息类型为功能调用时
         private List<FunctionParameter> parameters;
@@ -226,6 +224,63 @@ public class DeviceAlarmRule implements Serializable {
         //物模型属性或者事件的标识 如: fire_alarm
         private String modelId;
 
+        //过滤条件
+        private List<ConditionFilter> filters;
+
+        public Set<String> getColumns() {
+            return filters == null
+                ? Collections.emptySet()
+                : filters.stream()
+                .map(filter -> filter.getColumn(type))
+                .collect(Collectors.toSet());
+        }
+
+        public List<Object> getFilterValues() {
+            return filters == null ? Collections.emptyList() :
+                filters.stream()
+                    .map(ConditionFilter::convertValue)
+                    .collect(Collectors.toList());
+        }
+
+        public Optional<String> createExpression() {
+            if (CollectionUtils.isEmpty(filters)) {
+                return Optional.empty();
+            }
+            return Optional.of(
+                filters.stream()
+                    .map(filter -> filter.createExpression(type))
+                    .collect(Collectors.joining(" and "))
+            );
+        }
+
+        public void validate() {
+            if (type == null) {
+                throw new IllegalArgumentException("类型不能为空");
+            }
+
+            if (type != MessageType.online && type != MessageType.offline && StringUtils.isEmpty(modelId)) {
+                throw new IllegalArgumentException("属性/事件/功能ID不能为空");
+            }
+
+            if (trigger == TriggerType.timer) {
+                if (StringUtils.isEmpty(cron)) {
+                    throw new IllegalArgumentException("cron表达式不能为空");
+                }
+                try {
+                    new CronSequenceGenerator(cron);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("cron表达式格式错误", e);
+                }
+            }
+            if (!CollectionUtils.isEmpty(filters)) {
+                filters.forEach(ConditionFilter::validate);
+            }
+        }
+    }
+
+    @Getter
+    @Setter
+    public static class ConditionFilter implements Serializable {
         //过滤条件key 如: temperature
         private String key;
 
@@ -240,11 +295,24 @@ public class DeviceAlarmRule implements Serializable {
         }
 
         public String createExpression(MessageType type) {
+            //函数和this忽略前缀
+            if (key.contains("(") || key.startsWith("this")) {
+                return key;
+            }
             return type.getPropertyPrefix() + (key.trim()) + " " + operator.symbol + " ? ";
         }
 
-        public Object convertValue(){
+        public Object convertValue() {
             return operator.convert(value);
+        }
+
+        public void validate() {
+            if (StringUtils.isEmpty(key)) {
+                throw new IllegalArgumentException("条件key不能为空");
+            }
+            if (StringUtils.isEmpty(value)) {
+                throw new IllegalArgumentException("条件值不能为空");
+            }
         }
     }
 
