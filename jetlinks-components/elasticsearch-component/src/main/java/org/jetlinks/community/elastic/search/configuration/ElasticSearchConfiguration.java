@@ -26,17 +26,24 @@ import org.springframework.context.annotation.Configuration;
     ElasticSearchIndexProperties.class})
 public class ElasticSearchConfiguration {
 
-    @Autowired
-    private ElasticSearchProperties properties;
+    private final ElasticSearchProperties properties;
 
-    @Autowired
-    private EmbeddedElasticSearchProperties embeddedElasticSearchProperties;
+    private final EmbeddedElasticSearchProperties embeddedProperties;
+
+    public ElasticSearchConfiguration(ElasticSearchProperties properties, EmbeddedElasticSearchProperties embeddedProperties) {
+        this.properties = properties;
+        this.embeddedProperties = embeddedProperties;
+    }
 
     @Bean
     @SneakyThrows
     public ElasticRestClient elasticRestClient() {
-        if (embeddedElasticSearchProperties.isEnabled()) {
-            new EmbeddedElasticSearch(embeddedElasticSearchProperties)
+        if (embeddedProperties.isEnabled()) {
+            log.debug("starting embedded elasticsearch on {}:{}",
+                embeddedProperties.getHost(),
+                embeddedProperties.getPort());
+
+            new EmbeddedElasticSearch(embeddedProperties)
                 .start();
         }
         RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(properties.createHosts())

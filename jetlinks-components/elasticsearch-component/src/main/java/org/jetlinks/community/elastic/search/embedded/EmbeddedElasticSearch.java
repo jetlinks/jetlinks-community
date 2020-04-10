@@ -1,6 +1,7 @@
 package org.jetlinks.community.elastic.search.embedded;
 
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
@@ -8,6 +9,7 @@ import org.elasticsearch.transport.Netty4Plugin;
 
 import java.util.Collections;
 
+@Slf4j
 public class EmbeddedElasticSearch extends Node {
 
     static {
@@ -31,16 +33,6 @@ public class EmbeddedElasticSearch extends Node {
     @Override
     protected void registerDerivedNodeNameWithLogger(String nodeName) {
 
-    }
-
-    @SneakyThrows
-    public void doStart() {
-        start();
-    }
-
-    @SneakyThrows
-    public void shutdown() {
-        close();
     }
 
 }
