@@ -3,6 +3,10 @@ package org.jetlinks.community.rule.engine.device;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.function.FunctionInvokeMessage;
+import org.jetlinks.core.message.function.FunctionParameter;
+import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.rule.engine.api.executor.RuleNodeConfiguration;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.jetlinks.rule.engine.executor.ExecutableRuleNodeFactoryStrategy;
@@ -10,8 +14,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -76,6 +79,13 @@ public class DeviceAlarmRule implements Serializable {
     private List<Operation> operations;
 
 
+    public void validate() {
+        if (org.apache.commons.collections.CollectionUtils.isEmpty(getConditions())) {
+            throw new IllegalArgumentException("conditions不能为空");
+        }
+
+    }
+
     public List<String> getPlainColumns() {
         Stream<String> conditionColumns = conditions
             .stream()
@@ -134,6 +144,16 @@ public class DeviceAlarmRule implements Serializable {
             public String getTopic(String productId, String deviceId, String key) {
                 return String.format(getTopicTemplate(), productId, StringUtils.isEmpty(deviceId) ? "*" : deviceId);
             }
+
+            @Override
+            public Optional<DeviceMessage> createMessage(Condition condition) {
+                ReadPropertyMessage readPropertyMessage = new ReadPropertyMessage();
+
+                String property = StringUtils.hasText(condition.getModelId()) ? condition.getModelId() : condition.getKey();
+
+                readPropertyMessage.setProperties(new ArrayList<>(Collections.singletonList(property)));
+                return Optional.of(readPropertyMessage);
+            }
         },
         //事件
         event("/device/%s/%s/message/event/%s", "this.data.") {
@@ -141,23 +161,72 @@ public class DeviceAlarmRule implements Serializable {
             public String getTopic(String productId, String deviceId, String property) {
                 return String.format(getTopicTemplate(), productId, StringUtils.isEmpty(deviceId) ? "*" : deviceId, property);
             }
+        },
+        //功能调用回复
+        function("/device/%s/%s/message/function/reply", "this.output") {
+            @Override
+            public String getTopic(String productId, String deviceId, String property) {
+                return String.format(getTopicTemplate(), productId, StringUtils.isEmpty(deviceId) ? "*" : deviceId);
+            }
+
+            @Override
+            public Optional<DeviceMessage> createMessage(Condition condition) {
+                FunctionInvokeMessage message = new FunctionInvokeMessage();
+                message.setFunctionId(condition.getModelId());
+                message.setInputs(condition.getParameters());
+                message.setTimestamp(System.currentTimeMillis());
+                return Optional.of(message);
+            }
         };
 
-        private String topicTemplate;
+        private final String topicTemplate;
 
-        private String propertyPrefix;
+        private final String propertyPrefix;
 
         public abstract String getTopic(String productId, String deviceId, String key);
+
+        public Optional<DeviceMessage> createMessage(Condition condition) {
+            return Optional.empty();
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public enum ConditionType implements Serializable {
+        //设备消息
+        message(Arrays.asList(
+            MessageType.online,
+            MessageType.offline,
+            MessageType.properties,
+            MessageType.event
+        )),
+        //定时,定时获取只支持获取设备属性和调用功能.
+        timer(Arrays.asList(
+            MessageType.properties,
+            MessageType.function
+        ));
+
+        final List<MessageType> supportMessageTypes;
+
     }
 
     @Getter
     @Setter
     public static class Condition implements Serializable {
 
+        //条件类型,定时
+        private ConditionType trigger = ConditionType.message;
+
+        //trigger为定时任务时的cron表达式
+        private String cron;
+
+        //trigger为定时任务并且消息类型为功能调用时
+        private List<FunctionParameter> parameters;
+
         //物模型属性或者事件的标识 如: fire_alarm
         private String modelId;
 
-        //过滤条件key 如: temperature.value = ?
+        //过滤条件key 如: temperature
         private String key;
 
         //过滤条件值
@@ -173,6 +242,10 @@ public class DeviceAlarmRule implements Serializable {
         public String createExpression(MessageType type) {
             return type.getPropertyPrefix() + (key.trim()) + " " + operator.symbol + " ? ";
         }
+
+        public Object convertValue(){
+            return operator.convert(value);
+        }
     }
 
 
@@ -186,8 +259,11 @@ public class DeviceAlarmRule implements Serializable {
         gte(">="),
         lte("<="),
         like("like");
-        private String symbol;
+        private final String symbol;
 
+        public Object convert(String value) {
+            return value;
+        }
     }
 
     @Getter
@@ -202,4 +278,5 @@ public class DeviceAlarmRule implements Serializable {
             return property.concat(" ").concat(StringUtils.hasText(alias) ? alias : property);
         }
     }
+
 }

@@ -32,16 +32,16 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy<DeviceAlarmRuleNode.Config> {
 
-    private MessageGateway messageGateway;
+    private final MessageGateway messageGateway;
 
     @Override
-    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context, DeviceAlarmRuleNode.Config config) {
+    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context, org.jetlinks.community.rule.engine.device.DeviceAlarmRuleNode.Config config) {
 
         return Mono::just;
     }
 
     @Override
-    protected void onStarted(ExecutionContext context, DeviceAlarmRuleNode.Config config) {
+    protected void onStarted(ExecutionContext context, org.jetlinks.community.rule.engine.device.DeviceAlarmRuleNode.Config config) {
         context.onStop(
             config.doSubscribe(messageGateway)
                 .flatMap(result -> {
@@ -101,7 +101,7 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
             for (DeviceAlarmRule.Condition condition : rule.getConditions()) {
                 String topic = rule.getType().getTopic(rule.getProductId(), rule.getDeviceId(), condition.getModelId());
                 topics.add(topic);
-                binds.add(condition.getValue());
+                binds.add(condition.convertValue());
             }
             List<Subscription> subscriptions = topics.stream().map(Subscription::new).collect(Collectors.toList());
 
