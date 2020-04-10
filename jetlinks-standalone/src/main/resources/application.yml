@@ -34,7 +34,7 @@ easyorm:
   dialect: postgres #数据库方言
 elasticsearch:
   embedded:
-    enabled: true # 为true时使用内嵌的elasticsearch,不建议在生产环境中使用
+    enabled: false # 为true时使用内嵌的elasticsearch,不建议在生产环境中使用
     data-path: ./data/elasticsearch
     port: 9200
     host: 0.0.0.0
