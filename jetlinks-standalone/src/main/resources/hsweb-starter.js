@@ -218,6 +218,7 @@ var users = [{
     "username" : "admin",
     "password": "104ffe90cd840e08f7a79c7fddbe1699",
     "salt": "LmKOhcoB",
+    "status":1,
     "name": "超级管理员"
 }];
 //版本更新信息
