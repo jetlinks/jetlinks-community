@@ -33,7 +33,7 @@ public class DeviceTagEntity extends GenericEntity<String> {
     @Column
     private String name;
 
-    @Column(length = 256, nullable = false)
+    @Column(length = 128, nullable = false)
     @NotBlank(message = "[value]不能为空")
     private String value;
 
