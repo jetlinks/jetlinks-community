@@ -4,6 +4,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.hswebframework.web.authorization.token.UserTokenManager;
+import org.hswebframework.web.authorization.token.redis.RedisUserTokenManager;
 import org.jetlinks.community.device.message.writer.TimeSeriesMessageWriterConnector;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.ProtocolSupports;
@@ -43,6 +45,7 @@ import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.scheduler.Schedulers;
@@ -207,6 +210,12 @@ public class JetLinksConfiguration {
         ServiceLoaderProtocolSupports supports = new ServiceLoaderProtocolSupports();
         supports.setServiceContext(serviceContext);
         return supports;
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "hsweb.user-token")
+    public UserTokenManager userTokenManager(ReactiveRedisOperations<Object,Object> template) {
+        return new RedisUserTokenManager(template);
     }
 
     @Bean
