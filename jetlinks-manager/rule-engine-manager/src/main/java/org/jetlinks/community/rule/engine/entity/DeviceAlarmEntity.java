@@ -8,6 +8,7 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
+import org.hswebframework.web.crud.generator.Generators;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
 import org.jetlinks.community.rule.engine.model.DeviceAlarmModelParser;
@@ -17,6 +18,7 @@ import javax.persistence.Index;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import java.sql.JDBCType;
+import java.util.Date;
 
 @Getter
 @Setter
@@ -54,6 +56,10 @@ public class DeviceAlarmEntity extends GenericEntity<String> {
     @ColumnType(javaType = String.class)
     @DefaultValue("stopped")
     private AlarmState state;
+
+    @Column
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    private Date createTime;
 
     public RuleInstanceEntity toRuleInstance() {
         RuleInstanceEntity instanceEntity = new RuleInstanceEntity();
