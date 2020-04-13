@@ -19,17 +19,16 @@ import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class DevicePropertiesMeasurement extends StaticMeasurement {
 
-    private MessageGateway messageGateway;
+    private final MessageGateway messageGateway;
 
-    private TimeSeriesService timeSeriesService;
+    private final TimeSeriesService timeSeriesService;
 
-    private DeviceMetadata metadata;
-    private String productId;
+    private final DeviceMetadata metadata;
+
+    private final String productId;
 
     public DevicePropertiesMeasurement(String productId,
                                        MessageGateway messageGateway,
@@ -42,6 +41,7 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
         this.metadata = deviceMetadata;
         addDimension(new RealTimeDevicePropertyDimension());
         addDimension(new HistoryDevicePropertyDimension());
+
     }
 
     static AtomicLong num = new AtomicLong();
@@ -103,7 +103,7 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
     }
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
-        .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
+        .add("deviceId", "设备",  "指定设备", new StringType().expand("selector", "device-selector"));
 
     /**
      * 历史设备事件
@@ -117,25 +117,10 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
         @Override
         public DataType getValueType() {
-            SimplePropertyMetadata property = new SimplePropertyMetadata();
-            property.setId("property");
-            property.setName("属性");
-            property.setValueType(new StringType());
-
-            SimplePropertyMetadata value = new SimplePropertyMetadata();
-            value.setId("value");
-            value.setName("值");
-            value.setValueType(new StringType());
-
-            SimplePropertyMetadata formatValue = new SimplePropertyMetadata();
-            value.setId("formatValue");
-            value.setName("格式化值");
-            value.setValueType(new StringType());
-
             return new ObjectType()
-                .addPropertyMetadata(property)
-                .addPropertyMetadata(value)
-                .addPropertyMetadata(formatValue);
+                .addProperty("property","属性", StringType.GLOBAL)
+                .addProperty("value","值", StringType.GLOBAL)
+                .addProperty("formatValue","格式化值", StringType.GLOBAL);
         }
 
         @Override
@@ -171,25 +156,10 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
         @Override
         public DataType getValueType() {
-            SimplePropertyMetadata property = new SimplePropertyMetadata();
-            property.setId("property");
-            property.setName("属性");
-            property.setValueType(new StringType());
-
-            SimplePropertyMetadata value = new SimplePropertyMetadata();
-            value.setId("value");
-            value.setName("值");
-            value.setValueType(new StringType());
-
-            SimplePropertyMetadata formatValue = new SimplePropertyMetadata();
-            value.setId("formatValue");
-            value.setName("格式化值");
-            value.setValueType(new StringType());
-
             return new ObjectType()
-                .addPropertyMetadata(property)
-                .addPropertyMetadata(value)
-                .addPropertyMetadata(formatValue);
+                .addProperty("property","属性", StringType.GLOBAL)
+                .addProperty("value","值", StringType.GLOBAL)
+                .addProperty("formatValue","格式化值", StringType.GLOBAL);
         }
 
         @Override
