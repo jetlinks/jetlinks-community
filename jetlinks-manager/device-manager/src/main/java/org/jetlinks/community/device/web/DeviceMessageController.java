@@ -129,11 +129,13 @@ public class DeviceMessageController {
         return registry
             .getDevice(deviceId)
             .switchIfEmpty(ErrorUtils.notFound("设备不存在"))
-            .map(operator -> operator
+            .flatMap(operator -> operator
                 .messageSender()
                 .invokeFunction(functionId)
                 .messageId(IDGenerator.SNOW_FLAKE_STRING.generate())
-                .setParameter(properties))
+                .setParameter(properties)
+                .validate()
+            )
             .flatMapMany(FunctionInvokeMessageSender::send)
             .map(mapReply(FunctionInvokeMessageReply::getOutput));
     }
