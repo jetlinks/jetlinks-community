@@ -22,7 +22,12 @@ public class DeviceAlarmService extends GenericReactiveCrudService<DeviceAlarmEn
     }
 
     public Mono<Void> stop(String id) {
-        return instanceService.stop(id);
+        return instanceService.stop(id)
+            .then(createUpdate()
+                .set(DeviceAlarmEntity::getState,AlarmState.stopped)
+                .where(DeviceAlarmEntity::getId,id)
+                .execute())
+            .then();
     }
 
     private Mono<Void> doStart(DeviceAlarmEntity entity) {

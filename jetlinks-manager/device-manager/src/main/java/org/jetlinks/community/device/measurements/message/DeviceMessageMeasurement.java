@@ -1,16 +1,17 @@
 package org.jetlinks.community.device.measurements.message;
 
-import org.jetlinks.community.Interval;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.Interval;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.gateway.MessageGateway;
+import org.jetlinks.community.gateway.Subscription;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import reactor.core.publisher.Flux;
@@ -18,13 +19,14 @@ import reactor.core.publisher.Flux;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.Date;
 
 class DeviceMessageMeasurement extends StaticMeasurement {
 
-    private MessageGateway messageGateway;
+    private final MessageGateway messageGateway;
 
-    private TimeSeriesManager timeSeriesManager;
+    private final TimeSeriesManager timeSeriesManager;
 
     static MeasurementDefinition definition = MeasurementDefinition.of("quantity", "设备消息量");
 
@@ -36,8 +38,6 @@ class DeviceMessageMeasurement extends StaticMeasurement {
         addDimension(new AggMessageDimension());
 
     }
-
-    static DataType valueType = new IntType();
 
     static ConfigMetadata realTimeConfigMetadata = new DefaultConfigMetadata()
         .add("interval", "数据统计周期", "例如: 1s,10s", new StringType());
@@ -51,7 +51,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
         @Override
         public DataType getValueType() {
-            return valueType;
+            return IntType.GLOBAL;
         }
 
         @Override
@@ -68,7 +68,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
             //通过订阅消息来统计实时数据量
             return messageGateway
-                .subscribe("/device/**")
+                .subscribe(Collections.singleton(new Subscription("/device/**")),true)
                 .window(parameter.getDuration("interval").orElse(Duration.ofSeconds(1)))
                 .flatMap(Flux::count)
                 .map(total -> SimpleMeasurementValue.of(total, System.currentTimeMillis()));
@@ -95,7 +95,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
         @Override
         public DataType getValueType() {
-            return valueType;
+            return IntType.GLOBAL;
         }
 
         @Override
@@ -113,16 +113,17 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
             return AggregationQueryParam.of()
                 .sum("count")
-                .groupBy(parameter.getInterval("time", Interval.ofHours(1)),
-                    parameter.getString("format", "MM月dd日 HH时"))
+                .groupBy(
+                    parameter.getInterval("time").orElse(Interval.ofHours(1)),
+                    parameter.getString("format").orElse("MM月dd日 HH时"))
                 .filter(query ->
                     query.where("name", "message-count")
-                        .is("productId", parameter.getString("productId", null))
-                        .is("msgType", parameter.getString("msgType", null))
+                        .is("productId", parameter.getString("productId").orElse(null))
+                        .is("msgType", parameter.getString("msgType").orElse(null))
                 )
-                .limit(parameter.getInt("limit", 1))
+                .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter.getDate("from").orElseGet(() -> Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
-                .to(parameter.getDate("to").orElseGet(Date::new))
+                .to(parameter.getDate("to").orElse(new Date()))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
                 .index((index, data) -> SimpleMeasurementValue.of(
                     data.getInt("count").orElse(0),
@@ -131,6 +132,5 @@ class DeviceMessageMeasurement extends StaticMeasurement {
                 .sort();
         }
     }
-
 
 }
