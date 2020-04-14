@@ -2,6 +2,7 @@ package org.jetlinks.community.standalone.configuration;
 
 import org.jetlinks.community.standalone.configuration.fst.FstSerializationRedisSerializer;
 import org.nustaq.serialization.FSTConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
@@ -12,6 +13,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
+@ConditionalOnProperty(prefix = "spring.redis",name = "serializer",havingValue = "fst")
 public class JetLinksRedisConfiguration {
 
     @Bean
