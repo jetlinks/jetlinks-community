@@ -102,50 +102,6 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     }
 
     /**
-     * 获取设备所有信息
-     *
-     * @param id 设备ID
-     * @return 设备详情信息
-     */
-    @Deprecated
-    public Mono<DeviceAllInfoResponse> getDeviceAllInfo(String id) {
-
-        return findById(id)//设备信息
-            .zipWhen(instance -> deviceProductService.findById(instance.getProductId()), DeviceInfo::of) //产品型号信息
-            .switchIfEmpty(Mono.error(NotFoundException::new))
-            .zipWhen(deviceInfo -> getDeviceRunRealInfo(id), DeviceAllInfoResponse::of) //设备运行状态
-            .zipWhen(info -> getDeviceLatestProperties(id).collectList(), DeviceAllInfoResponse::ofProperties) //设备属性
-            .zipWhen(info -> {
-                    DeviceMetadata deviceMetadata = new JetLinksDeviceMetadata(JSON.parseObject(info.getDeviceInfo().getDeriveMetadata()));
-                    return getEventCounts(deviceMetadata.getEvents(), id, info.getDeviceInfo().getProductId()); //事件数量统计
-                },
-                DeviceAllInfoResponse::ofEventCounts)
-            ;
-    }
-
-    /**
-     * 获取设备事件上报次数
-     *
-     * @param events    设备事件元数据
-     * @param deviceId  设备Id
-     * @param productId 型号id
-     * @return
-     */
-    private Mono<Map<String, Integer>> getEventCounts(List<EventMetadata> events, String deviceId, String productId) {
-        return Flux.merge(
-            events
-                .stream()
-                .map(Metadata::getId)
-                .map(eventId -> Query.of()
-                    .where("deviceId", deviceId)
-                    .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceEventMetric(productId, eventId))::count)
-                    .map(count -> Tuples.of(eventId, count)))
-                .collect(Collectors.toList())
-        ).collect(Collectors.toMap(Tuple2::getT1, Tuple2::getT2));
-    }
-
-
-    /**
      * 发布设备到设备注册中心
      *
      * @param id 设备ID
@@ -214,6 +170,21 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                     .execute()));
     }
 
+    /**
+     * 批量注销设备
+     * @param ids 设备ID
+     * @return 注销结果
+     */
+    public Mono<Integer> unregisterDevice(Publisher<String> ids) {
+        return Flux.from(ids)
+            .flatMap(id -> registry.unregisterDevice(id).thenReturn(id))
+            .collectList()
+            .flatMap(list -> createUpdate()
+                .set(DeviceInstanceEntity::getState, DeviceState.notActive.getValue())
+                .where().in(DeviceInstanceEntity::getId, list)
+                .execute());
+    }
+
     public Mono<DeviceDetail> getDeviceDetail(String deviceId) {
         return this.findById(deviceId)
             .zipWhen(
@@ -256,39 +227,6 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             })
             .defaultIfEmpty(DeviceState.notActive);
     }
-
-    @Deprecated
-    public Mono<DeviceRunInfo> getDeviceRunInfo(String deviceId) {
-        return getDeviceRunRealInfo(deviceId);
-    }
-
-    @Deprecated
-    private Mono<DeviceRunInfo> getDeviceRunRealInfo(String deviceId) {
-        return registry.getDevice(deviceId)
-            .flatMap(deviceOperator -> Mono.zip(
-                deviceOperator.getOnlineTime().switchIfEmpty(Mono.just(0L)),// 1
-                deviceOperator.getOfflineTime().switchIfEmpty(Mono.just(0L)),// 2
-                deviceOperator.checkState()
-                    .switchIfEmpty(deviceOperator.getState())
-                    .map(DeviceState::of)
-                    .defaultIfEmpty(DeviceState.notActive),// 3
-                deviceOperator.getConfig(DeviceConfigKey.metadata).switchIfEmpty(Mono.just("")),//4
-                deviceOperator.getConfig(DeviceConfigKey.productId).switchIfEmpty(Mono.just(""))//5
-                ).map(tuple4 -> DeviceRunInfo.of(
-                tuple4.getT1(), //1. 上线时间
-                tuple4.getT2(), //2. 离线时间
-                tuple4.getT3(), //3. 状态
-                tuple4.getT4(),  //4. 设备模型元数据
-                tuple4.getT5() //5. 设备类型ID
-                )
-                ).flatMap(deviceRunInfo -> createUpdate()
-                    .set(DeviceInstanceEntity::getState, deviceRunInfo.getState())
-                    .where(DeviceInstanceEntity::getId, deviceId)
-                    .execute()
-                    .thenReturn(deviceRunInfo))
-            );
-    }
-
 
     public Mono<PagerResult<DevicePropertiesEntity>> queryDeviceProperties(String deviceId, QueryParamEntity entity) {
         return registry.getDevice(deviceId)
