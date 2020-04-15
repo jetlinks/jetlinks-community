@@ -69,8 +69,6 @@ public class DeviceInstanceController implements
     @Getter
     private final LocalDeviceInstanceService service;
 
-    private final TimeSeriesManager timeSeriesManager;
-
     private final DeviceRegistry registry;
 
     private final LocalDeviceProductService productService;
@@ -81,13 +79,11 @@ public class DeviceInstanceController implements
 
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
-                                    TimeSeriesManager timeSeriesManager,
                                     DeviceRegistry registry,
                                     LocalDeviceProductService productService,
                                     ImportExportService importExportService,
                                     ReactiveRepository<DeviceTagEntity, String> tagRepository) {
         this.service = service;
-        this.timeSeriesManager = timeSeriesManager;
         this.registry = registry;
         this.productService = productService;
         this.importExportService = importExportService;
@@ -109,36 +105,15 @@ public class DeviceInstanceController implements
         return service.getDeviceState(id);
     }
 
-    //已弃用 下一个版本删除
-    @GetMapping("/info/{id:.+}")
-    @QueryAction
-    @Deprecated
-    public Mono<DeviceInfo> getDeviceInfoById(@PathVariable String id) {
-        return service.getDeviceInfoById(id);
-    }
-
-    //已弃用 下一个版本删除
-    @GetMapping("/run-info/{id:.+}")
-    @QueryAction
-    @Deprecated
-    public Mono<DeviceRunInfo> getRunDeviceInfoById(@PathVariable String id) {
-        return service.getDeviceRunInfo(id);
-    }
-
-
-    @PostMapping({
-        "/deploy/{deviceId:.+}",//todo 已弃用 下一个版本删除
-        "/{deviceId:.+}/deploy"
-    })
+    //激活
+    @PostMapping("/{deviceId:.+}/deploy")
     @SaveAction
     public Mono<DeviceDeployResult> deviceDeploy(@PathVariable String deviceId) {
         return service.deploy(deviceId);
     }
 
-    @PostMapping({
-        "/cancelDeploy/{deviceId:.+}", //todo 已弃用 下一个版本删除
-        "/{deviceId:.+}/undeploy"
-    })
+    //注销
+    @PostMapping( "/{deviceId:.+}/undeploy")
     @SaveAction
     public Mono<Integer> cancelDeploy(@PathVariable String deviceId) {
         return service.cancelDeploy(deviceId);
@@ -187,15 +162,6 @@ public class DeviceInstanceController implements
             .publishOn(Schedulers.single())
             .concatMap(flux -> service.syncStateBatch(Flux.just(flux), true))
             .defaultIfEmpty(0);
-    }
-
-    //已废弃
-    @GetMapping("/{productId:.+}/{deviceId:.+}/properties")
-    @Deprecated
-    @QueryAction
-    public Flux<DevicePropertiesEntity> getDeviceLatestProperties(@PathVariable String productId,
-                                                                  @PathVariable String deviceId) {
-        return service.getDeviceLatestProperties(deviceId);
     }
 
     //获取最新的设备属性

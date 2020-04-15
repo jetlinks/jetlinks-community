@@ -29,7 +29,7 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
 
     public Mono<Integer> deploy(String id) {
         return findById(Mono.just(id))
-            .flatMap(product -> registry.registry(
+            .flatMap(product -> registry.register(
                 ProductInfo.builder()
                     .id(id)
                     .protocol(product.getMessageProtocol())
