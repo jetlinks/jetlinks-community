@@ -81,6 +81,13 @@
     </build>
 
     <dependencies>
+        <!--内嵌redis,生产环境请勿使用！！！-->
+        <dependency>
+            <groupId>com.github.tonivade</groupId>
+            <artifactId>claudb</artifactId>
+            <version>1.7.1</version>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>io.netty</groupId>

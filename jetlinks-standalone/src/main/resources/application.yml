@@ -106,6 +106,7 @@ logging:
     org.jetlinks.gateway: debug
     org.springframework: warn
     org.elasticsearch: error
+  config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds
   max-event-loop-execute-time: 30
