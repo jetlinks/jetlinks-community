@@ -214,6 +214,21 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                     .execute()));
     }
 
+    /**
+     * 批量注销设备
+     * @param ids 设备ID
+     * @return 注销结果
+     */
+    public Mono<Integer> unregisterDevice(Publisher<String> ids) {
+        return Flux.from(ids)
+            .flatMap(id -> registry.unregisterDevice(id).thenReturn(id))
+            .collectList()
+            .flatMap(list -> createUpdate()
+                .set(DeviceInstanceEntity::getState, DeviceState.notActive.getValue())
+                .where().in(DeviceInstanceEntity::getId, list)
+                .execute());
+    }
+
     public Mono<DeviceDetail> getDeviceDetail(String deviceId) {
         return this.findById(deviceId)
             .zipWhen(

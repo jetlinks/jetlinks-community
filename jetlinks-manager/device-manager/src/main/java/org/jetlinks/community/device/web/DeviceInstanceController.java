@@ -17,10 +17,7 @@ import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.Dimension;
-import org.hswebframework.web.authorization.annotation.Authorize;
-import org.hswebframework.web.authorization.annotation.QueryAction;
-import org.hswebframework.web.authorization.annotation.Resource;
-import org.hswebframework.web.authorization.annotation.SaveAction;
+import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.BusinessException;
@@ -289,6 +286,38 @@ public class DeviceInstanceController implements
             })
             .as(tagRepository::save)
             .thenMany(getDeviceTags(deviceId));
+    }
+
+    /**
+     * 批量删除设备,只会删除未激活的设备.
+     *
+     * @param idList ID列表
+     * @return 被删除数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_delete")
+    @DeleteAction
+    public Mono<Integer> deleteBatch(@RequestBody Flux<String> idList) {
+        return idList
+            .collectList()
+            .flatMap(list -> service.createDelete()
+                .where()
+                .in(DeviceInstanceEntity::getId, list)
+                .and(DeviceInstanceEntity::getState, DeviceState.notActive)
+                .execute());
+    }
+
+    /**
+     * 批量注销设备
+     *
+     * @param idList ID列表
+     * @return 被注销的数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_unDeploy")
+    @SaveAction
+    public Mono<Integer> unDeployBatch(@RequestBody Flux<String> idList) {
+        return service.unregisterDevice(idList);
     }
 
 
