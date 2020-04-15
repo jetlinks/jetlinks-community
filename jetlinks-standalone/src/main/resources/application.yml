@@ -21,7 +21,7 @@ spring:
       pool:
         max-active: 1024
     timeout: 20s
-
+    serializer: jdk # 设置fst时,redis key使用string序列化,value使用 fst序列化.
   #        max-wait: 10s
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/jetlinks

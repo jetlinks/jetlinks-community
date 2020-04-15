@@ -17,10 +17,7 @@ import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.Dimension;
-import org.hswebframework.web.authorization.annotation.Authorize;
-import org.hswebframework.web.authorization.annotation.QueryAction;
-import org.hswebframework.web.authorization.annotation.Resource;
-import org.hswebframework.web.authorization.annotation.SaveAction;
+import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.BusinessException;
@@ -72,8 +69,6 @@ public class DeviceInstanceController implements
     @Getter
     private final LocalDeviceInstanceService service;
 
-    private final TimeSeriesManager timeSeriesManager;
-
     private final DeviceRegistry registry;
 
     private final LocalDeviceProductService productService;
@@ -84,13 +79,11 @@ public class DeviceInstanceController implements
 
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
-                                    TimeSeriesManager timeSeriesManager,
                                     DeviceRegistry registry,
                                     LocalDeviceProductService productService,
                                     ImportExportService importExportService,
                                     ReactiveRepository<DeviceTagEntity, String> tagRepository) {
         this.service = service;
-        this.timeSeriesManager = timeSeriesManager;
         this.registry = registry;
         this.productService = productService;
         this.importExportService = importExportService;
@@ -112,36 +105,15 @@ public class DeviceInstanceController implements
         return service.getDeviceState(id);
     }
 
-    //已弃用 下一个版本删除
-    @GetMapping("/info/{id:.+}")
-    @QueryAction
-    @Deprecated
-    public Mono<DeviceInfo> getDeviceInfoById(@PathVariable String id) {
-        return service.getDeviceInfoById(id);
-    }
-
-    //已弃用 下一个版本删除
-    @GetMapping("/run-info/{id:.+}")
-    @QueryAction
-    @Deprecated
-    public Mono<DeviceRunInfo> getRunDeviceInfoById(@PathVariable String id) {
-        return service.getDeviceRunInfo(id);
-    }
-
-
-    @PostMapping({
-        "/deploy/{deviceId:.+}",//todo 已弃用 下一个版本删除
-        "/{deviceId:.+}/deploy"
-    })
+    //激活
+    @PostMapping("/{deviceId:.+}/deploy")
     @SaveAction
     public Mono<DeviceDeployResult> deviceDeploy(@PathVariable String deviceId) {
         return service.deploy(deviceId);
     }
 
-    @PostMapping({
-        "/cancelDeploy/{deviceId:.+}", //todo 已弃用 下一个版本删除
-        "/{deviceId:.+}/undeploy"
-    })
+    //注销
+    @PostMapping( "/{deviceId:.+}/undeploy")
     @SaveAction
     public Mono<Integer> cancelDeploy(@PathVariable String deviceId) {
         return service.cancelDeploy(deviceId);
@@ -190,15 +162,6 @@ public class DeviceInstanceController implements
             .publishOn(Schedulers.single())
             .concatMap(flux -> service.syncStateBatch(Flux.just(flux), true))
             .defaultIfEmpty(0);
-    }
-
-    //已废弃
-    @GetMapping("/{productId:.+}/{deviceId:.+}/properties")
-    @Deprecated
-    @QueryAction
-    public Flux<DevicePropertiesEntity> getDeviceLatestProperties(@PathVariable String productId,
-                                                                  @PathVariable String deviceId) {
-        return service.getDeviceLatestProperties(deviceId);
     }
 
     //获取最新的设备属性
@@ -289,6 +252,38 @@ public class DeviceInstanceController implements
             })
             .as(tagRepository::save)
             .thenMany(getDeviceTags(deviceId));
+    }
+
+    /**
+     * 批量删除设备,只会删除未激活的设备.
+     *
+     * @param idList ID列表
+     * @return 被删除数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_delete")
+    @DeleteAction
+    public Mono<Integer> deleteBatch(@RequestBody Flux<String> idList) {
+        return idList
+            .collectList()
+            .flatMap(list -> service.createDelete()
+                .where()
+                .in(DeviceInstanceEntity::getId, list)
+                .and(DeviceInstanceEntity::getState, DeviceState.notActive)
+                .execute());
+    }
+
+    /**
+     * 批量注销设备
+     *
+     * @param idList ID列表
+     * @return 被注销的数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_unDeploy")
+    @SaveAction
+    public Mono<Integer> unDeployBatch(@RequestBody Flux<String> idList) {
+        return service.unregisterDevice(idList);
     }
 
 
