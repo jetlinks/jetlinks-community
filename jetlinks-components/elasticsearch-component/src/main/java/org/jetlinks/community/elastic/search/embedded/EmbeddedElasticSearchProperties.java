@@ -23,7 +23,7 @@ public class EmbeddedElasticSearchProperties {
 
     public Settings.Builder applySetting(Settings.Builder settings) {
         return settings.put("network.host", host)
-            .put("http.port", 9200)
+            .put("http.port", port)
             .put("path.data", dataPath)
             .put("path.home", homePath);
     }
