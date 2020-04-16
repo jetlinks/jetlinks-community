@@ -26,10 +26,11 @@ public class RuleEngineLogIndexInitialize {
             .addProperty("nodeId", new StringType())
             .addProperty("instanceId", new StringType()))
             .then(
-                indexManager.putIndex(new DefaultElasticSearchIndexMetadata(RuleEngineLoggerIndexProvider.RULE_LOG.getIndex())
+                indexManager.putIndex(new DefaultElasticSearchIndexMetadata(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG.getIndex())
                     .addProperty("createTime", new DateTimeType())
                     .addProperty("event", new StringType())
                     .addProperty("nodeId", new StringType())
+                    .addProperty("ruleData",new StringType())
                     .addProperty("instanceId", new StringType()))
             )
             .subscribe();
