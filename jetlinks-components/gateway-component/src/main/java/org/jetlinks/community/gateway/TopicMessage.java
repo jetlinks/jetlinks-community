@@ -1,6 +1,7 @@
 package org.jetlinks.community.gateway;
 
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.rule.engine.executor.PayloadType;
 
 import javax.annotation.Nonnull;
 
@@ -25,6 +26,17 @@ public interface TopicMessage {
      */
     @Nonnull
     EncodedMessage getMessage();
+
+    default Object convertMessage() {
+        if (getMessage() instanceof EncodableMessage) {
+            return ((EncodableMessage) getMessage()).getNativePayload();
+        }
+
+        if (getMessage().getPayloadType() == null) {
+            return getMessage().getBytes();
+        }
+        return PayloadType.valueOf(getMessage().getPayloadType().name()).read(getMessage().getPayload());
+    }
 
     static TopicMessage of(String topic, EncodedMessage message) {
         return new DefaultTopicMessage(topic, message);
