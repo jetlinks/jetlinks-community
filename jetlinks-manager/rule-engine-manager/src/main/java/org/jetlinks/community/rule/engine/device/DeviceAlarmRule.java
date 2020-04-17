@@ -191,7 +191,7 @@ public class DeviceAlarmRule implements Serializable {
         //过滤条件
         private List<ConditionFilter> filters;
 
-        public Set<String> getColumns() {
+        public Set<String> toColumns() {
 
             return Stream.concat(
                 (StringUtils.hasText(modelId)
@@ -204,7 +204,7 @@ public class DeviceAlarmRule implements Serializable {
                 .collect(Collectors.toSet());
         }
 
-        public List<Object> getFilterValues() {
+        public List<Object> toFilterBinds() {
             return filters == null ? Collections.emptyList() :
                 filters.stream()
                     .map(ConditionFilter::convertValue)

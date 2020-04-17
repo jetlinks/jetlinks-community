@@ -94,7 +94,7 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
                 DeviceAlarmRule.Trigger trigger = triggers.get(i);
                 // select this.properties.this trigger0
                 columns.add(trigger.getType().getPropertyPrefix() + "this trigger" + i);
-                columns.addAll(trigger.getColumns());
+                columns.addAll(trigger.toColumns());
                 trigger.createExpression()
                     .ifPresent(expr -> wheres.add("(" + expr + ")"));
             }
@@ -132,7 +132,7 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
             for (DeviceAlarmRule.Trigger trigger : rule.getTriggers()) {
                 String topic = trigger.getType().getTopic(rule.getProductId(), rule.getDeviceId(), trigger.getModelId());
                 topics.add(topic);
-                binds.add(trigger.getFilterValues());
+                binds.addAll(trigger.toFilterBinds());
             }
             List<Subscription> subscriptions = topics.stream().map(Subscription::new).collect(Collectors.toList());
 

@@ -1,5 +1,6 @@
 package org.jetlinks.community.rule.engine.service;
 
+import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
@@ -16,6 +17,13 @@ public class DeviceAlarmService extends GenericReactiveCrudService<DeviceAlarmEn
     @SuppressWarnings("all")
     public DeviceAlarmService(RuleInstanceService instanceService) {
         this.instanceService = instanceService;
+    }
+
+    @Override
+    public Mono<SaveResult> save(Publisher<DeviceAlarmEntity> entityPublisher) {
+        return Flux.from(entityPublisher)
+            .doOnNext(e -> e.setState(null))
+            .as(DeviceAlarmService.super::save);
     }
 
     public Mono<Void> start(String id) {
