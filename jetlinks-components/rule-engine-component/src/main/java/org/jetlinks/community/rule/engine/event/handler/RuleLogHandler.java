@@ -3,6 +3,7 @@ package org.jetlinks.community.rule.engine.event.handler;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
+import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteEventInfo;
 import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteLogInfo;
 import org.jetlinks.rule.engine.api.events.NodeExecuteEvent;
@@ -21,11 +22,16 @@ public class RuleLogHandler {
     @Autowired
     private ElasticSearchService elasticSearchService;
 
+    @Autowired
+    private MessageGateway messageGateway;
 
     @EventListener
     public void handleRuleLog(LogInfo event) {
         RuleEngineExecuteLogInfo logInfo = FastBeanCopier.copy(event, new RuleEngineExecuteLogInfo());
         elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_LOG, logInfo)
+            .subscribe();
+        messageGateway
+            .publish(String.join("/", "/rule-engine", event.getInstanceId(), "log"), logInfo, true)
             .subscribe();
     }
 
@@ -38,6 +44,9 @@ public class RuleLogHandler {
             elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG, eventInfo)
                 .subscribe();
         }
+        messageGateway
+            .publish(String.join("/", "/rule-engine", event.getInstanceId(), "event", event.getEvent().toLowerCase()), event, true)
+            .subscribe();
     }
 
 }
