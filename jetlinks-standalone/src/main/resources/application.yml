@@ -120,3 +120,7 @@ micrometer:
     metrics:
       default:
         step: 30s
+management:
+  health:
+    elasticsearch:
+      enabled: false  # 关闭elasticsearch健康检查
