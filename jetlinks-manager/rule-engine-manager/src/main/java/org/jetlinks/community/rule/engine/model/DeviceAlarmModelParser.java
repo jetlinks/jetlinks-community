@@ -90,7 +90,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
         model.getNodes().add(conditionNode);
         if (CollectionUtils.isNotEmpty(rule.getAlarmRule().getActions())) {
             int index = 0;
-            for (DeviceAlarmRule.Action operation : rule.getAlarmRule().getActions()) {
+            for (Action operation : rule.getAlarmRule().getActions()) {
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("device_alarm_action:" + index);
                 action.setName("执行动作:" + index);
