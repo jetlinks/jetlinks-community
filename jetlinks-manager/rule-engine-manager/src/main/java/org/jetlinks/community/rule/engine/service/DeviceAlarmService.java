@@ -3,7 +3,9 @@ package org.jetlinks.community.rule.engine.service;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
+import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -40,5 +42,13 @@ public class DeviceAlarmService extends GenericReactiveCrudService<DeviceAlarmEn
             .then();
     }
 
+    @Override
+    public Mono<Integer> deleteById(Publisher<String> idPublisher) {
+        return Flux.from(idPublisher)
+            .flatMap(id -> instanceService.stop(id)
+                .then(instanceService.deleteById(Mono.just(id)))
+                .then(DeviceAlarmService.super.deleteById(Mono.just(id)))
+            ).reduce(Math::addExact);
+    }
 
 }
