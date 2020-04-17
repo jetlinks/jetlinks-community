@@ -35,7 +35,7 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
     private final MessageGateway messageGateway;
 
     @Override
-    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context, DeviceAlarmRuleNode.Config config) {
+    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context,DeviceAlarmRuleNode.Config config) {
 
         return Mono::just;
     }
@@ -70,30 +70,57 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
 
         private DeviceAlarmRule rule;
 
+        private ReactorQL ql;
+
         @Override
         public void validate() {
             if (CollectionUtils.isEmpty(rule.getTriggers())) {
                 throw new IllegalArgumentException("预警条件不能为空");
+            }
+            try {
+                ql = createQL();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("配置错误:" + e.getMessage(), e);
             }
         }
 
         private ReactorQL createQL() {
             List<String> columns = new ArrayList<>(default_columns);
             List<String> wheres = new ArrayList<>();
-            columns.addAll(rule.getPlainColumns());
 
-            for (DeviceAlarmRule.Trigger trigger : rule.getTriggers()) {
+            List<DeviceAlarmRule.Trigger> triggers = rule.getTriggers();
+
+            for (int i = 0; i < triggers.size(); i++) {
+                DeviceAlarmRule.Trigger trigger = triggers.get(i);
+                // select this.properties.this trigger0
+                columns.add(trigger.getType().getPropertyPrefix() + "this trigger" + i);
+                columns.addAll(trigger.getColumns());
                 trigger.createExpression()
                     .ifPresent(expr -> wheres.add("(" + expr + ")"));
             }
-
-            String sql = "select " + String.join(",", columns) + " from msg ";
+            String sql = "select \n\t\t" + String.join("\n\t\t,", columns) + " \n\tfrom dual ";
 
             if (!wheres.isEmpty()) {
-                sql = "where " + String.join(" or ", wheres);
+                sql += "\n\twhere " + String.join("\n\t\t or ", wheres);
             }
 
-            log.debug("create device alarm sql : {}", sql);
+            if (CollectionUtils.isNotEmpty(rule.getProperties())) {
+                List<String> newColumns = new ArrayList<>(Arrays.asList(
+                    "this.deviceName deviceName",
+                    "this.deviceId deviceId",
+                    "this.timestamp timestamp"));
+                for (DeviceAlarmRule.Property property : rule.getProperties()) {
+                    if (StringUtils.isEmpty(property.getProperty())) {
+                        continue;
+                    }
+                    String alias = StringUtils.hasText(property.getAlias()) ? property.getAlias() : property.getProperty();
+                    newColumns.add("this['" + property.getProperty() + "'] \"" + alias + "\"");
+                }
+                if (newColumns.size() > 3) {
+                    sql = "select \n\t" + String.join("\n\t,", newColumns) + "\n from (\n\t" + sql + "\n) t";
+                }
+            }
+            log.debug("create device alarm sql : \n{}", sql);
             return ReactorQL.builder().sql(sql).build();
         }
 
@@ -128,7 +155,7 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
                 );
 
             binds.forEach(context::bind);
-            return createQL()
+            return (ql == null ? ql = createQL() : ql)
                 .start(context)
                 .map(ReactorQLRecord::asMap)
                 .flatMap(map -> {

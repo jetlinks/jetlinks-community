@@ -7,9 +7,7 @@ import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
-import org.jetlinks.rule.engine.api.executor.RuleNodeConfiguration;
-import org.jetlinks.rule.engine.api.model.RuleNodeModel;
-import org.jetlinks.rule.engine.executor.ExecutableRuleNodeFactoryStrategy;
+import org.jetlinks.community.rule.engine.model.Action;
 import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -83,40 +81,6 @@ public class DeviceAlarmRule implements Serializable {
         getTriggers().forEach(Trigger::validate);
     }
 
-    public List<String> getPlainColumns() {
-        Stream<String> conditionColumns = triggers
-            .stream()
-            .flatMap(trigger -> trigger.getColumns().stream());
-
-        if (CollectionUtils.isEmpty(properties)) {
-            return conditionColumns.collect(Collectors.toList());
-        }
-        return Stream.concat(conditionColumns, properties
-            .stream()
-            .map(Property::toString))
-            .collect(Collectors.toList());
-    }
-
-    @Getter
-    @Setter
-    public static class Action implements Serializable {
-
-        /**
-         * 执行器
-         *
-         * @see RuleNodeModel#getExecutor()
-         * @see ExecutableRuleNodeFactoryStrategy#getSupportType()
-         */
-        private String executor;
-
-        /**
-         * 执行器配置
-         *
-         * @see RuleNodeModel#getConfiguration()
-         * @see RuleNodeConfiguration
-         */
-        private Map<String, Object> configuration;
-    }
 
     @AllArgsConstructor
     @Getter
@@ -161,7 +125,7 @@ public class DeviceAlarmRule implements Serializable {
             }
         },
         //功能调用回复
-        function("/device/%s/%s/message/function/reply", "this.output") {
+        function("/device/%s/%s/message/function/reply", "this.output.") {
             @Override
             public String getTopic(String productId, String deviceId, String property) {
                 return String.format(getTopicTemplate(), productId, StringUtils.isEmpty(deviceId) ? "*" : deviceId);
@@ -228,10 +192,15 @@ public class DeviceAlarmRule implements Serializable {
         private List<ConditionFilter> filters;
 
         public Set<String> getColumns() {
-            return filters == null
-                ? Collections.emptySet()
-                : filters.stream()
-                .map(filter -> filter.getColumn(type))
+
+            return Stream.concat(
+                (StringUtils.hasText(modelId)
+                    ? Collections.singleton(type.getPropertyPrefix() + "this['" + modelId + "'] \"" + modelId + "\"")
+                    : Collections.<String>emptySet()).stream(),
+                (CollectionUtils.isEmpty(filters)
+                    ? Stream.<ConditionFilter>empty()
+                    : filters.stream())
+                    .map(filter -> filter.getColumn(type)))
                 .collect(Collectors.toSet());
         }
 
@@ -291,7 +260,7 @@ public class DeviceAlarmRule implements Serializable {
         private Operator operator = Operator.eq;
 
         public String getColumn(MessageType type) {
-            return type.getPropertyPrefix() + (key.trim()) + " " + (key.trim());
+            return type.getPropertyPrefix() + "this['" + (key.trim()) + "'] \"" + (key.trim()) + "\"";
         }
 
         public String createExpression(MessageType type) {
@@ -299,7 +268,7 @@ public class DeviceAlarmRule implements Serializable {
             if (key.contains("(") || key.startsWith("this")) {
                 return key;
             }
-            return type.getPropertyPrefix() + (key.trim()) + " " + operator.symbol + " ? ";
+            return type.getPropertyPrefix() + "this['" + (key.trim()) + "'] " + operator.symbol + " ? ";
         }
 
         public Object convertValue() {
@@ -343,7 +312,7 @@ public class DeviceAlarmRule implements Serializable {
 
         @Override
         public String toString() {
-            return property.concat(" ").concat(StringUtils.hasText(alias) ? alias : property);
+            return property.concat(" \"").concat(StringUtils.hasText(alias) ? alias : property).concat("\"");
         }
     }
 
