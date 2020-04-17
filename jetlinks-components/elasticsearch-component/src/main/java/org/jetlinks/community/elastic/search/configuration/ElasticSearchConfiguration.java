@@ -52,4 +52,9 @@ public class ElasticSearchConfiguration {
         return new ElasticRestClient(client, client);
     }
 
+    @Bean
+    public RestHighLevelClient elasticsearchRestHighLevelClient(ElasticRestClient client) {
+        return client.getWriteClient();
+    }
+
 }
