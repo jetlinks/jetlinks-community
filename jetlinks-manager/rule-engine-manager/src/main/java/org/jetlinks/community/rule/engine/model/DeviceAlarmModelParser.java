@@ -13,6 +13,7 @@ import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.jetlinks.rule.engine.model.RuleModelParserStrategy;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -91,6 +92,9 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
         if (CollectionUtils.isNotEmpty(rule.getAlarmRule().getActions())) {
             int index = 0;
             for (Action operation : rule.getAlarmRule().getActions()) {
+                if (!StringUtils.hasText(operation.getExecutor())) {
+                    continue;
+                }
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("device_alarm_action:" + index);
                 action.setName("执行动作:" + index);
