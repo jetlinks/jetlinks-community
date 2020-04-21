@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -263,9 +264,8 @@ public class DeviceInstanceController implements
      */
     @PutMapping("/batch/_delete")
     @DeleteAction
-    public Mono<Integer> deleteBatch(@RequestBody Flux<String> idList) {
+    public Mono<Integer> deleteBatch(@RequestBody Mono<List<String>> idList) {
         return idList
-            .collectList()
             .flatMap(list -> service.createDelete()
                 .where()
                 .in(DeviceInstanceEntity::getId, list)
@@ -282,8 +282,25 @@ public class DeviceInstanceController implements
      */
     @PutMapping("/batch/_unDeploy")
     @SaveAction
-    public Mono<Integer> unDeployBatch(@RequestBody Flux<String> idList) {
-        return service.unregisterDevice(idList);
+    public Mono<Integer> unDeployBatch(@RequestBody Mono<List<String>> idList) {
+        return idList.flatMap(list -> service.unregisterDevice(Flux.fromIterable(list)));
+    }
+
+
+    /**
+     * 批量激活设备
+     *
+     * @param idList ID列表
+     * @return 被注销的数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_deploy")
+    @SaveAction
+    public Mono<Integer> deployBatch(@RequestBody Mono<List<String>> idList) {
+        return idList.flatMapMany(service::findById)
+            .as(service::deploy)
+            .map(DeviceDeployResult::getTotal)
+            .reduce(Math::addExact);
     }
 
 
