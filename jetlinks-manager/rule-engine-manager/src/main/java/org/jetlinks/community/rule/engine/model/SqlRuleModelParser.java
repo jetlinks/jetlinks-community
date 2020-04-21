@@ -10,6 +10,7 @@ import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.jetlinks.rule.engine.model.RuleModelParserStrategy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +47,9 @@ public class SqlRuleModelParser implements RuleModelParserStrategy {
         if (!CollectionUtils.isEmpty(sqlRule.getWhenErrorThen())) {
             int index = 0;
             for (Action act : sqlRule.getWhenErrorThen()) {
+                if (!StringUtils.hasText(act.getExecutor())) {
+                    continue;
+                }
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("error:action:" + index);
                 action.setName("错误处理:" + index);
@@ -85,6 +89,9 @@ public class SqlRuleModelParser implements RuleModelParserStrategy {
         if (!CollectionUtils.isEmpty(sqlRule.getActions())) {
             int index = 0;
             for (Action operation : sqlRule.getActions()) {
+                if (!StringUtils.hasText(operation.getExecutor())) {
+                    continue;
+                }
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("action:" + index);
                 action.setName("执行动作:" + index);
