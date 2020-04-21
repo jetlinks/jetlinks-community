@@ -73,6 +73,7 @@ public class SqlRuleModelParser implements RuleModelParserStrategy {
             RuleNodeModel timerNode = new RuleNodeModel();
             timerNode.setId("timer");
             timerNode.setExecutor("timer");
+            timerNode.setName("定时触发");
             timerNode.setConfiguration(Collections.singletonMap("cron", sqlRule.getCron()));
             timerNode.setRuleId(model.getId());
             RuleLink link = new RuleLink();
