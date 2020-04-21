@@ -1,8 +1,10 @@
 package org.jetlinks.community.device.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
+import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.ProductInfo;
@@ -13,6 +15,7 @@ import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.jetlinks.community.device.enums.DeviceType.gateway;
@@ -26,6 +29,10 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private ReactiveRepository<DeviceInstanceEntity, String> instanceRepository;
+
 
     public Mono<Integer> deploy(String id) {
         return findById(Mono.just(id))
@@ -57,10 +64,23 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
 
     }
 
+
     @Override
     public Mono<Integer> deleteById(Publisher<String> idPublisher) {
-        // TODO: 2019/12/5 校验是否可以删除
-        return super.deleteById(idPublisher);
+        return Flux.from(idPublisher)
+            .collectList()
+            .flatMap(idList ->
+                instanceRepository.createQuery()
+                    .where()
+                    .in(DeviceInstanceEntity::getProductId, idList)
+                    .count()
+                    .flatMap(i -> {
+                        if (i > 0) {
+                            return Mono.error(new IllegalArgumentException("存在关联设备,无法删除!"));
+                        } else {
+                            return super.deleteById(Flux.fromIterable(idList));
+                        }
+                    }));
     }
 
 }
