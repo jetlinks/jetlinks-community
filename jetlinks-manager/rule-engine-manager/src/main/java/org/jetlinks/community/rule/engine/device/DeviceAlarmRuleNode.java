@@ -13,6 +13,7 @@ import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQLRecord;
 import org.jetlinks.rule.engine.api.RuleData;
+import org.jetlinks.rule.engine.api.events.RuleEvent;
 import org.jetlinks.rule.engine.api.executor.ExecutionContext;
 import org.jetlinks.rule.engine.api.model.NodeType;
 import org.jetlinks.rule.engine.executor.CommonExecutableRuleNodeFactoryStrategy;
@@ -45,10 +46,11 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
         context.onStop(
             config.doSubscribe(messageGateway)
                 .flatMap(result -> {
+                    RuleData data = RuleData.create(result);
                     //输出到下一节点
                     return context.getOutput()
-                        .write(Mono.just(RuleData.create(result)))
-                        .then();
+                        .write(Mono.just(data))
+                        .then(context.fireEvent(RuleEvent.NODE_EXECUTE_DONE, data));
                 })
                 .onErrorResume(err -> context.onError(RuleData.create(err.getMessage()), err))
                 .subscribe()::dispose
