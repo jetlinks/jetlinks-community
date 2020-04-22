@@ -34,7 +34,8 @@ public class DataVisualizationController implements ReactiveServiceCrudControlle
         return visualizationService.createQuery()
             .where(DataVisualizationEntity::getType, type)
             .and(DataVisualizationEntity::getTarget, target)
-            .fetchOne();
+            .fetchOne()
+            .defaultIfEmpty(DataVisualizationEntity.newEmpty(type, target));
     }
 
 }

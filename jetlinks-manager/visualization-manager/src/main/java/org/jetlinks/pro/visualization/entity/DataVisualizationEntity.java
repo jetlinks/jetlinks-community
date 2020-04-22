@@ -52,5 +52,17 @@ public class DataVisualizationEntity extends GenericEntity<String> {
     @DefaultValue("enabled")
     private DataVisualizationState state;
 
+    public void applyId() {
+        this.setId(String.format("%s:%s", type, target));
+    }
+
+    public static DataVisualizationEntity newEmpty(String type, String target) {
+        DataVisualizationEntity entity = new DataVisualizationEntity();
+        entity.setType(type);
+        entity.setTarget(target);
+        entity.applyId();
+        entity.setMetadata("");
+        return entity;
+    }
 
 }
