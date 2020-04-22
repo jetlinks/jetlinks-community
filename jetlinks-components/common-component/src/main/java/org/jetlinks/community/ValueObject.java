@@ -55,7 +55,9 @@ public interface ValueObject {
     }
 
     default Optional<Date> getDate(String name) {
-        return get(name, Date.class);
+        return get(name)
+            .map(String::valueOf)
+            .map(TimeUtils::parseDate);
     }
 
     default Date getDate(String name, Date defaultValue) {

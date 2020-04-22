@@ -2,6 +2,7 @@ package org.jetlinks.community.utils;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Date;
 
 public class TimeUtils {
 
@@ -48,6 +49,22 @@ public class TimeUtils {
             }
         }
         return duration;
+    }
+
+    /**
+     * 将字符串格式化为时间,支持简单的数学运算
+     *
+     * <pre>
+     *     now+1d
+     *
+     *
+     * </pre>
+     *
+     * @param expr 时间表达式
+     * @return 时间
+     */
+    public static Date parseDate(String expr) {
+        return new Date(DateMathParser.parse(expr, System::currentTimeMillis));
     }
 
 }
