@@ -46,6 +46,8 @@ public enum SqlRuleType implements EnumDict<String> {
                     }
                     throw new IllegalArgumentException("实时数据处理必须指定分组函数interval或者_window");
                 }
+            } catch (IllegalArgumentException e) {
+                throw e;
             } catch (Exception e) {
                 throw new IllegalArgumentException("sql格式错误", e);
             }
