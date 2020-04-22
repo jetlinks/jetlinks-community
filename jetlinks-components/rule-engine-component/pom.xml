@@ -55,10 +55,8 @@
         </dependency>
 
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>tcp-component</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
+            <groupId>org.jetlinks</groupId>
+            <artifactId>reactor-ql</artifactId>
         </dependency>
 
     </dependencies>
