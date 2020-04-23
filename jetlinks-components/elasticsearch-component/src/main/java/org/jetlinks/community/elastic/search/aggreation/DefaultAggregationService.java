@@ -225,7 +225,7 @@ public class DefaultAggregationService implements AggregationService {
 
     protected BucketAggregationsStructure convertAggGroupTimeStructure(AggregationQueryParam param) {
         BucketAggregationsStructure structure = new BucketAggregationsStructure();
-        structure.setInterval(param.getGroupByTime().toString());
+        structure.setInterval(param.getGroupByTime().getInterval().toString());
         structure.setType(BucketType.DATE_HISTOGRAM);
         structure.setFormat(param.getGroupByTime().getFormat());
         structure.setName(param.getGroupByTime().getAlias());
