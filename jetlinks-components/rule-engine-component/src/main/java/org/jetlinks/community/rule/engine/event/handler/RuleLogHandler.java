@@ -30,8 +30,13 @@ public class RuleLogHandler {
         RuleEngineExecuteLogInfo logInfo = FastBeanCopier.copy(event, new RuleEngineExecuteLogInfo());
         elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_LOG, logInfo)
             .subscribe();
+        // /rule-engine/{instanceId}/{nodeId}/log
         messageGateway
-            .publish(String.join("/", "/rule-engine", event.getInstanceId(), "log"), logInfo, true)
+            .publish(String.join("/",
+                "/rule-engine",
+                event.getInstanceId(),
+                event.getNodeId(),
+                "log"), logInfo, true)
             .subscribe();
     }
 
@@ -44,8 +49,15 @@ public class RuleLogHandler {
             elasticSearchService.commit(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG, eventInfo)
                 .subscribe();
         }
+        // /rule-engine/{instanceId}/{nodeId}/event/{eventType}
         messageGateway
-            .publish(String.join("/", "/rule-engine", event.getInstanceId(), "event", event.getEvent().toLowerCase()), event, true)
+            .publish(String.join("/",
+                "/rule-engine",
+                event.getInstanceId(),
+                event.getNodeId(),
+                "event",
+                event.getEvent().toLowerCase()
+            ), event, true)
             .subscribe();
     }
 
