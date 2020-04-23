@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.events.handler;
 
+import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
@@ -21,7 +22,7 @@ public class ValueTypeTranslator {
         if (value instanceof Map) {
             return propertyMetadataToMap((Map<String, Object>) value, metadataList);
         } else {
-            return value;
+            return JSON.toJSON(value);
         }
     }
 
