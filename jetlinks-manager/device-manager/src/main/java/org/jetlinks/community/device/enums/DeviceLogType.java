@@ -27,7 +27,7 @@ public enum DeviceLogType implements EnumDict<String> {
     other("其它");
 
     @JSONField(serialize = false)
-    private String text;
+    private final String text;
 
     @Override
     public String getValue() {
@@ -48,6 +48,10 @@ public enum DeviceLogType implements EnumDict<String> {
                 return childReply;
             case REPORT_PROPERTY:
                 return reportProperty;
+            case INVOKE_FUNCTION:
+                return functionInvoke;
+            case WRITE_PROPERTY:
+                return writeProperty;
             case INVOKE_FUNCTION_REPLY:
                 return functionReply;
             case READ_PROPERTY_REPLY:
@@ -61,6 +65,7 @@ public enum DeviceLogType implements EnumDict<String> {
             default:
                 return other;
         }
+
     }
 
 

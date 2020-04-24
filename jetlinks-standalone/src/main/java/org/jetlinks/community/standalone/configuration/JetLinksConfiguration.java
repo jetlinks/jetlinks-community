@@ -15,6 +15,7 @@ import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.StandaloneDeviceMessageBroker;
 import org.jetlinks.core.message.DeviceOfflineMessage;
 import org.jetlinks.core.message.DeviceOnlineMessage;
+import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
 import org.jetlinks.core.server.MessageHandler;
 import org.jetlinks.core.server.monitor.GatewayServerMetrics;
 import org.jetlinks.core.server.monitor.GatewayServerMonitor;
@@ -36,7 +37,9 @@ import org.jetlinks.supports.server.DefaultClientMessageHandler;
 import org.jetlinks.supports.server.DefaultDecodedClientMessageHandler;
 import org.jetlinks.supports.server.DefaultSendToDeviceMessageHandler;
 import org.jetlinks.supports.server.monitor.MicrometerGatewayServerMetrics;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -91,8 +94,23 @@ public class JetLinksConfiguration {
     }
 
     @Bean
-    public DeviceRegistry deviceRegistry(ProtocolSupports supports, ClusterManager manager, DeviceOperationBroker handler) {
+    public ClusterDeviceRegistry deviceRegistry(ProtocolSupports supports,
+                                                ClusterManager manager,
+                                                DeviceOperationBroker handler) {
         return new ClusterDeviceRegistry(supports, manager, handler);
+    }
+
+    @Bean
+    public BeanPostProcessor interceptorRegister(ClusterDeviceRegistry registry){
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+                if(bean instanceof DeviceMessageSenderInterceptor){
+                    registry.addInterceptor(((DeviceMessageSenderInterceptor) bean));
+                }
+                return bean;
+            }
+        };
     }
 
     @Bean(initMethod = "startup", destroyMethod = "shutdown")

@@ -35,7 +35,7 @@ public class DeviceMessageConnector
     private FluxSink<TopicMessage> sink = messageProcessor.sink();
 
     //将设备注册中心到配置追加到消息header中,下游订阅者可直接使用.
-    private String[] appendConfigHeader = { "orgId", "productId","deviceName"};
+    private String[] appendConfigHeader = {"orgId", "productId", "deviceName"};
     //设备注册中心
     private final DeviceRegistry registry;
 
@@ -122,7 +122,7 @@ public class DeviceMessageConnector
         return Mono.just("/device/unknown/message/unknown");
     }
 
-    public String createDeviceMessageTopic(Message message) {
+    public static String createDeviceMessageTopic(Message message) {
         if (message instanceof EventMessage) {   //事件
             EventMessage event = ((EventMessage) message);
             return "/message/event/".concat(event.getEvent());
@@ -145,11 +145,11 @@ public class DeviceMessageConnector
             }
             return "/message/children/reply/".concat(createDeviceMessageTopic(message));
         } else if (message instanceof ReadPropertyMessage) { //读取属性
-            return "/message/property/read";
+            return "/message/send/property/read";
         } else if (message instanceof WritePropertyMessage) { //修改属性
-            return "/message/property/write";
+            return "/message/send/property/write";
         } else if (message instanceof FunctionInvokeMessage) { //调用功能
-            return "/message/function/reply";
+            return "/message/send/function";
         } else if (message instanceof ReadPropertyMessageReply) { //读取属性回复
             return "/message/property/read/reply";
         } else if (message instanceof WritePropertyMessageReply) { //修改属性回复
