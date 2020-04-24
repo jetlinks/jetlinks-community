@@ -21,11 +21,11 @@ public class ErrorControllerAdvice {
     @ExceptionHandler
     public Mono<ResponseEntity<ResponseMessage<Object>>> handleException(DeviceOperationException e) {
 
-        //202
+        //200
         if (e.getCode() == ErrorCode.REQUEST_HANDLING) {
             return Mono.just(ResponseEntity
-                .status(HttpStatus.ACCEPTED)
-                .body(ResponseMessage.error(202,
+                .status(HttpStatus.OK)
+                .body(ResponseMessage.error(200,
                     e.getCode().name().toLowerCase(),
                     e.getMessage())
                     .result("消息已发往设备,处理中...")));
