@@ -198,8 +198,17 @@ class DevicePropertyMeasurement extends StaticMeasurement {
             return Mono.justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(1);
-                    //合并历史数据和实时数据
-                    return fromHistory(deviceId, history);
+
+                    return QueryParamEntity.newQuery()
+                        .doPaging(0, history)
+                        .where("deviceId", deviceId)
+                        .and("property", metadata.getId())
+                        .as(query -> query
+                            .gte("timestamp", parameter.getDate("from").orElse(null))
+                            .lte("timestamp", parameter.getDate("to").orElse(null)))
+                        .execute(timeSeriesService::query)
+                        .map(data -> SimpleMeasurementValue.of(createValue(data.get("value").orElse(null)), data.getTimestamp()))
+                        .sort(MeasurementValue.sort());
                 });
         }
     }
