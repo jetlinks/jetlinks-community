@@ -76,6 +76,7 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
             config.setId(properties.getId());
             if (config.getOptions() == null) {
                 config.setOptions(new MqttClientOptions());
+                config.getOptions().setClientId(config.getClientId());
                 config.getOptions().setPassword(config.getPassword());
                 config.getOptions().setUsername(config.getUsername());
             }
