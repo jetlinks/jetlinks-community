@@ -75,6 +75,12 @@ public class DeviceDetail {
     //标签
     private List<DeviceTagEntity> tags = new ArrayList<>();
 
+    public DeviceDetail notActive() {
+
+        state = DeviceState.notActive;
+        return this;
+    }
+
     public Mono<DeviceDetail> with(DeviceOperator operator) {
         return Mono.zip(
             operator.getAddress().defaultIfEmpty("/"),

@@ -172,6 +172,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     /**
      * 批量注销设备
+     *
      * @param ids 设备ID
      * @return 注销结果
      */
@@ -204,7 +205,16 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                             .execute())
                         .thenReturn(operator))
                 .flatMap(detail::with)
-                .defaultIfEmpty(detail))
+                .switchIfEmpty(Mono.defer(() -> {
+                    if (detail.getState() != DeviceState.notActive) {
+                        return createUpdate()
+                            .set(DeviceInstanceEntity::getState, DeviceState.notActive)
+                            .where(DeviceInstanceEntity::getId, deviceId)
+                            .execute()
+                            .thenReturn(detail.notActive());
+                    }
+                    return Mono.just(detail.notActive());
+                })))
             //设备标签信息
             .flatMap(detail -> tagRepository
                 .createQuery()
@@ -326,15 +336,18 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         return batch
             .concatMap(list -> Flux.fromIterable(list)
                 .publishOn(Schedulers.parallel())
-                .flatMap(registry::getDevice)
-                .flatMap(operation -> {
-                    Mono<Byte> state = force ? operation.checkState() : operation.getState();
-                    return Mono.zip(
-                        state.defaultIfEmpty(org.jetlinks.core.device.DeviceState.offline),//状态
-                        Mono.just(operation.getDeviceId()), //设备id
-                        operation.getConfig(DeviceConfigKey.isGatewayDevice).defaultIfEmpty(false)//是否为网关设备
-                    );
-                })
+                .flatMap(id ->
+                    registry.getDevice(id)
+                        .flatMap(operator -> {
+                            Mono<Byte> state = force ? operator.checkState() : operator.getState();
+                            return Mono.zip(
+                                state.defaultIfEmpty(org.jetlinks.core.device.DeviceState.offline),//状态
+                                Mono.just(operator.getDeviceId()), //设备id
+                                operator.getConfig(DeviceConfigKey.isGatewayDevice).defaultIfEmpty(false)//是否为网关设备
+                            );
+                        })
+                        //注册中心里不存在设备就认为是未激活.
+                        .defaultIfEmpty(Tuples.of(org.jetlinks.core.device.DeviceState.noActive, id, false)))
                 .collect(Collectors.groupingBy(Tuple2::getT1))
                 .flatMapIterable(Map::entrySet)
                 .flatMap(group -> {
