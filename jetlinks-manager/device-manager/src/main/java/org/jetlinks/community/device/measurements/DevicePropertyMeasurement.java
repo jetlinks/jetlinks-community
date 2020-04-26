@@ -210,7 +210,7 @@ class DevicePropertyMeasurement extends StaticMeasurement {
                         .execute(timeSeriesService::query)
                         .map(data -> SimpleMeasurementValue.of(
                             createValue(data.get("value").orElse(null)),
-                            DateFormatter.toString(new Date(data.getTimestamp()), parameter.getString("format","HH:mm:ss")),
+                            DateFormatter.toString(new Date(data.getTimestamp()), parameter.getString("timeFormat","HH:mm:ss")),
                             data.getTimestamp()))
                         .sort(MeasurementValue.sort());
                 });
