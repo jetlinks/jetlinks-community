@@ -2,6 +2,7 @@ package org.jetlinks.community;
 
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.utils.TimeUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.util.Date;
@@ -73,7 +74,8 @@ public interface ValueObject {
     }
 
     default Optional<String> getString(String name) {
-        return get(name, String.class);
+        return get(name, String.class)
+            .filter(StringUtils::hasText);
     }
 
     default String getString(String name, String defaultValue) {
