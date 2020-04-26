@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.measurements;
 
+import org.hswebframework.utils.time.DateFormatter;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
@@ -207,7 +208,10 @@ class DevicePropertyMeasurement extends StaticMeasurement {
                             .gte("timestamp", parameter.getDate("from").orElse(null))
                             .lte("timestamp", parameter.getDate("to").orElse(null)))
                         .execute(timeSeriesService::query)
-                        .map(data -> SimpleMeasurementValue.of(createValue(data.get("value").orElse(null)), data.getTimestamp()))
+                        .map(data -> SimpleMeasurementValue.of(
+                            createValue(data.get("value").orElse(null)),
+                            DateFormatter.toString(new Date(data.getTimestamp()), parameter.getString("format","HH:mm:ss")),
+                            data.getTimestamp()))
                         .sort(MeasurementValue.sort());
                 });
         }
