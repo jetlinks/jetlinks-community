@@ -8,13 +8,18 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class DefaultMessageGatewayManager implements MessageGatewayManager, BeanPostProcessor {
 
-    private Map<String, MessageGateway> cache = new ConcurrentHashMap<>();
+    private final Map<String, MessageGateway> cache = new ConcurrentHashMap<>();
+
+    public DefaultMessageGatewayManager(List<MessageGateway> gateways){
+        gateways.forEach(this::register);
+    }
 
     @Override
     public Mono<MessageGateway> getGateway(String id) {
