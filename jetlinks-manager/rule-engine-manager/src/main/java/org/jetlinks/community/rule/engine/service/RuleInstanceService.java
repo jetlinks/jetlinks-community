@@ -14,9 +14,11 @@ import org.jetlinks.rule.engine.api.Rule;
 import org.jetlinks.rule.engine.api.RuleEngine;
 import org.jetlinks.rule.engine.api.RuleInstanceContext;
 import org.jetlinks.rule.engine.api.model.RuleEngineModelParser;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -67,6 +69,13 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
                             .execute()
                             .thenReturn(ctx));
         });
+    }
+
+    @Override
+    public Mono<Integer> deleteById(Publisher<String> idPublisher) {
+        return Flux.from(idPublisher)
+            .flatMap(id -> this.stop(id).thenReturn(id))
+            .as(super::deleteById);
     }
 
     @Override
