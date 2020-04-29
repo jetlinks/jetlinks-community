@@ -21,13 +21,13 @@
         <project.build.jdk>${java.version}</project.build.jdk>
         <hsweb.framework.version>4.0.1</hsweb.framework.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.0.2-BUILD-SNAPSHOT</jetlinks.version>
+        <jetlinks.version>1.0.2</jetlinks.version>
         <r2dbc.version>Arabba-RELEASE</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.46.Final</netty.version>
         <elasticsearch.version>6.8.6</elasticsearch.version>
-        <reactor.excel.version>1.0-BUILD-SNAPSHOT</reactor.excel.version>
-        <reactor.ql.version>1.0-SNAPSHOT</reactor.ql.version>
+        <reactor.excel.version>1.0-RC</reactor.excel.version>
+        <reactor.ql.version>1.0</reactor.ql.version>
     </properties>
 
     <build>
