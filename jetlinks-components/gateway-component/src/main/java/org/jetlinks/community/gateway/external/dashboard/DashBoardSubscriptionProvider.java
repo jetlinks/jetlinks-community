@@ -5,9 +5,8 @@ import org.jetlinks.community.dashboard.MeasurementParameter;
 import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.gateway.external.SubscriptionProvider;
+import org.jetlinks.supports.utils.MqttTopicUtils;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.PathMatcher;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
@@ -20,8 +19,6 @@ public class DashBoardSubscriptionProvider implements SubscriptionProvider {
     public DashBoardSubscriptionProvider(DashboardManager dashboardManager) {
         this.dashboardManager = dashboardManager;
     }
-
-    private static final PathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
     public String id() {
@@ -42,7 +39,7 @@ public class DashBoardSubscriptionProvider implements SubscriptionProvider {
     public Flux<Message> subscribe(SubscribeRequest request) {
         return Flux.defer(() -> {
             try {
-                Map<String, String> variables = pathMatcher.extractUriTemplateVariables(
+                Map<String, String> variables = MqttTopicUtils.getPathVariables(
                     "/dashboard/{dashboard}/{object}/{measurement}/{dimension}", request.getTopic());
                 return dashboardManager.getDashboard(variables.get("dashboard"))
                     .flatMap(dashboard -> dashboard.getObject(variables.get("object")))

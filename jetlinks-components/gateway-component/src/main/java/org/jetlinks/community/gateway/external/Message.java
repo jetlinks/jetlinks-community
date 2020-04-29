@@ -8,16 +8,33 @@ public interface Message {
 
     Object getPayload();
 
-    boolean isSuccess();
-
     String getMessage();
 
+    Type getType();
+
+    static Message authError() {
+
+        return new SimpleMessage(null, null, null, Type.authError, "认证失败");
+    }
+
     static Message error(String id, String topic, String message) {
-        return new ErrorMessage(id, topic, message);
+
+        return new SimpleMessage(id, topic, null, Type.error, message);
     }
 
     static Message success(String id, String topic, Object payload) {
-        return new SuccessMessage(id, topic, payload);
+        return new SimpleMessage(id, topic, payload, Type.result, null);
+    }
+
+    static Message complete(String id) {
+        return new SimpleMessage(id, null, null, Type.complete, null);
+    }
+
+    enum Type {
+        authError,
+        result,
+        error,
+        complete
     }
 
 }

@@ -12,9 +12,14 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nonnull;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 @AllArgsConstructor
@@ -28,7 +33,8 @@ public class WebSocketMessagingHandler implements WebSocketHandler {
 
     // /messaging/{token}
     @Override
-    public Mono<Void> handle(WebSocketSession session) {
+    @Nonnull
+    public Mono<Void> handle(@Nonnull WebSocketSession session) {
         String[] path = session.getHandshakeInfo().getUri().getPath().split("[/]");
         if (path.length == 0) {
             return session.send(Mono.just(session.textMessage(JSON.toJSONString(
@@ -37,50 +43,59 @@ public class WebSocketMessagingHandler implements WebSocketHandler {
         }
         String token = path[path.length - 1];
 
-        Set<String> disposable = new ConcurrentSkipListSet<>();
+        Map<String, Disposable> subs = new ConcurrentHashMap<>();
 
         return userTokenManager.getByToken(token)
             .map(UserToken::getUserId)
             .flatMap(authenticationManager::getByUserId)
             .switchIfEmpty(session
                 .send(Mono.just(session.textMessage(JSON.toJSONString(
-                    Message.error("auth", null, "认证失败")
+                    Message.authError()
                 ))))
                 .then(session.close(CloseStatus.BAD_DATA))
                 .then(Mono.empty()))
             .flatMap(auth -> session
                 .receive()
-                .flatMap(message -> {
+                .doOnNext(message -> {
                     MessagingRequest request = JSON.parseObject(message.getPayloadAsText(), MessagingRequest.class);
                     if (StringUtils.isEmpty(request.getId())) {
-                        return session
+                        session
                             .send(Mono.just(session.textMessage(JSON.toJSONString(
                                 Message.error(request.getType().name(), null, "id不能为空")
-                            ))));
+                            )))).subscribe();
                     }
                     if (request.getType() == MessagingRequest.Type.sub) {
                         //重复订阅
-                        if (disposable.contains(request.getId())) {
-                            return Mono.empty();
+                        if (subs.containsKey(request.getId())) {
+                            return;
                         }
-                        disposable.add(request.getId());
-                        return session.send(messagingManager
+                        subs.put(request.getId(), messagingManager
                             .subscribe(SubscribeRequest.of(request, auth))
                             .onErrorResume(err -> Mono.just(Message.error(request.getId(), request.getTopic(), err.getMessage())))
-                            .takeWhile(r -> disposable.contains(request.getId()))
-                            .switchIfEmpty(Mono.fromSupplier(() -> Message.error(request.getId(), request.getTopic(), "不支持的Topic")))
                             .map(msg -> session.textMessage(JSON.toJSONString(msg)))
-                            .doOnComplete(() -> disposable.remove(request.getId()))
+                            .doOnComplete(() -> {
+                                subs.remove(request.getId());
+                                Mono.just(session.textMessage(JSON.toJSONString(Message.complete(request.getId()))))
+                                    .as(session::send)
+                                    .subscribe();
+                            })
+                            .flatMap(msg -> session.send(Mono.just(msg)))
+                            .subscribe()
                         );
+
                     } else if (request.getType() == MessagingRequest.Type.unsub) {
-                        return Mono.fromRunnable(() -> disposable.remove(request.getId()));
+                        Optional.ofNullable(subs.remove(request.getId()))
+                            .ifPresent(Disposable::dispose);
                     } else {
-                        return session.send(Mono.just(session.textMessage(JSON.toJSONString(
+                        session.send(Mono.just(session.textMessage(JSON.toJSONString(
                             Message.error(request.getId(), request.getTopic(), "不支持的类型:" + request.getType())
-                        ))));
+                        )))).subscribe();
                     }
                 }).then())
-            .doFinally(r -> disposable.clear());
+            .doFinally(r -> {
+                subs.values().forEach(Disposable::dispose);
+                subs.clear();
+            });
 
     }
 }

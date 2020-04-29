@@ -9,7 +9,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-public class SuccessMessage implements Message {
+public class SimpleMessage implements Message {
 
     private String requestId;
 
@@ -17,14 +17,8 @@ public class SuccessMessage implements Message {
 
     private Object payload;
 
+    private Type type;
 
-    @Override
-    public boolean isSuccess() {
-        return true;
-    }
+    private String message;
 
-    @Override
-    public String getMessage() {
-        return null;
-    }
 }
