@@ -28,7 +28,7 @@ public enum ElasticDateFormat implements EnumDict<String> {
 
     private String value;
 
-    private String text;
+    private final String text;
 
     public static String getFormat(ElasticDateFormat... dateFormats) {
         return getFormat(Arrays.asList(dateFormats));

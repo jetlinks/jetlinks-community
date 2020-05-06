@@ -124,7 +124,12 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         Map<String, Object> property = new HashMap<>();
         if (type instanceof DateTimeType) {
             property.put("type", "date");
-            property.put("format", ElasticDateFormat.getFormat(ElasticDateFormat.epoch_millis, ElasticDateFormat.simple_date, ElasticDateFormat.strict_date));
+            property.put("format", ElasticDateFormat.getFormat(
+                ElasticDateFormat.epoch_millis,
+                ElasticDateFormat.strict_date_hour_minute_second,
+                ElasticDateFormat.strict_date_time,
+                ElasticDateFormat.strict_date)
+            );
         } else if (type instanceof DoubleType) {
             property.put("type", "double");
         } else if (type instanceof LongType) {

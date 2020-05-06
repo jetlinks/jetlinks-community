@@ -64,8 +64,12 @@ public enum BucketType {
             RangeAggregationBuilder builder = AggregationBuilders
                 .range(structure.getName())
                 .field(structure.getField());
-            if (structure.getMissingValue() != null) {
-                builder.missing(structure.getMissingValue());
+            if (StringUtils.hasText(structure.getFormat())) {
+                String format = structure.getFormat();
+                if (format.startsWith("yyyy")) {
+                    format = "8" + format;
+                }
+                builder.format(format);
             }
             structure.getRanges()
                 .forEach(ranges -> {
@@ -87,7 +91,11 @@ public enum BucketType {
                 .dateRange(structure.getName())
                 .field(structure.getField());
             if (StringUtils.hasText(structure.getFormat())) {
-                builder.format(structure.getFormat());
+                String format = structure.getFormat();
+                if (format.startsWith("yyyy")) {
+                    format = "8" + format;
+                }
+                builder.format(format);
             }
             structure.getRanges()
                 .forEach(ranges -> {
