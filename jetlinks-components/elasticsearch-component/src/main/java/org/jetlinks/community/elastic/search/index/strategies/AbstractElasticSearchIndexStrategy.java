@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearchIndexStrategy {
     @Getter
-    private String id;
+    private final String id;
 
     protected ElasticRestClient client;
 
@@ -151,6 +151,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
             property.put("properties", createElasticProperties(objectType.getProperties()));
         } else {
             property.put("type", "keyword");
+            property.put("ignore_above",512);
         }
         return property;
     }
