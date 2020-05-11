@@ -1,4 +1,4 @@
-package org.jetlinks.pro.visualization.entity;
+package org.jetlinks.community.visualization.entity;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -6,8 +6,7 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
-import org.jetlinks.pro.visualization.enums.DataVisualizationState;
-import org.springframework.stereotype.Component;
+import org.jetlinks.community.visualization.enums.DataVisualizationState;
 
 import javax.persistence.Column;
 import javax.persistence.Index;

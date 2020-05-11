@@ -1,4 +1,4 @@
-package org.jetlinks.pro.visualization.enums;
+package org.jetlinks.community.visualization.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
