@@ -13,7 +13,6 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import reactor.tools.agent.ReactorDebugAgent;
 
 import javax.annotation.PostConstruct;
 
@@ -25,12 +24,10 @@ import javax.annotation.PostConstruct;
 @EnableEasyormRepository("org.jetlinks.community.**.entity")
 @EnableAopAuthorize
 @EnableAccessLogger
+@Slf4j
 public class JetLinksApplication {
 
     public static void main(String[] args) {
-        if (!Boolean.getBoolean("reactor.debug.agent.disabled")) {
-            ReactorDebugAgent.init();
-        }
         SpringApplication.run(JetLinksApplication.class, args);
     }
 
