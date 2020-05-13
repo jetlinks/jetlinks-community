@@ -10,6 +10,6 @@ public interface SubscriptionProvider {
 
     String[] getTopicPattern();
 
-    Flux<Message> subscribe(SubscribeRequest request);
+    Flux<?> subscribe(SubscribeRequest request);
 
 }

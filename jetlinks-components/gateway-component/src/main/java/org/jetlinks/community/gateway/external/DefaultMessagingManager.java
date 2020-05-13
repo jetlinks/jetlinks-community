@@ -20,13 +20,22 @@ public class DefaultMessagingManager implements MessagingManager, BeanPostProces
     @Override
     public Flux<Message> subscribe(SubscribeRequest request) {
 
-        for (Map.Entry<String, SubscriptionProvider> entry : subProvider.entrySet()) {
-            if (matcher.match(entry.getKey(), request.getTopic())) {
-                return entry.getValue().subscribe(request);
+        return Flux.defer(() -> {
+            for (Map.Entry<String, SubscriptionProvider> entry : subProvider.entrySet()) {
+                if (matcher.match(entry.getKey(), request.getTopic())) {
+                    return entry.getValue()
+                        .subscribe(request)
+                        .map(v -> {
+                            if (v instanceof Message) {
+                                return ((Message) v);
+                            }
+                            return Message.success(request.getId(), request.getTopic(), v);
+                        });
+                }
             }
-        }
 
-        return Flux.empty();
+            return Flux.error(new UnsupportedOperationException("不支持的topic"));
+        });
     }
 
     public void register(SubscriptionProvider provider) {
