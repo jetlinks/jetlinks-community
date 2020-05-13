@@ -72,6 +72,9 @@ public class DeviceDetail {
     //设备配置信息
     private Map<String, Object> configuration = new HashMap<>();
 
+    //设备单独的配置信息
+    private boolean aloneConfiguration;
+
     //标签
     private List<DeviceTagEntity> tags = new ArrayList<>();
 
@@ -151,6 +154,7 @@ public class DeviceDetail {
 
         if (!CollectionUtils.isEmpty(device.getConfiguration())) {
             setConfiguration(device.getConfiguration());
+            setAloneConfiguration(true);
         }
         if (StringUtils.hasText(device.getDeriveMetadata())) {
             setMetadata(device.getDeriveMetadata());
