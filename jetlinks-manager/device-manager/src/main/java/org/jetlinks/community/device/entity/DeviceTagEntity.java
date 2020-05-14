@@ -3,6 +3,7 @@ package org.jetlinks.community.device.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.crud.generator.Generators;
@@ -59,6 +60,6 @@ public class DeviceTagEntity extends GenericEntity<String> {
     }
 
     public static String createTagId(String deviceId,String key){
-        return deviceId.concat(":").concat(key);
+        return DigestUtils.md5Hex(deviceId.concat(":").concat(key));
     }
 }
