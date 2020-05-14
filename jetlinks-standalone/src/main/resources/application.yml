@@ -91,7 +91,9 @@ jetlinks:
     system:
       context:
         server: ${spring.application.name}
-
+  protocol:
+    spi:
+      enabled: true # 为true时开启自动加载通过依赖引入的协议包
 logging:
   level:
     org.jetlinks: debug

@@ -224,6 +224,7 @@ public class JetLinksConfiguration {
     }
 
     @Bean(initMethod = "init")
+    @ConditionalOnProperty(prefix = "jetlinks.protocol.spi", name = "enabled", havingValue = "true")
     public ServiceLoaderProtocolSupports serviceLoaderProtocolSupports(ServiceContext serviceContext) {
         ServiceLoaderProtocolSupports supports = new ServiceLoaderProtocolSupports();
         supports.setServiceContext(serviceContext);

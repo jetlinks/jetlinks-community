@@ -26,6 +26,12 @@ public interface ElasticSearchService {
 
     <T> Mono<Void> commit(String index, Publisher<T> data);
 
+    <T> Mono<Void> save(String index,  T payload);
+
+    <T> Mono<Void> save(String index,  Collection<T> payload);
+
+    <T> Mono<Void> save(String index, Publisher<T> data);
+
     default <T> Flux<T> query(String index, QueryParam queryParam, Class<T> type) {
         return query(index, queryParam, map -> FastBeanCopier.copy(map, type));
     }

@@ -1,10 +1,10 @@
-package org.jetlinks.pro.visualization.web;
+package org.jetlinks.community.visualization.web;
 
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
-import org.jetlinks.pro.visualization.entity.DataVisualizationEntity;
-import org.jetlinks.pro.visualization.service.DataVisualizationService;
+import org.jetlinks.community.visualization.entity.DataVisualizationEntity;
+import org.jetlinks.community.visualization.service.DataVisualizationService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

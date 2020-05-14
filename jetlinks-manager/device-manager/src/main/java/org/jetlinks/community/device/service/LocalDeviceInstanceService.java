@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSON;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.TermType;
@@ -64,10 +65,7 @@ import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -99,6 +97,41 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         return Flux.from(entityPublisher)
             .doOnNext(instance -> instance.setState(null))
             .as(super::save);
+    }
+
+
+    /**
+     * 重置设备配置
+     *
+     * @param deviceId 设备ID
+     * @return 重置后的配置
+     * @since 1.2
+     */
+    public Mono<Map<String, Object>> resetConfiguration(String deviceId) {
+        return findById(deviceId)
+            .flatMap(device ->
+                Mono.defer(() -> {
+                    if (!MapUtils.isEmpty(device.getConfiguration())) {
+                        //重置注册中心里的配置
+                        return registry.getDevice(deviceId)
+                            .flatMap(opts -> opts.removeConfigs(device.getConfiguration().keySet()))
+                            .then();
+                    }
+                    return Mono.empty();
+                }).then(
+                    //更新数据库
+                    createUpdate()
+                        .set(DeviceInstanceEntity::getConfiguration, new HashMap<>())
+                        .where(DeviceInstanceEntity::getId, deviceId)
+                        .execute()
+                ).then(
+                    //获取产品信息的配置
+                    deviceProductService
+                        .findById(device.getProductId())
+                        .flatMap(product -> Mono.justOrEmpty(product.getConfiguration()))
+                ))
+            .defaultIfEmpty(Collections.emptyMap())
+            ;
     }
 
     /**

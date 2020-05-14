@@ -198,14 +198,17 @@ class VertxMqttConnection implements MqttConnection {
         keepAliveTimeoutMs = duration.toMillis();
     }
 
+    private volatile InetSocketAddress clientAddress;
+
     @Override
     public InetSocketAddress getClientAddress() {
-
-        SocketAddress address = endpoint.remoteAddress();
-        if (address != null) {
-            return new InetSocketAddress(address.host(), address.port());
+        if (clientAddress == null) {
+            SocketAddress address = endpoint.remoteAddress();
+            if (address != null) {
+                clientAddress = new InetSocketAddress(address.host(), address.port());
+            }
         }
-        return null;
+        return clientAddress;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.measurements.status;
 
 import org.jetlinks.community.Interval;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.MessageType;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
@@ -25,6 +26,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 class DeviceStatusChangeMeasurement extends StaticMeasurement {
 
@@ -145,10 +148,16 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
                             new Subscription("/device/*/" + deviceId + "/online"),
                             new Subscription("/device/*/" + deviceId + "/offline")), true)
                         .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
-                        .map(msg -> SimpleMeasurementValue.of(msg.getMessageType().name().toLowerCase(), msg.getTimestamp()))
+                        .map(msg -> SimpleMeasurementValue.of(createStateValue(msg), msg.getTimestamp()))
                         ;
                 });
+        }
 
+        Map<String, Object> createStateValue(DeviceMessage message) {
+            Map<String, Object> val = new HashMap<>();
+            val.put("type", message.getMessageType().name().toLowerCase());
+            val.put("deviceId", message.getDeviceId());
+            return val;
         }
     }
 }

@@ -99,6 +99,13 @@ public class DeviceInstanceController implements
         return service.getDeviceDetail(id);
     }
 
+    //重置配置信息
+    @PutMapping("/{deviceId:.+}/configuration/_reset")
+    @SaveAction
+    public Mono<Map<String,Object>> resetConfiguration(@PathVariable String deviceId){
+        return service.resetConfiguration(deviceId);
+    }
+
     //获取设备运行状态
     @GetMapping("/{id:.+}/state")
     @QueryAction
