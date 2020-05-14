@@ -110,6 +110,7 @@ public class VertxTcpClient extends AbstractTcpClient {
         if (this.client != null && this.client != client) {
             this.client.close();
         }
+        keepAlive();
         this.client = client;
     }
 
