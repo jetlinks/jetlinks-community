@@ -59,7 +59,7 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
             String gitLocation = null;
             String mavenModule = null;
             try {
-                Class clazz = Class.forName(element.getClassName());
+                Class<?> clazz = Class.forName(element.getClassName());
                 ModuleUtils.ModuleInfo moduleInfo = ModuleUtils.getModuleByClass(clazz);
                 if (!StringUtils.isEmpty(moduleInfo.getGitRepository())) {
                     StringBuilder javaSb = new StringBuilder();
@@ -73,8 +73,7 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
                     gitLocation = javaSb.toString();
                 }
                 mavenModule = moduleInfo.getArtifactId();
-            } catch (Exception e) {
-                log.warn("记录系统日志时，加载类:{}错误。{}", element.getClassName(), e);
+            } catch (Exception ignore) {
             }
             Map<String, String> context = new HashMap<>(staticContext);
             Map<String, String> mdc = MDC.getCopyOfContextMap();
