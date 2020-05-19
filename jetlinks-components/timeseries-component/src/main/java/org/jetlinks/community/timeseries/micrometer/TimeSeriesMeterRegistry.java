@@ -47,7 +47,7 @@ public class TimeSeriesMeterRegistry extends StepMeterRegistry {
     public void start(ThreadFactory threadFactory) {
         super.start(threadFactory);
         timeSeriesManager.registerMetadata(MeterTimeSeriesMetadata.of(metric,keys))
-            .doOnError(e -> log.error("register metric metadata error", e))
+            .doOnError(e -> log.error("register metric [{}] metadata error", metric.getId(), e))
             .subscribe((r) -> log.error("register metric [{}] metadata success", metric.getId()));
     }
 
