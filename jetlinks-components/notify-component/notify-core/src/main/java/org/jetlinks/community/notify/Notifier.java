@@ -18,6 +18,11 @@ import java.util.function.Consumer;
 public interface Notifier<T extends Template> {
 
     /**
+     * @return 通知器ID
+     */
+    String getNotifierId();
+
+    /**
      * 获取通知类型,如: 语音通知
      *
      * @return 通知类型
@@ -73,4 +78,7 @@ public interface Notifier<T extends Template> {
     @Nonnull
     Mono<Void> close();
 
+    default <R extends Notifier<T>> R unwrap(Class<R> type) {
+        return type.cast(this);
+    }
 }

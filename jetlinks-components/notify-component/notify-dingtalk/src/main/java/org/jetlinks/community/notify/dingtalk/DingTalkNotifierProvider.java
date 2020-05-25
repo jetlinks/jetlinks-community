@@ -30,15 +30,15 @@ public class DingTalkNotifierProvider implements NotifierProvider, TemplateProvi
     }
 
     public static final DefaultConfigMetadata notifierConfig = new DefaultConfigMetadata("通知配置", "")
-            .add("appKey", "appKey", "", new StringType().expand(ConfigMetadataConstants.required.value(true)))
-            .add("appSecret", "appSecret", "", new StringType());
+        .add("appKey", "appKey", "", new StringType().expand(ConfigMetadataConstants.required.value(true)))
+        .add("appSecret", "appSecret", "", new StringType());
 
     public static final DefaultConfigMetadata templateConfig = new DefaultConfigMetadata("模版配置", "")
-            .add("agentId", "应用ID", "", new StringType().expand(ConfigMetadataConstants.required.value(true)))
-            .add("userIdList", "收信人ID", "与部门ID不能同时为空", new StringType())
-            .add("departmentIdList", "收信部门ID", "与收信人ID不能同时为空", new StringType())
-            .add("toAllUser", "全部用户", "推送到全部用户", new BooleanType())
-            .add("message", "内容", "最大不超过500字", new StringType().expand(ConfigMetadataConstants.maxLength.value(500L)));
+        .add("agentId", "应用ID", "", new StringType().expand(ConfigMetadataConstants.required.value(true)))
+        .add("userIdList", "收信人ID", "与部门ID不能同时为空", new StringType())
+        .add("departmentIdList", "收信部门ID", "与收信人ID不能同时为空", new StringType())
+        .add("toAllUser", "全部用户", "推送到全部用户", new BooleanType())
+        .add("message", "内容", "最大不超过500字", new StringType().expand(ConfigMetadataConstants.maxLength.value(500L)));
 
     @Nonnull
     @Override
@@ -64,7 +64,7 @@ public class DingTalkNotifierProvider implements NotifierProvider, TemplateProvi
     public Mono<DingTalkNotifier> createNotifier(@Nonnull NotifierProperties properties) {
         return Mono.defer(() -> {
             DingTalkProperties dingTalkProperties = FastBeanCopier.copy(properties.getConfiguration(), new DingTalkProperties());
-            return Mono.just(new DingTalkNotifier(client, ValidatorUtils.tryValidate(dingTalkProperties), templateManager));
+            return Mono.just(new DingTalkNotifier(properties.getId(), client, ValidatorUtils.tryValidate(dingTalkProperties), templateManager));
         });
     }
 

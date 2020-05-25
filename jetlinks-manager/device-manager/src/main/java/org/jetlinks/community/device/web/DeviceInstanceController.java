@@ -168,7 +168,7 @@ public class DeviceInstanceController implements
             .map(DeviceInstanceEntity::getId)
             .buffer(200)
             .publishOn(Schedulers.single())
-            .concatMap(flux -> service.syncStateBatch(Flux.just(flux), true))
+            .concatMap(flux -> service.syncStateBatch(Flux.just(flux), true).map(List::size))
             .defaultIfEmpty(0);
     }
 

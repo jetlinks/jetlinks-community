@@ -27,7 +27,7 @@ class DingTalkNotifierTest {
         messageTemplate.setMessage("test"+System.currentTimeMillis());
         messageTemplate.setUserIdList("0458215455697857");
 
-        DingTalkNotifier notifier=new DingTalkNotifier(
+        DingTalkNotifier notifier=new DingTalkNotifier("test",
                 WebClient.builder().build(),properties,null
         );
 

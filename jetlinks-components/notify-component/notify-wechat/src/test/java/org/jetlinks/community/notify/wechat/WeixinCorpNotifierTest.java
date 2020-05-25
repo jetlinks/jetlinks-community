@@ -26,7 +26,7 @@ class WeixinCorpNotifierTest {
         messageTemplate.setMessage("test"+System.currentTimeMillis());
         messageTemplate.setToUser("userId");
 
-        WeixinCorpNotifier notifier=new WeixinCorpNotifier(
+        WeixinCorpNotifier notifier=new WeixinCorpNotifier("test",
                 WebClient.builder().build(),properties,null
         );
 

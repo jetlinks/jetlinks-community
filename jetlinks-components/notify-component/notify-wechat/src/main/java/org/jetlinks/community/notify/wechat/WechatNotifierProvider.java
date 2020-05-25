@@ -1,6 +1,7 @@
 package org.jetlinks.community.notify.wechat;
 
 import com.alibaba.fastjson.JSON;
+import lombok.Getter;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.core.metadata.ConfigMetadata;
@@ -23,7 +24,6 @@ public class WechatNotifierProvider implements NotifierProvider, TemplateProvide
     private WebClient client = WebClient.create();
 
     private final TemplateManager templateManager;
-
     public WechatNotifierProvider(TemplateManager templateManager) {
         this.templateManager = templateManager;
     }
@@ -61,7 +61,7 @@ public class WechatNotifierProvider implements NotifierProvider, TemplateProvide
     public Mono<WeixinCorpNotifier> createNotifier(@Nonnull NotifierProperties properties) {
         return Mono.defer(() -> {
             WechatCorpProperties wechatCorpProperties = FastBeanCopier.copy(properties.getConfiguration(), new WechatCorpProperties());
-            return Mono.just(new WeixinCorpNotifier(client, ValidatorUtils.tryValidate(wechatCorpProperties), templateManager));
+            return Mono.just(new WeixinCorpNotifier(properties.getId(),client, ValidatorUtils.tryValidate(wechatCorpProperties), templateManager));
         });
     }
 

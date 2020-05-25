@@ -352,7 +352,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .flatMap(message -> Mono.justOrEmpty(DeviceMessageUtils.convert(message))
                 .map(DeviceMessage::getDeviceId)), 800, 200, Duration.ofSeconds(2))
             .publishOn(Schedulers.parallel())
-            .concatMap(list -> syncStateBatch(Flux.just(list), false).reduce(Math::addExact))
+            .concatMap(list -> syncStateBatch(Flux.just(list), false).map(List::size))
             .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))
             .subscribe((i) -> log.info("同步设备状态成功:{}", i));
     }
@@ -364,7 +364,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .switchIfEmpty(Mono.error(NotFoundException::new));
     }
 
-    public Flux<Integer> syncStateBatch(Flux<List<String>> batch, boolean force) {
+    public Flux<List<DeviceStateInfo>> syncStateBatch(Flux<List<String>> batch, boolean force) {
 
         return batch
             .concatMap(list -> Flux.fromIterable(list)
@@ -384,6 +384,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 .collect(Collectors.groupingBy(Tuple2::getT1))
                 .flatMapIterable(Map::entrySet)
                 .flatMap(group -> {
+                    List<String> deviceId=group.getValue().stream().map(Tuple3::getT2).collect(Collectors.toList());
                     DeviceState state = DeviceState.of(group.getKey());
                     return Mono.zip(
                         //批量修改设备状态
@@ -391,10 +392,9 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                             .createUpdate()
                             .set(DeviceInstanceEntity::getState, state)
                             .where()
-                            .in(DeviceInstanceEntity::getId, group.getValue().stream().map(Tuple3::getT2).collect(Collectors.toList()))
+                            .in(DeviceInstanceEntity::getId,deviceId)
                             .execute()
-                            .thenReturn(group.getValue().size())//mysql下可能不会返回更新数量
-                        ,
+                            .thenReturn(group.getValue().size()),
                         //修改子设备状态
                         Flux.fromIterable(group.getValue())
                             .filter(Tuple3::getT3)
@@ -408,8 +408,8 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                                     .where()
                                     .in(DeviceInstanceEntity::getParentId, parents)
                                     .execute())
-                            .defaultIfEmpty(0),
-                        Math::addExact);
+                            .defaultIfEmpty(0))
+                        .thenReturn(deviceId.stream().map(id->DeviceStateInfo.of(id,state)).collect(Collectors.toList()));
                 }));
     }
 

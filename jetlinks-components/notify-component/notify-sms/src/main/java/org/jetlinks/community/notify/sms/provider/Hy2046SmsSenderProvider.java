@@ -1,6 +1,7 @@
 package org.jetlinks.community.notify.sms.provider;
 
 import com.alibaba.fastjson.JSON;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jetlinks.core.Values;
@@ -84,7 +85,7 @@ public class Hy2046SmsSenderProvider implements NotifierProvider, TemplateProvid
             Assert.hasText(userId, "短信配置错误,缺少userId");
             Assert.hasText(username, "短信配置错误,缺少username");
             Assert.hasText(password, "短信配置错误,缺少password");
-            return Mono.just(new Hy2046SmsSender(userId, username, password));
+            return Mono.just(new Hy2046SmsSender(properties.getId(),userId, username, password));
         });
     }
 
@@ -103,10 +104,13 @@ public class Hy2046SmsSenderProvider implements NotifierProvider, TemplateProvid
         String userId;
         String username;
         String password;
+        @Getter
+        private final String notifierId;
 
-        public Hy2046SmsSender(String userId, String username, String password) {
+        public Hy2046SmsSender(String id,String userId, String username, String password) {
             super(templateManager);
             this.userId = userId;
+            this.notifierId = id;
             this.username = username;
             this.password = password;
         }

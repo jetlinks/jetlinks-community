@@ -1,5 +1,6 @@
 package org.jetlinks.community.notify.dingtalk;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.core.Values;
@@ -22,24 +23,27 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class DingTalkNotifier extends AbstractNotifier<DingTalkMessageTemplate> {
 
-    private AtomicReference<String> accessToken = new AtomicReference<>();
+    private final AtomicReference<String> accessToken = new AtomicReference<>();
 
     private long refreshTokenTime;
 
-    private long tokenTimeOut = Duration.ofSeconds(7000).toMillis();
+    private final long tokenTimeOut = Duration.ofSeconds(7000).toMillis();
 
-    private WebClient client;
+    private final WebClient client;
 
     private static final String tokenApi = "https://oapi.dingtalk.com/gettoken";
 
     private static final String notify = "https://oapi.dingtalk.com/topapi/message/corpconversation/asyncsend_v2";
 
-    private DingTalkProperties properties;
+    private final DingTalkProperties properties;
+    @Getter
+    private final String notifierId;
 
-    public DingTalkNotifier(WebClient client, DingTalkProperties properties, TemplateManager templateManager) {
+    public DingTalkNotifier(String id,WebClient client, DingTalkProperties properties, TemplateManager templateManager) {
         super(templateManager);
         this.client = client;
         this.properties = properties;
+        this.notifierId = id;
     }
 
     @Nonnull
