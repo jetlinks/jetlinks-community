@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.message;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
@@ -43,9 +44,17 @@ public class DeviceBatchOperationSubscriptionProvider implements SubscriptionPro
     public Flux<?> subscribe(SubscribeRequest request) {
         String topic = request.getTopic();
 
-        QueryParamEntity queryParamEntity = request.getString("queryJson")
-            .map(json -> JSON.parseObject(json, QueryParamEntity.class))
+        @SuppressWarnings("all")
+        QueryParamEntity queryParamEntity = request.get("query")
+            .map(json -> {
+                if (json instanceof Map) {
+                    return new JSONObject(((Map<String, Object>) json));
+                } else {
+                    return JSON.parseObject(String.valueOf(json));
+                }
+            }).map(json -> json.toJavaObject(QueryParamEntity.class))
             .orElseGet(QueryParamEntity::new);
+
 
         Map<String, String> var = MqttTopicUtils.getPathVariables("/device-batch/{type}", topic);
         String type = var.get("type");
