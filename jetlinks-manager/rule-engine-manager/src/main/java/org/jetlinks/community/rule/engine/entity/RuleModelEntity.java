@@ -43,10 +43,10 @@ public class RuleModelEntity extends GenericEntity<String> implements RecordCrea
     @Column(name = "version",nullable = false)
     private Integer version;
 
-    @Column(name = "creator_id")
+    @Column(name = "creator_id",updatable = false)
     private String creatorId;
 
-    @Column(name = "create_time")
+    @Column(name = "create_time",updatable = false)
     private Long createTime;
 
     @Column(name = "modifier_id")
