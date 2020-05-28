@@ -153,8 +153,8 @@ public class DefaultElasticSearchService implements ElasticSearchService {
         //这里的警告都输出到控制台,输入到slf4j可能会造成日志递归.
         FluxUtils.bufferRate(
             Flux.<Buffer>create(sink -> this.sink = sink),
-            1000,
-            2000,
+            Integer.getInteger("elasticsearch.flush.rate", 1000),
+            Integer.getInteger("elasticsearch.buffer.size", 2000),
             Duration.ofSeconds(3))
             .onBackpressureBuffer(512,
                 drop -> System.err.println("无法处理更多索引请求!"),
