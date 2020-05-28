@@ -1,5 +1,6 @@
 package org.jetlinks.community.notify.wechat;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.core.Values;
@@ -22,24 +23,27 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class WeixinCorpNotifier extends AbstractNotifier<WechatMessageTemplate> {
 
-    private AtomicReference<String> accessToken = new AtomicReference<>();
+    private final AtomicReference<String> accessToken = new AtomicReference<>();
 
     private long refreshTokenTime;
 
-    private long tokenTimeOut = Duration.ofSeconds(7000).toMillis();
+    private final long tokenTimeOut = Duration.ofSeconds(7000).toMillis();
 
-    private WebClient client;
+    private final WebClient client;
 
     private static final String tokenApi = "https://qyapi.weixin.qq.com/cgi-bin/gettoken";
 
     private static final String notify = "https://qyapi.weixin.qq.com/cgi-bin/message/send";
 
-    private WechatCorpProperties properties;
+    private final WechatCorpProperties properties;
+    @Getter
+    private final String notifierId;
 
-    public WeixinCorpNotifier(WebClient client, WechatCorpProperties properties, TemplateManager templateManager) {
+    public WeixinCorpNotifier(String id,WebClient client, WechatCorpProperties properties, TemplateManager templateManager) {
         super(templateManager);
         this.client = client;
         this.properties = properties;
+        this.notifierId = id;
     }
 
     @Nonnull

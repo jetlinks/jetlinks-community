@@ -19,7 +19,8 @@
         <spring.boot.version>2.2.5.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.1</hsweb.framework.version>
+        <hsweb.framework.version>4.0.3-SNAPSHOT</hsweb.framework.version>
+        <easyorm.version>4.0.3-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
         <jetlinks.version>1.0.3-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Arabba-RELEASE</r2dbc.version>
@@ -258,7 +259,22 @@
                 <artifactId>elasticsearch-rest-high-level-client</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.hswebframework</groupId>
+                <artifactId>hsweb-easy-orm-core</artifactId>
+                <version>${easyorm.version}</version>
+            </dependency>
 
+            <dependency>
+                <groupId>org.hswebframework</groupId>
+                <artifactId>hsweb-easy-orm-rdb</artifactId>
+                <version>${easyorm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hswebframework</groupId>
+                <artifactId>hsweb-easy-orm-elasticsearch</artifactId>
+                <version>${easyorm.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

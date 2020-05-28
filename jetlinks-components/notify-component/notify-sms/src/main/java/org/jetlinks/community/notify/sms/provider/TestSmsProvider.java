@@ -70,6 +70,11 @@ public class TestSmsProvider extends AbstractNotifier<PlainTextSmsTemplate> impl
     }
 
     @Override
+    public String getNotifierId() {
+        return "test-sms-notify";
+    }
+
+    @Override
     public String getId() {
         return "test";
     }

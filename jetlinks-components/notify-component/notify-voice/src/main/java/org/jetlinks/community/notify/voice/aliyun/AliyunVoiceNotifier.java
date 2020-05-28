@@ -9,6 +9,7 @@ import com.aliyuncs.IAcsClient;
 import com.aliyuncs.http.MethodType;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.logger.ReactiveLogger;
@@ -25,14 +26,17 @@ import java.util.Objects;
 @Slf4j
 public class AliyunVoiceNotifier extends AbstractNotifier<AliyunVoiceTemplate> {
 
-    private IAcsClient client;
+    private final IAcsClient client;
     private String domain = "dyvmsapi.aliyuncs.com";
     private String regionId = "cn-hangzhou";
-    private int connectTimeout = 1000;
-    private int readTimeout = 5000;
+    private final int connectTimeout = 1000;
+    private final int readTimeout = 5000;
+    @Getter
+    private String notifierId;
 
     public AliyunVoiceNotifier(NotifierProperties profile, TemplateManager templateManager) {
         super(templateManager);
+        this.notifierId = profile.getId();
         Map<String, Object> config = profile.getConfiguration();
         DefaultProfile defaultProfile = DefaultProfile.getProfile(
                 this.regionId = (String) Objects.requireNonNull(config.get("regionId"), "regionId不能为空"),

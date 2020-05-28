@@ -24,11 +24,12 @@ class TcpServerProviderTest {
     @BeforeAll
     static void init() {
         TcpServerProperties properties = TcpServerProperties.builder()
-                .id("test")
-                .options(new NetServerOptions().setPort(8080))
-                .parserType(PayloadParserType.FIXED_LENGTH)
-                .parserConfiguration(Collections.singletonMap("size", 5))
-                .build();
+            .id("test")
+            .port(8080)
+            .options(new NetServerOptions())
+            .parserType(PayloadParserType.FIXED_LENGTH)
+            .parserConfiguration(Collections.singletonMap("size", 5))
+            .build();
 
         TcpServerProvider provider = new TcpServerProvider((id) -> Mono.empty(), Vertx.vertx(), new DefaultPayloadParserBuilder());
 
@@ -40,30 +41,30 @@ class TcpServerProviderTest {
     void test() {
 
         Vertx.vertx().createNetClient()
-                .connect(8080, "localhost", handle -> {
-                    if (handle.succeeded()) {
-                        //模拟粘包，同时发送2个包
-                        handle.result().write("hellohello", r -> {
-                            if (r.succeeded()) {
-                                log.info("tcp客户端消息发送成功");
-                            } else {
-                                log.error("tcp客户端消息发送错误", r.cause());
-                            }
-                        });
-                    } else {
-                        log.error("创建tcp客户端错误", handle.cause());
-                    }
-                });
+            .connect(8080, "localhost", handle -> {
+                if (handle.succeeded()) {
+                    //模拟粘包，同时发送2个包
+                    handle.result().write("hellohello", r -> {
+                        if (r.succeeded()) {
+                            log.info("tcp客户端消息发送成功");
+                        } else {
+                            log.error("tcp客户端消息发送错误", r.cause());
+                        }
+                    });
+                } else {
+                    log.error("创建tcp客户端错误", handle.cause());
+                }
+            });
 
 
         tcpServer.handleConnection()
-                .flatMap(TcpClient::subscribe)
-                .map(TcpMessage::getPayload)
-                .map(payload -> payload.toString(StandardCharsets.UTF_8))
-                .take(2)
-                .as(StepVerifier::create)
-                .expectNext("hello", "hello")//收到2个完整的包
-                .verifyComplete();
+            .flatMap(TcpClient::subscribe)
+            .map(TcpMessage::getPayload)
+            .map(payload -> payload.toString(StandardCharsets.UTF_8))
+            .take(2)
+            .as(StepVerifier::create)
+            .expectNext("hello", "hello")//收到2个完整的包
+            .verifyComplete();
     }
 
 

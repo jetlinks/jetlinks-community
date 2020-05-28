@@ -59,10 +59,15 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     @Setter
     private String sender;
 
+    @Getter
+    private final String notifierId;
+
+
     public static Scheduler scheduler = Schedulers.newElastic("email-notifier");
 
     public DefaultEmailNotifier(NotifierProperties properties, TemplateManager templateManager) {
         super(templateManager);
+        notifierId = properties.getId();
 
         DefaultEmailProperties emailProperties = new JSONObject(properties.getConfiguration())
             .toJavaObject(DefaultEmailProperties.class);

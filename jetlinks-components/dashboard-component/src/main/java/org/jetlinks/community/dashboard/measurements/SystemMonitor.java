@@ -78,7 +78,9 @@ public enum SystemMonitor {
 
     @SneakyThrows
     public static double getValue(String id) {
-        return items.getOrDefault(id, zero).call();
+        double val = items.getOrDefault(id, zero).call();
+
+        return Double.isNaN(val) ? 0 : val;
     }
 
 }
