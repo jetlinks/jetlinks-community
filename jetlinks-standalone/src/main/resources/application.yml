@@ -29,6 +29,9 @@ spring:
     password: jetlinks
     pool:
       max-size: 32
+  reactor:
+    debug-agent:
+      enabled: false
 easyorm:
   default-schema: public # 数据库默认的schema
   dialect: postgres #数据库方言

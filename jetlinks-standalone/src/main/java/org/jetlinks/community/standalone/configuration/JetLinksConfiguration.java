@@ -1,5 +1,6 @@
 package org.jetlinks.community.standalone.configuration;
 
+import com.google.common.cache.CacheBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -97,7 +98,7 @@ public class JetLinksConfiguration {
     public ClusterDeviceRegistry deviceRegistry(ProtocolSupports supports,
                                                 ClusterManager manager,
                                                 DeviceOperationBroker handler) {
-        return new ClusterDeviceRegistry(supports, manager, handler);
+        return new ClusterDeviceRegistry(supports, manager, handler, CacheBuilder.newBuilder().build());
     }
 
     @Bean
