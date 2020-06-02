@@ -60,6 +60,9 @@
                         <TZ>Asia/Shanghai</TZ>
                         <APP_JAR>/${project.build.finalName}.jar</APP_JAR>
                     </env>
+                    <runs>
+                        <run>chmod +x docker-entrypoint.sh</run>
+                    </runs>
                     <entryPoint>["/docker-entrypoint.sh"]</entryPoint>
                     <resources>
                         <resource>
