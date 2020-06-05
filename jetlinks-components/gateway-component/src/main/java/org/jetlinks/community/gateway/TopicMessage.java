@@ -1,9 +1,11 @@
 package org.jetlinks.community.gateway;
 
+import com.alibaba.fastjson.JSON;
+import io.netty.buffer.ByteBufUtil;
 import org.jetlinks.core.message.codec.EncodedMessage;
-import org.jetlinks.rule.engine.executor.PayloadType;
 
 import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 
 public interface TopicMessage {
 
@@ -31,11 +33,17 @@ public interface TopicMessage {
         if (getMessage() instanceof EncodableMessage) {
             return ((EncodableMessage) getMessage()).getNativePayload();
         }
-
-        if (getMessage().getPayloadType() == null) {
-            return getMessage().getBytes();
+        byte[] payload = getMessage().payloadAsBytes();
+        //maybe json
+        if (/* { }*/(payload[0] == 123 && payload[payload.length - 1] == 125)
+            || /* [ ] */(payload[0] == 91 && payload[payload.length - 1] == 93)
+        ) {
+            return JSON.parseObject(new String(payload));
         }
-        return PayloadType.valueOf(getMessage().getPayloadType().name()).read(getMessage().getPayload());
+        if (ByteBufUtil.isText(getMessage().getPayload(), StandardCharsets.UTF_8)) {
+            return getMessage().payloadAsString();
+        }
+        return payload;
     }
 
     static TopicMessage of(String topic, EncodedMessage message) {
