@@ -151,7 +151,21 @@
                 <version>3.0.0</version>
             </plugin>
         </plugins>
+
     </build>
+
+    <profiles>
+        <profile>
+            <id>build</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <name>central</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
 
     <dependencyManagement>
 
@@ -374,16 +388,6 @@
             <name>spring</name>
             <url>https://repo.spring.io/milestone</url>
         </repository>
-
-<!--        <repository>-->
-<!--            <id>sonatype-snapshots</id>-->
-<!--            <name>Nexus Snapshot Repository</name>-->
-<!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>true</enabled>-->
-<!--                <updatePolicy>daily</updatePolicy>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
 
     </repositories>
 
