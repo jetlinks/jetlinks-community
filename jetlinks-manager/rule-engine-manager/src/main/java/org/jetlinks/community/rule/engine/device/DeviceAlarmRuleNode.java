@@ -23,7 +23,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -157,9 +160,41 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
                 );
 
             binds.forEach(context::bind);
-            return (ql == null ? ql = createQL() : ql)
+
+            Flux<Map<String, Object>> resultFlux = (ql == null ? ql = createQL() : ql)
                 .start(context)
-                .map(ReactorQLRecord::asMap)
+                .map(ReactorQLRecord::asMap);
+
+            DeviceAlarmRule.ShakeLimit shakeLimit;
+            if ((shakeLimit = rule.getShakeLimit()) != null
+                && shakeLimit.isEnabled()
+                && shakeLimit.getTime() > 0) {
+                int thresholdNumber = shakeLimit.getThreshold();
+                //打开时间窗口
+                Flux<Flux<Map<String, Object>>> window = resultFlux.window(Duration.ofSeconds(shakeLimit.getTime()));
+
+                Function<Flux<Tuple2<Long, Map<String, Object>>>, Publisher<Tuple2<Long, Map<String, Object>>>> mapper =
+                    shakeLimit.isAlarmFirst()
+                        ?
+                        group -> group
+                            .takeUntil(tp -> tp.getT1() >= thresholdNumber) //达到触发阈值
+                            .take(1) //取第一个
+                            .singleOrEmpty()
+                        :
+                        group -> group.takeLast(1).singleOrEmpty();//取最后一个
+
+                resultFlux = window
+                    .flatMap(group -> group
+                        .index((index, data) -> Tuples.of(index + 1, data))
+                        .transform(mapper)
+                        .filter(tp -> tp.getT1() >= thresholdNumber) //超过阈值告警
+                        .map(tp2 -> {
+                            tp2.getT2().put("totalAlarms", tp2.getT1());
+                            return tp2.getT2();
+                        }));
+            }
+
+            return resultFlux
                 .flatMap(map -> {
                     map.put("productId", rule.getProductId());
                     map.put("alarmId", rule.getId());
