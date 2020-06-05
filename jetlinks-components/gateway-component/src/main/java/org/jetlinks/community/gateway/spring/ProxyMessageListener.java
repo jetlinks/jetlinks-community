@@ -15,8 +15,8 @@ import java.util.StringJoiner;
 import java.util.function.BiFunction;
 
 class ProxyMessageListener implements MessageListener {
-    private Class<?> paramType;
-    private Object target;
+    private final Class<?> paramType;
+    private final Object target;
 
     BiFunction<Object, Object, Object> proxy;
 
@@ -74,6 +74,9 @@ class ProxyMessageListener implements MessageListener {
 
         if (message.getMessage() instanceof EncodableMessage) {
             Object payload = ((EncodableMessage) message.getMessage()).getNativePayload();
+            if(paramType.isInstance(payload)){
+                return payload;
+            }
             return FastBeanCopier.DEFAULT_CONVERT.convert(payload, paramType, new Class[]{});
         }
         return message;
