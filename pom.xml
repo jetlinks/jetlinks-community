@@ -29,6 +29,7 @@
         <elasticsearch.version>6.8.6</elasticsearch.version>
         <reactor.excel.version>1.0-RC</reactor.excel.version>
         <reactor.ql.version>1.0.0</reactor.ql.version>
+        <fastjson.version>1.2.70</fastjson.version>
     </properties>
 
     <build>
@@ -150,7 +151,21 @@
                 <version>3.0.0</version>
             </plugin>
         </plugins>
+
     </build>
+
+    <profiles>
+        <profile>
+            <id>build</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <name>central</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
 
     <dependencyManagement>
 
@@ -182,7 +197,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.56</version>
+                <version>${fastjson.version}</version>
             </dependency>
 
             <dependency>

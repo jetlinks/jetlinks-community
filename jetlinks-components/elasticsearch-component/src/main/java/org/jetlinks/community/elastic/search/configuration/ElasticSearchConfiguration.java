@@ -52,8 +52,8 @@ public class ElasticSearchConfiguration {
         return new ElasticRestClient(client, client);
     }
 
-    @Bean
-    public RestHighLevelClient elasticsearchRestHighLevelClient(ElasticRestClient client) {
+    @Bean(destroyMethod = "close")
+    public RestHighLevelClient restHighLevelClient(ElasticRestClient client) {
         return client.getWriteClient();
     }
 

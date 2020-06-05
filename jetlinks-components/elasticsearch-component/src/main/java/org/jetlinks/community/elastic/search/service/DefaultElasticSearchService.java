@@ -27,6 +27,7 @@ import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
 import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
 import org.reactivestreams.Publisher;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
  **/
 @Service
 @Slf4j
+@DependsOn("restHighLevelClient")
 public class DefaultElasticSearchService implements ElasticSearchService {
 
     private final ElasticRestClient restClient;
