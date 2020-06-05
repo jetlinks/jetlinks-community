@@ -72,14 +72,14 @@ class ProxyMessageListener implements MessageListener {
             return message.getMessage().getPayload();
         }
 
-        if (message.getMessage() instanceof EncodableMessage) {
-            Object payload = ((EncodableMessage) message.getMessage()).getNativePayload();
-            if(paramType.isInstance(payload)){
-                return payload;
-            }
-            return FastBeanCopier.DEFAULT_CONVERT.convert(payload, paramType, new Class[]{});
+        Object payload = message.convertMessage();
+        if (paramType.isInstance(payload)) {
+            return payload;
         }
-        return message;
+        if (payload instanceof byte[]) {
+            return payload;
+        }
+        return FastBeanCopier.DEFAULT_CONVERT.convert(payload, paramType, new Class[]{});
 
     }
 
