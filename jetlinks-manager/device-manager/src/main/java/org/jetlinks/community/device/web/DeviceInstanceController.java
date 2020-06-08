@@ -369,9 +369,12 @@ public class DeviceInstanceController implements
             .flatMap(DeviceProductOperator::getMetadata)
             .map(metadata -> new DeviceWrapper(metadata.getTags()))
             .defaultIfEmpty(DeviceWrapper.empty)
+            .zipWith(productService.findById(productId))
             .flatMapMany(wrapper -> importExportService
                 .getInputStream(fileUrl)
-                .flatMapMany(inputStream -> ReactorExcel.read(inputStream, FileUtils.getExtension(fileUrl), wrapper)))
+                .flatMapMany(inputStream -> ReactorExcel.read(inputStream, FileUtils.getExtension(fileUrl), wrapper.getT1()))
+                .doOnNext(info -> info.setProductName(wrapper.getT2().getName()))
+            )
             .map(info -> {
                 DeviceInstanceEntity entity = FastBeanCopier.copy(info, new DeviceInstanceEntity());
                 entity.setProductId(productId);
