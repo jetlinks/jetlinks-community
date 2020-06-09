@@ -80,7 +80,6 @@ JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发,
 | Http,WebSocket(TLS) |  ⭕  |  ✅ |     ✅ |
 | 数据转发:MQTT,HTTP,Kafka... |  ⭕  |  ✅ |     ✅ |
 | Geo地理位置支持     | ⭕   |  ✅ |  ✅    |
-| 可视化图表配置   |  ⭕  |  ✅ |     ✅    |
 | OpenAPI    |  ⭕  |  ✅ |     ✅     |
 | 多租户(建设中)   |  ⭕  |  ✅ |   ✅   |
 | 集群支持    |  ⭕  |  ✅ |     ✅     |
