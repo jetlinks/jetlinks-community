@@ -33,7 +33,7 @@ public class DeviceExcelInfo {
     private long rowNumber;
 
 
-    public void tag(String key, String name, Object value,String type) {
+    public void tag(String key, String name, Object value, String type) {
         if (value == null) {
             return;
         }
@@ -43,13 +43,15 @@ public class DeviceExcelInfo {
         entity.setName(name);
         entity.setDeviceId(id);
         entity.setType(type);
-        entity.setId(String.valueOf(id).concat(":").concat(key));
+        entity.setId(DeviceTagEntity.createTagId(id,key));
         tags.add(entity);
     }
+
     public void setId(String id) {
         this.id = id;
         for (DeviceTagEntity tag : tags) {
-            tag.setId(String.valueOf(id).concat(":").concat(tag.getKey()));
+            tag.setDeviceId(id);
+            tag.setId(DeviceTagEntity.createTagId(tag.getDeviceId(),tag.getKey()));
         }
     }
 

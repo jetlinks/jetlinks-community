@@ -60,6 +60,6 @@ public class DeviceTagEntity extends GenericEntity<String> {
     }
 
     public static String createTagId(String deviceId,String key){
-        return DigestUtils.md5Hex(deviceId.concat(":").concat(key));
+        return DigestUtils.md5Hex(deviceId + ":" + key);
     }
 }
