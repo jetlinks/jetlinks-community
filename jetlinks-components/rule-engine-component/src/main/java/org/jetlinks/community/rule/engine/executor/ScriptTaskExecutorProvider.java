@@ -1,4 +1,4 @@
-package org.jetlinks.community.rule.engine.nodes;
+package org.jetlinks.community.rule.engine.executor;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -7,11 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.expands.script.engine.DynamicScriptEngine;
 import org.hswebframework.expands.script.engine.DynamicScriptEngineFactory;
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.rule.engine.api.RuleData;
-import org.jetlinks.rule.engine.api.executor.ExecutionContext;
-import org.jetlinks.rule.engine.api.model.NodeType;
-import org.jetlinks.rule.engine.executor.CommonExecutableRuleNodeFactoryStrategy;
-import org.jetlinks.rule.engine.executor.node.RuleNodeConfig;
+import org.jetlinks.rule.engine.api.model.RuleNodeModel;
+import org.jetlinks.rule.engine.api.task.ExecutionContext;
+import org.jetlinks.rule.engine.api.task.TaskExecutor;
+import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
+import org.jetlinks.rule.engine.defaults.LambdaTaskExecutor;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -24,14 +26,22 @@ import java.util.function.Function;
 
 @Component
 @Slf4j
-public class ScriptWorkerNode extends CommonExecutableRuleNodeFactoryStrategy<ScriptWorkerNode.Config> {
+public class ScriptTaskExecutorProvider implements TaskExecutorProvider {
 
     @Override
-    public String getSupportType() {
+    public String getExecutor() {
         return "script";
     }
 
     @Override
+    public Mono<TaskExecutor> createTask(ExecutionContext context) {
+        return Mono.just(new LambdaTaskExecutor("script", context, () -> {
+
+            return createExecutor(context, FastBeanCopier.copy(context.getJob().getConfiguration(), new Config()));
+
+        }));
+    }
+
     @SneakyThrows
     public Function<RuleData, Publisher<?>> createExecutor(ExecutionContext context, Config config) {
 
@@ -54,16 +64,16 @@ public class ScriptWorkerNode extends CommonExecutableRuleNodeFactoryStrategy<Sc
         scriptContext.put("handler", handler);
         engine.execute(id, scriptContext).getIfSuccess();
 
-        return ruleData -> Flux.defer(()->{
+        return ruleData -> Flux.defer(() -> {
             if (handler.onMessage != null) {
                 Object result = handler.onMessage.apply(ruleData);
                 if (result == null || result.getClass().getName().equals("jdk.nashorn.internal.runtime.Undefined")) {
                     return Flux.empty();
                 }
-                if(result instanceof Publisher){
-                    return Flux.from(((Publisher) result));
+                if (result instanceof Publisher) {
+                    return Flux.from(((Publisher<?>) result));
                 }
-                if(result instanceof Map){
+                if (result instanceof Map) {
                     result = new HashMap<>((Map<?, ?>) result);
                 }
                 return Flux.just(result);
@@ -82,13 +92,11 @@ public class ScriptWorkerNode extends CommonExecutableRuleNodeFactoryStrategy<Sc
 
     @Getter
     @Setter
-    public static class Config implements RuleNodeConfig {
+    public static class Config {
 
         private String lang = "js";
 
         private String script;
-
-        private NodeType nodeType;
 
     }
 }

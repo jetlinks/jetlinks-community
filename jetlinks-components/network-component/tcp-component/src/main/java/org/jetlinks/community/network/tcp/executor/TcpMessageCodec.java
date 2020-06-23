@@ -1,12 +1,10 @@
-package org.jetlinks.community.network.tcp.node;
+package org.jetlinks.community.network.tcp.executor;
 
-import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataCodec;
 import org.jetlinks.rule.engine.api.RuleDataCodecs;
 import org.jetlinks.rule.engine.executor.PayloadType;
-import org.jetlinks.rule.engine.executor.node.device.EncodedMessageCodec;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -19,9 +17,6 @@ public class TcpMessageCodec implements RuleDataCodec<TcpMessage> {
 
     static {
         RuleDataCodecs.register(TcpMessage.class, instance);
-
-        EncodedMessageCodec.register(DefaultTransport.TCP, instance);
-        EncodedMessageCodec.register(DefaultTransport.TCP_TLS, instance);
     }
 
     static void register() {

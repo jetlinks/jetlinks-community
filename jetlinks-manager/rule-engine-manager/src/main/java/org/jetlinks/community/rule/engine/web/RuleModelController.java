@@ -7,11 +7,14 @@ import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.jetlinks.community.rule.engine.entity.RuleModelEntity;
 import org.jetlinks.community.rule.engine.service.RuleModelService;
-import org.jetlinks.rule.engine.api.executor.ExecutableRuleNodeFactory;
+import org.jetlinks.rule.engine.api.RuleEngine;
+import org.jetlinks.rule.engine.api.worker.Worker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.function.Function;
 
 @RestController
 @RequestMapping("rule-engine/model")
@@ -22,7 +25,7 @@ public class RuleModelController implements ReactiveServiceCrudController<RuleMo
     private RuleModelService ruleModelService;
 
     @Autowired
-    private ExecutableRuleNodeFactory factory;
+    private RuleEngine ruleEngine;
 
     @Override
     public ReactiveCrudService<RuleModelEntity, String> getService() {
@@ -39,6 +42,6 @@ public class RuleModelController implements ReactiveServiceCrudController<RuleMo
     @GetMapping("/executors")
     @QueryAction
     public Flux<String> getAllSupportExecutors() {
-        return Flux.fromIterable(factory.getAllSupportExecutor());
+        return ruleEngine.getWorkers().flatMap(Worker::getSupportExecutors).flatMapIterable(Function.identity());
     }
 }

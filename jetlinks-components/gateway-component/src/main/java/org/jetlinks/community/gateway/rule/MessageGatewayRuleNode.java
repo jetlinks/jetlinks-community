@@ -1,19 +1,21 @@
 package org.jetlinks.community.gateway.rule;
 
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.gateway.MessageGatewayManager;
 import org.jetlinks.community.network.PubSubType;
 import org.jetlinks.rule.engine.api.RuleData;
-import org.jetlinks.rule.engine.api.executor.ExecutionContext;
-import org.jetlinks.rule.engine.executor.CommonExecutableRuleNodeFactoryStrategy;
+import org.jetlinks.rule.engine.api.task.ExecutionContext;
+import org.jetlinks.rule.engine.api.task.TaskExecutor;
+import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
+import org.jetlinks.rule.engine.defaults.FunctionTaskExecutor;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
+import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
-import java.util.function.Function;
-
 @Component
-public class MessageGatewayRuleNode extends CommonExecutableRuleNodeFactoryStrategy<MessageGatewayRuleNodeConfig> {
+public class MessageGatewayRuleNode implements TaskExecutorProvider {
 
     private final MessageGatewayManager gatewayManager;
 
@@ -26,43 +28,52 @@ public class MessageGatewayRuleNode extends CommonExecutableRuleNodeFactoryStrat
     }
 
     @Override
-    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context, MessageGatewayRuleNodeConfig config) {
-        if (config.getType() == PubSubType.consumer) {
-            return Mono::just;
-        }
-        return ruleData -> gatewayManager
-            .getGateway(config.getGatewayId())
-            .switchIfEmpty(Mono.error(() -> new NotFoundException("消息网关[{" + config.getGatewayId() + "}]不存在")))
-            .flatMap(gateway -> config.convert(ruleData)
-                .flatMap(msg -> gateway.publish(msg, config.isShareCluster()))
-                .then())
-            .thenReturn(ruleData);
-    }
-
-    @Override
-    protected void onStarted(ExecutionContext context, MessageGatewayRuleNodeConfig config) {
-        super.onStarted(context, config);
-        if (config.getType() == PubSubType.producer) {
-            return;
-        }
-        //订阅网关中的消息
-        context.onStop(gatewayManager
-            .getGateway(config.getGatewayId())
-            .switchIfEmpty(Mono.fromRunnable(() -> context.logger().error("消息网关[{" + config.getGatewayId() + "}]不存在")))
-            .flatMapMany(gateway -> gateway.subscribe(config.createTopics()))
-            .map(config::convert)
-            .flatMap(data -> context.getOutput().write(Mono.just(RuleData.create(data))))
-            .onErrorContinue((err, obj) -> {
-                context.logger().error(err.getMessage(), err);
-            })
-            .subscribe()::dispose);
-
-    }
-
-    @Override
-    public String getSupportType() {
+    public String getExecutor() {
         return "message-gateway";
     }
 
+    @Override
+    public Mono<TaskExecutor> createTask(ExecutionContext context) {
+        return Mono.just(new MessageGatewayPubSubExecutor(context));
+    }
 
+    class MessageGatewayPubSubExecutor extends FunctionTaskExecutor {
+        MessageGatewayRuleNodeConfig config;
+
+        public MessageGatewayPubSubExecutor(ExecutionContext context) {
+            super("消息网关订阅发布", context);
+            this.config = FastBeanCopier.copy(context.getJob().getConfiguration(), MessageGatewayRuleNodeConfig.class);
+            this.config.validate();
+        }
+
+        @Override
+        protected Publisher<RuleData> apply(RuleData input) {
+            return gatewayManager
+                .getGateway(config.getGatewayId())
+                .switchIfEmpty(Mono.error(() -> new NotFoundException("消息网关[{" + config.getGatewayId() + "}]不存在")))
+                .flatMap(gateway -> config.convert(input)
+                    .flatMap(msg -> gateway.publish(msg, config.isShareCluster()))
+                    .then())
+                .thenReturn(input);
+        }
+
+        @Override
+        protected Disposable doStart() {
+            if (config.getType() == PubSubType.producer) {
+                return super.doStart();
+            }
+
+            //订阅网关中的消息
+            return gatewayManager
+                .getGateway(config.getGatewayId())
+                .switchIfEmpty(Mono.fromRunnable(() -> context.getLogger().error("消息网关[{" + config.getGatewayId() + "}]不存在")))
+                .flatMapMany(gateway -> gateway.subscribe(config.createTopics()))
+                .map(config::convert)
+                .flatMap(data -> context.getOutput().write(Mono.just(RuleData.create(data))))
+                .onErrorContinue((err, obj) -> {
+                    context.getLogger().error(err.getMessage(), err);
+                })
+                .subscribe();
+        }
+    }
 }

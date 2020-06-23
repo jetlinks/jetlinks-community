@@ -1,4 +1,4 @@
-package org.jetlinks.community.rule.engine.nodes;
+package org.jetlinks.community.rule.engine.executor;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -6,18 +6,15 @@ import lombok.SneakyThrows;
 import org.hswebframework.web.bean.Converter;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.utils.ExpressionUtils;
-import org.jetlinks.rule.engine.api.RuleData;
-import org.jetlinks.rule.engine.api.executor.ExecutionContext;
-import org.jetlinks.rule.engine.api.model.NodeType;
-import org.jetlinks.rule.engine.executor.CommonExecutableRuleNodeFactoryStrategy;
-import org.jetlinks.rule.engine.executor.node.RuleNodeConfig;
-import org.reactivestreams.Publisher;
+import org.jetlinks.rule.engine.api.task.ExecutionContext;
+import org.jetlinks.rule.engine.api.task.TaskExecutor;
+import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
+import org.jetlinks.rule.engine.defaults.LambdaTaskExecutor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -25,30 +22,35 @@ import java.util.stream.Collectors;
  * @since 1.0.0
  */
 @Component
-public class DataMappingWorkerNode extends CommonExecutableRuleNodeFactoryStrategy<DataMappingWorkerNode.Config> {
+public class DataMappingTaskExecutorProvider implements TaskExecutorProvider {
 
     public static Converter converter = FastBeanCopier.DEFAULT_CONVERT;
 
     @Override
-    public String getSupportType() {
+    public String getExecutor() {
         return "data-mapping";
     }
 
     @Override
-    public Function<RuleData, Publisher<Object>> createExecutor(ExecutionContext context, Config config) {
+    public Mono<TaskExecutor> createTask(ExecutionContext context) {
 
-        return ruleData -> Mono.just(config.mapping(convertObject(ruleData.getData())));
+        return Mono.just(new LambdaTaskExecutor("Mapping", context, () -> {
+
+            Config config = FastBeanCopier.copy(context.getJob().getConfiguration(), new Config());
+
+            return data -> Mono.just(data.newData(config.mapping(data.getData())));
+
+        }));
     }
+
 
     @Getter
     @Setter
-    public static class Config implements RuleNodeConfig {
+    public static class Config {
 
         private List<Mapping> mappings = new ArrayList<>();
 
         private boolean keepSourceData = false;
-
-        private NodeType nodeType;
 
         private Map<String, Object> toMap(Object source) {
             return FastBeanCopier.copy(source, HashMap::new);
@@ -62,10 +64,10 @@ public class DataMappingWorkerNode extends CommonExecutableRuleNodeFactoryStrate
             if (data instanceof Collection) {
                 Collection<Object> source = ((Collection) data);
                 return source
-                        .stream()
-                        .map(this::toMap)
-                        .map(this::doMapping)
-                        .collect(Collectors.toList());
+                    .stream()
+                    .map(this::toMap)
+                    .map(this::doMapping)
+                    .collect(Collectors.toList());
             }
             return data;
         }

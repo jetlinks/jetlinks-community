@@ -1,26 +1,28 @@
 package org.jetlinks.community.rule.engine.device;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
-import org.jetlinks.core.message.DeviceMessage;
+import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.gateway.DeviceMessageUtils;
 import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.gateway.Subscription;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQLRecord;
+import org.jetlinks.rule.engine.api.RuleConstants;
 import org.jetlinks.rule.engine.api.RuleData;
-import org.jetlinks.rule.engine.api.events.RuleEvent;
-import org.jetlinks.rule.engine.api.executor.ExecutionContext;
-import org.jetlinks.rule.engine.api.model.NodeType;
-import org.jetlinks.rule.engine.executor.CommonExecutableRuleNodeFactoryStrategy;
-import org.jetlinks.rule.engine.executor.node.RuleNodeConfig;
+import org.jetlinks.rule.engine.api.task.ExecutionContext;
+import org.jetlinks.rule.engine.api.task.Task;
+import org.jetlinks.rule.engine.api.task.TaskExecutor;
+import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
+import org.jetlinks.rule.engine.defaults.AbstractTaskExecutor;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
@@ -31,45 +33,26 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Slf4j(topic = "system.rule.engine.device.alarm")
-@Component
+@Slf4j
 @AllArgsConstructor
-public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy<DeviceAlarmRuleNode.Config> {
+@Component
+public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
     private final MessageGateway messageGateway;
 
     @Override
-    public Function<RuleData, ? extends Publisher<?>> createExecutor(ExecutionContext context,DeviceAlarmRuleNode.Config config) {
-
-        return Mono::just;
-    }
-
-    @Override
-    protected void onStarted(ExecutionContext context, DeviceAlarmRuleNode.Config config) {
-        context.onStop(
-            config.doSubscribe(messageGateway)
-                .flatMap(result -> {
-                    RuleData data = RuleData.create(result);
-                    //输出到下一节点
-                    return context.getOutput()
-                        .write(Mono.just(data))
-                        .then(context.fireEvent(RuleEvent.NODE_EXECUTE_DONE, data));
-                })
-                .onErrorResume(err -> context.onError(RuleData.create(err.getMessage()), err))
-                .subscribe()::dispose
-        );
-    }
-
-    @Override
-    public String getSupportType() {
+    public String getExecutor() {
         return "device_alarm";
     }
 
+    @Override
+    public Mono<TaskExecutor> createTask(ExecutionContext context) {
+        return Mono.just(new DeviceAlarmTaskExecutor(context));
+    }
 
-    @Getter
-    @Setter
-    public static class Config implements RuleNodeConfig {
-        static List<String> default_columns = Arrays.asList(
+    class DeviceAlarmTaskExecutor extends AbstractTaskExecutor {
+
+        List<String> default_columns = Arrays.asList(
             "timestamp", "deviceId", "this.header.deviceName deviceName"
         );
 
@@ -77,19 +60,63 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
 
         private ReactorQL ql;
 
+        public DeviceAlarmTaskExecutor(ExecutionContext context) {
+            super(context);
+            rule = createRule();
+            ql = createQL(rule);
+        }
+
+        @Override
+        public String getName() {
+            return "设备告警";
+        }
+
+        @Override
+        protected Disposable doStart() {
+            rule.validate();
+            return doSubscribe(messageGateway)
+                .filter(ignore -> state == Task.State.running)
+                .flatMap(result -> {
+                    RuleData data = RuleData.create(result);
+                    //输出到下一节点
+                    return context
+                        .getOutput()
+                        .write(Mono.just(data))
+                        .then(context.fireEvent(RuleConstants.Event.result, data));
+                })
+                .onErrorResume(err -> context.onError(err, null))
+                .subscribe();
+        }
+
+        @Override
+        public void reload() {
+            rule = createRule();
+            ql = createQL(rule);
+            if (disposable != null) {
+                disposable.dispose();
+            }
+            doStart();
+        }
+
+        private DeviceAlarmRule createRule() {
+            DeviceAlarmRule rule = ValueObject.of(context.getJob().getConfiguration())
+                .get("rule")
+                .map(val -> FastBeanCopier.copy(val, new DeviceAlarmRule())).orElseThrow(() -> new IllegalArgumentException("告警配置错误"));
+            rule.validate();
+            return rule;
+        }
+
         @Override
         public void validate() {
-            if (CollectionUtils.isEmpty(rule.getTriggers())) {
-                throw new IllegalArgumentException("预警条件不能为空");
-            }
+            DeviceAlarmRule rule = createRule();
             try {
-                ql = createQL();
+                createQL(rule);
             } catch (Exception e) {
                 throw new IllegalArgumentException("配置错误:" + e.getMessage(), e);
             }
         }
 
-        private ReactorQL createQL() {
+        private ReactorQL createQL(DeviceAlarmRule rule) {
             List<String> columns = new ArrayList<>(default_columns);
             List<String> wheres = new ArrayList<>();
 
@@ -119,13 +146,21 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
                         continue;
                     }
                     String alias = StringUtils.hasText(property.getAlias()) ? property.getAlias() : property.getProperty();
-                    newColumns.add("this['" + property.getProperty() + "'] \"" + alias + "\"");
+                    // 'message',func(),this[name]
+                    if ((property.getProperty().startsWith("'") && property.getProperty().endsWith("'"))
+                        ||
+                        property.getProperty().contains("(") || property.getProperty().contains("[")) {
+                        newColumns.add(property.getProperty() + "\"" + alias + "\"");
+                    } else {
+                        newColumns.add("this['" + property.getProperty() + "'] \"" + alias + "\"");
+                    }
                 }
                 if (newColumns.size() > 3) {
                     sql = "select \n\t" + String.join("\n\t,", newColumns) + "\n from (\n\t" + sql + "\n) t";
                 }
             }
             log.debug("create device alarm sql : \n{}", sql);
+
             return ReactorQL.builder().sql(sql).build();
         }
 
@@ -161,7 +196,7 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
 
             binds.forEach(context::bind);
 
-            Flux<Map<String, Object>> resultFlux = (ql == null ? ql = createQL() : ql)
+            Flux<Map<String, Object>> resultFlux = (ql == null ? ql = createQL(rule) : ql)
                 .start(context)
                 .map(ReactorQLRecord::asMap);
 
@@ -177,11 +212,11 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
                     shakeLimit.isAlarmFirst()
                         ?
                         group -> group
-                            .takeUntil(tp -> tp.getT1() >= thresholdNumber) //达到触发阈值
-                            .take(1) //取第一个
+                            .takeUntil(tp -> tp.getT1() >= thresholdNumber)
+                            .take(1)
                             .singleOrEmpty()
                         :
-                        group -> group.takeLast(1).singleOrEmpty();//取最后一个
+                        group -> group.takeLast(1).singleOrEmpty();
 
                 resultFlux = window
                     .flatMap(group -> group
@@ -226,16 +261,6 @@ public class DeviceAlarmRuleNode extends CommonExecutableRuleNodeFactoryStrategy
                         ), map, true)
                         .then(Mono.just(map));
                 });
-        }
-
-        @Override
-        public NodeType getNodeType() {
-            return NodeType.MAP;
-        }
-
-        @Override
-        public void setNodeType(NodeType nodeType) {
-
         }
     }
 }

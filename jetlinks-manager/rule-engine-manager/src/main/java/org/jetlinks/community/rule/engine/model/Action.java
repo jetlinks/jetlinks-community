@@ -2,9 +2,7 @@ package org.jetlinks.community.rule.engine.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.jetlinks.rule.engine.api.executor.RuleNodeConfiguration;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
-import org.jetlinks.rule.engine.executor.ExecutableRuleNodeFactoryStrategy;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -18,7 +16,6 @@ public class Action implements Serializable {
      * 执行器
      *
      * @see RuleNodeModel#getExecutor()
-     * @see ExecutableRuleNodeFactoryStrategy#getSupportType()
      */
     private String executor;
 
@@ -26,7 +23,6 @@ public class Action implements Serializable {
      * 执行器配置
      *
      * @see RuleNodeModel#getConfiguration()
-     * @see RuleNodeConfiguration
      */
     private Map<String, Object> configuration;
 }

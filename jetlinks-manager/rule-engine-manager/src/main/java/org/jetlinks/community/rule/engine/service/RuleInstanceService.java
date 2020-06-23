@@ -4,16 +4,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
-import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteLogInfo;
-import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteEventInfo;
-import org.jetlinks.community.rule.engine.event.handler.RuleEngineLoggerIndexProvider;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
-import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
+import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteEventInfo;
+import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteLogInfo;
 import org.jetlinks.community.rule.engine.entity.RuleInstanceEntity;
-import org.jetlinks.rule.engine.api.Rule;
+import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
+import org.jetlinks.community.rule.engine.event.handler.RuleEngineLoggerIndexProvider;
 import org.jetlinks.rule.engine.api.RuleEngine;
-import org.jetlinks.rule.engine.api.RuleInstanceContext;
 import org.jetlinks.rule.engine.api.model.RuleEngineModelParser;
+import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -44,30 +43,29 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
 
     public Mono<Void> stop(String id) {
         return this.ruleEngine
-                .getInstance(id)
-                .flatMap(RuleInstanceContext::stop)
-                .switchIfEmpty(Mono.empty())
-                .then(createUpdate()
-                        .set(RuleInstanceEntity::getState, RuleInstanceState.stopped)
-                        .where(RuleInstanceEntity::getId,id)
-                        .execute())
-                .then();
+            .shutdown(id)
+            .then(createUpdate()
+                .set(RuleInstanceEntity::getState, RuleInstanceState.stopped)
+                .where(RuleInstanceEntity::getId, id)
+                .execute())
+            .then();
     }
 
-    public Mono<RuleInstanceContext> start(String id) {
+    public Mono<Void> start(String id) {
         return findById(Mono.just(id))
-                .flatMap(this::doStart);
+            .flatMapMany(instance -> this.ruleEngine.startRule(id, instance.toRule(modelParser)))
+            .then();
     }
 
-    private Mono<RuleInstanceContext> doStart(RuleInstanceEntity entity) {
+    private Mono<Void> doStart(RuleInstanceEntity entity) {
         return Mono.defer(() -> {
-            Rule rule = entity.toRule(modelParser);
-            return ruleEngine.startRule(rule)
-                    .flatMap(ctx -> createUpdate()
-                            .set(RuleInstanceEntity::getState, RuleInstanceState.started)
-                            .where(entity::getId)
-                            .execute()
-                            .thenReturn(ctx));
+            RuleModel model = entity.toRule(modelParser);
+            return ruleEngine
+                .startRule(entity.getId(), model)
+                .then(createUpdate()
+                    .set(RuleInstanceEntity::getState, RuleInstanceState.started)
+                    .where(entity::getId)
+                    .execute()).then();
         });
     }
 
@@ -81,12 +79,10 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
     @Override
     public void run(String... args) {
         createQuery()
-                .where()
-                .is(RuleInstanceEntity::getState, RuleInstanceState.started)
-                .fetch()
-                .flatMap(this::doStart)
-                .subscribe(context -> {
-                    log.debug("start rule {}", context.getId());
-                });
+            .where()
+            .is(RuleInstanceEntity::getState, RuleInstanceState.started)
+            .fetch()
+            .flatMap(this::doStart)
+            .subscribe();
     }
 }

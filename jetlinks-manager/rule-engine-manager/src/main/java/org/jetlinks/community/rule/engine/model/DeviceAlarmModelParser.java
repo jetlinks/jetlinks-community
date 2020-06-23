@@ -3,11 +3,10 @@ package org.jetlinks.community.rule.engine.model;
 import com.alibaba.fastjson.JSON;
 import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
-import org.jetlinks.community.rule.engine.nodes.DeviceMessageSendNode;
-import org.jetlinks.rule.engine.api.cluster.RunMode;
 import org.jetlinks.rule.engine.api.model.RuleLink;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
@@ -37,7 +36,6 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
         RuleModel model = new RuleModel();
         model.setId("device_alarm:".concat(rule.getId()));
         model.setName(rule.getName());
-        model.setRunMode(RunMode.CLUSTER);
 
         DeviceAlarmRule alarmRule = rule.getAlarmRule();
         alarmRule.validate();
@@ -59,7 +57,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 timer.setExecutor("timer");
                 timer.setConfiguration(Collections.singletonMap("cron", timerTrigger.getCron()));
 
-                DeviceMessageSendNode.Config senderConfig = new DeviceMessageSendNode.Config();
+                DeviceMessageSendTaskExecutorProvider.Config senderConfig = new DeviceMessageSendTaskExecutorProvider.Config();
                 senderConfig.setAsync(true);
                 senderConfig.setDeviceId(alarmRule.getDeviceId());
                 senderConfig.setProductId(alarmRule.getProductId());
