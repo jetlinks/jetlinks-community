@@ -49,9 +49,13 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     private String describe;
 
     @Comment("产品id")
-    @Column(name = "product_id", length = 32)
+    @Column(name = "product_id", length = 64)
     @NotBlank(message = "产品ID不能为空", groups = CreateGroup.class)
     private String productId;
+
+    @Comment("图片地址")
+    @Column(name = "photo_url", length = 1024)
+    private String photoUrl;
 
     @Comment("产品名称")
     @Column(name = "product_name")
@@ -89,11 +93,11 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @Column(name = "registry_time")
     private Long registryTime;
 
-    @Column(name = "org_id", length = 32)
+    @Column(name = "org_id", length = 64)
     @Comment("所属机构id")
     private String orgId;
 
-    @Column(name = "parent_id", length = 32)
+    @Column(name = "parent_id", length = 64)
     @Comment("父级设备ID")
     private String parentId;
 

@@ -27,8 +27,14 @@ public class DeviceDetail {
     //设备名称
     private String name;
 
+    //设备图片
+    private String photoUrl;
+
     //消息协议标识
     private String protocol;
+
+    //协议名称
+    private String protocolName;
 
     //通信协议
     private String transport;
@@ -132,10 +138,11 @@ public class DeviceDetail {
         }
         setProtocol(productEntity.getMessageProtocol());
         setTransport(productEntity.getTransportProtocol());
-
+        setPhotoUrl(productEntity.getPhotoUrl());
         setProductId(productEntity.getId());
         setProductName(productEntity.getName());
         setDeviceType(productEntity.getDeviceType());
+        setProtocolName(productEntity.getProtocolName());
         return this;
     }
 

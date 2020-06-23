@@ -40,8 +40,12 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
     private String name;
 
     @Comment("所属项目")
-    @Column(name = "project_id",length = 32)
+    @Column(name = "project_id",length = 64)
     private String projectId;
+
+    @Comment("图片地址")
+    @Column(name = "photo_url", length = 1024)
+    private String photoUrl;
 
     @Comment("项目名称")
     @Column(name = "project_name")
@@ -52,8 +56,12 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
     private String describe;
 
     @Comment("分类ID")
-    @Column(name = "classified_id")
+    @Column(name = "classified_id",length = 64)
     private String classifiedId;
+
+    @Column
+    @Comment("分类名称")
+    private String classifiedName;
 
     @Comment("消息协议: Alink,JetLinks")
     @Column(name = "message_protocol")
@@ -62,6 +70,10 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
             CreateGroup.class, UpdateGroup.class
     })
     private String messageProtocol;
+
+    @Column
+    @Comment("协议名称")
+    private String protocolName;
 
     @Comment("协议元数据")
     @Column(name = "metadata")
