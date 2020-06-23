@@ -73,7 +73,7 @@ public class RuleEngineConfiguration {
     }
 
     @Bean
-    public LocalScheduler clusterLocalScheduler(Worker worker) {
+    public Scheduler localScheduler(Worker worker) {
         LocalScheduler scheduler = new LocalScheduler("local");
         scheduler.addWorker(worker);
         return scheduler;
@@ -121,6 +121,7 @@ public class RuleEngineConfiguration {
     public LocalWorker localWorker(EventBus eventBus, ConditionEvaluator evaluator) {
         return new LocalWorker("local", "local", eventBus, evaluator);
     }
+
 
     @Bean
     public RuleEngine defaultRuleEngine(Scheduler scheduler) {
