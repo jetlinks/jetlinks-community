@@ -3,7 +3,7 @@ package org.jetlinks.community.rule.engine.model;
 import com.alibaba.fastjson.JSON;
 import org.jetlinks.community.rule.engine.enums.SqlRuleType;
 import org.jetlinks.community.rule.engine.ql.SqlRule;
-import org.jetlinks.rule.engine.api.events.RuleEvent;
+import org.jetlinks.rule.engine.api.RuleConstants;
 import org.jetlinks.rule.engine.api.model.RuleLink;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
@@ -59,7 +59,7 @@ public class SqlRuleModelParser implements RuleModelParserStrategy {
                 link.setId(action.getId().concat(":").concat(action.getId()));
                 link.setName("错误处理:" + index);
                 link.setSource(sqlNode);
-                link.setType(RuleEvent.NODE_EXECUTE_FAIL);
+                link.setType(RuleConstants.Event.error);
                 link.setTarget(action);
                 errorHandler.add(link);
                 model.getNodes().add(action);

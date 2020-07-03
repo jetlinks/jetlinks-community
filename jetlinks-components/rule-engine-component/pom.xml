@@ -14,6 +14,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.cronutils</groupId>
+            <artifactId>cron-utils</artifactId>
+            <version>9.0.2</version>
+        </dependency>
+        <dependency>
             <groupId>org.jetlinks</groupId>
             <artifactId>rule-engine-support</artifactId>
             <version>${jetlinks.version}</version>

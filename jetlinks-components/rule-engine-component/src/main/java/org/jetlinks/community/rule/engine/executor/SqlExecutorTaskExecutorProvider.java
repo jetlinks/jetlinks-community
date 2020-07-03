@@ -1,4 +1,4 @@
-package org.jetlinks.community.rule.engine.nodes;
+package org.jetlinks.community.rule.engine.executor;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -6,12 +6,15 @@ import lombok.SneakyThrows;
 import org.hswebframework.ezorm.rdb.executor.SqlRequests;
 import org.hswebframework.ezorm.rdb.executor.reactive.ReactiveSqlExecutor;
 import org.hswebframework.ezorm.rdb.executor.wrapper.ResultWrappers;
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.utils.ExpressionUtils;
 import org.jetlinks.rule.engine.api.RuleData;
-import org.jetlinks.rule.engine.api.executor.ExecutionContext;
+import org.jetlinks.rule.engine.api.RuleDataHelper;
 import org.jetlinks.rule.engine.api.model.NodeType;
-import org.jetlinks.rule.engine.executor.CommonExecutableRuleNodeFactoryStrategy;
-import org.jetlinks.rule.engine.executor.node.RuleNodeConfig;
+import org.jetlinks.rule.engine.api.task.ExecutionContext;
+import org.jetlinks.rule.engine.api.task.TaskExecutor;
+import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
+import org.jetlinks.rule.engine.defaults.LambdaTaskExecutor;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,31 +22,28 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 @Component
-public class SqlExecutorWorkerNode extends CommonExecutableRuleNodeFactoryStrategy<SqlExecutorWorkerNode.Config> {
+public class SqlExecutorTaskExecutorProvider implements TaskExecutorProvider {
 
     @Autowired
     private ReactiveSqlExecutor sqlExecutor;
 
-    @Override
-    public String getSupportType() {
+    public String getExecutor() {
         return "sql";
     }
 
-    @Override
-    public Function<RuleData, Publisher<Object>> createExecutor(ExecutionContext context, Config config) {
+    public Function<RuleData, Publisher<?>> createExecutor(ExecutionContext context, Config config) {
 
         if (config.isQuery()) {
             return (data) -> Flux.defer(() -> {
                 String sql = config.getSql(data);
                 List<Flux<Map<String, Object>>> fluxes = new ArrayList<>();
                 data.acceptMap(map -> fluxes.add(sqlExecutor.select(Mono.just(SqlRequests.template(sql, map)), ResultWrappers.map())));
-                return Flux.concat(fluxes) ;
+                return Flux.concat(fluxes);
             });
         } else {
             return data -> Mono.defer(() -> {
@@ -57,10 +57,15 @@ public class SqlExecutorWorkerNode extends CommonExecutableRuleNodeFactoryStrate
 
     }
 
+    @Override
+    public Mono<TaskExecutor> createTask(ExecutionContext context) {
+        return Mono.just(new LambdaTaskExecutor("SQL",context, () -> createExecutor(context, FastBeanCopier.copy(context.getJob().getConfiguration(),new Config()))));
+    }
+
 
     @Getter
     @Setter
-    public static class Config implements RuleNodeConfig {
+    public static class Config {
 
         private String dataSourceId;
 
@@ -75,7 +80,7 @@ public class SqlExecutorWorkerNode extends CommonExecutableRuleNodeFactoryStrate
         public boolean isQuery() {
 
             return sql.trim().startsWith("SELECT") ||
-                    sql.trim().startsWith("select");
+                sql.trim().startsWith("select");
         }
 
         @SneakyThrows
@@ -83,20 +88,10 @@ public class SqlExecutorWorkerNode extends CommonExecutableRuleNodeFactoryStrate
             if (!sql.contains("${")) {
                 return sql;
             }
-            Map<String, Object> map = new HashMap<>();
-            map.put("data", data.getData());
-            map.put("ruleData", data);
-            map.put("attr", data.getAttributes());
-            return ExpressionUtils.analytical(sql, map, "spel");
+
+            return ExpressionUtils.analytical(sql, RuleDataHelper.toContextMap(data), "spel");
         }
 
-        public void switchDataSource() {
-
-        }
-
-        public void resetDataSource() {
-
-        }
     }
 
 }

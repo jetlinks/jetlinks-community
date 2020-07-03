@@ -1,8 +1,6 @@
 package org.jetlinks.community.notify.event;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.jetlinks.community.notify.template.Template;
 
 import javax.annotation.Nonnull;
@@ -12,6 +10,8 @@ import java.util.Map;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SerializableNotifierEvent {
 
     private boolean success;

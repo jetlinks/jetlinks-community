@@ -18,14 +18,14 @@ import java.util.Map;
  */
 public class DeviceWrapper extends RowWrapper<DeviceExcelInfo> {
 
-    Map<String, String> tagMapping = new HashMap<>();
+    Map<String, PropertyMetadata> tagMapping = new HashMap<>();
     static Map<String, String> headerMapping = DeviceExcelInfo.getImportHeaderMapping();
 
     public static DeviceWrapper empty = new DeviceWrapper(Collections.emptyList());
 
     public DeviceWrapper(List<PropertyMetadata> tags) {
         for (PropertyMetadata tag : tags) {
-            tagMapping.put(tag.getName(), tag.getId());
+            tagMapping.put(tag.getName(), tag);
         }
     }
 
@@ -38,9 +38,9 @@ public class DeviceWrapper extends RowWrapper<DeviceExcelInfo> {
     protected DeviceExcelInfo wrap(DeviceExcelInfo deviceExcelInfo, Cell header, Cell cell) {
         String headerText = header.valueAsText().orElse("null");
 
-        String maybeTag = tagMapping.get(headerText);
-        if (StringUtils.hasText(maybeTag)) {
-            deviceExcelInfo.tag(maybeTag, headerText, cell.value().orElse(null));
+        PropertyMetadata maybeTag = tagMapping.get(headerText);
+        if (maybeTag != null) {
+            deviceExcelInfo.tag(maybeTag.getId(), headerText, cell.value().orElse(null), maybeTag.getValueType().getId());
         } else {
             deviceExcelInfo.with(headerMapping.getOrDefault(headerText, headerText), cell.value().orElse(null));
         }

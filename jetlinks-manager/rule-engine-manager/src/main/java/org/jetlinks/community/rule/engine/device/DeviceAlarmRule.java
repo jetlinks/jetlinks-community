@@ -73,6 +73,11 @@ public class DeviceAlarmRule implements Serializable {
      */
     private List<Action> actions;
 
+    /**
+     * 防抖限制
+     */
+    private ShakeLimit shakeLimit;
+
 
     public void validate() {
         if (org.apache.commons.collections.CollectionUtils.isEmpty(getTriggers())) {
@@ -285,6 +290,28 @@ public class DeviceAlarmRule implements Serializable {
         }
     }
 
+
+    /**
+     * 抖动限制
+     * <a href="https://github.com/jetlinks/jetlinks-community/issues/8">https://github.com/jetlinks/jetlinks-community/issues/8</a>
+     *
+     * @since 1.3
+     */
+    @Getter
+    @Setter
+    public static class ShakeLimit implements Serializable {
+        private boolean enabled;
+
+        //时间限制,单位时间内发生多次告警时,只算一次。单位:秒
+        private int time;
+
+        //触发阈值,单位时间内发生n次告警,只算一次。
+        private int threshold;
+
+        //当发生第一次告警时就触发,为false时表示最后一次才触发(告警有延迟,但是可以统计出次数)
+        private boolean alarmFirst;
+
+    }
 
     @AllArgsConstructor
     @Getter

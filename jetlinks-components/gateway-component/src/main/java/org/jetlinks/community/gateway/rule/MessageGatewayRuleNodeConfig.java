@@ -5,14 +5,12 @@ import lombok.Setter;
 import org.jetlinks.community.gateway.TopicMessage;
 import org.jetlinks.community.network.PubSubType;
 import org.jetlinks.rule.engine.api.RuleData;
-import org.jetlinks.rule.engine.api.model.NodeType;
-import org.jetlinks.rule.engine.executor.node.RuleNodeConfig;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 
 @Getter
 @Setter
-public class MessageGatewayRuleNodeConfig implements RuleNodeConfig {
+public class MessageGatewayRuleNodeConfig {
 
     private String gatewayId;
 
@@ -35,7 +33,6 @@ public class MessageGatewayRuleNodeConfig implements RuleNodeConfig {
         return topics.split("[,;\n]");
     }
 
-    @Override
     public void validate() {
         Assert.hasText(gatewayId, "gatewayId can not be empty");
         Assert.hasText(topics, "topics can not be empty");
@@ -43,14 +40,4 @@ public class MessageGatewayRuleNodeConfig implements RuleNodeConfig {
 
     }
 
-    @Override
-    public NodeType getNodeType() {
-        return NodeType.MAP;
-    }
-
-
-    @Override
-    public void setNodeType(NodeType nodeType) {
-
-    }
 }

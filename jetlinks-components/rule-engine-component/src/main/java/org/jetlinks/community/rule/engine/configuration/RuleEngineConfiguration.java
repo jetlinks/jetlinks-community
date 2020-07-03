@@ -1,33 +1,36 @@
 package org.jetlinks.community.rule.engine.configuration;
 
-import org.jetlinks.community.rule.engine.nodes.TimerWorkerNode;
-import org.jetlinks.rule.engine.api.ConditionEvaluator;
+import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.gateway.MessageGateway;
+import org.jetlinks.rule.engine.api.EventBus;
 import org.jetlinks.rule.engine.api.RuleEngine;
-import org.jetlinks.rule.engine.api.Slf4jLogger;
-import org.jetlinks.rule.engine.api.executor.ExecutableRuleNodeFactory;
-import org.jetlinks.rule.engine.cluster.logger.ClusterLogger;
+import org.jetlinks.rule.engine.api.rpc.RpcService;
+import org.jetlinks.rule.engine.api.rpc.RpcServiceFactory;
+import org.jetlinks.rule.engine.api.scheduler.Scheduler;
+import org.jetlinks.rule.engine.api.task.ConditionEvaluator;
+import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
+import org.jetlinks.rule.engine.api.worker.Worker;
 import org.jetlinks.rule.engine.condition.ConditionEvaluatorStrategy;
 import org.jetlinks.rule.engine.condition.DefaultConditionEvaluator;
 import org.jetlinks.rule.engine.condition.supports.DefaultScriptEvaluator;
 import org.jetlinks.rule.engine.condition.supports.ScriptConditionEvaluatorStrategy;
 import org.jetlinks.rule.engine.condition.supports.ScriptEvaluator;
-import org.jetlinks.rule.engine.executor.DefaultExecutableRuleNodeFactory;
-import org.jetlinks.rule.engine.executor.ExecutableRuleNodeFactoryStrategy;
-import org.jetlinks.rule.engine.executor.node.route.RouteEventNode;
+import org.jetlinks.rule.engine.defaults.DefaultRuleEngine;
+import org.jetlinks.rule.engine.defaults.LocalEventBus;
+import org.jetlinks.rule.engine.defaults.LocalScheduler;
+import org.jetlinks.rule.engine.defaults.LocalWorker;
+import org.jetlinks.rule.engine.defaults.rpc.DefaultRpcServiceFactory;
+import org.jetlinks.rule.engine.defaults.rpc.EventBusRcpService;
 import org.jetlinks.rule.engine.model.DefaultRuleModelParser;
 import org.jetlinks.rule.engine.model.RuleModelParserStrategy;
 import org.jetlinks.rule.engine.model.antv.AntVG6RuleModelParserStrategy;
-import org.jetlinks.rule.engine.standalone.StandaloneRuleEngine;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.concurrent.ExecutorService;
-
 @Configuration
+@Slf4j
 public class RuleEngineConfiguration {
 
     @Bean
@@ -41,19 +44,45 @@ public class RuleEngineConfiguration {
     }
 
     @Bean
-    public DefaultExecutableRuleNodeFactory defaultExecutableRuleNodeFactory() {
-        return new DefaultExecutableRuleNodeFactory();
-    }
-
-    @Bean
     public AntVG6RuleModelParserStrategy antVG6RuleModelParserStrategy() {
         return new AntVG6RuleModelParserStrategy();
     }
 
     @Bean
+    public EventBus eventBus(MessageGateway messageGateway) {
+
+        LocalEventBus local = new LocalEventBus();
+
+        //转发到消息网关
+        local.subscribe("/**")
+            .flatMap(subscribePayload -> messageGateway.publish(new EventTopicMessage(subscribePayload)).then())
+            .onErrorContinue((err, obj) -> log.error(err.getMessage(), obj))
+            .subscribe();
+
+        return local;
+    }
+
+    @Bean
+    public RpcService rpcService(EventBus eventBus) {
+        return new EventBusRcpService(eventBus);
+    }
+
+    @Bean
+    public RpcServiceFactory rpcServiceFactory(RpcService rpcService) {
+        return new DefaultRpcServiceFactory(rpcService);
+    }
+
+    @Bean
+    public Scheduler localScheduler(Worker worker) {
+        LocalScheduler scheduler = new LocalScheduler("local");
+        scheduler.addWorker(worker);
+        return scheduler;
+    }
+
+    @Bean
     public BeanPostProcessor autoRegisterStrategy(DefaultRuleModelParser defaultRuleModelParser,
                                                   DefaultConditionEvaluator defaultConditionEvaluator,
-                                                  DefaultExecutableRuleNodeFactory ruleNodeFactory) {
+                                                  LocalWorker worker) {
         return new BeanPostProcessor() {
             @Override
             public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -69,9 +98,10 @@ public class RuleEngineConfiguration {
                 if (bean instanceof ConditionEvaluatorStrategy) {
                     defaultConditionEvaluator.register(((ConditionEvaluatorStrategy) bean));
                 }
-                if (bean instanceof ExecutableRuleNodeFactoryStrategy) {
-                    ruleNodeFactory.registerStrategy(((ExecutableRuleNodeFactoryStrategy) bean));
+                if (bean instanceof TaskExecutorProvider) {
+                    worker.addExecutor(((TaskExecutorProvider) bean));
                 }
+
                 return bean;
             }
         };
@@ -88,37 +118,14 @@ public class RuleEngineConfiguration {
     }
 
     @Bean
-    public RuleEngine ruleEngine(ExecutableRuleNodeFactory ruleNodeFactory,
-                                 ConditionEvaluator conditionEvaluator,
-                                 ApplicationEventPublisher eventPublisher,
-                                 ExecutorService executorService) {
-        StandaloneRuleEngine ruleEngine = new StandaloneRuleEngine();
-        ruleEngine.setNodeFactory(ruleNodeFactory);
-        ruleEngine.setExecutor(executorService);
-        ruleEngine.setEvaluator(conditionEvaluator);
-        ruleEngine.setEventListener(eventPublisher::publishEvent);
-        ruleEngine.setLoggerSupplier((ctxId, model) -> {
-            ClusterLogger logger = new ClusterLogger();
-            logger.setParent(new Slf4jLogger("rule.engine.logger.".concat(model.getId()).concat(".").concat(model.getName())));
-            logger.setLogInfoConsumer(eventPublisher::publishEvent);
-            logger.setNodeId(model.getId());
-            logger.setInstanceId(ctxId);
-            return logger;
-        });
-        return ruleEngine;
+    public LocalWorker localWorker(EventBus eventBus, ConditionEvaluator evaluator) {
+        return new LocalWorker("local", "local", eventBus, evaluator);
     }
 
-    /* 规则引擎节点 */
-
-    @Bean //定时调度
-    public TimerWorkerNode timerWorkerNode() {
-        return new TimerWorkerNode();
-    }
 
     @Bean
-    public RouteEventNode routeEventNode() {
-        return new RouteEventNode();
+    public RuleEngine defaultRuleEngine(Scheduler scheduler) {
+        return new DefaultRuleEngine(scheduler);
     }
-
 
 }

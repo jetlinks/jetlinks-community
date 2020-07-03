@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.concurrent.*;
 
@@ -32,6 +34,11 @@ public class ExecutorConfiguration {
                 return handler;
             }
         };
+    }
+
+    @Bean
+    public Scheduler reactorScheduler(ScheduledExecutorService executorService) {
+        return Schedulers.fromExecutorService(executorService);
     }
 
     @Bean

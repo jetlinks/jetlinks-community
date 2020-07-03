@@ -1,7 +1,7 @@
 version: '2'
 services:
   ui:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd:1.1.1-RELEASE
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd:1.2.0
     container_name: jetlinks-ce-ui
     ports:
       - 9000:80
@@ -12,7 +12,7 @@ services:
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.2-SNAPSHOT
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.3.0-SNAPSHOT
     container_name: jetlinks-ce
     ports:
       - 8848:8848 # API端口

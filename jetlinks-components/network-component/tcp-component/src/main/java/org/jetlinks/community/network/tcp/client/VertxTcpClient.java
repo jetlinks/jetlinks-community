@@ -30,14 +30,14 @@ public class VertxTcpClient extends AbstractTcpClient {
     volatile PayloadParser payloadParser;
 
     @Getter
-    private String id;
+    private final String id;
 
     @Setter
     private long keepAliveTimeoutMs = Duration.ofMinutes(10).toMillis();
 
     private volatile long lastKeepAliveTime = System.currentTimeMillis();
 
-    private List<Runnable> disconnectListener = new CopyOnWriteArrayList<>();
+    private final List<Runnable> disconnectListener = new CopyOnWriteArrayList<>();
 
     @Override
     public void keepAlive() {

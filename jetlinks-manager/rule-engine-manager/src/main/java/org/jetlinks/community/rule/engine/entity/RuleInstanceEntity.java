@@ -7,7 +7,6 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
-import org.jetlinks.rule.engine.api.Rule;
 import org.jetlinks.rule.engine.api.model.RuleEngineModelParser;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.springframework.util.StringUtils;
@@ -63,14 +62,11 @@ public class RuleInstanceEntity extends GenericEntity<String> implements RecordC
     private String instanceDetailJson;
 
 
-    public Rule toRule(RuleEngineModelParser parser) {
+    public RuleModel toRule(RuleEngineModelParser parser) {
         RuleModel model = parser.parse(modelType, modelMeta);
         model.setId(StringUtils.hasText(modelId)?modelId:getId());
         model.setName(name);
-        Rule rule = new Rule();
-        rule.setModel(model);
-        rule.setVersion(modelVersion);
-        rule.setId(getId());
-        return rule;
+
+        return model;
     }
 }

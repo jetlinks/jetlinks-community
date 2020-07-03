@@ -16,19 +16,20 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.2.6.RELEASE</spring.boot.version>
+        <spring.boot.version>2.2.8.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.3</hsweb.framework.version>
-        <easyorm.version>4.0.3</easyorm.version>
+        <hsweb.framework.version>4.0.4-SNAPSHOT</hsweb.framework.version>
+        <easyorm.version>4.0.4-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.0.4-SNAPSHOT</jetlinks.version>
+        <jetlinks.version>1.1.0-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Arabba-SR3</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
-        <netty.version>4.1.46.Final</netty.version>
+        <netty.version>4.1.50.Final</netty.version>
         <elasticsearch.version>6.8.6</elasticsearch.version>
         <reactor.excel.version>1.0-RC</reactor.excel.version>
         <reactor.ql.version>1.0.0</reactor.ql.version>
+        <fastjson.version>1.2.70</fastjson.version>
     </properties>
 
     <build>
@@ -150,7 +151,21 @@
                 <version>3.0.0</version>
             </plugin>
         </plugins>
+
     </build>
+
+    <profiles>
+        <profile>
+            <id>build</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <name>central</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
 
     <dependencyManagement>
 
@@ -182,7 +197,7 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
-                <version>1.2.56</version>
+                <version>${fastjson.version}</version>
             </dependency>
 
             <dependency>
@@ -373,16 +388,6 @@
             <name>spring</name>
             <url>https://repo.spring.io/milestone</url>
         </repository>
-
-<!--        <repository>-->
-<!--            <id>sonatype-snapshots</id>-->
-<!--            <name>Nexus Snapshot Repository</name>-->
-<!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>true</enabled>-->
-<!--                <updatePolicy>daily</updatePolicy>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
 
     </repositories>
 

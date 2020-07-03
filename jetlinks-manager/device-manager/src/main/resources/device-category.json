@@ -1,0 +1,2282 @@
+[
+  {
+    "parentId": 0,
+    "key": "SmartCity",
+    "name": "智能城市",
+    "id": 1
+  },
+  {
+    "parentId": 1,
+    "key": "PublicService",
+    "name": "公共服务",
+    "id": 2
+  },
+  {
+    "parentId": 2,
+    "key": "Lighting",
+    "name": "路灯照明",
+    "id": 3
+  },
+  {
+    "parentId": 1,
+    "key": "EnergyManagement",
+    "name": "能源管理",
+    "id": 15
+  },
+  {
+    "parentId": 1,
+    "key": "EnvironmentalPerception",
+    "name": "环境感知",
+    "id": 16
+  },
+  {
+    "parentId": 1,
+    "key": "FireSafety",
+    "name": "消防安全",
+    "id": 17
+  },
+  {
+    "parentId": 1,
+    "key": "Farming",
+    "name": "种植养殖",
+    "id": 18
+  },
+  {
+    "parentId": 1,
+    "key": "SmartBuilding",
+    "name": "智能楼宇",
+    "id": 19
+  },
+  {
+    "parentId": 15,
+    "key": "ElectricityMeter",
+    "name": "电表",
+    "id": 20
+  },
+  {
+    "parentId": 15,
+    "key": "WaterMeter",
+    "name": "水表",
+    "id": 21
+  },
+  {
+    "parentId": 16,
+    "key": "AirConditioner",
+    "name": "空调",
+    "id": 22
+  },
+  {
+    "parentId": 16,
+    "key": "EnvironmentMonitor",
+    "name": "环境监测设备",
+    "id": 23
+  },
+  {
+    "parentId": 17,
+    "key": "SecurityGateway",
+    "name": "安防监测网关",
+    "id": 24
+  },
+  {
+    "parentId": 17,
+    "key": "SmokeDetector",
+    "name": "烟雾探测器",
+    "id": 25
+  },
+  {
+    "parentId": 19,
+    "key": "BlueToothScale",
+    "name": "蓝牙秤",
+    "id": 28
+  },
+  {
+    "parentId": 16,
+    "key": "ActivityDetectionEquipment",
+    "name": "活动检测设备",
+    "id": 31
+  },
+  {
+    "parentId": 19,
+    "key": "LightingFacility",
+    "name": "灯光设备",
+    "id": 32
+  },
+  {
+    "parentId": 16,
+    "key": "AirCollect",
+    "name": "大气监测设备",
+    "id": 33
+  },
+  {
+    "parentId": 17,
+    "key": "AcoustoOpticalarm",
+    "name": "声光报警设备",
+    "id": 34
+  },
+  {
+    "parentId": 19,
+    "key": "DrinkingFoundation",
+    "name": "饮水机",
+    "id": 35
+  },
+  {
+    "parentId": 18,
+    "key": "SmartSprinklerTerminal",
+    "name": "喷灌智能终端",
+    "id": 36
+  },
+  {
+    "parentId": 17,
+    "key": "ManholeCover",
+    "name": "井盖",
+    "id": 38
+  },
+  {
+    "parentId": 18,
+    "key": "AgriculturalMonitor",
+    "name": "农业监控设备",
+    "id": 40
+  },
+  {
+    "parentId": 0,
+    "key": "SmartLife",
+    "name": "智能生活",
+    "id": 41
+  },
+  {
+    "parentId": 41,
+    "key": "HomeSecurity",
+    "name": "家居安防",
+    "id": 42
+  },
+  {
+    "parentId": 42,
+    "key": "GasDetector",
+    "name": "燃气报警器",
+    "id": 43
+  },
+  {
+    "parentId": 42,
+    "key": "WaterDetector",
+    "name": "水浸报警器",
+    "id": 44
+  },
+  {
+    "parentId": 0,
+    "key": "SmartIndustry",
+    "name": "智能工业",
+    "id": 45
+  },
+  {
+    "parentId": 45,
+    "key": "TextileIndustry",
+    "name": "纺织业",
+    "id": 46
+  },
+  {
+    "parentId": 45,
+    "key": "PharmaceuticalManufacturing",
+    "name": "医药制造业",
+    "id": 47
+  },
+  {
+    "parentId": 45,
+    "key": "PlasticProductsIndustry",
+    "name": "塑料制品业",
+    "id": 48
+  },
+  {
+    "parentId": 45,
+    "key": "MetalProductsIndustry",
+    "name": "金属制品业",
+    "id": 49
+  },
+  {
+    "parentId": 45,
+    "key": "ChemicalFiberManufacturing",
+    "name": "化学纤维制造业",
+    "id": 50
+  },
+  {
+    "parentId": 42,
+    "key": "IRDetector",
+    "name": "红外探测器",
+    "id": 51
+  },
+  {
+    "parentId": 42,
+    "key": "DoorContact",
+    "name": "门磁传感器",
+    "id": 52
+  },
+  {
+    "parentId": 42,
+    "key": "SmokeAlarm",
+    "name": "烟雾报警器",
+    "id": 53
+  },
+  {
+    "parentId": 41,
+    "key": "Environment",
+    "name": "环境电器",
+    "id": 54
+  },
+  {
+    "parentId": 54,
+    "key": "Fan",
+    "name": "风扇",
+    "id": 55
+  },
+  {
+    "parentId": 54,
+    "key": "Humidifier",
+    "name": "加湿器",
+    "id": 56
+  },
+  {
+    "parentId": 54,
+    "key": "Heater",
+    "name": "取暖器",
+    "id": 57
+  },
+  {
+    "parentId": 41,
+    "key": "Electrical&Lighting",
+    "name": "电工照明",
+    "id": 58
+  },
+  {
+    "parentId": 58,
+    "key": "Light",
+    "name": "灯",
+    "id": 59
+  },
+  {
+    "parentId": 58,
+    "key": "Outlet",
+    "name": "插座",
+    "id": 60
+  },
+  {
+    "parentId": 58,
+    "key": "Curtain",
+    "name": "窗帘",
+    "id": 61
+  },
+  {
+    "parentId": 54,
+    "key": "Airbox",
+    "name": "空气盒子",
+    "id": 62
+  },
+  {
+    "parentId": 41,
+    "key": "MajorAppliance",
+    "name": "大家电",
+    "id": 63
+  },
+  {
+    "parentId": 63,
+    "key": "Fridge",
+    "name": "冰箱",
+    "id": 64
+  },
+  {
+    "parentId": 54,
+    "key": "Dehumidifier",
+    "name": "除湿器",
+    "id": 65
+  },
+  {
+    "parentId": 41,
+    "key": "KitchenAppliance",
+    "name": "厨房电器",
+    "id": 66
+  },
+  {
+    "parentId": 66,
+    "key": "KitchenVentilator",
+    "name": "油烟机",
+    "id": 67
+  },
+  {
+    "parentId": 41,
+    "key": "Health",
+    "name": "个护健康",
+    "id": 68
+  },
+  {
+    "parentId": 68,
+    "key": "FootBath",
+    "name": "足浴盆",
+    "id": 69
+  },
+  {
+    "parentId": 58,
+    "key": "WindowLinearActuator",
+    "name": "推窗器",
+    "id": 70
+  },
+  {
+    "parentId": 58,
+    "key": "WallSwitch",
+    "name": "入墙开关",
+    "id": 71
+  },
+  {
+    "parentId": 54,
+    "key": "FAU",
+    "name": "新风机",
+    "id": 72
+  },
+  {
+    "parentId": 68,
+    "key": "ElectricBlanket",
+    "name": "电热毯",
+    "id": 73
+  },
+  {
+    "parentId": 54,
+    "key": "FloorHeating",
+    "name": "地暖",
+    "id": 74
+  },
+  {
+    "parentId": 63,
+    "key": "ElectricWaterHeater",
+    "name": "电热水器",
+    "id": 75
+  },
+  {
+    "parentId": 2,
+    "key": "Locater",
+    "name": "车辆定位卡",
+    "id": 76
+  },
+  {
+    "parentId": 17,
+    "key": "LaserScanner",
+    "name": "激光探测仪",
+    "id": 77
+  },
+  {
+    "parentId": 41,
+    "key": "Others",
+    "name": "其它",
+    "id": 78
+  },
+  {
+    "parentId": 78,
+    "key": "BathHeater",
+    "name": "浴霸",
+    "id": 79
+  },
+  {
+    "parentId": 66,
+    "key": "Stove",
+    "name": "燃气灶",
+    "id": 80
+  },
+  {
+    "parentId": 63,
+    "key": "GasWaterHeater",
+    "name": "燃气热水器",
+    "id": 81
+  },
+  {
+    "parentId": 54,
+    "key": "WaterPurifier",
+    "name": "净水器",
+    "id": 82
+  },
+  {
+    "parentId": 54,
+    "key": "AirPurifier",
+    "name": "空气净化器",
+    "id": 83
+  },
+  {
+    "parentId": 63,
+    "key": "AirConditioning",
+    "name": "空调机",
+    "id": 84
+  },
+  {
+    "parentId": 68,
+    "key": "Wristband",
+    "name": "手环",
+    "id": 85
+  },
+  {
+    "parentId": 0,
+    "key": "LinkEdge",
+    "name": "边缘计算",
+    "id": 87
+  },
+  {
+    "parentId": 87,
+    "key": "gateway",
+    "name": "边缘网关",
+    "id": 88
+  },
+  {
+    "parentId": 87,
+    "key": "other",
+    "name": "其他设备",
+    "id": 89
+  },
+  {
+    "parentId": 68,
+    "key": "Bed",
+    "name": "床",
+    "id": 92
+  },
+  {
+    "parentId": 78,
+    "key": "Airer",
+    "name": "晾衣杆",
+    "id": 95
+  },
+  {
+    "parentId": 78,
+    "key": "Bathtub",
+    "name": "浴缸",
+    "id": 96
+  },
+  {
+    "parentId": 78,
+    "key": "ShowerRoom",
+    "name": "淋浴房",
+    "id": 97
+  },
+  {
+    "parentId": 78,
+    "key": "Sauna",
+    "name": "干蒸房",
+    "id": 98
+  },
+  {
+    "parentId": 78,
+    "key": "ToiletSeat",
+    "name": "马桶",
+    "id": 99
+  },
+  {
+    "parentId": 42,
+    "key": "WaterMonitor",
+    "name": "用水监控器",
+    "id": 100
+  },
+  {
+    "parentId": 0,
+    "key": "linkbusiness",
+    "name": "商业共享",
+    "id": 102
+  },
+  {
+    "parentId": 102,
+    "key": "retail",
+    "name": "零售设备",
+    "id": 103
+  },
+  {
+    "parentId": 102,
+    "key": "sharing",
+    "name": "共享租赁服务",
+    "id": 104
+  },
+  {
+    "parentId": 103,
+    "key": "Juicer",
+    "name": "果汁机",
+    "id": 105
+  },
+  {
+    "parentId": 41,
+    "key": "Networking",
+    "name": "网络设备",
+    "id": 106
+  },
+  {
+    "parentId": 106,
+    "key": "GeneralGateway",
+    "name": "网关",
+    "id": 107
+  },
+  {
+    "parentId": 103,
+    "key": "Water purifier",
+    "name": "净水机",
+    "id": 109
+  },
+  {
+    "parentId": 103,
+    "key": "Ice cream machine",
+    "name": "冰淇淋机",
+    "id": 110
+  },
+  {
+    "parentId": 103,
+    "key": "Coffee machine",
+    "name": "咖啡机",
+    "id": 111
+  },
+  {
+    "parentId": 103,
+    "key": "Containers",
+    "name": "售货柜",
+    "id": 112
+  },
+  {
+    "parentId": 103,
+    "key": "Grab the doll machine",
+    "name": "抓娃娃机",
+    "id": 113
+  },
+  {
+    "parentId": 104,
+    "key": "Massage chair",
+    "name": "按摩椅",
+    "id": 114
+  },
+  {
+    "parentId": 104,
+    "key": "Shared washing machine",
+    "name": "共享洗衣机",
+    "id": 115
+  },
+  {
+    "parentId": 54,
+    "key": "AromaDiffuser",
+    "name": "香薰机",
+    "id": 116
+  },
+  {
+    "parentId": 0,
+    "key": "SmartTemplate",
+    "name": "智能模板",
+    "id": 117
+  },
+  {
+    "parentId": 117,
+    "key": "WifiTemplate",
+    "name": "Wifi功能模板",
+    "id": 118
+  },
+  {
+    "parentId": 117,
+    "key": "ZigbeeTemplate",
+    "name": "Zigbee功能模板",
+    "id": 119
+  },
+  {
+    "parentId": 42,
+    "key": "SmartDoor",
+    "name": "智能门锁",
+    "id": 120
+  },
+  {
+    "parentId": 104,
+    "key": "Charging pile",
+    "name": "充电桩",
+    "id": 121
+  },
+  {
+    "parentId": 42,
+    "key": "IlluminationSensor",
+    "name": "光照度传感器",
+    "id": 122
+  },
+  {
+    "parentId": 58,
+    "key": "SceneSwitch",
+    "name": "场景开关",
+    "id": 123
+  },
+  {
+    "parentId": 42,
+    "key": "Siren",
+    "name": "声光报警器",
+    "id": 124
+  },
+  {
+    "parentId": 66,
+    "key": "DishWasher",
+    "name": "洗碗机",
+    "id": 125
+  },
+  {
+    "parentId": 66,
+    "key": "BreakingMachine",
+    "name": "破壁机",
+    "id": 130
+  },
+  {
+    "parentId": 66,
+    "key": "MicrowaveOven",
+    "name": "微波炉",
+    "id": 131
+  },
+  {
+    "parentId": 66,
+    "key": "RiceCooker",
+    "name": "电饭煲",
+    "id": 132
+  },
+  {
+    "parentId": 16,
+    "key": "PHSensor",
+    "name": "酸碱度监测",
+    "id": 133
+  },
+  {
+    "parentId": 16,
+    "key": "DOSensor",
+    "name": "溶解氧监测",
+    "id": 134
+  },
+  {
+    "parentId": 17,
+    "key": "GasLeakAlarm",
+    "name": "燃气泄漏报警器",
+    "id": 135
+  },
+  {
+    "parentId": 17,
+    "key": "FireButton",
+    "name": "消防手报",
+    "id": 136
+  },
+  {
+    "parentId": 17,
+    "key": "WaterPressureSensor",
+    "name": "水压传感器",
+    "id": 137
+  },
+  {
+    "parentId": 2,
+    "key": "WaterloggingSensor",
+    "name": "水浸检测",
+    "id": 138
+  },
+  {
+    "parentId": 2,
+    "key": "ManholesCoverShiftDetection",
+    "name": "井盖移位检测",
+    "id": 139
+  },
+  {
+    "parentId": 2,
+    "key": "GarbageOverflowingDetection",
+    "name": "垃圾满溢检测",
+    "id": 140
+  },
+  {
+    "parentId": 2,
+    "key": "GeomagneticSensor",
+    "name": "地磁检测器",
+    "id": 141
+  },
+  {
+    "parentId": 2,
+    "key": "InfraredDetectors",
+    "name": "红外体征探测器",
+    "id": 142
+  },
+  {
+    "parentId": 2,
+    "key": "ActiveInfraredIntrusionDetectors",
+    "name": "红外对射探测器",
+    "id": 143
+  },
+  {
+    "parentId": 2,
+    "key": "UnmannedAerialVehicle",
+    "name": "无人机",
+    "id": 144
+  },
+  {
+    "parentId": 2,
+    "key": "DoorSensor",
+    "name": "门磁",
+    "id": 145
+  },
+  {
+    "parentId": 66,
+    "key": "MilkModulator",
+    "name": "调奶器",
+    "id": 146
+  },
+  {
+    "parentId": 68,
+    "key": "Threadmill",
+    "name": "跑步机",
+    "id": 147
+  },
+  {
+    "parentId": 42,
+    "key": "Camera",
+    "name": "摄像头",
+    "id": 148
+  },
+  {
+    "parentId": 42,
+    "key": "Doorbell",
+    "name": "门铃",
+    "id": 150
+  },
+  {
+    "parentId": 42,
+    "key": "DoorViewer",
+    "name": "猫眼",
+    "id": 151
+  },
+  {
+    "parentId": 45,
+    "key": "electricmeter",
+    "name": "电力仪表",
+    "id": 152
+  },
+  {
+    "parentId": 2,
+    "key": "IntelligentBroadcast",
+    "name": "智能广播",
+    "id": 153
+  },
+  {
+    "parentId": 66,
+    "key": "SoyMilkMaker",
+    "name": "豆浆机",
+    "id": 154
+  },
+  {
+    "parentId": 68,
+    "key": "ECGCard",
+    "name": "心电卡",
+    "id": 155
+  },
+  {
+    "parentId": 68,
+    "key": "Thermometer",
+    "name": "体温计",
+    "id": 156
+  },
+  {
+    "parentId": 78,
+    "key": "PetFeeder",
+    "name": "宠物喂食机",
+    "id": 157
+  },
+  {
+    "parentId": 54,
+    "key": "RobotCleaner",
+    "name": "扫地机器人",
+    "id": 158
+  },
+  {
+    "parentId": 2,
+    "key": "BroadcastController",
+    "name": "广播主机",
+    "id": 159
+  },
+  {
+    "parentId": 2,
+    "key": "Flowmeter",
+    "name": "流量计",
+    "id": 160
+  },
+  {
+    "parentId": 2,
+    "key": "RemoteTerminalUnit",
+    "name": "远程监测终端",
+    "id": 161
+  },
+  {
+    "parentId": 2,
+    "key": "SignalCollector",
+    "name": "游乐设备信号采集器",
+    "id": 162
+  },
+  {
+    "parentId": 68,
+    "key": "BodyFatScale",
+    "name": "体脂秤",
+    "id": 163
+  },
+  {
+    "parentId": 2,
+    "key": "ConversionGateway",
+    "name": "通用网关",
+    "id": 164
+  },
+  {
+    "parentId": 2,
+    "key": "FaceRecognition",
+    "name": "人脸识别门禁",
+    "id": 165
+  },
+  {
+    "parentId": 42,
+    "key": "WarningGW",
+    "name": "报警网关",
+    "id": 166
+  },
+  {
+    "parentId": 42,
+    "key": "CircuitBreaker",
+    "name": "断路器",
+    "id": 167
+  },
+  {
+    "parentId": 66,
+    "key": "PressureCooker",
+    "name": "电压力锅",
+    "id": 168
+  },
+  {
+    "parentId": 68,
+    "key": "Washer",
+    "name": "洗衣机",
+    "id": 169
+  },
+  {
+    "parentId": 68,
+    "key": "IntelligentMassageChair",
+    "name": "智能按摩椅",
+    "id": 170
+  },
+  {
+    "parentId": 42,
+    "key": "FaceRecognitionCapabilityModel",
+    "name": "人脸识别能力模型",
+    "id": 171
+  },
+  {
+    "parentId": 66,
+    "key": "ElectricKettle",
+    "name": "电水壶",
+    "id": 172
+  },
+  {
+    "parentId": 106,
+    "key": "NAS",
+    "name": "网络存储器",
+    "id": 173
+  },
+  {
+    "parentId": 2,
+    "key": "ElevatorCollectingBox",
+    "name": "电梯集采盒",
+    "id": 174
+  },
+  {
+    "parentId": 66,
+    "key": "HealthPreservingPot",
+    "name": "养生壶",
+    "id": 175
+  },
+  {
+    "parentId": 66,
+    "key": "BreadMachine",
+    "name": "面包机",
+    "id": 176
+  },
+  {
+    "parentId": 2,
+    "key": "ArcExtinguishing",
+    "name": "电弧灭弧",
+    "id": 177
+  },
+  {
+    "parentId": 2,
+    "key": "ElevatorStatusSensor",
+    "name": "电梯门体状态探测传感器",
+    "id": 178
+  },
+  {
+    "parentId": 2,
+    "key": "ElevatorPositionSensor",
+    "name": "电梯平层位置探测传感器",
+    "id": 179
+  },
+  {
+    "parentId": 2,
+    "key": "ElevatorBodySensor",
+    "name": "电梯人体探测传感器",
+    "id": 180
+  },
+  {
+    "parentId": 2,
+    "key": "ElevatorAccelerationSensor",
+    "name": "电梯加速度探测传感器",
+    "id": 181
+  },
+  {
+    "parentId": 2,
+    "key": "TiltSensor",
+    "name": "倾角传感器",
+    "id": 182
+  },
+  {
+    "parentId": 19,
+    "key": "AttendanceMachine",
+    "name": "考勤机",
+    "id": 183
+  },
+  {
+    "parentId": 42,
+    "key": "OutdoorStation",
+    "name": "门口机",
+    "id": 184
+  },
+  {
+    "parentId": 2,
+    "key": "Counter",
+    "name": "无人货柜",
+    "id": 185
+  },
+  {
+    "parentId": 42,
+    "key": "AlarmSwitch",
+    "name": "报警开关",
+    "id": 186
+  },
+  {
+    "parentId": 16,
+    "key": "TemperatureHumidityDetector",
+    "name": "温湿度检测",
+    "id": 187
+  },
+  {
+    "parentId": 2,
+    "key": "MicrowaveDetector",
+    "name": "微波人体探测器",
+    "id": 189
+  },
+  {
+    "parentId": 0,
+    "key": "CustomCategory",
+    "name": "自定义品类",
+    "id": 190
+  },
+  {
+    "parentId": 58,
+    "key": "SmartElectricityMeter",
+    "name": "智能电表",
+    "id": 191
+  },
+  {
+    "parentId": 58,
+    "key": "SmartWaterMeter",
+    "name": "智能水表",
+    "id": 192
+  },
+  {
+    "parentId": 42,
+    "key": "PressureAlarm",
+    "name": "压力报警器",
+    "id": 193
+  },
+  {
+    "parentId": 42,
+    "key": "LiquidLevelAlarm",
+    "name": "液位传感器",
+    "id": 194
+  },
+  {
+    "parentId": 2,
+    "key": "ParkingLock",
+    "name": "地锁",
+    "id": 195
+  },
+  {
+    "parentId": 16,
+    "key": "WaterMonitoring",
+    "name": "水质检测终端",
+    "id": 196
+  },
+  {
+    "parentId": 66,
+    "key": "CapsuleCoffeeMachine",
+    "name": "胶囊咖啡机",
+    "id": 197
+  },
+  {
+    "parentId": 42,
+    "key": "TempHumiUnit",
+    "name": "温湿度采集单元",
+    "id": 198
+  },
+  {
+    "parentId": 42,
+    "key": "HazardWarningLamp",
+    "name": "危险报警器",
+    "id": 199
+  },
+  {
+    "parentId": 16,
+    "key": "liquidometer",
+    "name": "液位计",
+    "id": 200
+  },
+  {
+    "parentId": 2,
+    "key": "InternetProtocolCamera",
+    "name": "网络摄像机",
+    "id": 201
+  },
+  {
+    "parentId": 15,
+    "key": "GasMeter",
+    "name": "燃气表",
+    "id": 202
+  },
+  {
+    "parentId": 16,
+    "key": "EnvironmentalNoiseMonitor",
+    "name": "环境噪音监测",
+    "id": 203
+  },
+  {
+    "parentId": 16,
+    "key": "DustMonitor",
+    "name": "扬尘监测",
+    "id": 204
+  },
+  {
+    "parentId": 2,
+    "key": "AlarmButton",
+    "name": "手动求救报警",
+    "id": 205
+  },
+  {
+    "parentId": 63,
+    "key": "Television",
+    "name": "电视机",
+    "id": 206
+  },
+  {
+    "parentId": 2,
+    "key": "ChargingPile",
+    "name": "非机动车充电桩",
+    "id": 207
+  },
+  {
+    "parentId": 66,
+    "key": "InductionCooker",
+    "name": "电磁炉",
+    "id": 208
+  },
+  {
+    "parentId": 2,
+    "key": "Locator",
+    "name": "定位器",
+    "id": 209
+  },
+  {
+    "parentId": 2,
+    "key": "DisplacementMonitor",
+    "name": "位移监控器",
+    "id": 210
+  },
+  {
+    "parentId": 66,
+    "key": "AutomaticCooker",
+    "name": "烹饪机器人",
+    "id": 211
+  },
+  {
+    "parentId": 0,
+    "key": "SOCSmartLife",
+    "name": "智能生活SOC",
+    "id": 213
+  },
+  {
+    "parentId": 213,
+    "key": "SOCOutlet",
+    "name": "SoC插座",
+    "id": 214
+  },
+  {
+    "parentId": 214,
+    "key": "SingleSlotOutlet",
+    "name": "SoC单孔插座",
+    "id": 215
+  },
+  {
+    "parentId": 68,
+    "key": "Sphygmomanometer",
+    "name": "电子血压计",
+    "id": 216
+  },
+  {
+    "parentId": 42,
+    "key": "ParkingDetector",
+    "name": "车位检测器",
+    "id": 217
+  },
+  {
+    "parentId": 42,
+    "key": "ParkingLotBarrier",
+    "name": "车位锁",
+    "id": 218
+  },
+  {
+    "parentId": 66,
+    "key": "Oven",
+    "name": "烤箱",
+    "id": 219
+  },
+  {
+    "parentId": 17,
+    "key": "SmartFireHydrants",
+    "name": "智能消防栓",
+    "id": 220
+  },
+  {
+    "parentId": 45,
+    "key": "ImageCaptureDevice",
+    "name": "图像采集设备",
+    "id": 221
+  },
+  {
+    "parentId": 0,
+    "key": "ElectricPower",
+    "name": "智能电力",
+    "id": 222
+  },
+  {
+    "parentId": 2,
+    "key": "OffVoltageMonitor",
+    "name": "断电监控",
+    "id": 223
+  },
+  {
+    "parentId": 78,
+    "key": "ElectricMotorcycle",
+    "name": "电动摩托车",
+    "id": 224
+  },
+  {
+    "parentId": 66,
+    "key": "Sterilizer",
+    "name": "消毒柜",
+    "id": 225
+  },
+  {
+    "parentId": 66,
+    "key": "FoodDispenser",
+    "name": "取餐柜",
+    "id": 227
+  },
+  {
+    "parentId": 78,
+    "key": "PricingScale",
+    "name": "计价秤",
+    "id": 228
+  },
+  {
+    "parentId": 58,
+    "key": "Scene",
+    "name": "场景面板",
+    "id": 231
+  },
+  {
+    "parentId": 66,
+    "key": "EmbeddedSteamer",
+    "name": "嵌入式电蒸箱",
+    "id": 233
+  },
+  {
+    "parentId": 78,
+    "key": "Audio",
+    "name": "音箱",
+    "id": 234
+  },
+  {
+    "parentId": 42,
+    "key": "VibrationSensor",
+    "name": "震动传感器",
+    "id": 235
+  },
+  {
+    "parentId": 2,
+    "key": "ElectricSafetyDetector",
+    "name": "用电安全探测器",
+    "id": 236
+  },
+  {
+    "parentId": 42,
+    "key": "TitrantPump",
+    "name": "滴定泵",
+    "id": 237
+  },
+  {
+    "parentId": 63,
+    "key": "AirEnergyHeater",
+    "name": "空气能热水器",
+    "id": 238
+  },
+  {
+    "parentId": 66,
+    "key": "TeaBar",
+    "name": "茶吧机",
+    "id": 239
+  },
+  {
+    "parentId": 2,
+    "key": "CuttingMachine",
+    "name": "裁床",
+    "id": 240
+  },
+  {
+    "parentId": 0,
+    "key": "SmartAgriculture",
+    "name": "智能农业",
+    "id": 241
+  },
+  {
+    "parentId": 241,
+    "key": "Plant",
+    "name": "种植",
+    "id": 242
+  },
+  {
+    "parentId": 241,
+    "key": "Forestry",
+    "name": "林业",
+    "id": 243
+  },
+  {
+    "parentId": 241,
+    "key": "Stockbreeding",
+    "name": "畜牧",
+    "id": 244
+  },
+  {
+    "parentId": 241,
+    "key": "Aquatic",
+    "name": "水产",
+    "id": 245
+  },
+  {
+    "parentId": 58,
+    "key": "ThreePhaseMeter",
+    "name": "三相电表",
+    "id": 247
+  },
+  {
+    "parentId": 106,
+    "key": "HomeLinkEdgeGateway",
+    "name": "全屋边缘网关",
+    "id": 248
+  },
+  {
+    "parentId": 66,
+    "key": "WallHungGasBoiler",
+    "name": "壁挂炉",
+    "id": 249
+  },
+  {
+    "parentId": 58,
+    "key": "CeilingFanLamp",
+    "name": "吊扇灯",
+    "id": 250
+  },
+  {
+    "parentId": 241,
+    "key": "WindSensor",
+    "name": "风速传感器",
+    "id": 251
+  },
+  {
+    "parentId": 241,
+    "key": "SolubleSensor",
+    "name": "可溶性盐传感器",
+    "id": 252
+  },
+  {
+    "parentId": 241,
+    "key": "DioxideDetector",
+    "name": "二氧化碳检测器",
+    "id": 253
+  },
+  {
+    "parentId": 241,
+    "key": "FlowDetection",
+    "name": "营养液流速监测器",
+    "id": 254
+  },
+  {
+    "parentId": 241,
+    "key": "PHDetector",
+    "name": "酸碱度检测计",
+    "id": 255
+  },
+  {
+    "parentId": 241,
+    "key": "ToxicGas",
+    "name": "有害气体检测器",
+    "id": 256
+  },
+  {
+    "parentId": 241,
+    "key": "LightEnsor",
+    "name": "光照传感器",
+    "id": 257
+  },
+  {
+    "parentId": 0,
+    "key": "Building",
+    "name": "智慧建筑",
+    "id": 258
+  },
+  {
+    "parentId": 258,
+    "key": "FaceServer",
+    "name": "人脸门禁",
+    "id": 259
+  },
+  {
+    "parentId": 258,
+    "key": "ParkOverAll",
+    "name": "道闸一体机",
+    "id": 260
+  },
+  {
+    "parentId": 258,
+    "key": "ParkMagnetism",
+    "name": "地磁车位监测器",
+    "id": 261
+  },
+  {
+    "parentId": 258,
+    "key": "EnvSensor",
+    "name": "九合一环境传感器",
+    "id": 262
+  },
+  {
+    "parentId": 258,
+    "key": "ParkHDDetectMachine",
+    "name": "车位传感器",
+    "id": 263
+  },
+  {
+    "parentId": 241,
+    "key": "PigDataReader",
+    "name": "猪参数采集器",
+    "id": 264
+  },
+  {
+    "parentId": 19,
+    "key": "epd_table",
+    "name": "电子纸桌签",
+    "id": 265
+  },
+  {
+    "parentId": 242,
+    "key": "SideWindow",
+    "name": "侧窗",
+    "id": 266
+  },
+  {
+    "parentId": 242,
+    "key": "WaterAndFertilizerMachine",
+    "name": "水肥一体机",
+    "id": 267
+  },
+  {
+    "parentId": 242,
+    "key": "CarbonDioxideGeneratingDevice",
+    "name": "二氧化碳发生装置",
+    "id": 268
+  },
+  {
+    "parentId": 242,
+    "key": "FillLight",
+    "name": "补光灯",
+    "id": 269
+  },
+  {
+    "parentId": 242,
+    "key": "HotAirBlower",
+    "name": "热风机",
+    "id": 270
+  },
+  {
+    "parentId": 242,
+    "key": "GroundSourceHeatPump",
+    "name": "地源热泵",
+    "id": 271
+  },
+  {
+    "parentId": 242,
+    "key": "WetCurtain",
+    "name": "湿帘",
+    "id": 272
+  },
+  {
+    "parentId": 242,
+    "key": "InnerInsulationCurtain",
+    "name": "内保温帘幕",
+    "id": 273
+  },
+  {
+    "parentId": 242,
+    "key": "OutsideShadeCurtain",
+    "name": "外遮荫帘幕",
+    "id": 274
+  },
+  {
+    "parentId": 242,
+    "key": "CirculatingFan",
+    "name": "环流风机",
+    "id": 275
+  },
+  {
+    "parentId": 242,
+    "key": "SideFan",
+    "name": "侧风机",
+    "id": 276
+  },
+  {
+    "parentId": 242,
+    "key": "SkyWindow",
+    "name": "天窗",
+    "id": 277
+  },
+  {
+    "parentId": 87,
+    "key": "VisionAccessNode",
+    "name": "摄像头边缘节点",
+    "id": 278
+  },
+  {
+    "parentId": 258,
+    "key": "ParkWNC",
+    "name": "超声车位检测器",
+    "id": 279
+  },
+  {
+    "parentId": 258,
+    "key": "FeatureCamera",
+    "name": "特征摄像头",
+    "id": 280
+  },
+  {
+    "parentId": 258,
+    "key": "BrushFace",
+    "name": "扫脸娃娃机",
+    "id": 281
+  },
+  {
+    "parentId": 258,
+    "key": "PeopleFlow",
+    "name": "客流量传感器",
+    "id": 282
+  },
+  {
+    "parentId": 258,
+    "key": "FaceIdentification",
+    "name": "客群识别设备",
+    "id": 283
+  },
+  {
+    "parentId": 258,
+    "key": "TicketMachine",
+    "name": "停车小票机设备",
+    "id": 284
+  },
+  {
+    "parentId": 241,
+    "key": "SmartHives",
+    "name": "智能蜂箱",
+    "id": 285
+  },
+  {
+    "parentId": 78,
+    "key": "EpdTable",
+    "name": "电子标签",
+    "id": 286
+  },
+  {
+    "parentId": 78,
+    "key": "LocalControlCenter",
+    "name": "中控屏",
+    "id": 287
+  },
+  {
+    "parentId": 78,
+    "key": "IRRemoteController",
+    "name": "红外遥控器",
+    "id": 288
+  },
+  {
+    "parentId": 241,
+    "key": "Register",
+    "name": "寄存器",
+    "id": 289
+  },
+  {
+    "parentId": 258,
+    "key": "QuickAccessDoor",
+    "name": "速通门",
+    "id": 290
+  },
+  {
+    "parentId": 258,
+    "key": "FingerPrintDoor",
+    "name": "指纹门禁",
+    "id": 291
+  },
+  {
+    "parentId": 258,
+    "key": "ParkLed",
+    "name": "余位显示屏",
+    "id": 292
+  },
+  {
+    "parentId": 258,
+    "key": "GuideScreen",
+    "name": "导购屏",
+    "id": 293
+  },
+  {
+    "parentId": 258,
+    "key": "GovernmentLed",
+    "name": "路政设备",
+    "id": 294
+  },
+  {
+    "parentId": 78,
+    "key": "Watch",
+    "name": "手表",
+    "id": 295
+  },
+  {
+    "parentId": 16,
+    "key": "PreciseTimeSpaceCamera",
+    "name": "精准时空摄像头",
+    "id": 296
+  },
+  {
+    "parentId": 241,
+    "key": "SmartPatrol",
+    "name": "智能巡护",
+    "id": 297
+  },
+  {
+    "parentId": 241,
+    "key": "EnvironmentMonitoring",
+    "name": "环境监测",
+    "id": 298
+  },
+  {
+    "parentId": 42,
+    "key": "Cateyecamera",
+    "name": "猫眼摄像头",
+    "id": 299
+  },
+  {
+    "parentId": 0,
+    "key": "campus",
+    "name": "智能园区",
+    "id": 301
+  },
+  {
+    "parentId": 258,
+    "key": "N4DeviceType",
+    "name": "N4设备",
+    "id": 302
+  },
+  {
+    "parentId": 258,
+    "key": "Car_Detector_Cam",
+    "name": "车牌抓拍",
+    "id": 304
+  },
+  {
+    "parentId": 301,
+    "key": "loraLight",
+    "name": "lora单灯",
+    "id": 305
+  },
+  {
+    "parentId": 301,
+    "key": "Gatewaycampus",
+    "name": "网关-园区",
+    "id": 306
+  },
+  {
+    "parentId": 301,
+    "key": "Soilsensor",
+    "name": "土壤传感器",
+    "id": 307
+  },
+  {
+    "parentId": 258,
+    "key": "capture",
+    "name": "车牌抓拍-ib",
+    "id": 308
+  },
+  {
+    "parentId": 301,
+    "key": "Curtainswitch",
+    "name": "单路窗帘开关",
+    "id": 309
+  },
+  {
+    "parentId": 301,
+    "key": "Sceneswitch2",
+    "name": "场景面板开关",
+    "id": 310
+  },
+  {
+    "parentId": 18,
+    "key": "irrigation",
+    "name": "灌溉系统",
+    "id": 311
+  },
+  {
+    "parentId": 78,
+    "key": "Teatable",
+    "name": "茶台",
+    "id": 312
+  },
+  {
+    "parentId": 78,
+    "key": "IntelligentCurtain",
+    "name": "智能窗帘",
+    "id": 313
+  },
+  {
+    "parentId": 301,
+    "key": "MeteorologicalStation",
+    "name": "气象站监控仪",
+    "id": 314
+  },
+  {
+    "parentId": 301,
+    "key": "CurrentTemperature",
+    "name": "室内温度传感器",
+    "id": 315
+  },
+  {
+    "parentId": 301,
+    "key": "PowerSwitch2",
+    "name": "入墙开关2",
+    "id": 316
+  },
+  {
+    "parentId": 106,
+    "key": "VOCSensor",
+    "name": "VOC感应器",
+    "id": 319
+  },
+  {
+    "parentId": 66,
+    "key": "Ice_machine",
+    "name": "制冰机",
+    "id": 320
+  },
+  {
+    "parentId": 58,
+    "key": "Metering_socket",
+    "name": "带计量功能插座",
+    "id": 322
+  },
+  {
+    "parentId": 58,
+    "key": "Lamp",
+    "name": "灯控开关",
+    "id": 323
+  },
+  {
+    "parentId": 42,
+    "key": "Curtain_motor",
+    "name": "窗帘电机",
+    "id": 324
+  },
+  {
+    "parentId": 58,
+    "key": "Dimming_panel",
+    "name": "家居调光面板",
+    "id": 325
+  },
+  {
+    "parentId": 54,
+    "key": "air_sensor",
+    "name": "环境检测盒子",
+    "id": 326
+  },
+  {
+    "parentId": 68,
+    "key": "Smart_Neck_Massage",
+    "name": "智能颈部按摩仪",
+    "id": 327
+  },
+  {
+    "parentId": 68,
+    "key": "SmartBoxingTarget",
+    "name": "智能拳靶",
+    "id": 328
+  },
+  {
+    "parentId": 68,
+    "key": "SmartCleanFace",
+    "name": "智能洁面仪",
+    "id": 329
+  },
+  {
+    "parentId": 106,
+    "key": "water_logging",
+    "name": "水浸传感器",
+    "id": 330
+  },
+  {
+    "parentId": 106,
+    "key": "Smoke_sensor",
+    "name": "烟感传感器",
+    "id": 331
+  },
+  {
+    "parentId": 42,
+    "key": "emergency_button",
+    "name": "紧急按钮",
+    "id": 332
+  },
+  {
+    "parentId": 45,
+    "key": "Gas meter manufacturing",
+    "name": "气表制造",
+    "id": 335
+  },
+  {
+    "parentId": 335,
+    "key": "AirCompressorMachine",
+    "name": "空压机",
+    "id": 336
+  },
+  {
+    "parentId": 335,
+    "key": "Spraying",
+    "name": "喷涂处理",
+    "id": 337
+  },
+  {
+    "parentId": 335,
+    "key": "GlueSprayingMachine",
+    "name": "涂胶机",
+    "id": 338
+  },
+  {
+    "parentId": 335,
+    "key": "PunchingMachine",
+    "name": "冲压机",
+    "id": 339
+  },
+  {
+    "parentId": 301,
+    "key": "Temperatureandhumiditysensor",
+    "name": "室内温湿度监测设备",
+    "id": 340
+  },
+  {
+    "parentId": 301,
+    "key": "Airconditionerthermostat",
+    "name": "空调温控器",
+    "id": 341
+  },
+  {
+    "parentId": 301,
+    "key": "MAXHUB",
+    "name": "会议平板",
+    "id": 342
+  },
+  {
+    "parentId": 2,
+    "key": "WiFiProbeCollector",
+    "name": "WiFi探针采集器",
+    "id": 343
+  },
+  {
+    "parentId": 45,
+    "key": "Platinum_Temperature",
+    "name": "铂电阻温度传感器",
+    "id": 344
+  },
+  {
+    "parentId": 301,
+    "key": "CoSee",
+    "name": "大屏投放终端",
+    "id": 345
+  },
+  {
+    "parentId": 16,
+    "key": "Seeper",
+    "name": "易涝点监测设备",
+    "id": 347
+  },
+  {
+    "parentId": 16,
+    "key": "ManholeLevel",
+    "name": "窨井液位监测设备",
+    "id": 348
+  },
+  {
+    "parentId": 16,
+    "key": "RainGauge",
+    "name": "雨量计",
+    "id": 349
+  },
+  {
+    "parentId": 16,
+    "key": "FlowRate",
+    "name": "流速液位监测设备",
+    "id": 350
+  },
+  {
+    "parentId": 87,
+    "key": "AlgorithmManagerPlatform",
+    "name": "视频内容分析",
+    "id": 351
+  },
+  {
+    "parentId": 2,
+    "key": "Collision data collection",
+    "name": "行车碰撞数据采集",
+    "id": 352
+  },
+  {
+    "parentId": 2,
+    "key": "Drivingbehavior",
+    "name": "驾驶行为数据采集",
+    "id": 353
+  },
+  {
+    "parentId": 2,
+    "key": "Logisticsmonitoring",
+    "name": "仓储运输环境检测设备",
+    "id": 354
+  },
+  {
+    "parentId": 78,
+    "key": "FishTank",
+    "name": "鱼缸",
+    "id": 355
+  },
+  {
+    "parentId": 106,
+    "key": "Currentdetectingsensor",
+    "name": "单向电流检测传感器",
+    "id": 356
+  },
+  {
+    "parentId": 106,
+    "key": "Tracker",
+    "name": "定位终端",
+    "id": 357
+  },
+  {
+    "parentId": 258,
+    "key": "IB_Lock ",
+    "name": "锁",
+    "id": 358
+  },
+  {
+    "parentId": 301,
+    "key": "ParkChannel",
+    "name": "社区车行停车通道",
+    "id": 359
+  },
+  {
+    "parentId": 301,
+    "key": "ParkArea",
+    "name": "社区车行停车区域",
+    "id": 360
+  },
+  {
+    "parentId": 301,
+    "key": "SmartWaterFlowMeter",
+    "name": "智能水流量计",
+    "id": 361
+  },
+  {
+    "parentId": 301,
+    "key": "SmartGasFlowMeter",
+    "name": "智能燃气流量计",
+    "id": 362
+  },
+  {
+    "parentId": 301,
+    "key": "MultifunctionElectricityMeter",
+    "name": "多功能电表",
+    "id": 363
+  },
+  {
+    "parentId": 301,
+    "key": "QrCodeAccess",
+    "name": "二维码门禁",
+    "id": 364
+  },
+  {
+    "parentId": 68,
+    "key": "TowelRack",
+    "name": "毛巾架",
+    "id": 365
+  },
+  {
+    "parentId": 66,
+    "key": "Airfryer",
+    "name": "空气炸锅",
+    "id": 366
+  },
+  {
+    "parentId": 66,
+    "key": "WaterSoftener",
+    "name": "软水机",
+    "id": 367
+  },
+  {
+    "parentId": 258,
+    "key": "MeterElec_Dlt645",
+    "name": "DLT645电表",
+    "id": 406
+  },
+  {
+    "parentId": 66,
+    "key": "NoodleMaker",
+    "name": "面条机",
+    "id": 407
+  },
+  {
+    "parentId": 301,
+    "key": "PasswordAccess",
+    "name": "密码门禁",
+    "id": 408
+  },
+  {
+    "parentId": 301,
+    "key": "CardAccess",
+    "name": "刷卡门禁",
+    "id": 409
+  },
+  {
+    "parentId": 258,
+    "key": "SmartDoorIntercoms",
+    "name": "门禁对讲机",
+    "id": 413
+  },
+  {
+    "parentId": 78,
+    "key": "SensorSignalCollector",
+    "name": "传感器信号采集器",
+    "id": 415
+  },
+  {
+    "parentId": 78,
+    "key": "HVACExtController",
+    "name": "HVAC外接控制器",
+    "id": 416
+  },
+  {
+    "parentId": 78,
+    "key": "BackgroundMusicController",
+    "name": "背景音乐控制器",
+    "id": 418
+  },
+  {
+    "parentId": 301,
+    "key": "ParkingSpace",
+    "name": "停车车位",
+    "id": 431
+  },
+  {
+    "parentId": 301,
+    "key": "ParkingArea",
+    "name": "停车区域",
+    "id": 432
+  },
+  {
+    "parentId": 301,
+    "key": "ParkingBarrier",
+    "name": "停车道闸",
+    "id": 433
+  },
+  {
+    "parentId": 301,
+    "key": "ParkingLot",
+    "name": "停车场",
+    "id": 434
+  },
+  {
+    "parentId": 78,
+    "key": "AutoDoor",
+    "name": "自动门",
+    "id": 437
+  },
+  {
+    "parentId": 258,
+    "key": "EFence",
+    "name": "电子围栏",
+    "id": 438
+  },
+  {
+    "parentId": 78,
+    "key": "MosquitoLamp",
+    "name": "灭蚊器",
+    "id": 563
+  },
+  {
+    "parentId": 78,
+    "key": "LawnMower",
+    "name": "割草机",
+    "id": 675
+  },
+  {
+    "parentId": 301,
+    "key": "HIKVISIONEdgeServer",
+    "name": "海康边缘服务器",
+    "id": 678
+  },
+  {
+    "parentId": 78,
+    "key": "Relay",
+    "name": "继电器",
+    "id": 2143
+  },
+  {
+    "parentId": 66,
+    "key": "IntegratedStove",
+    "name": "集成灶",
+    "id": 2184
+  },
+  {
+    "parentId": 66,
+    "key": "IceCreamMaker",
+    "name": "冰激凌机",
+    "id": 2187
+  },
+  {
+    "parentId": 54,
+    "key": "VoiceTemperatureControlPanel",
+    "name": "语音温控面板",
+    "id": 2188
+  },
+  {
+    "parentId": 68,
+    "key": "SmartPillow",
+    "name": "智能枕",
+    "id": 2189
+  },
+  {
+    "parentId": 17,
+    "key": "FireDoor",
+    "name": "防火门",
+    "id": 2192
+  },
+  {
+    "parentId": 78,
+    "key": "Dryer",
+    "name": "干衣机",
+    "id": 2193
+  },
+  {
+    "parentId": 17,
+    "key": "EmergencyLight",
+    "name": "应急照明灯",
+    "id": 2194
+  },
+  {
+    "parentId": 17,
+    "key": "FireWaterCannon",
+    "name": "智能消防水炮",
+    "id": 2195
+  },
+  {
+    "parentId": 17,
+    "key": "FireCannon",
+    "name": "智能消防炮",
+    "id": 2196
+  },
+  {
+    "parentId": 2,
+    "key": "SmartDustbin",
+    "name": "智能垃圾桶",
+    "id": 2197
+  },
+  {
+    "parentId": 17,
+    "key": "PressureBlower",
+    "name": "正压送风机",
+    "id": 2198
+  },
+  {
+    "parentId": 17,
+    "key": "FlowIndicator",
+    "name": "水流指示器",
+    "id": 2199
+  },
+  {
+    "parentId": 17,
+    "key": "ElectricValve",
+    "name": "电动阀",
+    "id": 2200
+  },
+  {
+    "parentId": 17,
+    "key": "ExhaustWindow",
+    "name": "电动排烟窗",
+    "id": 2201
+  },
+  {
+    "parentId": 17,
+    "key": "EmerBroadcasting",
+    "name": "应急广播",
+    "id": 2202
+  },
+  {
+    "parentId": 17,
+    "key": "FireValve",
+    "name": "防火阀",
+    "id": 2203
+  },
+  {
+    "parentId": 258,
+    "key": "SmartElevator",
+    "name": "智能电梯",
+    "id": 2215
+  },
+  {
+    "parentId": 78,
+    "key": "SmartGasMeter",
+    "name": "智能燃气表",
+    "id": 2216
+  },
+  {
+    "parentId": 258,
+    "key": "ElectricVehicleChargingStation",
+    "name": "电动汽车充电站",
+    "id": 2221
+  },
+  {
+    "parentId": 301,
+    "key": "ElevatorController",
+    "name": "梯控",
+    "id": 2224
+  },
+  {
+    "parentId": 66,
+    "key": "FoodDehydrator",
+    "name": "食物烘干机",
+    "id": 2226
+  },
+  {
+    "parentId": 68,
+    "key": "MoxibustionApparatus",
+    "name": "艾灸仪",
+    "id": 2227
+  },
+  {
+    "parentId": 258,
+    "key": "VREquipment",
+    "name": "智能VR类设备",
+    "id": 2228
+  },
+  {
+    "parentId": 78,
+    "key": "IntelligentLitterBox",
+    "name": "智能猫砂盆",
+    "id": 2229
+  },
+  {
+    "parentId": 42,
+    "key": "NVR",
+    "name": "网络硬盘录像机",
+    "id": 2242
+  },
+  {
+    "parentId": 78,
+    "key": "SmartWasteSortingDustBin",
+    "name": "智能分类垃圾桶",
+    "id": 2243
+  },
+  {
+    "parentId": 66,
+    "key": "GrainMill",
+    "name": "谷物碾磨机",
+    "id": 2254
+  },
+  {
+    "parentId": 78,
+    "key": "ShowerHead",
+    "name": "花洒",
+    "id": 2261
+  },
+  {
+    "parentId": 301,
+    "key": "QrCodeAccessControl",
+    "name": "二维码门禁机",
+    "id": 2262
+  },
+  {
+    "parentId": 2,
+    "key": "ActiveVehMaintenance",
+    "name": "车辆主动维护",
+    "id": 2263
+  },
+  {
+    "parentId": 2,
+    "key": "SmartTox",
+    "name": "智能车机",
+    "id": 2264
+  },
+  {
+    "parentId": 2,
+    "key": "SmartRearviewMirror",
+    "name": "智能后视镜",
+    "id": 2265
+  },
+  {
+    "parentId": 301,
+    "key": "VideoIntercomDoor",
+    "name": "可视对讲机门口机",
+    "id": 2268
+  },
+  {
+    "parentId": 301,
+    "key": "BluetoothAccess",
+    "name": "蓝牙门禁",
+    "id": 2269
+  },
+  {
+    "parentId": 78,
+    "key": "Projector",
+    "name": "投影仪",
+    "id": 2291
+  },
+  {
+    "parentId": 87,
+    "key": "FaceRecognizeDevice",
+    "name": "人脸识别机",
+    "id": 2294
+  },
+  {
+    "parentId": 301,
+    "key": "AdvertTerminal",
+    "name": "广告屏",
+    "id": 2296
+  },
+  {
+    "parentId": 241,
+    "key": "FarmRecorder",
+    "name": "农田记录仪",
+    "id": 2298
+  },
+  {
+    "parentId": 78,
+    "key": "Faucet",
+    "name": "龙头",
+    "id": 2306
+  }
+]

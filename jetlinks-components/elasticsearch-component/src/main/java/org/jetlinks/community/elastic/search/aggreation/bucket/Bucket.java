@@ -44,31 +44,27 @@ public class Bucket {
 
     private List<Bucket> buckets;
 
+    private double toNumber(double number) {
+        return (Double.isInfinite(number) || Double.isNaN(number)) ? 0 : number;
+    }
+
     public Map<String, Number> toMap() {
         Map<String, Number> map = new HashMap<>();
         if (this.sum != null) {
-            map.put(sum.getName(), sum.getValue());
+            map.put(sum.getName(), toNumber(sum.getValue()));
         }
         if (this.valueCount != null) {
-            map.put(valueCount.getName(), valueCount.getValue());
+            map.put(valueCount.getName(), toNumber(valueCount.getValue()));
         }
         if (this.avg != null) {
-            map.put(avg.getName(), avg.getValue());
+            map.put(avg.getName(), toNumber(avg.getValue()));
         }
         if (this.min != null) {
-            map.put(min.getName(), min.getValue());
+            map.put(min.getName(), toNumber(min.getValue()));
         }
         if (this.max != null) {
-            map.put(max.getName(), max.getValue());
+            map.put(max.getName(), toNumber(max.getValue()));
         }
-//
-//        if (this.getBuckets() != null) {
-//            bucketFlatMap(this.getBuckets(), map);
-//        }
         return map;
     }
-
-//    private void bucketFlatMap(List<Bucket> buckets, Map<String, Number> map) {
-//        buckets.forEach(bucket -> map.putAll(bucket.toMap()));
-//    }
 }
