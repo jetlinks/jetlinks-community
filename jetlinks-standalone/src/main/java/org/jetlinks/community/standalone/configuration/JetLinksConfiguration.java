@@ -244,14 +244,6 @@ public class JetLinksConfiguration {
     }
 
     @Bean
-    public JarProtocolSupportLoader jarProtocolSupportLoader(ServiceContext serviceContext) {
-        JarProtocolSupportLoader loader = new JarProtocolSupportLoader();
-        loader.setServiceContext(serviceContext);
-        return loader;
-    }
-
-
-    @Bean
     public LazyInitManagementProtocolSupports managementProtocolSupports(ProtocolSupportManager supportManager,
                                                                          ProtocolSupportLoader loader,
                                                                          ClusterManager clusterManager) {
