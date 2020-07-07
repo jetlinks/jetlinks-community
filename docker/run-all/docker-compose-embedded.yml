@@ -1,7 +1,17 @@
 version: '2'
 services:
+  redis:
+    image: redis:5.0.4
+    container_name: jetlinks-ce-redis
+    #    ports:
+    #      - "6379:6379"
+    volumes:
+      - "redis-volume:/data"
+    command: redis-server --appendonly yes
+    environment:
+      - TZ=Asia/Shanghai
   ui:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd:1.2.0
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd:1.3.0
     container_name: jetlinks-ce-ui
     ports:
       - 9000:80
@@ -30,6 +40,7 @@ services:
       - "spring.profiles.active=dev,embedded" #使用dev和embedded环境.
       - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
       - "logging.level.io.r2dbc=warn"
+      - "spring.redis.host=redis"
       - "logging.level.org.springframework.data=warn"
       - "logging.level.org.springframework=warn"
       - "logging.level.org.jetlinks=warn"
