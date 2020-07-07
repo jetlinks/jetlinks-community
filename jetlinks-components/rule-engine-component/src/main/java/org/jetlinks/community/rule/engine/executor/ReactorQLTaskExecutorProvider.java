@@ -66,7 +66,11 @@ public class ReactorQLTaskExecutorProvider implements TaskExecutorProvider {
                 dataStream = context.getInput()
                     .accept()
                     .map(RuleDataHelper::toContextMap)
-                    .as(reactorQL::start)
+                    .flatMap(v -> reactorQL.start(Flux.just(v))
+                        .onErrorResume(err -> {
+                            context.getLogger().error(err.getMessage(),err);
+                            return context.onError(err, null).then(Mono.empty());
+                        }))
                 ;
             } else {
                 dataStream = reactorQL
