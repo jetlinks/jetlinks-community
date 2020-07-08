@@ -140,6 +140,12 @@ public class PipePayloadParser implements PayloadParser {
     }
 
     @Override
+    public void reset() {
+        this.result.clear();
+        complete();
+    }
+
+    @Override
     public void close() {
         processor.onComplete();
         currentPipe.set(0);

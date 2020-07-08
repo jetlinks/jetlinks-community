@@ -61,6 +61,9 @@ public class WebSocketMessagingHandler implements WebSocketHandler {
                 .doOnNext(message -> {
                     try {
                         MessagingRequest request = JSON.parseObject(message.getPayloadAsText(), MessagingRequest.class);
+                        if (request == null || request.getType() == MessagingRequest.Type.ping) {
+                            return;
+                        }
                         if (StringUtils.isEmpty(request.getId())) {
                             session
                                 .send(Mono.just(session.textMessage(JSON.toJSONString(

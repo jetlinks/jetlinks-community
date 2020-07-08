@@ -19,6 +19,6 @@ public class MessagingRequest {
 
 
     public enum Type{
-        pub,sub,unsub
+        pub,sub,unsub,ping
     }
 }

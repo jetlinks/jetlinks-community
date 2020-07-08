@@ -32,4 +32,9 @@ public interface PayloadParser {
      * 关闭以释放相关资源
      */
     void close();
+
+    /**
+     * 重置规则
+     */
+    default void reset(){}
 }

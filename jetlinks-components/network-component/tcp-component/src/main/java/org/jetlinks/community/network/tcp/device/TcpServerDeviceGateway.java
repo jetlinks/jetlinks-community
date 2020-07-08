@@ -223,8 +223,10 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                             log.error("处理TCP[{}]消息失败:\n{}",
                                 clientAddr,
                                 tcpMessage
-                                , err))))
-                    .onErrorResume((err) -> Mono.empty())
+                                , err)))
+                        .onErrorResume((err) -> Mono.fromRunnable(client::reset))
+                    )
+                    .onErrorResume((err) -> Mono.fromRunnable(client::reset))
                     .subscriberContext(ReactiveLogger.start("network", tcpServer.getId()))
                     .subscribe();
             }));

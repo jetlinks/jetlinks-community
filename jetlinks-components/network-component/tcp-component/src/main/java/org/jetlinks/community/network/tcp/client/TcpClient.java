@@ -50,4 +50,9 @@ public interface TcpClient extends Network {
      * @param timeout 超时时间
      */
     void setKeepAliveTimeout(Duration timeout);
+
+    /**
+     * 重置
+     */
+    void reset();
 }

@@ -7,10 +7,14 @@ import io.vertx.core.net.SocketAddress;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Hex;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
@@ -19,13 +23,14 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
 @Slf4j
-public class VertxTcpClient extends AbstractTcpClient {
+public class VertxTcpClient implements TcpClient {
 
     public volatile NetClient client;
 
-    public volatile NetSocket socket;
+    public NetSocket socket;
 
     volatile PayloadParser payloadParser;
 
@@ -39,6 +44,10 @@ public class VertxTcpClient extends AbstractTcpClient {
 
     private final List<Runnable> disconnectListener = new CopyOnWriteArrayList<>();
 
+    private final EmitterProcessor<TcpMessage> processor = EmitterProcessor.create(false);
+
+    private final FluxSink<TcpMessage> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
+
     @Override
     public void keepAlive() {
         lastKeepAliveTime = System.currentTimeMillis();
@@ -47,6 +56,13 @@ public class VertxTcpClient extends AbstractTcpClient {
     @Override
     public void setKeepAliveTimeout(Duration timeout) {
         keepAliveTimeoutMs = timeout.toMillis();
+    }
+
+    @Override
+    public void reset() {
+        if (null != payloadParser) {
+            payloadParser.reset();
+        }
     }
 
     @Override
@@ -61,6 +77,20 @@ public class VertxTcpClient extends AbstractTcpClient {
 
     public VertxTcpClient(String id) {
         this.id = id;
+    }
+
+    protected void received(TcpMessage message) {
+        if (processor.getPending() > processor.getBufferSize() / 2) {
+            log.warn("tcp [{}] message pending {} ,drop message:{}", processor.getPending(), getRemoteAddress(), message.toString());
+            return;
+        }
+        sink.next(message);
+    }
+
+    @Override
+    public Flux<TcpMessage> subscribe() {
+        return processor
+            .map(Function.identity());
     }
 
     private void execute(Runnable runnable) {
@@ -88,17 +118,19 @@ public class VertxTcpClient extends AbstractTcpClient {
     @Override
     public void shutdown() {
         log.debug("tcp client [{}] disconnect", getId());
-        if (null != client) {
-            execute(client::close);
-            client = null;
-        }
-        if (null != socket) {
-            execute(socket::close);
-            socket = null;
-        }
-        if (null != payloadParser) {
-            execute(payloadParser::close);
-            payloadParser = null;
+        synchronized (this) {
+            if (null != client) {
+                execute(client::close);
+                client = null;
+            }
+            if (null != socket) {
+                execute(socket::close);
+                this.socket = null;
+            }
+            if (null != payloadParser) {
+                execute(payloadParser::close);
+                payloadParser = null;
+            }
         }
         for (Runnable runnable : disconnectListener) {
             execute(runnable);
@@ -115,33 +147,42 @@ public class VertxTcpClient extends AbstractTcpClient {
     }
 
     public void setRecordParser(PayloadParser payloadParser) {
-        if (null != this.payloadParser && this.payloadParser != payloadParser) {
-            this.payloadParser.close();
+        synchronized (this) {
+            if (null != this.payloadParser && this.payloadParser != payloadParser) {
+                this.payloadParser.close();
+            }
+            this.payloadParser = payloadParser;
+            this.payloadParser
+                .handlePayload()
+                .onErrorContinue((err, res) -> {
+                    log.error(err.getMessage(), err);
+                })
+                .subscribe(buffer -> received(new TcpMessage(buffer.getByteBuf())));
         }
-        this.payloadParser = payloadParser;
-        this.payloadParser
-            .handlePayload()
-            .onErrorContinue((err, res) -> log.error(err.getMessage(), err))
-            .subscribe(buffer -> received(new TcpMessage(buffer.getByteBuf())));
     }
 
     public void setSocket(NetSocket socket) {
-        Objects.requireNonNull(payloadParser);
-        if (this.socket != null && this.socket != socket) {
-            this.socket.close();
-        }
-        this.socket = socket;
-        this.socket.closeHandler(v -> {
-            shutdown();
-        });
-        this.socket.handler(buffer -> {
-            keepAlive();
-            payloadParser.handle(buffer);
-            if (this.socket != socket) {
-                log.warn("tcp client [{}] memory leak ", socket.remoteAddress());
-                socket.close();
+        synchronized (this) {
+            Objects.requireNonNull(payloadParser);
+            if (this.socket != null && this.socket != socket) {
+                this.socket.close();
             }
-        });
+            this.socket = socket
+                .closeHandler(v -> shutdown())
+                .handler(buffer -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("handle tcp client[{}] payload:[{}]",
+                            socket.remoteAddress(),
+                            Hex.encodeHexString(buffer.getBytes()));
+                    }
+                    keepAlive();
+                    payloadParser.handle(buffer);
+                    if (this.socket != socket) {
+                        log.warn("tcp client [{}] memory leak ", socket.remoteAddress());
+                        socket.close();
+                    }
+                });
+        }
     }
 
     @Override
@@ -151,7 +192,8 @@ public class VertxTcpClient extends AbstractTcpClient {
                 sink.error(new SocketException("socket closed"));
                 return;
             }
-            socket.write(Buffer.buffer(message.getPayload()), r -> {
+            Buffer buffer = Buffer.buffer(message.getPayload());
+            socket.write(buffer, r -> {
                 keepAlive();
                 if (r.succeeded()) {
                     sink.success(true);
