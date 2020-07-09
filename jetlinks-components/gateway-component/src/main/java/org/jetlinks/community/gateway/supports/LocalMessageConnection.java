@@ -21,18 +21,18 @@ class LocalMessageConnection implements
     private final List<Runnable> listener = new CopyOnWriteArrayList<>();
 
     @Getter
-    private String id;
+    private final String id;
 
-    private boolean shareCluster;
+    private final boolean shareCluster;
 
-    private AtomicBoolean disconnected = new AtomicBoolean(false);
+    private final AtomicBoolean disconnected = new AtomicBoolean(false);
 
-    private EmitterProcessor<TopicMessage> processor = EmitterProcessor.create(false);
+    private final EmitterProcessor<TopicMessage> processor = EmitterProcessor.create(false);
 
-    private FluxSink<TopicMessage> sink = processor.sink();
+    private final FluxSink<TopicMessage> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
 
-    private EmitterProcessor<Subscription> subscriptionProcessor = EmitterProcessor.create(false);
-    private EmitterProcessor<Subscription> unsubscriptionProcessor = EmitterProcessor.create(false);
+    private final EmitterProcessor<Subscription> subscriptionProcessor = EmitterProcessor.create(false);
+    private final EmitterProcessor<Subscription> unsubscriptionProcessor = EmitterProcessor.create(false);
 
     public LocalMessageConnection(String id, boolean shareCluster) {
         this.id = id;

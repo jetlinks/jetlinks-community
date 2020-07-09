@@ -64,7 +64,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
 
     private final EmitterProcessor<Message> processor = EmitterProcessor.create(false);
 
-    private final FluxSink<Message> sink = processor.sink();
+    private final FluxSink<Message> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
 
     private final AtomicBoolean started = new AtomicBoolean();
 
