@@ -26,24 +26,21 @@ public class VertxMqttClient implements MqttClient {
     @Getter
     private io.vertx.mqtt.MqttClient client;
 
-    private FluxProcessor<MqttMessage, MqttMessage> messageProcessor;
+    private final FluxProcessor<MqttMessage, MqttMessage> messageProcessor = EmitterProcessor.create(false);
 
-    private FluxSink<MqttMessage> sink;
+    private final FluxSink<MqttMessage> sink = messageProcessor.sink(FluxSink.OverflowStrategy.BUFFER);
 
-    private Map<String, AtomicInteger> topicsSubscribeCounter = new ConcurrentHashMap<>();
+    private final Map<String, AtomicInteger> topicsSubscribeCounter = new ConcurrentHashMap<>();
 
     private boolean neverSubscribe = true;
 
-    private String id;
+    private final String id;
 
     @Getter
-    private AtomicInteger reloadCounter = new AtomicInteger();
-
+    private final AtomicInteger reloadCounter = new AtomicInteger();
 
     public VertxMqttClient(String id) {
         this.id = id;
-        this.messageProcessor = EmitterProcessor.create(false);
-        sink = this.messageProcessor.sink();
     }
 
     public void setClient(io.vertx.mqtt.MqttClient client) {

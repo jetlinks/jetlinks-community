@@ -28,13 +28,13 @@ import java.util.function.Function;
 @Slf4j
 public class PipePayloadParser implements PayloadParser {
 
-    private EmitterProcessor<Buffer> processor = EmitterProcessor.create(true);
+    private final EmitterProcessor<Buffer> processor = EmitterProcessor.create(true);
 
-    private FluxSink<Buffer> sink = processor.sink();
+    private final FluxSink<Buffer> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
 
-    private List<Consumer<Buffer>> pipe = new CopyOnWriteArrayList<>();
+    private final List<Consumer<Buffer>> pipe = new CopyOnWriteArrayList<>();
 
-    private List<Buffer> result = new CopyOnWriteArrayList<>();
+    private final List<Buffer> result = new CopyOnWriteArrayList<>();
 
     private volatile RecordParser recordParser;
 
@@ -42,7 +42,7 @@ public class PipePayloadParser implements PayloadParser {
 
     private Consumer<RecordParser> firstInit;
 
-    private AtomicInteger currentPipe = new AtomicInteger();
+    private final AtomicInteger currentPipe = new AtomicInteger();
 
     public PipePayloadParser result(String buffer) {
         return result(Buffer.buffer(buffer));
@@ -68,6 +68,10 @@ public class PipePayloadParser implements PayloadParser {
     }
 
     public PipePayloadParser fixed(int size) {
+        if (size == 0) {
+            complete();
+            return this;
+        }
         if (recordParser == null) {
             setParser(RecordParser.newFixed(size));
             firstInit = (parser -> parser.fixedSizeMode(size));

@@ -20,7 +20,7 @@ public class DeviceAlarmHistoryService extends GenericReactiveCrudService<Device
 
 
     EmitterProcessor<DeviceAlarmHistoryEntity> processor = EmitterProcessor.create(false);
-    FluxSink<DeviceAlarmHistoryEntity> sink = processor.sink();
+    FluxSink<DeviceAlarmHistoryEntity> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
 
     @PostConstruct
     public void init() {

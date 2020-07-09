@@ -32,6 +32,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -45,32 +46,31 @@ import java.util.function.Function;
 public class MqttClientDeviceGateway implements DeviceGateway {
 
     @Getter
-    private String id;
+    private final String id;
 
-    private MqttClient mqttClient;
+    private final MqttClient mqttClient;
 
-    private DeviceRegistry registry;
+    private final DeviceRegistry registry;
 
-    private List<String> topics;
+    private final List<String> topics;
 
-    private String protocol;
+    private final String protocol;
 
-    private ProtocolSupports protocolSupport;
+    private final ProtocolSupports protocolSupport;
 
-    private DecodedClientMessageHandler clientMessageHandler;
+    private final DecodedClientMessageHandler clientMessageHandler;
 
+    private final EmitterProcessor<Message> messageProcessor = EmitterProcessor.create(false);
 
-    private EmitterProcessor<Message> messageProcessor = EmitterProcessor.create(false);
+    private final FluxSink<Message> sink = messageProcessor.sink(FluxSink.OverflowStrategy.BUFFER);
 
-    private FluxSink<Message> sink = messageProcessor.sink();
+    private final AtomicBoolean started = new AtomicBoolean();
 
-    private AtomicBoolean started = new AtomicBoolean();
+    private final List<Disposable> disposable = new CopyOnWriteArrayList<>();
 
-    private List<Disposable> disposable = new CopyOnWriteArrayList<>();
+    private final DeviceGatewayMonitor gatewayMonitor;
 
-    private DeviceSessionManager sessionManager;
-
-    private DeviceGatewayMonitor gatewayMonitor;
+    private final DeviceSessionManager sessionManager;
 
     public MqttClientDeviceGateway(String id,
                                    MqttClient mqttClient,
@@ -87,8 +87,8 @@ public class MqttClientDeviceGateway implements DeviceGateway {
         this.registry = Objects.requireNonNull(registry, "registry");
         this.protocolSupport = Objects.requireNonNull(protocolSupport, "protocolSupport");
         this.protocol = Objects.requireNonNull(protocol, "protocol");
-        this.sessionManager = Objects.requireNonNull(sessionManager, "sessionManager");
         this.clientMessageHandler = Objects.requireNonNull(clientMessageHandler, "clientMessageHandler");
+        this.sessionManager = Objects.requireNonNull(sessionManager, "sessionManager");
         this.topics = Objects.requireNonNull(topics, "topics");
     }
 
@@ -109,6 +109,7 @@ public class MqttClientDeviceGateway implements DeviceGateway {
                 return getProtocol()
                     .flatMap(codec -> codec.getMessageCodec(getTransport()))
                     .flatMapMany(codec -> codec.decode(new FromDeviceMessageContext() {
+                        @Nonnull
                         @Override
                         public EncodedMessage getMessage() {
                             return mqttMessage;
