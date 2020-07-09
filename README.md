@@ -3,6 +3,7 @@
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
 ![Version](https://img.shields.io/badge/Version-1.1--RELEASE-brightgreen)
 ![QQ群2021514](https://img.shields.io/badge/QQ群-2021514-brightgreen)
+![jetlinks](https://visitor-badge.glitch.me/badge?page_id=jetlinks)
 
 JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发, 
 是一个开箱即用,可二次开发的企业级物联网基础平台。平台实现了物联网相关的众多基础功能,
