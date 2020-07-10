@@ -1,10 +1,10 @@
-package org.jetlinks.community.notify.sms.provider;
+package org.jetlinks.community.notify.sms;
 
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.notify.*;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.template.Template;
 import org.jetlinks.community.notify.template.TemplateManager;
 import org.jetlinks.community.notify.template.TemplateProperties;
@@ -54,7 +54,7 @@ public class TestSmsProvider extends AbstractNotifier<PlainTextSmsTemplate> impl
     @Nonnull
     @Override
     public Mono<Void> send(@Nonnull PlainTextSmsTemplate template, @Nonnull Values context) {
-        return Mono.fromRunnable(() -> log.info("send sms [{}] message:{}", template.getSendTo(context.getAllValues()), template.getTextSms(context.getAllValues())));
+        return Mono.fromRunnable(() -> log.info("send sms {} message:{}", template.getSendTo(context.getAllValues()), template.getTextSms(context.getAllValues())));
     }
 
     @Nonnull
@@ -71,7 +71,7 @@ public class TestSmsProvider extends AbstractNotifier<PlainTextSmsTemplate> impl
 
     @Override
     public String getNotifierId() {
-        return "test-sms-notify";
+        return "test-sms-sender";
     }
 
     @Override

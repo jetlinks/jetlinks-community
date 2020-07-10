@@ -1,4 +1,4 @@
-package org.jetlinks.community.notify.sms.provider;
+package org.jetlinks.community.notify.sms;
 
 import lombok.Getter;
 import lombok.Setter;

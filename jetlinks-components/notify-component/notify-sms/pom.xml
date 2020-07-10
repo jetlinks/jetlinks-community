@@ -18,6 +18,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-core</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-starter</artifactId>
             <version>${hsweb.framework.version}</version>
