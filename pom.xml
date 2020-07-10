@@ -28,7 +28,7 @@
         <netty.version>4.1.50.Final</netty.version>
         <elasticsearch.version>6.8.10</elasticsearch.version>
         <reactor.excel.version>1.0-RC</reactor.excel.version>
-        <reactor.ql.version>1.0.2</reactor.ql.version>
+        <reactor.ql.version>1.0.3</reactor.ql.version>
         <fastjson.version>1.2.70</fastjson.version>
     </properties>
 
