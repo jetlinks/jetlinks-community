@@ -212,8 +212,8 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                         StringUtils.hasText(rule.getDeviceId())
                             ? flux.window(windowTime)//规则已经指定了固定的设备,直接开启时间窗口就行
                             : flux //规则配置在设备产品上,则按设备ID分组后再开窗口
-                            .groupBy(map -> String.valueOf(map.get("deviceId")))
-                            .flatMap(group -> group.window(windowTime)))
+                            .groupBy(map -> String.valueOf(map.get("deviceId")), Integer.MAX_VALUE)
+                            .flatMap(group -> group.window(windowTime),Integer.MAX_VALUE))
                     //处理每一组数据
                     .flatMap(group -> group
                         .index((index, data) -> Tuples.of(index + 1, data)) //给数据打上索引,索引号就是告警次数
