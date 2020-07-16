@@ -36,7 +36,7 @@ public class RuleEngineSubscriptionProvider implements SubscriptionProvider {
     @Override
     public Flux<Message> subscribe(SubscribeRequest request) {
 
-        return messageGateway.subscribe(Subscription.asList(request.getTopic()), "rule:sub:" + request.getId(), true)
+        return messageGateway.subscribe(Subscription.asList(request.getTopic()),messageGateway.nextSubscriberId( "rule:sub:" + request.getId()), true)
             .map(msg -> Message.success(request.getId(), msg.getTopic(), msg.convertMessage()));
     }
 }
