@@ -4,12 +4,12 @@ import com.alibaba.fastjson.JSONObject;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.pro.ValueObject;
-import org.jetlinks.pro.gateway.MessageGateway;
-import org.jetlinks.pro.gateway.Subscription;
-import org.jetlinks.pro.notify.manager.subscriber.Notify;
-import org.jetlinks.pro.notify.manager.subscriber.Subscriber;
-import org.jetlinks.pro.notify.manager.subscriber.SubscriberProvider;
+import org.jetlinks.community.ValueObject;
+import org.jetlinks.community.gateway.MessageGateway;
+import org.jetlinks.community.gateway.Subscription;
+import org.jetlinks.community.notify.manager.subscriber.Notify;
+import org.jetlinks.community.notify.manager.subscriber.Subscriber;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -52,7 +52,6 @@ public class DeviceAlarmProvider implements SubscriberProvider {
         String deviceId = configs.getString("deviceId").orElse("*");
         String alarmId = configs.getString("alarmId").orElse("*");
 
-        // TODO: 2020/7/16 如果用户存在租户,并且设置了通配符,应该从资产总获取所有信息进行分别订阅。
         Flux<Notify> flux = messageGateway
             .subscribe(Subscription.asList(
                 String.format("/rule-engine/device/alarm/%s/%s/%s", productId, deviceId, alarmId)),
