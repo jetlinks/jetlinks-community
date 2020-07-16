@@ -50,6 +50,8 @@ import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -414,7 +416,54 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     }
 
 
+
+    @Subscribe("/device/*/*/register")
+    @Transactional(propagation = Propagation.NEVER)
+    public Mono<Void> autoRegisterDevice(DeviceRegisterMessage message) {
+        return registry
+            .getDevice(message.getDeviceId())
+            .switchIfEmpty(Mono.defer(() -> {
+                //自动注册
+                return doAutoRegister(message);
+            }))
+            .then();
+    }
+
+    private Mono<DeviceOperator> doAutoRegister(DeviceRegisterMessage message) {
+        //自动注册
+        return Mono.zip(
+            Mono.justOrEmpty(message.getDeviceId()),//1. 设备ID
+            Mono.justOrEmpty(message.getHeader("deviceName")).map(String::valueOf),//2. 设备名称
+            Mono.justOrEmpty(message.getHeader("productId").map(String::valueOf)), //3. 产品ID
+            Mono.justOrEmpty(message.getHeader("productId").map(String::valueOf)) //4. 产品
+                .flatMap(deviceProductService::findById),
+            Mono.justOrEmpty(message.getHeader("configuration").map(Map.class::cast).orElse(new HashMap()))//配置信息
+        ).flatMap(tps -> {
+            DeviceInstanceEntity instance = new DeviceInstanceEntity();
+            instance.setId(tps.getT1());
+            instance.setName(tps.getT2());
+            instance.setProductId(tps.getT3());
+            instance.setProductName(tps.getT4().getName());
+            instance.setConfiguration(tps.getT5());
+            instance.setCreateTimeNow();
+            instance.setCreatorId(tps.getT4().getCreatorId());
+            instance.setOrgId(tps.getT4().getOrgId());
+            instance.setState(DeviceState.online);
+            return super
+                .save(Mono.just(instance))
+                .thenReturn(instance)
+                .flatMap(device -> registry.register(device.toDeviceInfo()));
+        });
+    }
+
+    /**
+     * 通过订阅子设备注册消息,自动绑定子设备到网关设备
+     *
+     * @param message 子设备消息
+     * @return void
+     */
     @Subscribe("/device/*/*/message/children/*/register")
+    @Transactional(propagation = Propagation.NEVER)
     public Mono<Void> autoBindChildrenDevice(ChildDeviceMessage message) {
         String childId = message.getChildDeviceId();
         Message childMessage = message.getChildDeviceMessage();
@@ -428,12 +477,19 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                     .execute()
                     .then(registry
                         .getDevice(childId)
+                        .switchIfEmpty(Mono.defer(() -> doAutoRegister(((DeviceRegisterMessage) childMessage))))
                         .flatMap(dev -> dev.setConfig(DeviceConfigKey.parentGatewayId, message.getDeviceId())))
                     .then());
         }
         return Mono.empty();
     }
 
+    /**
+     * 通过订阅子设备注销消息,自动解绑子设备
+     *
+     * @param message 子设备消息
+     * @return void
+     */
     @Subscribe("/device/*/*/message/children/*/unregister")
     public Mono<Void> autoUnbindChildrenDevice(ChildDeviceMessage message) {
         String childId = message.getChildDeviceId();
@@ -455,6 +511,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         }
         return Mono.empty();
     }
+
 
 
 }
