@@ -103,4 +103,5 @@ public interface MessageGateway {
      */
     void shutdown();
 
+    String nextSubscriberId(String prefix);
 }
