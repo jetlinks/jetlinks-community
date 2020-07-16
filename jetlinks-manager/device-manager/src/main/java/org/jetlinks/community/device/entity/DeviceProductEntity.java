@@ -10,6 +10,8 @@ import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
 import org.hswebframework.web.validator.UpdateGroup;
 import org.jetlinks.community.device.enums.DeviceType;
+import org.jetlinks.core.device.DeviceConfigKey;
+import org.jetlinks.core.device.ProductInfo;
 
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
@@ -18,6 +20,8 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.sql.JDBCType;
 import java.util.Map;
+
+import static org.jetlinks.community.device.enums.DeviceType.gateway;
 
 @Getter
 @Setter
@@ -116,5 +120,16 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
     @Column(name = "org_id", length = 32)
     @Comment("所属机构id")
     private String orgId;
+
+    public ProductInfo toProductInfo() {
+        return ProductInfo.builder()
+            .id(getId())
+            .protocol(getMessageProtocol())
+            .metadata(getMetadata())
+            .build()
+            .addConfig(DeviceConfigKey.isGatewayDevice, getDeviceType() == gateway)
+
+            ;
+    }
 
 }

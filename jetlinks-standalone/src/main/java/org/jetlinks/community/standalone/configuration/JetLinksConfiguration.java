@@ -5,9 +5,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.authorization.token.UserTokenManager;
 import org.hswebframework.web.authorization.token.redis.RedisUserTokenManager;
+import org.jetlinks.community.device.entity.DeviceInstanceEntity;
+import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.message.writer.TimeSeriesMessageWriterConnector;
+import org.jetlinks.community.device.service.AutoDiscoverDeviceRegistry;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
@@ -49,6 +53,7 @@ import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import reactor.core.publisher.EmitterProcessor;
@@ -95,11 +100,21 @@ public class JetLinksConfiguration {
     }
 
     @Bean
-    public ClusterDeviceRegistry deviceRegistry(ProtocolSupports supports,
+    public ClusterDeviceRegistry clusterDeviceRegistry(ProtocolSupports supports,
                                                 ClusterManager manager,
                                                 DeviceOperationBroker handler) {
         return new ClusterDeviceRegistry(supports, manager, handler, CacheBuilder.newBuilder().build());
     }
+
+    @Bean
+    @Primary
+    @ConditionalOnProperty(prefix = "jetlinks.device.registry",name = "auto-discover",havingValue = "enabled",matchIfMissing = true)
+    public AutoDiscoverDeviceRegistry deviceRegistry(ClusterDeviceRegistry registry,
+                                                     ReactiveRepository<DeviceInstanceEntity, String> instanceRepository,
+                                                     ReactiveRepository<DeviceProductEntity, String> productRepository) {
+        return new AutoDiscoverDeviceRegistry(registry, instanceRepository, productRepository);
+    }
+
 
     @Bean
     public BeanPostProcessor interceptorRegister(ClusterDeviceRegistry registry){
