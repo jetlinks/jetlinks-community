@@ -1,7 +1,12 @@
 package org.jetlinks.community.rule.engine.entity;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;
 import lombok.Setter;
+import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.gateway.TopicMessage;
+
+import java.util.Map;
 
 /**
  * @author bsetfeng
@@ -21,4 +26,16 @@ public class RuleEngineExecuteEventInfo {
     private String nodeId;
 
     private String ruleData;
+
+    private String contextId;
+
+    public static RuleEngineExecuteEventInfo of(TopicMessage message) {
+        Map<String, String> vars = message.getTopicVars("/rule-engine/{instanceId}/{nodeId}/event/{event}");
+        RuleEngineExecuteEventInfo info = FastBeanCopier.copy(vars, new RuleEngineExecuteEventInfo());
+        JSONObject json = message.getMessage().payloadAsJson();
+        info.id=json.getString("id");
+        info.contextId=json.getString("contextId");
+        info.setRuleData(json.toJSONString());
+        return info;
+    }
 }

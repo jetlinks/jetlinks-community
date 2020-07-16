@@ -3,9 +3,11 @@ package org.jetlinks.community.gateway;
 import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBufUtil;
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.supports.utils.MqttTopicUtils;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 public interface TopicMessage {
 
@@ -28,6 +30,10 @@ public interface TopicMessage {
      */
     @Nonnull
     EncodedMessage getMessage();
+
+    default Map<String, String> getTopicVars(String pattern) {
+        return MqttTopicUtils.getPathVariables(pattern, getTopic());
+    }
 
     default Object convertMessage() {
         if (getMessage() instanceof EncodableMessage) {
