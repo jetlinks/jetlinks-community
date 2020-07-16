@@ -29,6 +29,7 @@ import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
 import org.reactivestreams.Publisher;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -252,7 +253,9 @@ public class DefaultElasticSearchService implements ElasticSearchService {
         return Arrays.stream(response.getHits().getHits())
             .map(hit -> {
                 Map<String, Object> hitMap = hit.getSourceAsMap();
-                hitMap.put("id", hit.getId());
+                if (StringUtils.isEmpty(hitMap.get("id"))) {
+                    hitMap.put("id", hit.getId());
+                }
                 return mapper.apply(hitMap);
             })
             .collect(Collectors.toList());
