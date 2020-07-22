@@ -53,8 +53,7 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
 
     public Mono<Void> start(String id) {
         return findById(Mono.just(id))
-            .flatMapMany(instance -> this.ruleEngine.startRule(id, instance.toRule(modelParser)))
-            .then();
+            .flatMap(this::doStart);
     }
 
     private Mono<Void> doStart(RuleInstanceEntity entity) {
