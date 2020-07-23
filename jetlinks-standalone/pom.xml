@@ -202,6 +202,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-mssql</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-authorization-basic</artifactId>
             <version>${hsweb.framework.version}</version>
