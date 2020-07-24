@@ -6,6 +6,7 @@ import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,6 +24,14 @@ public class DeviceAlarmService extends GenericReactiveCrudService<DeviceAlarmEn
     public Mono<SaveResult> save(Publisher<DeviceAlarmEntity> entityPublisher) {
         return Flux.from(entityPublisher)
             .doOnNext(e -> e.setState(null))
+            .flatMap(alarm -> {
+                if (StringUtils.hasText(alarm.getId())) {
+                    return instanceService
+                        .save(Mono.just(alarm.toRuleInstance()))
+                        .thenReturn(alarm);
+                }
+                return Mono.just(alarm);
+            })
             .as(DeviceAlarmService.super::save);
     }
 
