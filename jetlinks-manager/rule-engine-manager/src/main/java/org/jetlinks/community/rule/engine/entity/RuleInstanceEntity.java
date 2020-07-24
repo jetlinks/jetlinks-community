@@ -3,6 +3,7 @@ package org.jetlinks.community.rule.engine.entity;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
+import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
@@ -55,6 +56,7 @@ public class RuleInstanceEntity extends GenericEntity<String> implements RecordC
     @Column(name = "state")
     @EnumCodec
     @ColumnType(javaType = String.class)
+    @DefaultValue("stopped")
     private RuleInstanceState state;
 
     @Column(name = "instance_detail_json")
