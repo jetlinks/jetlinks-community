@@ -2,11 +2,13 @@ package org.jetlinks.community.notify.manager.web;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
+import org.jetlinks.community.notify.manager.enums.NotificationState;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.community.notify.manager.entity.NotificationEntity;
 import org.jetlinks.community.notify.manager.entity.NotifySubscriberEntity;
@@ -139,6 +141,23 @@ public class NotificationController {
             );
     }
 
+    @PostMapping("/_{state}")
+    @Authorize(ignore = true)
+    public Mono<Integer> readNotification(@RequestBody Mono<List<String>> idList,
+                                          @PathVariable NotificationState state) {
+        return Authentication
+            .currentReactive()
+            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+            .flatMap(auth -> idList
+                .filter(CollectionUtils::isNotEmpty)
+                .flatMap(list-> notificationService.createUpdate()
+                    .set(NotificationEntity::getState,state)
+                    .where(NotificationEntity::getSubscriberType, "user")
+                    .and(NotificationEntity::getSubscriber, auth.getUser().getId())
+                    .in(NotificationEntity::getId, list)
+                    .execute())
+            );
+    }
 
     @Getter
     @Setter

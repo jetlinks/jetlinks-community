@@ -1,6 +1,7 @@
 package org.jetlinks.community.notify.manager.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.core.utils.FluxUtils;
@@ -47,6 +48,7 @@ public class NotificationService extends GenericReactiveCrudService<Notification
     public Flux<NotificationEntity> findAndMarkRead(QueryParamEntity query) {
         return query(query)
             .collectList()
+            .filter(CollectionUtils::isNotEmpty)
             .flatMapMany(list -> createUpdate()
                 .set(NotificationEntity::getState, NotificationState.read)
                 .where()
