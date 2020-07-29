@@ -2,10 +2,10 @@ package org.jetlinks.community.rule.engine.configuration;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.rule.engine.api.EventBus;
+import org.jetlinks.community.gateway.TopicMessageWrap;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.jetlinks.rule.engine.api.RuleEngine;
-import org.jetlinks.rule.engine.api.rpc.RpcService;
-import org.jetlinks.rule.engine.api.rpc.RpcServiceFactory;
 import org.jetlinks.rule.engine.api.scheduler.Scheduler;
 import org.jetlinks.rule.engine.api.task.ConditionEvaluator;
 import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
@@ -16,14 +16,12 @@ import org.jetlinks.rule.engine.condition.supports.DefaultScriptEvaluator;
 import org.jetlinks.rule.engine.condition.supports.ScriptConditionEvaluatorStrategy;
 import org.jetlinks.rule.engine.condition.supports.ScriptEvaluator;
 import org.jetlinks.rule.engine.defaults.DefaultRuleEngine;
-import org.jetlinks.rule.engine.defaults.LocalEventBus;
 import org.jetlinks.rule.engine.defaults.LocalScheduler;
 import org.jetlinks.rule.engine.defaults.LocalWorker;
-import org.jetlinks.rule.engine.defaults.rpc.DefaultRpcServiceFactory;
-import org.jetlinks.rule.engine.defaults.rpc.EventBusRcpService;
 import org.jetlinks.rule.engine.model.DefaultRuleModelParser;
 import org.jetlinks.rule.engine.model.RuleModelParserStrategy;
 import org.jetlinks.rule.engine.model.antv.AntVG6RuleModelParserStrategy;
+import org.jetlinks.supports.event.BrokerEventBus;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.Bean;
@@ -51,25 +49,15 @@ public class RuleEngineConfiguration {
     @Bean
     public EventBus eventBus(MessageGateway messageGateway) {
 
-        LocalEventBus local = new LocalEventBus();
+        BrokerEventBus local = new BrokerEventBus();
 
         //转发到消息网关
-        local.subscribe("/**")
-            .flatMap(subscribePayload -> messageGateway.publish(new EventTopicMessage(subscribePayload)).then())
+        local.subscribe(Subscription.of("msg.gateway",new String[]{"/**"}, Subscription.Feature.local))
+            .flatMap(subscribePayload -> messageGateway.publish(TopicMessageWrap.wrap(subscribePayload)).then())
             .onErrorContinue((err, obj) -> log.error(err.getMessage(), obj))
             .subscribe();
 
         return local;
-    }
-
-    @Bean
-    public RpcService rpcService(EventBus eventBus) {
-        return new EventBusRcpService(eventBus);
-    }
-
-    @Bean
-    public RpcServiceFactory rpcServiceFactory(RpcService rpcService) {
-        return new DefaultRpcServiceFactory(rpcService);
     }
 
     @Bean

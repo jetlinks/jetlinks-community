@@ -22,7 +22,7 @@
         <hsweb.framework.version>4.0.4</hsweb.framework.version>
         <easyorm.version>4.0.4</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.1.0</jetlinks.version>
+        <jetlinks.version>1.1.1-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Arabba-SR6</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.50.Final</netty.version>
