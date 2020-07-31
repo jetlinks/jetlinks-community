@@ -30,6 +30,7 @@ import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
@@ -82,11 +83,12 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
         return counter.sum();
     }
 
+
     private void doStart() {
         if (started.getAndSet(true) || disposable != null) {
             return;
         }
-        disposable = mqttServer
+        disposable = (Disposable) mqttServer
             .handleConnection()
             .filter(conn -> {
                 if (!started.get()) {
@@ -95,11 +97,14 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                 }
                 return started.get();
             })
+
+            .publishOn(Schedulers.parallel())
             .flatMap(this::handleConnection)
             .flatMap(tuple3 -> handleAuthResponse(tuple3.getT1(), tuple3.getT2(), tuple3.getT3()))
+            .flatMap(tp -> handleAcceptedMqttConnection(tp.getT1(), tp.getT2(), tp.getT3()) , Integer.MAX_VALUE)
             .onErrorContinue((err, obj) -> log.error("处理MQTT连接失败", err))
             .subscriberContext(ReactiveLogger.start("network", mqttServer.getId()))
-            .subscribe(tp -> handleAcceptedMqttConnection(tp.getT1(), tp.getT2(), tp.getT3()));
+            .subscribe();
 
     }
 
@@ -180,11 +185,16 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
     }
 
     //处理已经建立连接的MQTT连接
-    private void handleAcceptedMqttConnection(MqttConnection connection, DeviceOperator operator, DeviceSession session) {
+    private Mono<Void> handleAcceptedMqttConnection(MqttConnection connection, DeviceOperator operator, DeviceSession session) {
 
-        connection.handleMessage()
+        return connection
+            .handleMessage()
             .filter(pb -> started.get())
-            .takeWhile(pub -> disposable != null)
+            .doOnCancel(() -> {
+                //流被取消时(可能网关关闭了)断开连接
+                connection.close().subscribe();
+            })
+            .publishOn(Schedulers.parallel())
             .doOnNext(msg -> gatewayMonitor.receivedMessage())
             .flatMap(publishing ->
                 this.decodeAndHandleMessage(operator, session, publishing.getMessage(), connection)
@@ -197,7 +207,7 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                     .flatMap(mqttMessage -> this.decodeAndHandleMessage(operator, session, mqttMessage, connection))
             )
             .subscriberContext(ReactiveLogger.start("network", mqttServer.getId()))
-            .subscribe();
+            .then();
     }
 
     //解码消息并处理
@@ -221,7 +231,6 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                     sink.next(msg);
                 }
                 String deviceId = msg.getDeviceId();
-
                 //返回了其他设备的消息,则自动创建会话
                 if (!deviceId.equals(operator.getDeviceId())) {
                     DeviceSession anotherSession = sessionManager.getSession(msg.getDeviceId());
