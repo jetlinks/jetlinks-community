@@ -29,6 +29,7 @@ import org.jetlinks.community.device.web.excel.DeviceExcelInfo;
 import org.jetlinks.community.device.web.excel.DeviceWrapper;
 import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.community.io.utils.FileUtils;
+import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -507,4 +508,27 @@ public class DeviceInstanceController implements
             .map(bufferFactory::wrap)
             .as(response::writeWith);
     }
+
+    //设置设备影子
+    @PutMapping("/{deviceId:.+}/shadow")
+    @SaveAction
+    public Mono<String> setDeviceShadow(@PathVariable String deviceId,
+                                        @RequestBody Mono<String> shadow) {
+        return Mono
+            .zip(registry.getDevice(deviceId), shadow)
+            .flatMap(tp2 -> tp2.getT1()
+                .setConfig(DeviceConfigKey.shadow, tp2.getT2())
+                .thenReturn(tp2.getT2()));
+    }
+
+    //获取设备影子
+    @GetMapping("/{deviceId:.+}/shadow")
+    @SaveAction
+    public Mono<String> getDeviceShadow(@PathVariable String deviceId) {
+        return registry
+            .getDevice(deviceId)
+            .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.shadow))
+            .defaultIfEmpty("{\n}");
+    }
+
 }
