@@ -9,7 +9,7 @@ var eventId = Math.ceil(Math.random() * 1000);
 //事件类型
 var events = {
     reportProperty: function (index, session) {
-        var deviceId = devicePrefix + index;
+        var deviceId = session.auth.clientId;
         var topic = "/report-property";
         var json = JSON.stringify({
             "deviceId": deviceId,
@@ -20,7 +20,7 @@ var events = {
         session.sendMessage(topic, json)
     },
     fireAlarm: function (index, session) {
-        var deviceId = devicePrefix + index;
+        var deviceId = session.auth.clientId;
         var topic = "/fire_alarm/department/1/area/1/dev/" + deviceId;
         var json = JSON.stringify({
             "deviceId": deviceId, // 设备编号 "pid": "TBS-110", // 设备编号
