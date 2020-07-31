@@ -30,12 +30,12 @@ public class DeviceMessageConnector
     MessageConnection,
     MessagePublisher {
 
-    private EmitterProcessor<TopicMessage> messageProcessor = EmitterProcessor.create(false);
+    private final EmitterProcessor<TopicMessage> messageProcessor = EmitterProcessor.create(false);
 
-    private FluxSink<TopicMessage> sink = messageProcessor.sink();
+    private final FluxSink<TopicMessage> sink = messageProcessor.sink(FluxSink.OverflowStrategy.BUFFER);
 
     //将设备注册中心到配置追加到消息header中,下游订阅者可直接使用.
-    private String[] appendConfigHeader = {"orgId", "productId", "deviceName"};
+    private final String[] appendConfigHeader = {"orgId", "productId", "deviceName"};
     //设备注册中心
     private final DeviceRegistry registry;
 
