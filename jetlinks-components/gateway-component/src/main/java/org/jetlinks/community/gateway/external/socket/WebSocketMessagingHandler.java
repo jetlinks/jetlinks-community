@@ -69,6 +69,7 @@ public class WebSocketMessagingHandler implements WebSocketHandler {
                                 .send(Mono.just(session.textMessage(JSON.toJSONString(
                                     Message.error(request.getType().name(), null, "id不能为空")
                                 )))).subscribe();
+                            return;
                         }
                         if (request.getType() == MessagingRequest.Type.sub) {
                             //重复订阅
