@@ -531,4 +531,34 @@ public class DeviceInstanceController implements
             .defaultIfEmpty("{\n}");
     }
 
+    //获取设备属性
+    @GetMapping("/{deviceId}/property/{property:.+}")
+    @SneakyThrows
+    @QueryAction
+    public Mono<DevicePropertiesEntity> getStandardProperty(@PathVariable String deviceId, @PathVariable String property) {
+        return service.readAndConvertProperty(deviceId, property);
+
+    }
+
+    //设置设备属性
+    @PutMapping("/{deviceId}/property")
+    @SneakyThrows
+    @QueryAction
+    public Flux<?> writeProperties(@PathVariable String deviceId,
+                                   @RequestBody Mono<Map<String, Object>> properties) {
+        return properties.flatMapMany(props -> service.writeProperties(deviceId, props));
+    }
+
+    //设备功能调用
+    @PostMapping("/{deviceId}/function/{functionId}")
+    @SneakyThrows
+    @QueryAction
+    public Flux<?> invokedFunction(@PathVariable String deviceId,
+                                   @PathVariable String functionId,
+                                   @RequestBody Mono<Map<String, Object>> properties) {
+
+        return properties.flatMapMany(props -> service.invokeFunction(deviceId, functionId, props));
+    }
+
+
 }
