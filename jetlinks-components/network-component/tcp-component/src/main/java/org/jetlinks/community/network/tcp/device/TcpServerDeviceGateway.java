@@ -122,7 +122,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                 gatewayMonitor.disconnected();
                 gatewayMonitor.totalConnection(counter.sum());
             });
-
+            gatewayMonitor.connected();
             DeviceSession session = sessionManager.getSession(client.getId());
             if (session == null) {
                 session = new UnknownTcpDeviceSession(client.getId(), client, getTransport()) {
