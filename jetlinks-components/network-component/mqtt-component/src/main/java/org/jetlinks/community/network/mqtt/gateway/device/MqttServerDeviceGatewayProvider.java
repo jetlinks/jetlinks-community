@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.mqtt.gateway.device;
 
+import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.community.gateway.DeviceGateway;
@@ -24,14 +25,18 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
 
     private final DecodedClientMessageHandler messageHandler;
 
+    private final ProtocolSupports protocolSupports;
+
     public MqttServerDeviceGatewayProvider(NetworkManager networkManager,
                                            DeviceRegistry registry,
                                            DeviceSessionManager sessionManager,
-                                           DecodedClientMessageHandler messageHandler) {
+                                           DecodedClientMessageHandler messageHandler,
+                                           ProtocolSupports protocolSupports) {
         this.networkManager = networkManager;
         this.registry = registry;
         this.sessionManager = sessionManager;
         this.messageHandler = messageHandler;
+        this.protocolSupports=protocolSupports;
     }
 
     @Override
@@ -53,10 +58,15 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
     public Mono<DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties) {
         return networkManager
             .<MqttServer>getNetwork(getNetworkType(), properties.getNetworkId())
-            .map(mqttServer -> {
-                MqttServerDeviceGateway gateway = new MqttServerDeviceGateway(properties.getId(), registry, sessionManager, mqttServer, messageHandler);
-
-                return gateway;
-            });
+            .map(mqttServer -> new MqttServerDeviceGateway(
+                properties.getId(),
+                registry,
+                sessionManager,
+                mqttServer,
+                messageHandler,
+                properties.getString("protocol")
+                    .map(id -> Mono.defer(() -> protocolSupports.getProtocol(id)))
+                    .orElse(Mono.empty())
+            ));
     }
 }
