@@ -127,7 +127,9 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                             if (!deviceId.equals(device.getDeviceId())) {
                                 return registry
                                     .getDevice(deviceId)
-                                    .map(operator -> Tuples.of(operator, resp, connection));
+                                    .map(operator -> Tuples.of(operator, resp, connection))
+                                    .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED)))
+                                    ;
                             }
                             return Mono.just(Tuples.of(device, resp, connection));
                         })
