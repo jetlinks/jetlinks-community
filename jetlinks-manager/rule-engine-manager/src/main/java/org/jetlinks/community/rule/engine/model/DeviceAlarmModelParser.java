@@ -93,6 +93,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 if (!StringUtils.hasText(operation.getExecutor())) {
                     continue;
                 }
+                index++;
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("device_alarm_action:" + index);
                 action.setName("执行动作:" + index);
