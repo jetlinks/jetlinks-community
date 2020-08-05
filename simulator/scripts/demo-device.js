@@ -43,6 +43,7 @@ simulator.onEvent(function (index, session) {
     events.fireAlarm(index, session);
 });
 
+//读取属性
 simulator.bindHandler("/read-property", function (message, session) {
     _logger.info("读取属性:[{}]", message);
     session.sendMessage("/read-property-reply", JSON.stringify({
@@ -54,6 +55,7 @@ simulator.bindHandler("/read-property", function (message, session) {
     }));
 });
 
+//读取子设备属性
 simulator.bindHandler("/children/read-property", function (message, session) {
     _logger.info("读取子设备属性:[{}]", message);
     session.sendMessage("/children/read-property-reply", JSON.stringify({
@@ -65,7 +67,7 @@ simulator.bindHandler("/children/read-property", function (message, session) {
     }));
 });
 
-
+//调用功能
 simulator.bindHandler("/invoke-function", function (message, session) {
     _logger.info("调用功能:[{}]", message);
     session.sendMessage("/invoke-function", JSON.stringify({
@@ -75,6 +77,20 @@ simulator.bindHandler("/invoke-function", function (message, session) {
         output: "ok", //返回结果
         success: true
     }));
+});
+
+//修改属性
+simulator.bindHandler("/write-property", function (message, session) {
+    var reply = com.alibaba.fastjson.JSON.toJSONString({
+        messageId: message.messageId,
+        deviceId: message.deviceId,
+        timestamp: new Date().getTime(),
+        properties: new java.util.HashMap(message.properties),
+        success: true
+    });
+    _logger.info("修改属性:{}\n{}", message,reply);
+
+    session.sendMessage("/write-property",reply);
 });
 
 
