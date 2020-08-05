@@ -132,11 +132,6 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                             return Mono.just(Tuples.of(device, resp, connection));
                         })
                     ))
-            //设备注册信息不存在,拒绝连接
-            .switchIfEmpty(Mono.fromRunnable(() -> {
-                connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED);
-                gatewayMonitor.rejected();
-            }))
             .onErrorResume((err) -> Mono.fromRunnable(() -> {
                 gatewayMonitor.rejected();
                 connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
