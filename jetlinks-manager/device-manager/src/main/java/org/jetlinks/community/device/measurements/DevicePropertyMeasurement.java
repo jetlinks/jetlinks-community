@@ -2,6 +2,14 @@ package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.utils.time.DateFormatter;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.Interval;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.timeseries.TimeSeriesService;
+import org.jetlinks.community.timeseries.query.Aggregation;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
@@ -10,15 +18,6 @@ import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.NumberType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.Interval;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.message.DeviceMessageUtils;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.Subscription;
-import org.jetlinks.community.timeseries.TimeSeriesService;
-import org.jetlinks.community.timeseries.query.Aggregation;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,26 +26,24 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class DevicePropertyMeasurement extends StaticMeasurement {
 
     private final PropertyMetadata metadata;
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
 
     private final TimeSeriesService timeSeriesService;
 
     private final String productId;
 
     public DevicePropertyMeasurement(String productId,
-                                     MessageGateway messageGateway,
+                                     EventBus eventBus,
                                      PropertyMetadata metadata,
                                      TimeSeriesService timeSeriesService) {
         super(MetadataMeasurementDefinition.of(metadata));
         this.productId = productId;
-        this.messageGateway = messageGateway;
+        this.eventBus = eventBus;
         this.metadata = metadata;
         this.timeSeriesService = timeSeriesService;
         addDimension(new RealTimeDevicePropertyDimension());
@@ -77,13 +74,17 @@ class DevicePropertyMeasurement extends StaticMeasurement {
     }
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
-        return messageGateway
-            .subscribe(Stream.of(
-                "/device/" + productId + "/" + deviceId + "/message/property/report"
-                , "/device/" + productId + "/" + deviceId + "/message/property/*/reply")
-                .map(Subscription::new)
-                .collect(Collectors.toList()), true)
-            .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
+        org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription.of(
+            "realtime-device-property-measurement",
+            new String[]{
+                "/device/" + productId + "/" + deviceId + "/message/property/report",
+                "/device/" + productId + "/" + deviceId + "/message/property/*/reply"
+            },
+            org.jetlinks.core.event.Subscription.Feature.local, org.jetlinks.core.event.Subscription.Feature.broker
+        );
+
+        return eventBus
+            .subscribe(subscription, DeviceMessage.class)
             .flatMap(msg -> {
                 if (msg instanceof ReportPropertyMessage) {
                     return Mono.justOrEmpty(((ReportPropertyMessage) msg).getProperties());
@@ -102,7 +103,10 @@ class DevicePropertyMeasurement extends StaticMeasurement {
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"))
-        .add("history", "历史数据量", "查询出历史数据后开始推送实时数据", new IntType().min(0).expand("defaultValue", 10));
+        .add("history", "历史数据量", "查询出历史数据后开始推送实时数据", new IntType().min(0).expand("defaultValue", 10))
+        .add("from", "时间从", "", StringType.GLOBAL)
+        .add("to", "时间至", "", StringType.GLOBAL);
+    ;
 
     static ConfigMetadata aggConfigMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备ID", "", StringType.GLOBAL)

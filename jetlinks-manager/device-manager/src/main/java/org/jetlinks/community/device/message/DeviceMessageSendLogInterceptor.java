@@ -5,10 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.ChildDeviceMessage;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
-import org.jetlinks.community.gateway.MessageGateway;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 @AllArgsConstructor
 public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInterceptor {
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
 
     private final DeviceRegistry registry;
 
@@ -33,7 +33,7 @@ public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInter
             .doOnNext(tp2 -> message.addHeader("productId", tp2.getT2().getId()))
             .flatMap(tp2 -> {
                 String topic = DeviceMessageConnector.createDeviceMessageTopic(message);
-                Mono<Void> publisher = messageGateway
+                Mono<Void> publisher = eventBus
                     .publish("/device/" + tp2.getT2().getId() + "/" + tp2.getT1().getDeviceId() + topic, message)
                     .then();
                 if (message instanceof ChildDeviceMessage) {

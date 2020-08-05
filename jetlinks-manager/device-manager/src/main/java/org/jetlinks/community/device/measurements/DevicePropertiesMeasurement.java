@@ -1,28 +1,27 @@
 package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.timeseries.TimeSeriesService;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.message.DeviceMessageUtils;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.Subscription;
-import org.jetlinks.community.timeseries.TimeSeriesService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 class DevicePropertiesMeasurement extends StaticMeasurement {
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
 
     private final TimeSeriesService timeSeriesService;
 
@@ -31,20 +30,18 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
     private final String productId;
 
     public DevicePropertiesMeasurement(String productId,
-                                       MessageGateway messageGateway,
+                                       EventBus eventBus,
                                        DeviceMetadata deviceMetadata,
                                        TimeSeriesService timeSeriesService) {
         super(MeasurementDefinition.of("properties", "属性记录"));
         this.productId = productId;
-        this.messageGateway = messageGateway;
+        this.eventBus = eventBus;
         this.timeSeriesService = timeSeriesService;
         this.metadata = deviceMetadata;
         addDimension(new RealTimeDevicePropertyDimension());
         addDimension(new HistoryDevicePropertyDimension());
 
     }
-
-    static AtomicLong num = new AtomicLong();
 
     Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
         return history <= 0 ? Flux.empty() : Flux.fromIterable(metadata.getProperties())
@@ -79,31 +76,38 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
     }
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
-        return messageGateway
-            .subscribe(Subscription.asList(
+
+        org.jetlinks.core.event.Subscription subscription= org.jetlinks.core.event.Subscription.of(
+            "realtime-device-properties-measurement",
+            new String[]{
                 "/device/" + productId + "/" + deviceId + "/message/property/report",
-                "/device/" + productId + "/" + deviceId + "/message/property/*/reply")
-                , "realtime-device-properties-measurement:" + Math.abs(num.incrementAndGet())
-                , true)
-            .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
-            .flatMap(msg -> {
-                if (msg instanceof ReportPropertyMessage) {
-                    return Mono.justOrEmpty(((ReportPropertyMessage) msg).getProperties());
-                }
-                if (msg instanceof ReadPropertyMessageReply) {
-                    return Mono.justOrEmpty(((ReadPropertyMessageReply) msg).getProperties());
-                }
-                if (msg instanceof WritePropertyMessageReply) {
-                    return Mono.justOrEmpty(((WritePropertyMessageReply) msg).getProperties());
-                }
-                return Mono.empty();
-            })
-            .flatMap(map -> Flux.fromIterable(map.entrySet()))
-            .map(kv -> SimpleMeasurementValue.of(createValue(kv.getKey(), kv.getValue()), System.currentTimeMillis()));
+                "/device/" + productId + "/" + deviceId + "/message/property/*/reply"
+            },
+            org.jetlinks.core.event.Subscription.Feature.local, Subscription.Feature.broker
+        );
+
+        return
+            eventBus
+                .subscribe(subscription, DeviceMessage.class)
+                .flatMap(msg -> {
+                    if (msg instanceof ReportPropertyMessage) {
+                        return Mono.justOrEmpty(((ReportPropertyMessage) msg).getProperties());
+                    }
+                    if (msg instanceof ReadPropertyMessageReply) {
+                        return Mono.justOrEmpty(((ReadPropertyMessageReply) msg).getProperties());
+                    }
+                    if (msg instanceof WritePropertyMessageReply) {
+                        return Mono.justOrEmpty(((WritePropertyMessageReply) msg).getProperties());
+                    }
+                    return Mono.empty();
+                })
+                .flatMap(map -> Flux.fromIterable(map.entrySet()))
+                .map(kv -> SimpleMeasurementValue.of(createValue(kv.getKey(), kv.getValue()), System.currentTimeMillis()))
+            ;
     }
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
-        .add("deviceId", "设备",  "指定设备", new StringType().expand("selector", "device-selector"));
+        .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
 
     /**
      * 历史设备事件

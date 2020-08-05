@@ -8,9 +8,7 @@ import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
 import org.jetlinks.community.device.entity.DevicePropertiesEntity;
 import org.jetlinks.community.device.enums.DeviceLogType;
 import org.jetlinks.community.device.events.handler.ValueTypeTranslator;
-import org.jetlinks.community.device.message.DeviceMessageUtils;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.gateway.TopicMessage;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
@@ -52,10 +50,8 @@ public class TimeSeriesMessageWriterConnector{
     }
 
     @Subscribe(topics = "/device/**",id = "device-message-ts-writer")
-    public Mono<Void> writeDeviceMessageToTs(TopicMessage message){
-        return Mono
-            .justOrEmpty(DeviceMessageUtils.convert(message))
-            .flatMap(this::doIndex);
+    public Mono<Void> writeDeviceMessageToTs(DeviceMessage message){
+        return this.doIndex(message);
     }
 
     private Mono<Void> doIndex(DeviceMessage message) {

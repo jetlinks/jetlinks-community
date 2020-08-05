@@ -1,6 +1,13 @@
 package org.jetlinks.community.device.measurements.status;
 
 import org.jetlinks.community.Interval;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.MessageType;
 import org.jetlinks.core.metadata.ConfigMetadata;
@@ -10,32 +17,22 @@ import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.EnumType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.message.DeviceMessageUtils;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.Subscription;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 class DeviceStatusChangeMeasurement extends StaticMeasurement {
 
-    public MessageGateway messageGateway;
+    private final EventBus eventBus;
 
-    private TimeSeriesManager timeSeriesManager;
+    private final TimeSeriesManager timeSeriesManager;
 
-    static MeasurementDefinition definition = MeasurementDefinition.of("change", "设备状态变更");
+    static final MeasurementDefinition definition = MeasurementDefinition.of("change", "设备状态变更");
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
@@ -44,9 +41,9 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
         .addElement(EnumType.Element.of(MessageType.OFFLINE.name().toLowerCase(), "离线"))
         .addElement(EnumType.Element.of(MessageType.ONLINE.name().toLowerCase(), "在线"));
 
-    public DeviceStatusChangeMeasurement(TimeSeriesManager timeSeriesManager, MessageGateway messageGateway) {
+    public DeviceStatusChangeMeasurement(TimeSeriesManager timeSeriesManager, EventBus eventBus) {
         super(definition);
-        this.messageGateway = messageGateway;
+        this.eventBus = eventBus;
         this.timeSeriesManager = timeSeriesManager;
         addDimension(new RealTimeDeviceStateDimension());
         addDimension(new CountDeviceStateDimension());
@@ -143,11 +140,15 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
             return Mono.justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     //从消息网关订阅消息
-                    return messageGateway
-                        .subscribe(Arrays.asList(
-                            new Subscription("/device/*/" + deviceId + "/online"),
-                            new Subscription("/device/*/" + deviceId + "/offline")), true)
-                        .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
+                    return eventBus.subscribe(org.jetlinks.core.event.Subscription.of(
+                        "RealTimeDeviceStateDimension"
+                        , new String[]{
+                            "/device/*/" + deviceId + "/online",
+                            "/device/*/" + deviceId + "/offline"
+                        },
+                        org.jetlinks.core.event.Subscription.Feature.local,
+                        Subscription.Feature.broker
+                    ), DeviceMessage.class)
                         .map(msg -> SimpleMeasurementValue.of(createStateValue(msg), msg.getTimestamp()))
                         ;
                 });

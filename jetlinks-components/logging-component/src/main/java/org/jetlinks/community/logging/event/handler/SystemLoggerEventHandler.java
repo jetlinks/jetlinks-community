@@ -1,7 +1,7 @@
 package org.jetlinks.community.logging.event.handler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetlinks.community.gateway.MessageGateway;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
@@ -23,15 +23,15 @@ import reactor.core.publisher.Mono;
 @Order(5)
 public class SystemLoggerEventHandler {
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
 
     private final ElasticSearchService elasticSearchService;
 
     public SystemLoggerEventHandler(ElasticSearchService elasticSearchService,
                                     ElasticSearchIndexManager indexManager,
-                                    MessageGateway messageGateway) {
+                                    EventBus eventBus) {
         this.elasticSearchService = elasticSearchService;
-        this.messageGateway = messageGateway;
+        this.eventBus = eventBus;
 
         indexManager.putIndex(
             new DefaultElasticSearchIndexMetadata(LoggerIndexProvider.SYSTEM.getIndex())
@@ -53,10 +53,10 @@ public class SystemLoggerEventHandler {
 
     @EventListener
     public void acceptAccessLoggerInfo(SerializableSystemLog info) {
-        elasticSearchService.commit(LoggerIndexProvider.SYSTEM, Mono.just(info))
+        eventBus
+            .publish("/logging/system/" + info.getName().replace(".", "/") + "/" + (info.getLevel().toLowerCase()), info)
             .subscribe();
-        messageGateway
-            .publish("/logging/system/" + info.getName().replace(".", "/") + "/" + (info.getLevel().toLowerCase()), info, true)
+        elasticSearchService.commit(LoggerIndexProvider.SYSTEM, Mono.just(info))
             .subscribe();
     }
 

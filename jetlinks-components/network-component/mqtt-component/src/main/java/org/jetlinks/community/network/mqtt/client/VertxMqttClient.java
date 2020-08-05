@@ -8,7 +8,7 @@ import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.SimpleMqttMessage;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
-import org.jetlinks.supports.utils.MqttTopicUtils;
+import org.jetlinks.core.utils.TopicUtils;
 import reactor.core.publisher.*;
 
 import java.io.IOException;
@@ -101,7 +101,7 @@ public class VertxMqttClient implements MqttClient {
             return messageProcessor
                 .filter(msg -> topics
                     .stream()
-                    .anyMatch(topic -> MqttTopicUtils.match(topic, msg.getTopic())));
+                    .anyMatch(topic -> TopicUtils.match(topic, msg.getTopic())));
         }).doOnCancel(() -> {
             if (!canceled.getAndSet(true)) {
                 for (String topic : topics) {

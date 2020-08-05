@@ -1,28 +1,40 @@
 package org.jetlinks.community.gateway.spring;
 
-import io.netty.buffer.ByteBuf;
+import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.proxy.Proxy;
-import org.jetlinks.core.message.codec.EncodedMessage;
-import org.jetlinks.community.gateway.EncodableMessage;
 import org.jetlinks.community.gateway.TopicMessage;
+import org.jetlinks.community.gateway.TopicMessageWrap;
+import org.jetlinks.core.NativePayload;
+import org.jetlinks.core.Payload;
+import org.jetlinks.core.codec.Codecs;
+import org.jetlinks.core.codec.Decoder;
+import org.jetlinks.core.event.TopicPayload;
 import org.reactivestreams.Publisher;
+import org.springframework.core.ResolvableType;
 import org.springframework.util.ClassUtils;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
 import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
+@Slf4j
 class ProxyMessageListener implements MessageListener {
     private final Class<?> paramType;
     private final Object target;
+    private final ResolvableType resolvableType;
 
-    BiFunction<Object, Object, Object> proxy;
+    private final Method method;
+    private final BiFunction<Object, Object, Object> proxy;
+
+    private final AtomicReference<Decoder<?>> decoder = new AtomicReference<>();
 
     @SuppressWarnings("all")
     ProxyMessageListener(Object target, Method method) {
         this.target = target;
+        this.method = method;
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (parameterTypes.length > 1) {
             throw new UnsupportedOperationException("unsupported method [" + method + "] parameter");
@@ -55,38 +67,45 @@ class ProxyMessageListener implements MessageListener {
         }
 
         code.add("}");
-
+        this.resolvableType = ResolvableType.forMethodParameter(method, 0, targetType);
         this.proxy = Proxy.create(BiFunction.class)
             .addMethod(code.toString())
             .newInstance();
+
     }
 
-    Object convert(TopicMessage message) {
-        if (paramType.isAssignableFrom(TopicMessage.class)) {
+    Object convert(TopicPayload message) {
+
+        if (Payload.class.isAssignableFrom(paramType)) {
             return message;
         }
-        if (paramType.isAssignableFrom(EncodedMessage.class)) {
-            return message.getMessage();
+        if (paramType.equals(TopicMessage.class)) {
+            log.warn("TopicMessage已弃用,请替换为TopicPayload! {}", method);
+            return TopicMessageWrap.wrap(message);
         }
-        if (paramType.isAssignableFrom(ByteBuf.class)) {
-            return message.getMessage().getPayload();
+        Payload payload = message.getPayload();
+        Object decodedPayload;
+        if (payload instanceof NativePayload) {
+            decodedPayload = ((NativePayload<?>) payload).getNativeObject();
+        } else {
+            decodedPayload = decoder.getAndUpdate((old) -> {
+                if (old == null) {
+                    return Codecs.lookup(resolvableType);
+                }
+                return old;
+            }).decode(message);
+        }
+        if (paramType.isInstance(decodedPayload)) {
+            return decodedPayload;
         }
 
-        Object payload = message.convertMessage();
-        if (paramType.isInstance(payload)) {
-            return payload;
-        }
-        if (payload instanceof byte[]) {
-            return payload;
-        }
-        return FastBeanCopier.DEFAULT_CONVERT.convert(payload, paramType, new Class[]{});
-
+        return FastBeanCopier.DEFAULT_CONVERT.convert(decodedPayload, paramType, resolvableType.resolveGenerics());
     }
 
     @Override
-    public Mono<Void> onMessage(TopicMessage message) {
+    public Mono<Void> onMessage(TopicPayload message) {
         return Mono.defer(() -> {
-            Object val = proxy.apply(target, convert(message));
+            Object val = proxy.apply(target, paramType == Void.class ? null : convert(message));
             if (val instanceof Publisher) {
                 return Mono.from((Publisher<?>) val).then();
             }

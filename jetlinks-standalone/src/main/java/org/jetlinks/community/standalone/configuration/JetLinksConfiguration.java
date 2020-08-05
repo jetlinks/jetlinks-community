@@ -18,6 +18,7 @@ import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.core.device.DeviceOperationBroker;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.StandaloneDeviceMessageBroker;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.DeviceOfflineMessage;
 import org.jetlinks.core.message.DeviceOnlineMessage;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
@@ -32,6 +33,7 @@ import org.jetlinks.community.gateway.supports.DefaultMessageGateway;
 import org.jetlinks.community.gateway.supports.LocalClientSessionManager;
 import org.jetlinks.supports.cluster.ClusterDeviceRegistry;
 import org.jetlinks.supports.cluster.redis.RedisClusterManager;
+import org.jetlinks.supports.event.BrokerEventBus;
 import org.jetlinks.supports.protocol.ServiceLoaderProtocolSupports;
 import org.jetlinks.supports.protocol.management.ClusterProtocolSupportManager;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
@@ -90,6 +92,11 @@ public class JetLinksConfiguration {
     }
 
     @Bean
+    public EventBus eventBus() {
+        return new BrokerEventBus();
+    }
+
+    @Bean
     public StandaloneDeviceMessageBroker standaloneDeviceMessageBroker() {
         return new StandaloneDeviceMessageBroker();
     }
@@ -101,14 +108,14 @@ public class JetLinksConfiguration {
 
     @Bean
     public ClusterDeviceRegistry clusterDeviceRegistry(ProtocolSupports supports,
-                                                ClusterManager manager,
-                                                DeviceOperationBroker handler) {
+                                                       ClusterManager manager,
+                                                       DeviceOperationBroker handler) {
         return new ClusterDeviceRegistry(supports, manager, handler, CacheBuilder.newBuilder().build());
     }
 
     @Bean
     @Primary
-    @ConditionalOnProperty(prefix = "jetlinks.device.registry",name = "auto-discover",havingValue = "enabled",matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "jetlinks.device.registry", name = "auto-discover", havingValue = "enabled", matchIfMissing = true)
     public AutoDiscoverDeviceRegistry deviceRegistry(ClusterDeviceRegistry registry,
                                                      ReactiveRepository<DeviceInstanceEntity, String> instanceRepository,
                                                      ReactiveRepository<DeviceProductEntity, String> productRepository) {
@@ -117,11 +124,11 @@ public class JetLinksConfiguration {
 
 
     @Bean
-    public BeanPostProcessor interceptorRegister(ClusterDeviceRegistry registry){
+    public BeanPostProcessor interceptorRegister(ClusterDeviceRegistry registry) {
         return new BeanPostProcessor() {
             @Override
             public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-                if(bean instanceof DeviceMessageSenderInterceptor){
+                if (bean instanceof DeviceMessageSenderInterceptor) {
                     registry.addInterceptor(((DeviceMessageSenderInterceptor) bean));
                 }
                 return bean;
@@ -141,8 +148,8 @@ public class JetLinksConfiguration {
     }
 
     @Bean
-    public DeviceMessageConnector deviceMessageConnector(DeviceRegistry registry) {
-        return new DeviceMessageConnector(registry);
+    public DeviceMessageConnector deviceMessageConnector(EventBus eventBus, DeviceRegistry registry) {
+        return new DeviceMessageConnector(eventBus, registry);
     }
 
     @Bean
@@ -159,7 +166,6 @@ public class JetLinksConfiguration {
         DefaultDecodedClientMessageHandler clientMessageHandler = new DefaultDecodedClientMessageHandler(handler, deviceSessionManager,
             EmitterProcessor.create(false)
         );
-        // TODO: 2019/12/31 应该统一由消息网关处理
         clientMessageHandler
             .subscribe()
             .parallel()
@@ -176,7 +182,7 @@ public class JetLinksConfiguration {
                                                                                DeviceRegistry registry,
                                                                                MessageHandler messageHandler,
                                                                                DecodedClientMessageHandler clientMessageHandler) {
-        return new DefaultSendToDeviceMessageHandler(properties.getServerId(), sessionManager, messageHandler, registry,clientMessageHandler);
+        return new DefaultSendToDeviceMessageHandler(properties.getServerId(), sessionManager, messageHandler, registry, clientMessageHandler);
     }
 
     @Bean
@@ -249,7 +255,7 @@ public class JetLinksConfiguration {
 
     @Bean
     @ConfigurationProperties(prefix = "hsweb.user-token")
-    public UserTokenManager userTokenManager(ReactiveRedisOperations<Object,Object> template) {
+    public UserTokenManager userTokenManager(ReactiveRedisOperations<Object, Object> template) {
         return new RedisUserTokenManager(template);
     }
 

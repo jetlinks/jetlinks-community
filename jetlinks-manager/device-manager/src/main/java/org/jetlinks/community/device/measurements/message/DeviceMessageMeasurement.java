@@ -1,42 +1,41 @@
 package org.jetlinks.community.device.measurements.message;
 
+import org.jetlinks.community.Interval;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.Interval;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.Subscription;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.Date;
 
 class DeviceMessageMeasurement extends StaticMeasurement {
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
 
     private final TimeSeriesManager timeSeriesManager;
 
     static MeasurementDefinition definition = MeasurementDefinition.of("quantity", "设备消息量");
 
-    public DeviceMessageMeasurement(MessageGateway messageGateway, TimeSeriesManager timeSeriesManager) {
+    public DeviceMessageMeasurement(EventBus eventBus,
+                                    TimeSeriesManager timeSeriesManager) {
         super(definition);
-        this.messageGateway = messageGateway;
+        this.eventBus = eventBus;
         this.timeSeriesManager = timeSeriesManager;
         addDimension(new RealTimeMessageDimension());
         addDimension(new AggMessageDimension());
-
     }
 
     static ConfigMetadata realTimeConfigMetadata = new DefaultConfigMetadata()
@@ -67,8 +66,8 @@ class DeviceMessageMeasurement extends StaticMeasurement {
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
             //通过订阅消息来统计实时数据量
-            return messageGateway
-                .subscribe(Collections.singleton(new Subscription("/device/**")),true)
+            return eventBus
+                .subscribe(org.jetlinks.core.event.Subscription.of("real-time-device-message", "/device/**", org.jetlinks.core.event.Subscription.Feature.local, Subscription.Feature.broker))
                 .window(parameter.getDuration("interval").orElse(Duration.ofSeconds(1)))
                 .flatMap(Flux::count)
                 .map(total -> SimpleMeasurementValue.of(total, System.currentTimeMillis()));

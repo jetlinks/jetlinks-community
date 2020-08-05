@@ -1,76 +1,57 @@
 package org.jetlinks.community.device.service;
 
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.ExcelWriter;
-import com.alibaba.excel.write.metadata.WriteSheet;
-import com.alibaba.fastjson.JSON;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.core.dsl.Query;
-import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.id.IDGenerator;
-import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.community.device.entity.*;
-import org.jetlinks.community.device.message.DeviceMessageUtils;
-import org.jetlinks.community.gateway.Subscription;
+import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.community.device.response.DeviceDeployResult;
+import org.jetlinks.community.device.response.DeviceDetail;
+import org.jetlinks.community.device.response.DeviceInfo;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.utils.ErrorUtils;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.enums.ErrorCode;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.exception.DeviceOperationException;
 import org.jetlinks.core.message.*;
 import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
-import org.jetlinks.core.metadata.*;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.utils.FluxUtils;
-import org.jetlinks.community.device.entity.excel.DeviceInstanceImportExportEntity;
-import org.jetlinks.community.device.enums.DeviceState;
-import org.jetlinks.community.device.response.*;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.gateway.EncodableMessage;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.io.excel.ImportExportService;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.supports.official.JetLinksDeviceMetadata;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
@@ -89,7 +70,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     private LocalDeviceProductService deviceProductService;
 
     @Autowired
-    private MessageGateway messageGateway;
+    private EventBus eventBus;
 
     @Autowired
     private TimeSeriesManager timeSeriesManager;
@@ -353,11 +334,24 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     @PostConstruct
     public void init() {
 
-        //订阅设备上下线
-        FluxUtils.bufferRate(messageGateway
-            .subscribe(Subscription.asList("/device/*/*/online", "/device/*/*/offline"), "device-state-synchronizer", false)
-            .flatMap(message -> Mono.justOrEmpty(DeviceMessageUtils.convert(message))
-                .map(DeviceMessage::getDeviceId)), 800, 200, Duration.ofSeconds(2))
+        org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription.of(
+            "device-state-synchronizer",
+            new String[]{
+                "/device/*/*/online",
+                "/device/*/*/offline"
+            },
+            Subscription.Feature.local
+        );
+
+        //订阅设备上下线消息,同步数据库中的设备状态,
+        //最小间隔800毫秒,最大缓冲数量500,最长间隔2秒.
+        //如果2条消息间隔大于0.8秒则不缓冲直接更新
+        //否则缓冲,数量超过500后批量更新
+        //无论缓冲区是否超过500条,都每2秒更新一次.
+        FluxUtils.bufferRate(eventBus
+                .subscribe(subscription,DeviceMessage.class)
+                .map(DeviceMessage::getDeviceId),
+            800, Integer.getInteger("device.state.sync.batch", 500), Duration.ofSeconds(2))
             .publishOn(Schedulers.parallel())
             .concatMap(list -> syncStateBatch(Flux.just(list), false).map(List::size))
             .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))
