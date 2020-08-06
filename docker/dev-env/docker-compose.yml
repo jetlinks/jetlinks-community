@@ -11,7 +11,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
   elasticsearch:
-    image: elasticsearch:6.8.6
+    image: elasticsearch:6.8.11
     container_name: jetlinks-ce-elasticsearch
     environment:
       ES_JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Xms1g -Xmx1g
@@ -24,7 +24,7 @@ services:
       - "9200:9200"
       - "9300:9300"
   kibana:
-    image: kibana:6.8.6
+    image: kibana:6.8.11
     container_name: jetlinks-ce-kibana
     environment:
       ELASTICSEARCH_URL: http://elasticsearch:9200
