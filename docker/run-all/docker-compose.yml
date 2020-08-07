@@ -63,10 +63,8 @@ services:
     container_name: jetlinks-ce
     ports:
       - 8848:8848 # API端口
-      - 1883:1883 # MQTT端口
-      - 8000:8000 # 预留
-      - 8001:8001 # 预留
-      - 8002:8002 # 预留
+      - 1883-1889:1883-1889 # 预留
+      - 8000-8010:8000-8010 # 预留
     volumes:
       - "jetlinks-volume:/static/upload"  # 持久化上传的文件
     environment:
