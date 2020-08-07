@@ -1,5 +1,6 @@
 package org.jetlinks.community.notify.manager.subscriber;
 
+import org.hswebframework.web.authorization.Authentication;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import reactor.core.publisher.Mono;
 
@@ -10,7 +11,7 @@ public interface SubscriberProvider {
 
     String getName();
 
-    Mono<Subscriber> createSubscriber(Map<String, Object> config);
+    Mono<Subscriber> createSubscriber(String id, Authentication authentication, Map<String, Object> config);
 
     ConfigMetadata getConfigMetadata();
 }

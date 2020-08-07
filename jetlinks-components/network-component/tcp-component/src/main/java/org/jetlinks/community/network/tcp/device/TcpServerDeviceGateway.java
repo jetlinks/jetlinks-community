@@ -122,7 +122,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                 gatewayMonitor.disconnected();
                 gatewayMonitor.totalConnection(counter.sum());
             });
-
+            gatewayMonitor.connected();
             DeviceSession session = sessionManager.getSession(client.getId());
             if (session == null) {
                 session = new UnknownTcpDeviceSession(client.getId(), client, getTransport()) {
@@ -151,17 +151,20 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
             return client
                 .subscribe()
                 .filter(tcp -> started.get())
-                .doOnCancel(client::shutdown)
+                .publishOn(Schedulers.parallel())
                 .flatMap(this::handleTcpMessage)
                 .onErrorContinue((err, ignore) -> log.error(err.getMessage(), err))
-                .then();
+                .then()
+                .doOnCancel(client::shutdown);
         }
 
         Mono<Void> handleTcpMessage(TcpMessage message) {
+
             return getProtocol()
                 .flatMap(pt -> pt.getMessageCodec(getTransport()))
                 .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(sessionRef.get(), message)))
                 .cast(DeviceMessage.class)
+                .doOnNext(msg-> gatewayMonitor.receivedMessage())
                 .flatMap(this::handleDeviceMessage)
                 .doOnEach(ReactiveLogger.onError(err ->
                     log.error("处理TCP[{}]消息失败:\n{}",

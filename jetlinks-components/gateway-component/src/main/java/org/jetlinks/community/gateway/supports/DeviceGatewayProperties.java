@@ -2,13 +2,14 @@ package org.jetlinks.community.gateway.supports;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.community.ValueObject;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Getter
 @Setter
-public class DeviceGatewayProperties {
+public class DeviceGatewayProperties  implements ValueObject {
 
     private String id;
 
@@ -18,5 +19,8 @@ public class DeviceGatewayProperties {
 
     private Map<String,Object> configuration=new HashMap<>();
 
-
+    @Override
+    public Map<String, Object> getAll() {
+        return configuration;
+    }
 }

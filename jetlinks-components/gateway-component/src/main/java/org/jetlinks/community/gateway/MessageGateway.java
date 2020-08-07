@@ -13,8 +13,9 @@ import java.util.stream.Stream;
  *
  * @author zhouhao
  * @see 1.0
- * @see MessageConnector
+ * @see org.jetlinks.core.event.EventBus
  */
+@Deprecated
 public interface MessageGateway {
 
     /**

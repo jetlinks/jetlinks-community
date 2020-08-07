@@ -7,7 +7,7 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.gateway.external.SubscriptionProvider;
-import org.jetlinks.supports.utils.MqttTopicUtils;
+import org.jetlinks.core.utils.TopicUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -56,7 +56,7 @@ public class DeviceBatchOperationSubscriptionProvider implements SubscriptionPro
             .orElseGet(QueryParamEntity::new);
 
 
-        Map<String, String> var = MqttTopicUtils.getPathVariables("/device-batch/{type}", topic);
+        Map<String, String> var = TopicUtils.getPathVariables("/device-batch/{type}", topic);
         String type = var.get("type");
 
         switch (type) {

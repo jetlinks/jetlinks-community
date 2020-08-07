@@ -16,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import javax.annotation.PreDestroy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -46,6 +47,12 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
     @Autowired
     public void setServiceContext(ServiceContext serviceContext) {
         super.setServiceContext(serviceContext);
+    }
+
+    @Override
+    @PreDestroy
+    protected void closeAll() {
+        super.closeAll();
     }
 
     @Override

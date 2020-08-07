@@ -1,10 +1,10 @@
 package org.jetlinks.community.gateway.spring;
 
-import org.jetlinks.community.gateway.TopicMessage;
+import org.jetlinks.core.event.TopicPayload;
 import reactor.core.publisher.Mono;
 
 public interface MessageListener {
 
-   Mono<Void> onMessage(TopicMessage message);
+    Mono<Void> onMessage(TopicPayload message);
 
 }

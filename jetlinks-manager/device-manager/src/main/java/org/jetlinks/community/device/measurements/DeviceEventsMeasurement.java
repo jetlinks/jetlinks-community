@@ -1,17 +1,17 @@
 package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.message.DeviceMessageUtils;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.Subscription;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -21,22 +21,21 @@ import java.util.concurrent.atomic.AtomicLong;
 
 class DeviceEventsMeasurement extends StaticMeasurement {
 
+    private final EventBus eventBus;
 
-    private MessageGateway messageGateway;
+    private final TimeSeriesManager timeSeriesManager;
 
-    private TimeSeriesManager timeSeriesManager;
+    private final DeviceMetadata metadata;
 
-    private DeviceMetadata metadata;
-
-    private String productId;
+    private final String productId;
 
     public DeviceEventsMeasurement(String productId,
-                                   MessageGateway messageGateway,
+                                   EventBus eventBus,
                                    DeviceMetadata deviceMetadata,
                                    TimeSeriesManager timeSeriesManager) {
         super(MeasurementDefinition.of("events", "事件记录"));
         this.productId = productId;
-        this.messageGateway = messageGateway;
+        this.eventBus = eventBus;
         this.timeSeriesManager = timeSeriesManager;
         this.metadata = deviceMetadata;
         addDimension(new RealTimeDevicePropertyDimension());
@@ -62,14 +61,18 @@ class DeviceEventsMeasurement extends StaticMeasurement {
     }
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
-        return messageGateway
-            .subscribe(Subscription.asList("/device/"+productId+"/" + deviceId + "/message/event/*")
-                , "realtime-device-events-measurement:" + Math.abs(num.incrementAndGet())
-                , true)
-            .flatMap(val -> Mono.justOrEmpty(DeviceMessageUtils.convert(val)))
-            .filter(EventMessage.class::isInstance)
-            .cast(EventMessage.class)
-            .map(kv -> SimpleMeasurementValue.of(createValue(kv.getEvent(), kv.getData()), System.currentTimeMillis()));
+        org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription.of(
+            "realtime-device-events-measurement",
+            "/device/" + productId + "/" + deviceId + "/message/event/*",
+            org.jetlinks.core.event.Subscription.Feature.local, Subscription.Feature.broker
+        );
+        return
+            eventBus
+                .subscribe(subscription, DeviceMessage.class)
+                .filter(EventMessage.class::isInstance)
+                .cast(EventMessage.class)
+                .map(kv -> SimpleMeasurementValue.of(createValue(kv.getEvent(), kv.getData()), System.currentTimeMillis()))
+            ;
     }
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()

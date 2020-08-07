@@ -3,20 +3,16 @@ package org.jetlinks.community.device.message;
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.*;
 import org.jetlinks.core.message.event.EventMessage;
+import org.jetlinks.core.message.firmware.*;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
 import org.jetlinks.core.message.property.*;
-import org.jetlinks.community.gateway.*;
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.Nonnull;
 import java.util.HashMap;
-import java.util.function.Function;
 
 /**
  * 将设备消息连接到消息网关
@@ -25,68 +21,28 @@ import java.util.function.Function;
  * @since 1.0
  */
 @Slf4j
-public class DeviceMessageConnector
-    implements MessageConnector,
-    MessageConnection,
-    MessagePublisher {
-
-    private EmitterProcessor<TopicMessage> messageProcessor = EmitterProcessor.create(false);
-
-    private FluxSink<TopicMessage> sink = messageProcessor.sink();
-
+public class DeviceMessageConnector{
     //将设备注册中心到配置追加到消息header中,下游订阅者可直接使用.
-    private String[] appendConfigHeader = {"orgId", "productId", "deviceName"};
+    private final String[] appendConfigHeader = {"productId", "deviceName"};
+
     //设备注册中心
     private final DeviceRegistry registry;
 
-//    private final DeviceGateway gateway;
+    private final EventBus eventBus;
 
-    public DeviceMessageConnector(DeviceRegistry registry) {
+    public DeviceMessageConnector(EventBus eventBus,
+                                  DeviceRegistry registry) {
         this.registry = registry;
-    }
-
-    @Nonnull
-    @Override
-    public String getId() {
-        return "device-message-connector";
-    }
-
-    @Override
-    public String getName() {
-        return "设备消息连接器";
-    }
-
-    @Override
-    public String getDescription() {
-        return "连接设备上报的消息到消息网关";
-    }
-
-    @Override
-    public void onDisconnect(Runnable disconnectListener) {
-
-    }
-
-    @Override
-    public void disconnect() {
-        messageProcessor.onComplete();
-    }
-
-    @Override
-    public boolean isAlive() {
-        return true;
+        this.eventBus = eventBus;
     }
 
     public Mono<Void> onMessage(Message message) {
         if (null == message) {
             return Mono.empty();
         }
-        if (!messageProcessor.hasDownstreams() && !messageProcessor.isCancelled()) {
-            return Mono.empty();
-        }
-
         return this.getTopic(message)
-            .map(topic -> TopicMessage.of(topic, message))
-            .doOnNext(sink::next)
+            .flatMap(topic ->eventBus.publish(topic,message).then())
+            .onErrorResume(error -> Mono.fromRunnable(() -> log.error(error.getMessage(), error)))
             .then();
     }
 
@@ -95,6 +51,7 @@ public class DeviceMessageConnector
             DeviceMessage deviceMessage = ((DeviceMessage) message);
             String deviceId = deviceMessage.getDeviceId();
             if (deviceId == null) {
+                log.warn("无法从消息中获取设备ID:{}", deviceMessage);
                 return Mono.empty();
             }
             return registry
@@ -105,6 +62,7 @@ public class DeviceMessageConnector
                 .flatMap(configs -> {
                     configs.getAllValues().forEach(deviceMessage::addHeader);
                     String productId = deviceMessage.getHeader("productId").map(String::valueOf).orElse("null");
+
                     String topic = String.join("",
                         "/device", "/", productId, "/", deviceId, createDeviceMessageTopic(message)
                     );
@@ -160,20 +118,22 @@ public class DeviceMessageConnector
             return "/register";
         } else if (message instanceof DeviceUnRegisterMessage) { //注销
             return "/unregister";
+        } else if (message instanceof RequestFirmwareMessage) { //拉取固件请求 since 1.3
+            return "/firmware/pull";
+        } else if (message instanceof RequestFirmwareMessageReply) { //拉取固件响应 since 1.3
+            return "/firmware/pull/reply";
+        } else if (message instanceof ReportFirmwareMessage) { //上报固件信息 since 1.3
+            return "/firmware/report";
+        } else if (message instanceof UpgradeFirmwareProgressMessage) { //上报固件更新进度 since 1.3
+            return "/firmware/progress";
+        } else if (message instanceof UpgradeFirmwareMessage) { //推送固件更新 since 1.3
+            return "/firmware/push";
+        } else if (message instanceof UpgradeFirmwareMessageReply) { //推送固件更新回复 since 1.3
+            return "/firmware/push/reply";
+        } else if (message instanceof DirectDeviceMessage) { //透传消息 since 1.4
+            return "/message/direct";
         } else {
             return "/message/unknown";
         }
-    }
-
-    @Nonnull
-    @Override
-    public Flux<MessageConnection> onConnection() {
-        return Flux.just(this);
-    }
-
-    @Nonnull
-    @Override
-    public Flux<TopicMessage> onMessage() {
-        return messageProcessor.map(Function.identity());
     }
 }

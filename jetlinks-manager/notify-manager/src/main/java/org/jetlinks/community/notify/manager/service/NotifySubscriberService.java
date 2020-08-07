@@ -1,17 +1,18 @@
 package org.jetlinks.community.notify.manager.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
 import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.core.cluster.ClusterManager;
-import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.notify.manager.entity.Notification;
 import org.jetlinks.community.notify.manager.entity.NotifySubscriberEntity;
 import org.jetlinks.community.notify.manager.enums.SubscribeState;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
+import org.jetlinks.core.event.EventBus;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class NotifySubscriberService extends GenericReactiveCrudService<NotifySubscriberEntity, String> implements CommandLineRunner {
 
-    private final MessageGateway gateway;
+    private final EventBus eventBus;
 
     private final ClusterManager clusterManager;
 
@@ -36,10 +37,10 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
 
     private final Map<String, Disposable> subscribers = new ConcurrentHashMap<>();
 
-    public NotifySubscriberService(MessageGateway gateway,
+    public NotifySubscriberService(EventBus eventBus,
                                    ClusterManager clusterManager,
                                    List<SubscriberProvider> providers) {
-        this.gateway = gateway;
+        this.eventBus = eventBus;
         this.clusterManager = clusterManager;
         for (SubscriberProvider provider : providers) {
             this.providers.put(provider.getId(), provider);
@@ -102,16 +103,17 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
         String dispatch = template.createTopic();
 
         Disposable old = subscribers
-            .put(entity.getId(), Mono.justOrEmpty(getProvider(entity.getTopicProvider()))
-                .flatMap(provider -> provider.createSubscriber(entity.getTopicConfig()))
-                .flatMap(subscriber ->
-                    subscriber
-                        .subscribe()
-                        .map(template::copyWithMessage)
-                        .flatMap(notification -> gateway.publish(dispatch, notification))
-                        .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))
-                        .then())
-                .subscribe()
+            .put(entity.getId(),
+                Mono.zip(ReactiveAuthenticationHolder.get(entity.getSubscriber()), Mono.justOrEmpty(getProvider(entity.getTopicProvider())))
+                    .flatMap(tp2 -> tp2.getT2().createSubscriber(entity.getId(),tp2.getT1(), entity.getTopicConfig()))
+                    .flatMap(subscriber ->
+                        subscriber
+                            .subscribe()
+                            .map(template::copyWithMessage)
+                            .flatMap(notification -> eventBus.publish(dispatch, notification))
+                            .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))
+                            .then())
+                    .subscribe()
             );
         log.debug("subscribe :{}({})", template.getTopicProvider(), template.getTopicName());
 

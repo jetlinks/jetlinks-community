@@ -1,10 +1,12 @@
 package org.jetlinks.community.notify.manager.message;
 
+import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;
-import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.gateway.external.SubscriptionProvider;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -12,7 +14,7 @@ import reactor.core.publisher.Flux;
 @AllArgsConstructor
 public class NotificationsPublishProvider implements SubscriptionProvider {
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
 
     @Override
     public String id() {
@@ -32,10 +34,12 @@ public class NotificationsPublishProvider implements SubscriptionProvider {
     @Override
     public Flux<Message> subscribe(SubscribeRequest request) {
 
-        return messageGateway
-            .subscribe(
-                "/notifications/user/" + request.getAuthentication().getUser().getId() + "/*/*"
-                , messageGateway.nextSubscriberId("notifications-publisher"))
-            .map(msg -> Message.success(request.getId(), msg.getTopic(), msg.getMessage().payloadAsJson()));
+        return eventBus
+            .subscribe(Subscription.of(
+                "notifications-publisher",
+                "/notifications/user/" + request.getAuthentication().getUser().getId() + "/*/*",
+                Subscription.Feature.local, Subscription.Feature.broker
+            ))
+            .map(msg -> Message.success(request.getId(), msg.getTopic(), JSON.parseObject(msg.bodyToString())));
     }
 }

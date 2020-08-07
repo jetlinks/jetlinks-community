@@ -27,9 +27,9 @@ import java.util.Date;
 class DeviceStatusRecordMeasurement
     extends StaticMeasurement {
 
-    public LocalDeviceInstanceService instanceService;
+    private final LocalDeviceInstanceService instanceService;
 
-    private TimeSeriesManager timeSeriesManager;
+    private final TimeSeriesManager timeSeriesManager;
 
     static MeasurementDefinition definition = MeasurementDefinition.of("record", "设备状态记录");
 

@@ -6,6 +6,8 @@ import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.device.entity.DevicePropertiesEntity;
+import org.jetlinks.community.utils.ErrorUtils;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.enums.ErrorCode;
@@ -19,17 +21,11 @@ import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.device.entity.DevicePropertiesEntity;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.TopicMessage;
-import org.jetlinks.community.utils.ErrorUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -43,21 +39,6 @@ public class DeviceMessageController {
 
     @Autowired
     private DeviceRegistry registry;
-
-    @Autowired
-    public MessageGateway messageGateway;
-
-
-    //获取实时事件
-    @GetMapping(value = "/{deviceId}/event", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Object> getEvent(@PathVariable String deviceId) {
-        return messageGateway
-            .subscribe("/device/*/".concat(deviceId).concat("/message/event/**"))
-            .map(TopicMessage::getMessage)
-            .map(msg -> msg.getPayload().toString(StandardCharsets.UTF_8))
-            ;
-    }
-
 
     //获取设备属性
     @GetMapping("/{deviceId}/property/{property:.+}")

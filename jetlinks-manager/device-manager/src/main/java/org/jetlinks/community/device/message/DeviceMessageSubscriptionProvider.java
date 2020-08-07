@@ -1,22 +1,19 @@
 package org.jetlinks.community.device.message;
 
 import lombok.AllArgsConstructor;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.Subscription;
 import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.gateway.external.SubscriptionProvider;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.util.Collections;
 
 @Component
 @AllArgsConstructor
 public class DeviceMessageSubscriptionProvider implements SubscriptionProvider {
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
 
     @Override
     public String id() {
@@ -37,10 +34,14 @@ public class DeviceMessageSubscriptionProvider implements SubscriptionProvider {
 
     @Override
     public Flux<Message> subscribe(SubscribeRequest request) {
-        return messageGateway
-            .subscribe(Collections.singletonList(new Subscription(request.getTopic())), true)
-            .flatMap(topic -> Mono.justOrEmpty(DeviceMessageUtils.convert(topic)
-                .map(msg -> Message.success(request.getId(), topic.getTopic(), msg))
-            ));
+        return eventBus
+            .subscribe(
+                org.jetlinks.core.event.Subscription.of(
+                    "DeviceMessageSubscriptionProvider:" + request.getAuthentication().getUser().getId(),
+                    new String[]{request.getTopic()},
+                    org.jetlinks.core.event.Subscription.Feature.local,
+                    Subscription.Feature.broker
+                ))
+            .map(topicMessage -> Message.success(request.getId(), topicMessage.getTopic(), topicMessage.decode()));
     }
 }

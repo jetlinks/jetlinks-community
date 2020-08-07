@@ -5,14 +5,13 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
 import org.jetlinks.community.device.measurements.DeviceDashboardDefinition;
 import org.jetlinks.community.device.measurements.DeviceObjectDefinition;
-import org.jetlinks.community.device.message.DeviceMessageUtils;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.TopicMessage;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.message.DeviceMessage;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -40,10 +39,10 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
     public DeviceStatusMeasurementProvider(MeterRegistryManager registryManager,
                                            LocalDeviceInstanceService instanceService,
                                            TimeSeriesManager timeSeriesManager,
-                                           MessageGateway messageGateway) {
+                                           EventBus eventBus) {
         super(DeviceDashboardDefinition.instance, DeviceObjectDefinition.status);
 
-        addMeasurement(new DeviceStatusChangeMeasurement(timeSeriesManager, messageGateway));
+        addMeasurement(new DeviceStatusChangeMeasurement(timeSeriesManager, eventBus));
 
         addMeasurement(new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager));
 
@@ -52,8 +51,8 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
     }
 
     @Subscribe("/device/*/*/online")
-    public Mono<Void> incrementOnline(TopicMessage msg){
-        return Mono.fromRunnable(()->{
+    public Mono<Void> incrementOnline(DeviceMessage msg) {
+        return Mono.fromRunnable(() -> {
             String productId = parseProductId(msg);
             counterAdder.apply(productId).increment();
             registry
@@ -63,8 +62,8 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
     }
 
     @Subscribe("/device/*/*/offline")
-    public Mono<Void> incrementOffline(TopicMessage msg){
-        return Mono.fromRunnable(()->{
+    public Mono<Void> incrementOffline(DeviceMessage msg) {
+        return Mono.fromRunnable(() -> {
             String productId = parseProductId(msg);
             counterAdder.apply(productId).increment();
             registry
@@ -73,9 +72,10 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
         });
     }
 
-    private String parseProductId(TopicMessage msg) {
-        return DeviceMessageUtils.convert(msg)
-            .flatMap(deviceMessage -> deviceMessage.getHeader("productId"))
-            .map(String::valueOf).orElse("unknown");
+    private String parseProductId(DeviceMessage deviceMessage) {
+        return deviceMessage
+            .getHeader("productId")
+            .map(String::valueOf)
+            .orElse("unknown");
     }
 }

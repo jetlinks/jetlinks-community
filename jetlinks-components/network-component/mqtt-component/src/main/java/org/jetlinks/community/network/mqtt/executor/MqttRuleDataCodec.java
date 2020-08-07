@@ -5,11 +5,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.jetlinks.core.message.codec.MessagePayloadType;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.SimpleMqttMessage;
+import org.jetlinks.core.utils.TopicUtils;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataCodec;
 import org.jetlinks.rule.engine.api.RuleDataCodecs;
 import org.jetlinks.rule.engine.executor.PayloadType;
-import org.jetlinks.supports.utils.MqttTopicUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,7 +45,7 @@ public class MqttRuleDataCodec implements RuleDataCodec<MqttMessage> {
             .map(TopicVariables::getVariables)
             .filter(CollectionUtils::isNotEmpty)
             .flatMap(list -> list.stream()
-                .map(str -> MqttTopicUtils.getPathVariables(str, message.getTopic()))
+                .map(str -> TopicUtils.getPathVariables(str, message.getTopic()))
                 .reduce((m1, m2) -> {
                     m1.putAll(m2);
                     return m1;

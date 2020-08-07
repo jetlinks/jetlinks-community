@@ -13,7 +13,7 @@ import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.gateway.external.SubscriptionProvider;
-import org.jetlinks.supports.utils.MqttTopicUtils;
+import org.jetlinks.core.utils.TopicUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -51,7 +51,7 @@ public class DeviceMessageSendSubscriptionProvider implements SubscriptionProvid
 
         String topic = request.getTopic();
 
-        Map<String, String> variables = MqttTopicUtils.getPathVariables("/device-message-sender/{productId}/{deviceId}", topic);
+        Map<String, String> variables = TopicUtils.getPathVariables("/device-message-sender/{productId}/{deviceId}", topic);
         String deviceId = variables.get("deviceId");
         String productId = variables.get("productId");
 

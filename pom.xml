@@ -26,9 +26,9 @@
         <r2dbc.version>Arabba-SR6</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.50.Final</netty.version>
-        <elasticsearch.version>6.8.10</elasticsearch.version>
+        <elasticsearch.version>6.8.11</elasticsearch.version>
         <reactor.excel.version>1.0-RC</reactor.excel.version>
-        <reactor.ql.version>1.0.3</reactor.ql.version>
+        <reactor.ql.version>1.0.4</reactor.ql.version>
         <fastjson.version>1.2.70</fastjson.version>
     </properties>
 
@@ -274,6 +274,25 @@
                 <artifactId>elasticsearch-rest-high-level-client</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.elasticsearch</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.elasticsearch.plugin</groupId>
+                <artifactId>transport-netty4-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.hswebframework</groupId>
                 <artifactId>hsweb-easy-orm-core</artifactId>

@@ -10,8 +10,8 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.manager.web.response.MqttMessageResponse;
 import org.jetlinks.community.network.mqtt.server.*;
+import org.jetlinks.core.utils.TopicUtils;
 import org.jetlinks.rule.engine.executor.PayloadType;
-import org.jetlinks.supports.utils.MqttTopicUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -49,7 +49,7 @@ public class MqttServerDebugSubscriptionProvider implements SubscriptionProvider
     public Flux<MqttClientMessage> subscribe(SubscribeRequest request) {
         DebugAuthenticationHandler.handle(request);
 
-        Map<String, String> vars = MqttTopicUtils.getPathVariables("/network/mqtt/server/{id}/_subscribe/{type}", request.getTopic());
+        Map<String, String> vars = TopicUtils.getPathVariables("/network/mqtt/server/{id}/_subscribe/{type}", request.getTopic());
 
         String clientId = vars.get("id");
         PayloadType type = PayloadType.valueOf(vars.get("type").toUpperCase());

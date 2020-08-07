@@ -1,12 +1,11 @@
 package org.jetlinks.community.device.measurements;
 
-import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.community.dashboard.DashboardObject;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
-import org.jetlinks.community.gateway.MessageGateway;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.event.EventBus;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -16,17 +15,23 @@ import javax.annotation.PostConstruct;
 @Component
 public class DeviceDynamicDashboard implements DeviceDashboard {
 
-    @Autowired
-    private LocalDeviceProductService productService;
+    private final LocalDeviceProductService productService;
 
-    @Autowired
-    private DeviceRegistry registry;
+    private final DeviceRegistry registry;
 
-    @Autowired
-    private MessageGateway messageGateway;
+    private final EventBus eventBus;
 
-    @Autowired
-    private TimeSeriesManager timeSeriesManager;
+    private final TimeSeriesManager timeSeriesManager;
+
+    public DeviceDynamicDashboard(LocalDeviceProductService productService,
+                                  DeviceRegistry registry,
+                                  EventBus eventBus,
+                                  TimeSeriesManager timeSeriesManager) {
+        this.productService = productService;
+        this.registry = registry;
+        this.eventBus = eventBus;
+        this.timeSeriesManager = timeSeriesManager;
+    }
 
     @PostConstruct
     public void init() {
@@ -48,6 +53,6 @@ public class DeviceDynamicDashboard implements DeviceDashboard {
 
     protected Mono<DeviceDashboardObject> convertObject(DeviceProductEntity product) {
         return registry.getProduct(product.getId())
-            .map(operator -> DeviceDashboardObject.of(product.getId(), product.getName(), operator, messageGateway, timeSeriesManager));
+            .map(operator -> DeviceDashboardObject.of(product.getId(), product.getName(), operator, eventBus, timeSeriesManager));
     }
 }

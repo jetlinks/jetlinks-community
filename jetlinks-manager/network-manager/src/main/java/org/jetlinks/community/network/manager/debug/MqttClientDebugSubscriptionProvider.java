@@ -9,8 +9,8 @@ import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.manager.web.request.MqttMessageRequest;
 import org.jetlinks.community.network.manager.web.response.MqttMessageResponse;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.core.utils.TopicUtils;
 import org.jetlinks.rule.engine.executor.PayloadType;
-import org.jetlinks.supports.utils.MqttTopicUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -47,7 +47,7 @@ public class MqttClientDebugSubscriptionProvider implements SubscriptionProvider
     @Override
     public Flux<Object> subscribe(SubscribeRequest request) {
         DebugAuthenticationHandler.handle(request);
-        Map<String, String> vars = MqttTopicUtils.getPathVariables("/network/mqtt/client/{id}/{pubsub}/{type}", request.getTopic());
+        Map<String, String> vars = TopicUtils.getPathVariables("/network/mqtt/client/{id}/{pubsub}/{type}", request.getTopic());
 
         String clientId = vars.get("id");
         String pubsub = vars.get("pubsub");

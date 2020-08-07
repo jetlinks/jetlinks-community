@@ -7,6 +7,7 @@ import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
 import org.jetlinks.community.gateway.monitor.GatewayMonitors;
 import org.jetlinks.community.gateway.monitor.MonitorSupportDeviceGateway;
+import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.AuthenticationResponse;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -63,19 +64,24 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
 
     private final AtomicBoolean started = new AtomicBoolean();
 
+    private final Mono<ProtocolSupport> supportMono;
+
     private Disposable disposable;
 
     public MqttServerDeviceGateway(String id,
                                    DeviceRegistry registry,
                                    DeviceSessionManager sessionManager,
                                    MqttServer mqttServer,
-                                   DecodedClientMessageHandler messageHandler) {
+                                   DecodedClientMessageHandler messageHandler,
+                                   Mono<ProtocolSupport> customProtocol
+                                   ) {
         this.gatewayMonitor = GatewayMonitors.getDeviceGatewayMonitor(id);
         this.id = id;
         this.registry = registry;
         this.sessionManager = sessionManager;
         this.mqttServer = mqttServer;
         this.messageHandler = messageHandler;
+        this.supportMono = customProtocol;
     }
 
     @Override
@@ -88,7 +94,7 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
         if (started.getAndSet(true) || disposable != null) {
             return;
         }
-        disposable = (Disposable) mqttServer
+        disposable = mqttServer
             .handleConnection()
             .filter(conn -> {
                 if (!started.get()) {
@@ -101,7 +107,7 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
             .publishOn(Schedulers.parallel())
             .flatMap(this::handleConnection)
             .flatMap(tuple3 -> handleAuthResponse(tuple3.getT1(), tuple3.getT2(), tuple3.getT3()))
-            .flatMap(tp -> handleAcceptedMqttConnection(tp.getT1(), tp.getT2(), tp.getT3()) , Integer.MAX_VALUE)
+            .flatMap(tp -> handleAcceptedMqttConnection(tp.getT1(), tp.getT2(), tp.getT3()), Integer.MAX_VALUE)
             .onErrorContinue((err, obj) -> log.error("处理MQTT连接失败", err))
             .subscriberContext(ReactiveLogger.start("network", mqttServer.getId()))
             .subscribe();
@@ -110,33 +116,29 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
 
     //处理连接，并进行认证
     private Mono<Tuple3<DeviceOperator, AuthenticationResponse, MqttConnection>> handleConnection(MqttConnection connection) {
-        return Mono.justOrEmpty(connection.getAuth())
-            //没有认证信息,则拒绝连接.
-            .switchIfEmpty(Mono.fromRunnable(() -> {
-                connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED);
-                gatewayMonitor.rejected();
-            }))
-            .flatMap(auth ->
-                registry.getDevice(connection.getClientId())
-                    .flatMap(device -> device
-                        .authenticate(new MqttAuthenticationRequest(connection.getClientId(), auth.getUsername(), auth.getPassword(), getTransport()))
-                        .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD)))
-                        .flatMap(resp -> {
-                            String deviceId = StringUtils.isEmpty(resp.getDeviceId()) ? device.getDeviceId() : resp.getDeviceId();
-                            //认证返回了新的设备ID,则使用新的设备
-                            if (!deviceId.equals(device.getDeviceId())) {
-                                return registry
-                                    .getDevice(deviceId)
-                                    .map(operator -> Tuples.of(operator, resp, connection));
-                            }
-                            return Mono.just(Tuples.of(device, resp, connection));
-                        })
-                    ))
+        return  Mono
+            .justOrEmpty(connection.getAuth())
+            .flatMap(auth -> {
+                MqttAuthenticationRequest request = new MqttAuthenticationRequest(connection.getClientId(), auth.getUsername(), auth.getPassword(), getTransport());
+                return supportMono
+                    //使用自定义协议来认证
+                    .map(support -> support.authenticate(request, registry))
+                    .defaultIfEmpty(Mono.defer(() -> registry
+                        .getDevice(connection.getClientId())
+                        .flatMap(device -> device.authenticate(request))))
+                    .flatMap(Function.identity())
+                    .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD)));
+            })
+            .flatMap(resp -> {
+                String deviceId = StringUtils.isEmpty(resp.getDeviceId()) ? connection.getClientId() : resp.getDeviceId();
+                //认证返回了新的设备ID,则使用新的设备
+                return registry
+                    .getDevice(deviceId)
+                    .map(operator -> Tuples.of(operator, resp, connection))
+                    .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED)))
+                    ;
+            })
             //设备注册信息不存在,拒绝连接
-            .switchIfEmpty(Mono.fromRunnable(() -> {
-                connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED);
-                gatewayMonitor.rejected();
-            }))
             .onErrorResume((err) -> Mono.fromRunnable(() -> {
                 gatewayMonitor.rejected();
                 connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
@@ -231,24 +233,26 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                     sink.next(msg);
                 }
                 String deviceId = msg.getDeviceId();
-                //返回了其他设备的消息,则自动创建会话
-                if (!deviceId.equals(operator.getDeviceId())) {
-                    DeviceSession anotherSession = sessionManager.getSession(msg.getDeviceId());
-                    if (anotherSession == null) {
+                if (!StringUtils.isEmpty(deviceId)) {
+                    //返回了其他设备的消息,则自动创建会话
+                    if (!deviceId.equals(operator.getDeviceId())) {
+                        DeviceSession anotherSession = sessionManager.getSession(msg.getDeviceId());
+                        if (anotherSession == null) {
 
-                        connection.onClose(c -> sessionManager.unregister(deviceId));
+                            connection.onClose(c -> sessionManager.unregister(deviceId));
 
-                        return registry
-                            .getDevice(msg.getDeviceId())
-                            .doOnNext(device -> sessionManager.register(
-                                new MqttConnectionSession(msg.getDeviceId(), device, getTransport(), connection) {
-                                    @Override
-                                    public Mono<Boolean> send(EncodedMessage encodedMessage) {
-                                        return super.send(encodedMessage).doOnSuccess(s -> gatewayMonitor.sentMessage());
-                                    }
-                                }))
-                            .then(messageHandler.handleMessage(operator, msg))
-                            ;
+                            return registry
+                                .getDevice(msg.getDeviceId())
+                                .doOnNext(device -> sessionManager.register(
+                                    new MqttConnectionSession(msg.getDeviceId(), device, getTransport(), connection) {
+                                        @Override
+                                        public Mono<Boolean> send(EncodedMessage encodedMessage) {
+                                            return super.send(encodedMessage).doOnSuccess(s -> gatewayMonitor.sentMessage());
+                                        }
+                                    }))
+                                .then(messageHandler.handleMessage(operator, msg))
+                                ;
+                        }
                     }
                 }
                 //丢给默认的消息处理逻辑

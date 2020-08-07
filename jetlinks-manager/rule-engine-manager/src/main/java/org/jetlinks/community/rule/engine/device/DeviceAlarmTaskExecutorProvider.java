@@ -5,10 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.ValueObject;
-import org.jetlinks.community.gateway.DeviceMessageUtils;
-import org.jetlinks.community.gateway.MessageGateway;
-import org.jetlinks.community.gateway.Subscription;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.metadata.Jsonable;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQLRecord;
@@ -19,26 +19,25 @@ import org.jetlinks.rule.engine.api.task.Task;
 import org.jetlinks.rule.engine.api.task.TaskExecutor;
 import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
 import org.jetlinks.rule.engine.defaults.AbstractTaskExecutor;
-import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
+import reactor.core.scheduler.Scheduler;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Slf4j
 @AllArgsConstructor
 @Component
 public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
-    private final MessageGateway messageGateway;
+    private final EventBus eventBus;
+
+    private final Scheduler scheduler;
 
     @Override
     public String getExecutor() {
@@ -74,7 +73,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
         @Override
         protected Disposable doStart() {
             rule.validate();
-            return doSubscribe(messageGateway)
+            return doSubscribe(eventBus)
                 .filter(ignore -> state == Task.State.running)
                 .flatMap(result -> {
                     RuleData data = RuleData.create(result);
@@ -95,7 +94,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
             if (disposable != null) {
                 disposable.dispose();
             }
-            doStart();
+            disposable = doStart();
         }
 
         private DeviceAlarmRule createRule() {
@@ -164,7 +163,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
             return ReactorQL.builder().sql(sql).build();
         }
 
-        public Flux<Map<String, Object>> doSubscribe(MessageGateway gateway) {
+        public Flux<Map<String, Object>> doSubscribe(EventBus eventBus) {
             Set<String> topics = new HashSet<>();
 
             List<Object> binds = new ArrayList<>();
@@ -174,13 +173,18 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                 topics.add(topic);
                 binds.addAll(trigger.toFilterBinds());
             }
-            List<Subscription> subscriptions = topics.stream().map(Subscription::new).collect(Collectors.toList());
+            org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription.of(
+                "device_alarm:" + rule.getId(),
+                topics.toArray(new String[0]),
+                Subscription.Feature.local
+            );
+//            List<Subscription> subscriptions = topics.stream().map(Subscription::new).collect(Collectors.toList());
 
             ReactorQLContext context = ReactorQLContext
                 .ofDatasource(ignore ->
-                    gateway
-                        .subscribe(subscriptions, "device_alarm:" + rule.getId(), false)
-                        .flatMap(msg -> Mono.justOrEmpty(DeviceMessageUtils.convert(msg).map(DeviceMessage::toJson)))
+                    eventBus
+                        .subscribe(subscription, DeviceMessage.class)
+                        .map(Jsonable::toJson)
                         .doOnNext(json -> {
                             if (StringUtils.hasText(rule.getDeviceName())) {
                                 json.putIfAbsent("deviceName", rule.getDeviceName());
@@ -210,10 +214,10 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                 resultFlux = resultFlux
                     .as(flux ->
                         StringUtils.hasText(rule.getDeviceId())
-                            ? flux.window(windowTime)//规则已经指定了固定的设备,直接开启时间窗口就行
+                            ? flux.window(windowTime, scheduler)//规则已经指定了固定的设备,直接开启时间窗口就行
                             : flux //规则配置在设备产品上,则按设备ID分组后再开窗口
                             .groupBy(map -> String.valueOf(map.get("deviceId")), Integer.MAX_VALUE)
-                            .flatMap(group -> group.window(windowTime),Integer.MAX_VALUE))
+                            .flatMap(group -> group.window(windowTime, scheduler), Integer.MAX_VALUE))
                     //处理每一组数据
                     .flatMap(group -> group
                         .index((index, data) -> Tuples.of(index + 1, data)) //给数据打上索引,索引号就是告警次数
@@ -250,11 +254,11 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                     }
                     // 推送告警信息到消息网关中
                     // /rule-engine/device/alarm/{productId}/{deviceId}/{ruleId}
-                    return gateway
+                    return eventBus
                         .publish(String.format(
                             "/rule-engine/device/alarm/%s/%s/%s",
                             rule.getProductId(), map.get("deviceId"), rule.getId()
-                        ), map, true)
+                        ), map)
                         .then(Mono.just(map));
                 });
         }
