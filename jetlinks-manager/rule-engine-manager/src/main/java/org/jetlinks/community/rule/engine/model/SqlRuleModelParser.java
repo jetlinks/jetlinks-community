@@ -50,6 +50,7 @@ public class SqlRuleModelParser implements RuleModelParserStrategy {
                 if (!StringUtils.hasText(act.getExecutor())) {
                     continue;
                 }
+                index++;
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("error:action:" + index);
                 action.setName("错误处理:" + index);
@@ -93,6 +94,7 @@ public class SqlRuleModelParser implements RuleModelParserStrategy {
                 if (!StringUtils.hasText(operation.getExecutor())) {
                     continue;
                 }
+                index++;
                 RuleNodeModel action = new RuleNodeModel();
                 action.setId("action:" + index);
                 action.setName("执行动作:" + index);
