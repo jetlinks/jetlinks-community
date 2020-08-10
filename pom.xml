@@ -177,6 +177,14 @@
             </dependency>
 
             <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.10.4</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
                 <groupId>org.hswebframework</groupId>
                 <artifactId>reactor-excel</artifactId>
                 <version>${reactor.excel.version}</version>
