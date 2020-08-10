@@ -19,7 +19,7 @@ public class ElasticSearchIndexProperties {
     public Settings toSettings() {
 
         return Settings.builder()
-            .put("number_of_shards", Math.min(1, numberOfShards))
+            .put("number_of_shards", Math.max(1, numberOfShards))
             .put("number_of_replicas", numberOfReplicas)
             .build();
     }
