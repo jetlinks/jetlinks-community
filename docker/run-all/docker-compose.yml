@@ -66,7 +66,7 @@ services:
       - 1883-1890:1883-1890 # 预留
       - 8000-8010:8000-8010 # 预留
     volumes:
-      - "jetlinks-volume:/static/upload"  # 持久化上传的文件
+      - "jetlinks-volume:/application/static/upload"  # 持久化上传的文件
     environment:
      # - "JAVA_OPTS=-Xms4g -Xmx18g -XX:+UseG1GC"
       - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
