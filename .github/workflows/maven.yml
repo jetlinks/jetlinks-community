@@ -19,7 +19,7 @@ jobs:
         path: ~/.m2
         key: jetlinks-community-maven-repository
     - name: Build with Maven
-      run: mvn -B package -Pbuild && cd jetlinks-standalone && mvn docker:build
+      run: mvn clean install -Dmaven.test.skip=true -Pbuild && cd jetlinks-standalone && docker build -t registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
     - name: Login Docker Repo
       run: echo "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" | docker login registry.cn-shenzhen.aliyuncs.com -u ${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }} --password-stdin
     - name: Push Docker
