@@ -11,4 +11,4 @@ COPY --from=builder application/snapshot-dependencies/ ./
 COPY --from=builder application/spring-boot-loader/ ./
 COPY --from=builder application/application/ ./
 COPY docker-entrypoint.sh ./
-ENTRYPOINT ["sh","docker-entrypoint.sh"]
+ENTRYPOINT ["docker-entrypoint.sh"]
