@@ -16,11 +16,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.2.8.RELEASE</spring.boot.version>
+        <spring.boot.version>2.3.3.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.4</hsweb.framework.version>
-        <easyorm.version>4.0.4</easyorm.version>
+        <hsweb.framework.version>4.0.6-SNAPSHOT</hsweb.framework.version>
+        <easyorm.version>4.0.6-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
         <jetlinks.version>1.1.1-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Arabba-SR6</r2dbc.version>
@@ -28,7 +28,7 @@
         <netty.version>4.1.50.Final</netty.version>
         <elasticsearch.version>6.8.11</elasticsearch.version>
         <reactor.excel.version>1.0-RC</reactor.excel.version>
-        <reactor.ql.version>1.0.4</reactor.ql.version>
+        <reactor.ql.version>1.0.5-SNAPSHOT</reactor.ql.version>
         <fastjson.version>1.2.70</fastjson.version>
     </properties>
 

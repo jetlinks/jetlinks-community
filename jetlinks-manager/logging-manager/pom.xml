@@ -25,11 +25,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework.boot.experimental</groupId>
-            <artifactId>spring-boot-starter-data-r2dbc</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.jetlinks.community</groupId>
             <artifactId>logging-component</artifactId>
             <version>${project.version}</version>

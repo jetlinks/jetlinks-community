@@ -10,6 +10,8 @@ class TimeSeriesPropertiesPropertiesConfigAdapter extends StepRegistryProperties
       super(properties);
   }
 
-
-
+    @Override
+    public String prefix() {
+        return "management.metrics.export.time-series";
+    }
 }

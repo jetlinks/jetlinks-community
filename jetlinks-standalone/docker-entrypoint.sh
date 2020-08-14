@@ -4,4 +4,4 @@ java $JAVA_OPTS -server \
 -XX:+UseCGroupMemoryLimitForHeap \
 -XX:-OmitStackTraceInFastThrow \
 -Djava.security.egd=file:/dev/./urandom \
--jar /$APP_JAR
+org.springframework.boot.loader.JarLauncher
