@@ -4,3 +4,8 @@
  _   | |/ _ \ __| |    | | '_ \| |/ / __|
 | |__| |  __/ |_| |____| | | | |   <\__ \
  \____/ \___|\__|______|_|_| |_|_|\_\___/
+  jetlinks       @project.version@  build @maven.build.timestamp@
+  spring-boot    ${spring-boot.version}
+  http port      ${server.port}
+  redis          ${spring.redis.host}:${spring.redis.port}
+  r2dbc          ${spring.r2dbc.url}
