@@ -20,8 +20,6 @@ JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发,
 
 地理位置:统一管理地理位置信息,支持区域搜索. 
 
-数据可视化: 实现拖拽配置数据图表,设备组态等.
-
 官方QQ群: `2021514`
 
 ## 技术栈
