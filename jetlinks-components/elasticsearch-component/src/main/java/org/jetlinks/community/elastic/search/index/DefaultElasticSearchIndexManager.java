@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,11 +21,11 @@ public class DefaultElasticSearchIndexManager implements ElasticSearchIndexManag
 
     @Getter
     @Setter
-    private Map<String, String> indexUseStrategy = new ConcurrentHashMap<>();
+    private Map<String, String> indexUseStrategy = new HashMap<>();
 
-    private Map<String, ElasticSearchIndexStrategy> strategies = new ConcurrentHashMap<>();
+    private final Map<String, ElasticSearchIndexStrategy> strategies = new ConcurrentHashMap<>();
 
-    private Map<String, ElasticSearchIndexMetadata> indexMetadataStore = new ConcurrentHashMap<>();
+    private final Map<String, ElasticSearchIndexMetadata> indexMetadataStore = new ConcurrentHashMap<>();
 
     public DefaultElasticSearchIndexManager(List<ElasticSearchIndexStrategy> strategies) {
         strategies.forEach(this::registerStrategy);
@@ -55,7 +56,12 @@ public class DefaultElasticSearchIndexManager implements ElasticSearchIndexManag
             .switchIfEmpty(Mono.error(() -> new IllegalArgumentException("[" + index + "] 不支持任何索引策略")));
     }
 
-    protected void registerStrategy(ElasticSearchIndexStrategy strategy) {
+    @Override
+    public void useStrategy(String index, String strategy) {
+        indexUseStrategy.put(index, strategy);
+    }
+
+    public void registerStrategy(ElasticSearchIndexStrategy strategy) {
         strategies.put(strategy.getId(), strategy);
     }
 

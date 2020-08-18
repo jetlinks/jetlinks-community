@@ -23,7 +23,11 @@ public interface DeviceTimeSeriesMetric {
      * @return 度量标识
      */
     static TimeSeriesMetric deviceEventMetric(String productId, String eventId) {
-        return TimeSeriesMetric.of("event_".concat(productId).concat("_").concat(eventId));
+        return TimeSeriesMetric.of(deviceEventMetricId(productId, eventId));
+    }
+
+    static String deviceEventMetricId(String productId, String eventId) {
+        return "event_".concat(productId).concat("_").concat(eventId);
     }
 
     /**
@@ -33,7 +37,11 @@ public interface DeviceTimeSeriesMetric {
      * @return 度量标识
      */
     static TimeSeriesMetric devicePropertyMetric(String productId) {
-        return TimeSeriesMetric.of("properties_".concat(productId));
+        return TimeSeriesMetric.of(devicePropertyMetricId(productId));
+    }
+
+    static String devicePropertyMetricId(String productId) {
+        return "properties_".concat(productId);
     }
 
     /**
@@ -43,7 +51,11 @@ public interface DeviceTimeSeriesMetric {
      * @return 度量标识
      */
     static TimeSeriesMetric deviceLogMetric(String productId) {
-        return TimeSeriesMetric.of("device_log_".concat(productId));
+        return TimeSeriesMetric.of(deviceLogMetricId(productId));
+    }
+
+    static String deviceLogMetricId(String productId) {
+        return "device_log_".concat(productId);
     }
 
     /**

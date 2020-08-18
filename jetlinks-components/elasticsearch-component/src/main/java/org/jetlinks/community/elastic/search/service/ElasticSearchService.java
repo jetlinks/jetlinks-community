@@ -14,11 +14,30 @@ import java.util.function.Function;
 
 public interface ElasticSearchService {
 
-    <T> Mono<PagerResult<T>> queryPager(String index, QueryParam queryParam, Function<Map<String, Object>, T> mapper);
+    default <T> Mono<PagerResult<T>> queryPager(String index, QueryParam queryParam, Function<Map<String, Object>, T> mapper) {
+        return queryPager(new String[]{index}, queryParam, mapper);
+    }
+
+    <T> Mono<PagerResult<T>> queryPager(String[] index, QueryParam queryParam, Function<Map<String, Object>, T> mapper);
 
     <T> Flux<T> query(String index, QueryParam queryParam, Function<Map<String, Object>, T> mapper);
 
-    Mono<Long> count(String index, QueryParam queryParam);
+    <T> Flux<T> query(String[] index, QueryParam queryParam, Function<Map<String, Object>, T> mapper);
+
+    default <T> Flux<T> multiQuery(String index, Collection<QueryParam> queryParam, Function<Map<String, Object>, T> mapper) {
+        return multiQuery(new String[]{index}, queryParam, mapper);
+    }
+
+    <T> Flux<T> multiQuery(String[] index, Collection<QueryParam> queryParam, Function<Map<String, Object>, T> mapper);
+
+    default Mono<Long> count(String index, QueryParam queryParam) {
+        return count(new String[]{index}, queryParam);
+    }
+
+    Mono<Long> count(String[] index, QueryParam queryParam);
+
+
+    Mono<Long> delete(String index, QueryParam queryParam);
 
     <T> Mono<Void> commit(String index, T payload);
 
@@ -26,9 +45,9 @@ public interface ElasticSearchService {
 
     <T> Mono<Void> commit(String index, Publisher<T> data);
 
-    <T> Mono<Void> save(String index,  T payload);
+    <T> Mono<Void> save(String index, T payload);
 
-    <T> Mono<Void> save(String index,  Collection<T> payload);
+    <T> Mono<Void> save(String index, Collection<T> payload);
 
     <T> Mono<Void> save(String index, Publisher<T> data);
 

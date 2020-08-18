@@ -14,6 +14,7 @@ import org.jetlinks.community.timeseries.TimeSeriesService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ElasticSearchTimeSeriesManager implements TimeSeriesManager {
 
 
-    private Map<String, TimeSeriesService> serviceMap = new ConcurrentHashMap<>(16);
+    private final Map<String, TimeSeriesService> serviceMap = new ConcurrentHashMap<>(16);
 
     protected final ElasticSearchIndexManager indexManager;
 
@@ -50,9 +51,21 @@ public class ElasticSearchTimeSeriesManager implements TimeSeriesManager {
     }
 
     @Override
+    public TimeSeriesService getServices(TimeSeriesMetric... metric) {
+        return getServices(Arrays
+            .stream(metric)
+            .map(TimeSeriesMetric::getId).toArray(String[]::new));
+    }
+
+    @Override
+    public TimeSeriesService getServices(String... metric) {
+        return new ElasticSearchTimeSeriesService(metric, elasticSearchService, aggregationService);
+    }
+
+    @Override
     public TimeSeriesService getService(String metric) {
         return serviceMap.computeIfAbsent(metric,
-            id -> new ElasticSearchTimeSeriesService(id, elasticSearchService, aggregationService));
+            id -> new ElasticSearchTimeSeriesService(new String[]{id}, elasticSearchService, aggregationService));
     }
 
 

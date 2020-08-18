@@ -16,24 +16,34 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Slf4j
 public class ElasticSearchTimeSeriesService implements TimeSeriesService {
 
-    private String index;
+    private final String[] index;
 
-    private ElasticSearchService elasticSearchService;
+    private final ElasticSearchService elasticSearchService;
 
-    private AggregationService aggregationService;
+    private final AggregationService aggregationService;
 
-    static DateTimeType timeType=new DateTimeType();
+    static DateTimeType timeType = DateTimeType.GLOBAL;
 
     @Override
     public Flux<TimeSeriesData> query(QueryParam queryParam) {
         return elasticSearchService.query(index, applySort(queryParam), map -> TimeSeriesData.of(timeType.convert(map.get("timestamp")), map));
+    }
+
+    @Override
+    public Flux<TimeSeriesData> multiQuery(Collection<QueryParam> query) {
+        return elasticSearchService.multiQuery(
+            index,
+            query.stream().peek(this::applySort).collect(Collectors.toList()),
+            map -> TimeSeriesData.of(timeType.convert(map.get("timestamp")), map));
     }
 
     @Override
@@ -65,25 +75,37 @@ public class ElasticSearchTimeSeriesService implements TimeSeriesService {
 
     }
 
-    protected QueryParam applySort(QueryParam param){
-        if(CollectionUtils.isEmpty(param.getSorts())){
+    protected QueryParam applySort(QueryParam param) {
+        if (CollectionUtils.isEmpty(param.getSorts())) {
             param.orderBy("timestamp").desc();
         }
         return param;
     }
+
+
     @Override
-    public Mono<Void> save(Publisher<TimeSeriesData> data) {
+    public Mono<Void> commit(Publisher<TimeSeriesData> data) {
         return Flux.from(data)
-            .flatMap(this::save)
+            .flatMap(this::commit)
             .then();
     }
 
     @Override
-    public Mono<Void> save(TimeSeriesData data) {
-        return Mono.defer(() -> {
-            Map<String, Object> mapData = data.getData();
-            mapData.put("timestamp", data.getTimestamp());
-            return elasticSearchService.commit(index, mapData);
-        });
+    public Mono<Void> commit(TimeSeriesData data) {
+        Map<String, Object> mapData = data.getData();
+        mapData.put("timestamp", data.getTimestamp());
+        return elasticSearchService.commit(index[0], mapData);
+    }
+
+    @Override
+    public Mono<Void> save(Publisher<TimeSeriesData> dateList) {
+
+        return elasticSearchService.save(index[0],
+            Flux.from(dateList)
+                .map(data -> {
+                    Map<String, Object> mapData = data.getData();
+                    mapData.put("timestamp", data.getTimestamp());
+                    return mapData;
+                }));
     }
 }

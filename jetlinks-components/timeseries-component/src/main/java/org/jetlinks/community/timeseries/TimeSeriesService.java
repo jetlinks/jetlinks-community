@@ -8,6 +8,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
 import java.util.function.Function;
 
 /**
@@ -25,6 +26,8 @@ public interface TimeSeriesService {
      * @return 时序数据结果流
      */
     Flux<TimeSeriesData> query(QueryParam queryParam);
+
+    Flux<TimeSeriesData> multiQuery(Collection<QueryParam> query);
 
     /**
      * 查询数量
@@ -71,25 +74,35 @@ public interface TimeSeriesService {
      *                 .execute(service::aggregation)
      *
      * </pre>
+     *
      * @param queryParam 聚合查询条件
      * @return 查询结果数据流
      */
     Flux<AggregationData> aggregation(AggregationQueryParam queryParam);
 
     /**
-     * 保存数据
+     * 提交数据,数据不会立即保存
      *
      * @param data 数据流
      * @return 保存结果, 不 {@link Mono#error(Throwable)} 则成功
      */
-    Mono<Void> save(Publisher<TimeSeriesData> data);
+    Mono<Void> commit(Publisher<TimeSeriesData> data);
 
     /**
-     * 保存数据
+     * 提交数据,数据不会立即保存
      *
      * @param data 单个数据
      * @return 保存结果, 不 {@link Mono#error(Throwable)} 则成功
      */
-    Mono<Void> save(TimeSeriesData data);
+    Mono<Void> commit(TimeSeriesData data);
+
+    /**
+     * 批量保存数据
+     *
+     * @param data 数据集
+     * @return 结果
+     */
+    Mono<Void> save(Publisher<TimeSeriesData> data);
+
 
 }

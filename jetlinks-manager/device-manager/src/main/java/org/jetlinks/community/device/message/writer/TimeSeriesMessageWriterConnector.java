@@ -1,6 +1,8 @@
 package org.jetlinks.community.device.message.writer;
 
 import com.alibaba.fastjson.JSON;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.hswebframework.web.id.IDGenerator;
@@ -14,23 +16,23 @@ import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.DeviceOfflineMessage;
-import org.jetlinks.core.message.DeviceOnlineMessage;
+import org.jetlinks.core.message.DeviceMessageReply;
 import org.jetlinks.core.message.event.EventMessage;
-import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.EventMetadata;
-import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.UnknownType;
+import org.reactivestreams.Publisher;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 
 /**
  * 用于将设备消息写入到时序数据库
@@ -39,10 +41,15 @@ import java.util.stream.Collectors;
  * @since 1.0
  */
 @Slf4j
+@ConfigurationProperties(prefix = "jetlinks.device.log")
 public class TimeSeriesMessageWriterConnector{
     public TimeSeriesManager timeSeriesManager;
 
     public DeviceRegistry registry;
+
+    @Setter
+    @Getter
+    private Set<String> excludes = new HashSet<>();
 
     public TimeSeriesMessageWriterConnector(TimeSeriesManager timeSeriesManager, DeviceRegistry registry) {
         this.timeSeriesManager = timeSeriesManager;
@@ -51,103 +58,97 @@ public class TimeSeriesMessageWriterConnector{
 
     @Subscribe(topics = "/device/**",id = "device-message-ts-writer")
     public Mono<Void> writeDeviceMessageToTs(DeviceMessage message){
-        return this.doIndex(message);
+        return commitDeviceMessage(message);
     }
 
-    private Mono<Void> doIndex(DeviceMessage message) {
-        Map<String, Object> headers = Optional.ofNullable(message.getHeaders()).orElse(Collections.emptyMap());
+    public Mono<Void> saveDeviceMessage(Publisher<DeviceMessage> message) {
 
-        String productId = (String) headers.getOrDefault("productId","null");
+        return Flux.from(message)
+            .flatMap(this::convert)
+            .groupBy(Tuple2::getT1)
+            .flatMap(groups -> timeSeriesManager
+                .getService(groups.key())
+                .save(groups.map(Tuple2::getT2)))
+            .then();
+    }
 
+    public Mono<Void> commitDeviceMessage(DeviceMessage message) {
+        return this
+            .convert(message)
+            .flatMap(tp2 -> timeSeriesManager
+                .getService(tp2.getT1())
+                .commit(tp2.getT2()))
+            .then();
+    }
+
+    protected Mono<Tuple2<String, TimeSeriesData>> createLog(String productId, DeviceMessage message, Consumer<DeviceOperationLogEntity> logEntityConsumer) {
+        if (excludes.contains("*") || excludes.contains(message.getMessageType().name())) {
+            return Mono.empty();
+        }
         DeviceOperationLogEntity operationLog = new DeviceOperationLogEntity();
-        operationLog.setId(IDGenerator.MD5.generate());
+        operationLog.setId(IDGenerator.SNOW_FLAKE_STRING.generate());
         operationLog.setDeviceId(message.getDeviceId());
         operationLog.setCreateTime(new Date(message.getTimestamp()));
         operationLog.setProductId(productId);
         operationLog.setType(DeviceLogType.of(message));
 
-        Mono<Void> thenJob = null;
+        if (null != logEntityConsumer) {
+            logEntityConsumer.accept(operationLog);
+        }
+        return Mono.just(Tuples.of(DeviceTimeSeriesMetric.deviceLogMetricId(productId), TimeSeriesData.of(message.getTimestamp(), operationLog.toSimpleMap())));
+    }
+
+    protected Flux<Tuple2<String, TimeSeriesData>> convert(DeviceMessage message) {
+        Map<String, Object> headers = Optional.ofNullable(message.getHeaders()).orElse(Collections.emptyMap());
+
+        String productId = (String) headers.getOrDefault("productId", "null");
+        Consumer<DeviceOperationLogEntity> logEntityConsumer = null;
+        List<Publisher<Tuple2<String, TimeSeriesData>>> all = new ArrayList<>();
+
         if (message instanceof EventMessage) {
-            operationLog.setContent(JSON.toJSONString(((EventMessage) message).getData()));
-            thenJob = doIndexEventMessage(headers, ((EventMessage) message));
-        } else if (message instanceof DeviceOfflineMessage) {
-            operationLog.setContent("设备离线");
-        } else if (message instanceof DeviceOnlineMessage) {
-            operationLog.setContent("设备上线");
-        } else if (message instanceof ReportPropertyMessage) {
+            logEntityConsumer = log -> log.setContent(JSON.toJSONString(((EventMessage) message).getData()));
+            all.add(convertEvent(productId, headers, ((EventMessage) message)));
+        }
+        //上报属性
+        else if (message instanceof ReportPropertyMessage) {
             ReportPropertyMessage reply = (ReportPropertyMessage) message;
             Map<String, Object> properties = reply.getProperties();
             if (MapUtils.isNotEmpty(properties)) {
-                operationLog.setContent(properties);
-                thenJob = doIndexPropertiesMessage(headers, message, properties);
+                logEntityConsumer = log -> log.setContent(properties);
+                all.add(convertProperties(productId, headers, message, properties));
             }
-        } else if (message instanceof ReadPropertyMessageReply) {
-            ReadPropertyMessageReply reply = (ReadPropertyMessageReply) message;
-            if (reply.isSuccess()) {
-                Map<String, Object> properties = reply.getProperties();
-                operationLog.setContent(properties);
-                thenJob = doIndexPropertiesMessage(headers, message, properties);
-            } else {
-                log.warn("读取设备:{} 属性失败", reply.getDeviceId());
-            }
-        } else if (message instanceof WritePropertyMessageReply) {
-            WritePropertyMessageReply reply = (WritePropertyMessageReply) message;
-            if (reply.isSuccess()) {
-                Map<String, Object> properties = reply.getProperties();
-                operationLog.setContent(properties);
-                thenJob = doIndexPropertiesMessage(headers, message, properties);
-            } else {
-                log.warn("修改设备:{} 属性失败", reply.getDeviceId());
-            }
-        } else if (message instanceof FunctionInvokeMessageReply) {
-            operationLog.setContent(JSON.toJSONString(((FunctionInvokeMessageReply) message).getOutput()));
-        } else {
-            operationLog.setContent(JSON.toJSONString(message));
         }
-        if (thenJob == null) {
-            thenJob = Mono.empty();
+        //消息回复
+        else if (message instanceof DeviceMessageReply) {
+            //失败的回复消息
+            if (!((DeviceMessageReply) message).isSuccess()) {
+                logEntityConsumer = log -> log.setContent(message.toString());
+            } else if (message instanceof ReadPropertyMessageReply) {
+                ReadPropertyMessageReply reply = (ReadPropertyMessageReply) message;
+                Map<String, Object> properties = reply.getProperties();
+                logEntityConsumer = log -> log.setContent(properties);
+                all.add(convertProperties(productId, headers, message, properties));
+            } else if (message instanceof WritePropertyMessageReply) {
+                WritePropertyMessageReply reply = (WritePropertyMessageReply) message;
+                Map<String, Object> properties = reply.getProperties();
+                logEntityConsumer = log -> log.setContent(properties);
+                all.add(convertProperties(productId, headers, message, properties));
+            } else {
+                logEntityConsumer = log -> log.setContent(message.toJson().toJSONString());
+            }
         }
-        return timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceLogMetric(productId))
-            .save(TimeSeriesData.of(message.getTimestamp(), operationLog.toSimpleMap()))
-            .then(thenJob);
-
+        //其他
+        else {
+            logEntityConsumer = log -> log.setContent(message.toJson().toJSONString());
+        }
+        all.add(createLog(productId, message, logEntityConsumer));
+        return Flux.merge(all);
     }
 
-    protected Mono<Void> doIndexPropertiesMessage(Map<String, Object> headers,
-                                                  DeviceMessage message,
-                                                  Map<String, Object> properties) {
-        String productId = (String) headers.get("productId");
+    protected Mono<Tuple2<String, TimeSeriesData>> convertEvent(String productId, Map<String, Object> headers, EventMessage message) {
 
         return registry
             .getDevice(message.getDeviceId())
-            .flatMap(device -> device.getMetadata()
-                .flatMap(metadata -> {
-                    Map<String, PropertyMetadata> propertyMetadata = metadata.getProperties().stream()
-                        .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity()));
-                    return Flux.fromIterable(properties.entrySet())
-                        .map(entry -> {
-
-                            DevicePropertiesEntity entity = DevicePropertiesEntity.builder()
-                                .deviceId(device.getDeviceId())
-                                .timestamp(message.getTimestamp())
-                                .property(entry.getKey())
-                                .propertyName(entry.getKey())
-                                .orgId((String) headers.get("orgId"))
-                                .productId(productId)
-                                .build()
-                                .withValue(propertyMetadata.get(entry.getKey()), entry.getValue());
-
-                            return TimeSeriesData.of(message.getTimestamp(), entity.toMap());
-                        })
-                        .flatMap(data -> timeSeriesManager.getService(DeviceTimeSeriesMetric.devicePropertyMetric(productId)).save(data))
-                        .then();
-                }));
-    }
-
-    protected Mono<Void> doIndexEventMessage(Map<String, Object> headers, EventMessage message) {
-        String productId = (String) headers.get("productId");
-
-        return registry.getDevice(message.getDeviceId())
             .flatMap(device -> device.getMetadata()
                 .map(metadata -> {
                     Object value = message.getData();
@@ -155,7 +156,7 @@ public class TimeSeriesMessageWriterConnector{
                         .getEvent(message.getEvent())
                         .map(EventMetadata::getType)
                         .orElseGet(UnknownType::new);
-                    Map<String, Object> data = new HashMap<>(headers);
+                    Map<String, Object> data = new HashMap<>();
                     data.put("deviceId", device.getDeviceId());
                     data.put("createTime", message.getTimestamp());
                     Object tempValue = ValueTypeTranslator.translator(value, dataType);
@@ -166,6 +167,37 @@ public class TimeSeriesMessageWriterConnector{
                     }
                     return TimeSeriesData.of(message.getTimestamp(), data);
                 }))
-            .flatMap(data -> timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceEventMetric(productId, message.getEvent())).save(data));
+            .map(data -> Tuples.of(DeviceTimeSeriesMetric.deviceEventMetricId(productId, message.getEvent()), data));
     }
+
+    protected Flux<Tuple2<String, TimeSeriesData>> convertProperties(String productId,
+                                                                     Map<String, Object> headers,
+                                                                     DeviceMessage message,
+                                                                     Map<String, Object> properties) {
+        if (MapUtils.isEmpty(properties)) {
+            return Flux.empty();
+        }
+        return registry
+            .getDevice(message.getDeviceId())
+            .flatMapMany(device -> device
+                .getMetadata()
+                .flatMapMany(metadata -> Flux
+                    .fromIterable(properties.entrySet())
+                    .map(entry -> {
+                        DevicePropertiesEntity entity = DevicePropertiesEntity.builder()
+                            .deviceId(device.getDeviceId())
+                            .timestamp(message.getTimestamp())
+                            .property(entry.getKey())
+                            .propertyName(entry.getKey())
+                            .orgId((String) headers.get("orgId"))
+                            .productId(productId)
+                            .build()
+                            .withValue(metadata.getPropertyOrNull(entry.getKey()), entry.getValue());
+
+                        return TimeSeriesData.of(message.getTimestamp(), entity.toMap());
+                    })
+                    .map(data -> Tuples.of(DeviceTimeSeriesMetric.devicePropertyMetricId(productId), data)))
+            );
+    }
+
 }
