@@ -29,7 +29,7 @@ class ProxyMessageListener implements MessageListener {
     private final Method method;
     private final BiFunction<Object, Object, Object> proxy;
 
-    private final AtomicReference<Decoder<?>> decoder = new AtomicReference<>();
+    private volatile Decoder<?> decoder;
 
     @SuppressWarnings("all")
     ProxyMessageListener(Object target, Method method) {
@@ -88,12 +88,10 @@ class ProxyMessageListener implements MessageListener {
         if (payload instanceof NativePayload) {
             decodedPayload = ((NativePayload<?>) payload).getNativeObject();
         } else {
-            decodedPayload = decoder.getAndUpdate((old) -> {
-                if (old == null) {
-                    return Codecs.lookup(resolvableType);
-                }
-                return old;
-            }).decode(message);
+            if (decoder == null) {
+                decoder = Codecs.lookup(resolvableType);
+            }
+            decodedPayload = decoder.decode(message);
         }
         if (paramType.isInstance(decodedPayload)) {
             return decodedPayload;
