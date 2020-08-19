@@ -15,9 +15,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -37,13 +35,20 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
         StackTraceElement element = event.getCallerData()[0];
         IThrowableProxy proxies = event.getThrowableProxy();
         String message = event.getFormattedMessage();
-        String stack = null;
-        if (null != proxies) {
-            int commonFrames = proxies.getCommonFrames();
-            StackTraceElementProxy[] stepArray = proxies.getStackTraceElementProxyArray();
-            StringJoiner joiner = new StringJoiner("\n", message + "\n[", "]");
+        String stack;
+        StringJoiner joiner = new StringJoiner("\n", message + "\n[", "]");
+        Queue<IThrowableProxy> queue = new LinkedList<>();
+        queue.add(proxies);
+        while (queue.size() > 0) {
+            IThrowableProxy proxy = queue.poll();
+            if(proxy==null){
+                break;
+            }
+            int commonFrames = proxy.getCommonFrames();
+            StackTraceElementProxy[] stepArray = proxy.getStackTraceElementProxyArray();
+
             StringBuilder stringBuilder = new StringBuilder();
-            ThrowableProxyUtil.subjoinFirstLine(stringBuilder, proxies);
+            ThrowableProxyUtil.subjoinFirstLine(stringBuilder, proxy);
             joiner.add(stringBuilder);
             for (int i = 0; i < stepArray.length - commonFrames; i++) {
                 StringBuilder sb = new StringBuilder();
@@ -51,9 +56,9 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
                 ThrowableProxyUtil.subjoinSTEP(sb, stepArray[i]);
                 joiner.add(sb);
             }
-            stack = joiner.toString();
+            queue.addAll(Arrays.asList(proxy.getSuppressed()));
         }
-
+        stack = joiner.toString();
 
         try {
             String gitLocation = null;
@@ -74,6 +79,7 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
                 }
                 mavenModule = moduleInfo.getArtifactId();
             } catch (Exception ignore) {
+
             }
             Map<String, String> context = new HashMap<>(staticContext);
             Map<String, String> mdc = MDC.getCopyOfContextMap();
@@ -81,24 +87,25 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
                 context.putAll(mdc);
             }
             SerializableSystemLog info = SerializableSystemLog.builder()
-                    .id(IDGenerator.SNOW_FLAKE_STRING.generate())
-                    .mavenModule(mavenModule)
-                    .context(context)
-                    .name(event.getLoggerName())
-                    .level(event.getLevel().levelStr)
-                    .className(element.getClassName())
-                    .methodName(element.getMethodName())
-                    .lineNumber(element.getLineNumber())
-                    .exceptionStack(stack)
-                    .java(gitLocation)
-                    .threadName(event.getThreadName())
-                    .createTime(event.getTimeStamp())
-                    .message(message)
-                    .threadId(String.valueOf(Thread.currentThread().getId()))
-                    .build();
+                .id(IDGenerator.SNOW_FLAKE_STRING.generate())
+                .mavenModule(mavenModule)
+                .context(context)
+                .name(event.getLoggerName())
+                .level(event.getLevel().levelStr)
+                .className(element.getClassName())
+                .methodName(element.getMethodName())
+                .lineNumber(element.getLineNumber())
+                .exceptionStack(stack)
+                .java(gitLocation)
+                .threadName(event.getThreadName())
+                .createTime(event.getTimeStamp())
+                .message(message)
+                .threadId(String.valueOf(Thread.currentThread().getId()))
+                .build();
             try {
                 publisher.publishEvent(info);
-            }catch (Exception ignore){}
+            } catch (Exception ignore) {
+            }
         } catch (Exception e) {
             log.error("组装系统日志错误", e);
         }
