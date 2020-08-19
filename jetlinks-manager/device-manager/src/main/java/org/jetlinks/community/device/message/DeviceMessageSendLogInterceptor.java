@@ -32,10 +32,10 @@ public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInter
             .zipWhen(DeviceOperator::getProduct)
             .doOnNext(tp2 -> message.addHeader("productId", tp2.getT2().getId()))
             .flatMap(tp2 -> {
-                String topic = DeviceMessageConnector.createDeviceMessageTopic(message);
-                Mono<Void> publisher = eventBus
-                    .publish("/device/" + tp2.getT2().getId() + "/" + tp2.getT1().getDeviceId() + topic, message)
-                    .then();
+                String topic = DeviceMessageConnector.createDeviceMessageTopic(tp2.getT2().getId(),tp2.getT1().getDeviceId(),message);
+
+                Mono<Void> publisher = eventBus.publish(topic, message).then();
+
                 if (message instanceof ChildDeviceMessage) {
                     DeviceMessage msg = (DeviceMessage) ((ChildDeviceMessage) message).getChildDeviceMessage();
                     publisher = publisher.then(doPublish(registry.getDevice(msg.getDeviceId()), msg));
