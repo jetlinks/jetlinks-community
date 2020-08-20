@@ -549,18 +549,19 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         String childId = message.getChildDeviceId();
         Message childMessage = message.getChildDeviceMessage();
         if (childMessage instanceof DeviceRegisterMessage) {
-            return registry.getDevice(message.getDeviceId())
+
+            return registry
+                .getDevice(childId)
+                .switchIfEmpty(Mono.defer(() -> doAutoRegister(((DeviceRegisterMessage) childMessage))))
+                .flatMap(dev -> dev.setConfig(DeviceConfigKey.parentGatewayId, message.getDeviceId()).thenReturn(dev))
                 .flatMap(DeviceOperator::getState)
-                .flatMap(state -> createUpdate()
-                    .set(DeviceInstanceEntity::getParentId, message.getDeviceId())
-                    .set(DeviceInstanceEntity::getState, DeviceState.of(state))
-                    .where(DeviceInstanceEntity::getId, childId)
-                    .execute()
-                    .then(registry
-                        .getDevice(childId)
-                        .switchIfEmpty(Mono.defer(() -> doAutoRegister(((DeviceRegisterMessage) childMessage))))
-                        .flatMap(dev -> dev.setConfig(DeviceConfigKey.parentGatewayId, message.getDeviceId())))
-                    .then());
+                .flatMap(state ->
+                    createUpdate()
+                        .set(DeviceInstanceEntity::getParentId, message.getDeviceId())
+                        .set(DeviceInstanceEntity::getState, DeviceState.of(state))
+                        .where(DeviceInstanceEntity::getId, childId)
+                        .execute()
+                ).then();
         }
         return Mono.empty();
     }
