@@ -44,7 +44,7 @@ public class DeviceMessageConnector{
                                   DeviceRegistry registry) {
         this.registry = registry;
         this.eventBus = eventBus;
-        this.configGetter = operator -> operator.getSelfConfigs(appendConfigHeader).defaultIfEmpty(emptyValues);
+        this.configGetter = operator -> operator.getSelfConfigs(appendConfigHeader);
     }
 
     public Mono<Void> onMessage(Message message) {
@@ -67,8 +67,8 @@ public class DeviceMessageConnector{
             }
             return registry
                 .getDevice(deviceId)
-                //获取设备配置是可能存在的性能瓶颈
                 .flatMap(configGetter)
+                .defaultIfEmpty(emptyValues)
                 .flatMap(configs -> {
                     configs.getAllValues().forEach(deviceMessage::addHeader);
                     String productId = deviceMessage.getHeader("productId").map(String::valueOf).orElse("null");
