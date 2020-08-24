@@ -2,13 +2,8 @@ spring:
   resources:
     static-locations: file:./index/, file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
   redis:
-    embedded:
-      enabled: true  # 使用内置的redis,不建议在生产环境中使用.
-      host: 127.0.0.1
-      port: 6370
-      data-path: ./data/redis
     host: 127.0.0.1
-    port: 6370
+    port: 6379
     lettuce:
       pool:
         max-active: 1024

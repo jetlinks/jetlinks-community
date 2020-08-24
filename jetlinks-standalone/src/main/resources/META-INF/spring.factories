@@ -1,2 +1,0 @@
-org.springframework.context.ApplicationListener=\
-org.jetlinks.community.standalone.configuration.EmbeddedRedisConfiguration
