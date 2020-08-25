@@ -20,6 +20,17 @@
         </dependency>
 
         <dependency>
+            <groupId>com.github.whvcse</groupId>
+            <artifactId>easy-captcha</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-redis</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-system-authorization-default</artifactId>
             <version>${hsweb.framework.version}</version>

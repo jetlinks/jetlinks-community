@@ -58,6 +58,9 @@ device:
     writer:
       time-series:
         enabled: true #写出设备消息数据到elasticsearch
+captcha:
+  enabled: false # 开启验证码
+  ttl: 2m #验证码过期时间,2分钟
 hsweb:
   cors:
     enable: true
