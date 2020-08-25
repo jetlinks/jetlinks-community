@@ -3,6 +3,7 @@ package org.jetlinks.community.device.web.request;
 import com.alibaba.fastjson.JSON;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.codec.binary.Hex;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.DeviceOperator;
@@ -26,9 +27,13 @@ public class ProtocolDecodePayload {
 
     public EncodedMessage toEncodedMessage() {
         if (transport == DefaultTransport.MQTT || transport == DefaultTransport.MQTT_TLS) {
-            SimpleMqttMessage message = FastBeanCopier.copy(JSON.parseObject(payload), new SimpleMqttMessage());
-            message.setPayloadType(MessagePayloadType.of(payloadType.getId()));
-            return message;
+            if (payload.startsWith("{")) {
+                SimpleMqttMessage message = FastBeanCopier.copy(JSON.parseObject(payload), new SimpleMqttMessage());
+                message.setPayloadType(MessagePayloadType.of(payloadType.getId()));
+            }
+            return SimpleMqttMessage.of(payload);
+        } else if (transport == DefaultTransport.CoAP || transport == DefaultTransport.CoAP_DTLS) {
+            return DefaultCoapMessage.of(payload);
         }
         return EncodedMessage.simple(payloadType.write(payload));
     }
