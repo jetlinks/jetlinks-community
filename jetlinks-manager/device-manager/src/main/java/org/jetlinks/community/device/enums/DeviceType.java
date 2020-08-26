@@ -11,11 +11,12 @@ import org.hswebframework.web.dict.EnumDict;
 @Dict("device-type")
 @JsonDeserialize(contentUsing = EnumDict.EnumDictJSONDeserializer.class)
 public enum DeviceType implements EnumDict<String> {
-    device("设备"),
-    gateway("网关")
+    device("直连设备"),
+    childrenDevice("网关子设备"),
+    gateway("网关设备")
     ;
 
-    private String text;
+    private final String text;
 
     @Override
     public String getValue() {
