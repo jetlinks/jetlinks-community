@@ -1,9 +1,10 @@
 package org.jetlinks.community.network.manager.web;
 
-import org.hswebframework.web.authorization.annotation.Authorize;
-import org.hswebframework.web.authorization.annotation.Resource;
-import org.hswebframework.web.authorization.annotation.ResourceAction;
-import org.hswebframework.web.authorization.annotation.SaveAction;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.hswebframework.ezorm.rdb.operator.dml.query.SortOrder;
+import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.network.NetworkProvider;
@@ -12,6 +13,7 @@ import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.manager.entity.NetworkConfigEntity;
 import org.jetlinks.community.network.manager.service.NetworkConfigService;
 import org.jetlinks.community.network.manager.web.response.NetworkTypeInfo;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -38,6 +40,34 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
     @Override
     public NetworkConfigService getService() {
         return configService;
+    }
+
+    @GetMapping("/{networkType}/_detail")
+    @QueryAction
+    public Flux<NetworkConfigInfo> getNetworkInfo(@PathVariable String networkType) {
+        return configService.createQuery()
+            .where(NetworkConfigEntity::getType, networkType)
+            .orderBy(SortOrder.desc(NetworkConfigEntity::getId))
+            .fetch()
+            .map(config -> NetworkConfigInfo.of(config.getId(), config.getName(), ""));
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor(staticName = "of")
+    public static class NetworkConfigInfo {
+        private String id;
+
+        private String name;
+
+        private String address;
+
+        public String getDetail() {
+            if (StringUtils.hasText(address)) {
+                return name + "(" + address + ")";
+            }
+            return name;
+        }
     }
 
     @GetMapping("/supports")
