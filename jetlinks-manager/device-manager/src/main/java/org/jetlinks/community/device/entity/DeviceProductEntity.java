@@ -12,6 +12,7 @@ import org.hswebframework.web.validator.UpdateGroup;
 import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.ProductInfo;
+import org.jetlinks.core.message.codec.Transport;
 
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
@@ -19,7 +20,9 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.sql.JDBCType;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.jetlinks.community.device.enums.DeviceType.gateway;
 
@@ -120,6 +123,15 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
     @Column(name = "org_id", length = 32)
     @Comment("所属机构id")
     private String orgId;
+
+    public Optional<Transport> getTransportEnum(Collection<? extends Transport> candidates) {
+        for (Transport transport : candidates) {
+            if (transport.isSame(transportProtocol)) {
+                return Optional.of(transport);
+            }
+        }
+        return Optional.empty();
+    }
 
     public ProductInfo toProductInfo() {
         return ProductInfo.builder()

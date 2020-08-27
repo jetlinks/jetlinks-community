@@ -6,6 +6,7 @@ import org.hswebframework.reactor.excel.CellDataType;
 import org.hswebframework.reactor.excel.ExcelHeader;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
+import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.springframework.util.StringUtils;
 
@@ -30,8 +31,16 @@ public class DeviceExcelInfo {
 
     private List<DeviceTagEntity> tags = new ArrayList<>();
 
+    private Map<String, Object> configuration = new HashMap<>();
+
     private long rowNumber;
 
+    public void config(String key, Object value) {
+        if (value == null) {
+            return;
+        }
+        configuration.put(key, value);
+    }
 
     public void tag(String key, String name, Object value, String type) {
         if (value == null) {
@@ -67,29 +76,40 @@ public class DeviceExcelInfo {
         return val;
     }
 
-    public static List<ExcelHeader> getTemplateHeaderMapping(List<PropertyMetadata> tags) {
+    public static List<ExcelHeader> getTemplateHeaderMapping(List<PropertyMetadata> tags,
+                                                             List<ConfigPropertyMetadata> configs) {
         List<ExcelHeader> arr = new ArrayList<>(Arrays.asList(
             new ExcelHeader("id", "设备ID", CellDataType.STRING),
             new ExcelHeader("name", "设备名称", CellDataType.STRING),
-            new ExcelHeader("orgId", "所属机构ID", CellDataType.STRING),
+            new ExcelHeader("orgName", "所属机构", CellDataType.STRING),
             new ExcelHeader("parentId", "父设备ID", CellDataType.STRING)
         ));
         for (PropertyMetadata tag : tags) {
             arr.add(new ExcelHeader(tag.getId(), StringUtils.isEmpty(tag.getName()) ? tag.getId() : tag.getName(), CellDataType.STRING));
         }
+
+        for (ConfigPropertyMetadata config : configs) {
+            arr.add(new ExcelHeader("configuration." + config.getProperty(), StringUtils.isEmpty(config.getName()) ? config.getProperty() : config.getName(), CellDataType.STRING));
+        }
         return arr;
     }
 
-    public static List<ExcelHeader> getExportHeaderMapping(List<PropertyMetadata> tags) {
+    public static List<ExcelHeader> getExportHeaderMapping(List<PropertyMetadata> tags,
+                                                           List<ConfigPropertyMetadata> configs) {
         List<ExcelHeader> arr = new ArrayList<>(Arrays.asList(
             new ExcelHeader("id", "设备ID", CellDataType.STRING),
             new ExcelHeader("name", "设备名称", CellDataType.STRING),
             new ExcelHeader("productName", "设备型号", CellDataType.STRING),
-            new ExcelHeader("orgId", "所属机构ID", CellDataType.STRING),
+            new ExcelHeader("orgName", "所属机构", CellDataType.STRING),
             new ExcelHeader("parentId", "父设备ID", CellDataType.STRING)
         ));
         for (PropertyMetadata tag : tags) {
             arr.add(new ExcelHeader(tag.getId(), StringUtils.isEmpty(tag.getName()) ? tag.getId() : tag.getName(), CellDataType.STRING));
+        }
+        for (ConfigPropertyMetadata config : configs) {
+            arr.add(new ExcelHeader("configuration." + config.getProperty(),
+                StringUtils.isEmpty(config.getName()) ? config.getProperty() : config.getName(),
+                CellDataType.STRING));
         }
         return arr;
     }
