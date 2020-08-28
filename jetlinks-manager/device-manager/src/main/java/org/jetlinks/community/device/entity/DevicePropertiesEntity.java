@@ -1,12 +1,11 @@
 package org.jetlinks.community.device.entity;
 
+import com.alibaba.fastjson.JSON;
 import lombok.*;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.types.DateTimeType;
-import org.jetlinks.core.metadata.types.NumberType;
-import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.types.*;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -48,6 +47,8 @@ public class DevicePropertiesEntity {
 
     private Date timeValue;
 
+    private String type;
+
 
     public Map<String, Object> toMap() {
         return FastBeanCopier.copy(this, HashMap::new);
@@ -67,19 +68,46 @@ public class DevicePropertiesEntity {
         if (value == null) {
             return this;
         }
-        setValue(String.valueOf(value));
+        setType(type.getType());
+        String convertedValue;
+
         if (type instanceof NumberType) {
             NumberType<?> numberType = (NumberType<?>) type;
-            setNumberValue(new BigDecimal(numberType.convertNumber(value).toString()));
+            Number number = numberType.convertNumber(value);
+            if (number == null) {
+                throw new UnsupportedOperationException("无法将" + value + "转为" + type.getId());
+            }
+            convertedValue = number.toString();
+            BigDecimal numberVal;
+            if (number instanceof BigDecimal) {
+                numberVal = ((BigDecimal) number);
+            } else if (number instanceof Integer) {
+                numberVal = BigDecimal.valueOf(number.intValue());
+            } else if (number instanceof Long) {
+                numberVal = BigDecimal.valueOf(number.longValue());
+            } else {
+                numberVal = BigDecimal.valueOf(number.doubleValue());
+            }
+            setNumberValue(numberVal);
         } else if (type instanceof DateTimeType) {
             DateTimeType dateTimeType = (DateTimeType) type;
+            convertedValue = String.valueOf(value);
             setTimeValue(dateTimeType.convert(value));
         } else if (type instanceof ObjectType) {
-            ObjectType ObjectType = (ObjectType) type;
-            setObjectValue(ObjectType.convert(value));
+            ObjectType objectType = (ObjectType) type;
+            Object val = objectType.convert(value);
+            convertedValue = JSON.toJSONString(val);
+            setObjectValue(val);
+        } else if (type instanceof ArrayType) {
+            ArrayType objectType = (ArrayType) type;
+            Object val = objectType.convert(value);
+            convertedValue = JSON.toJSONString(val);
+            setObjectValue(val);
         } else {
-            setStringValue(String.valueOf(value));
+            setStringValue(convertedValue = String.valueOf(value));
         }
+        setValue(convertedValue);
+
         ofNullable(type.format(value))
             .map(String::valueOf)
             .ifPresent(this::setFormatValue);
