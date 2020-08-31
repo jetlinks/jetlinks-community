@@ -24,7 +24,7 @@ JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发,
 
 ## 技术栈
 
-1. [Spring Boot 2.2.x](https://spring.io/projects/spring-boot)
+1. [Spring Boot 2.3.x](https://spring.io/projects/spring-boot)
 2. [Spring WebFlux](https://spring.io/) 响应式Web支持
 3. [R2DBC](https://r2dbc.io/) 响应式关系型数据库驱动
 4. [Project Reactor](https://projectreactor.io/) 响应式编程框架
