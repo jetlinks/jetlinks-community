@@ -22,17 +22,12 @@ public class EmbeddedElasticSearch extends Node {
                 Settings.builder()
                     .put("node.name", "test")
                     .put("discovery.type", "single-node")
-                    .put("transport.type", "netty4")
-                    .put("http.type", "netty4")
+                    .put("transport.type", Netty4Plugin.NETTY_TRANSPORT_NAME)
+                    .put("http.type", Netty4Plugin.NETTY_HTTP_TRANSPORT_NAME)
                     .put("network.host", "0.0.0.0")
                     .put("http.port", 9200)
-            ).build(), null),
+            ).build(), Collections.emptyMap(), null, () -> "default"),
             Collections.singleton(Netty4Plugin.class), false);
-    }
-
-    @Override
-    protected void registerDerivedNodeNameWithLogger(String nodeName) {
-
     }
 
 }

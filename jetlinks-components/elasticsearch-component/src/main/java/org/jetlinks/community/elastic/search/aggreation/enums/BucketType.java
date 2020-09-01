@@ -17,9 +17,9 @@ import org.jetlinks.community.elastic.search.aggreation.bucket.Bucket;
 import org.jetlinks.community.elastic.search.aggreation.bucket.BucketAggregationsStructure;
 import org.jetlinks.community.elastic.search.aggreation.bucket.Sort;
 import org.jetlinks.community.elastic.search.aggreation.metrics.MetricsAggregationStructure;
-import org.joda.time.DateTimeZone;
 import org.springframework.util.StringUtils;
 
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +104,7 @@ public enum BucketType {
             if (structure.getMissingValue() != null) {
                 builder.missing(structure.getMissingValue());
             }
-            builder.timeZone(DateTimeZone.getDefault());
+            builder.timeZone(ZoneId.systemDefault());
             commonAggregationSetting(builder, structure);
             return builder;
         }
@@ -136,7 +136,7 @@ public enum BucketType {
             if (sort != null) {
                 builder.order(mapping.get(OrderBuilder.of(sort.getOrder(), sort.getType())));
             }
-            builder.timeZone(DateTimeZone.getDefault());
+            builder.timeZone(ZoneId.systemDefault());
             commonAggregationSetting(builder, structure);
             return builder;
         }
@@ -148,7 +148,7 @@ public enum BucketType {
         }
     };
 
-    private String text;
+    private final String text;
 
     public abstract AggregationBuilder aggregationBuilder(BucketAggregationsStructure structure);
 

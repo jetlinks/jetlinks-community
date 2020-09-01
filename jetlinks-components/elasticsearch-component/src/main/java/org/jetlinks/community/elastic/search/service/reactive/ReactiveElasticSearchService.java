@@ -1,26 +1,21 @@
-package org.jetlinks.community.elastic.search.service;
+package org.jetlinks.community.elastic.search.service.reactive;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.MultiSearchRequest;
-import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.core.CountRequest;
-import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
-import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.hswebframework.ezorm.core.param.QueryParam;
@@ -28,13 +23,12 @@ import org.hswebframework.utils.time.DateFormatter;
 import org.hswebframework.utils.time.DefaultDateFormatter;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.bean.FastBeanCopier;
-import org.jetlinks.community.elastic.search.ElasticRestClient;
+import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
+import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
 import org.jetlinks.community.elastic.search.utils.QueryParamTranslator;
-import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
-import org.jetlinks.core.utils.FluxUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
@@ -44,7 +38,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reactor.function.Consumer3;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -59,13 +52,12 @@ import java.util.stream.Collectors;
  * @author zhouhao
  * @since 1.0
  **/
-//@Service
+@Service("elasticSearchService")
 @Slf4j
-@DependsOn("restHighLevelClient")
-@Deprecated
-public class DefaultElasticSearchService implements ElasticSearchService {
+@DependsOn("reactiveElasticsearchClient")
+public class ReactiveElasticSearchService implements ElasticSearchService {
 
-    private final ElasticRestClient restClient;
+    private final ReactiveElasticsearchClient restClient;
 
     private final ElasticSearchIndexManager indexManager;
 
@@ -79,8 +71,8 @@ public class DefaultElasticSearchService implements ElasticSearchService {
         DateFormatter.supportFormatter.add(new DefaultDateFormatter(Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.+"), "yyyy-MM-dd'T'HH:mm:ss.SSSZ"));
     }
 
-    public DefaultElasticSearchService(ElasticRestClient restClient,
-                                       ElasticSearchIndexManager indexManager) {
+    public ReactiveElasticSearchService(ReactiveElasticsearchClient restClient,
+                                        ElasticSearchIndexManager indexManager) {
         this.restClient = restClient;
         init();
         this.indexManager = indexManager;
@@ -102,11 +94,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
                     .flatMap(entry -> createSearchRequest(entry, index))
                     .doOnNext(request::add)
                     .then(Mono.just(request))
-                    .flatMapMany(searchRequest -> ReactorActionListener
-                        .<MultiSearchResponse>mono(actionListener -> {
-                            restClient.getQueryClient()
-                                .msearchAsync(searchRequest, RequestOptions.DEFAULT, actionListener);
-                        })
+                    .flatMapMany(searchRequest -> restClient.multiSearch(searchRequest)
                         .flatMapMany(response -> Flux.fromArray(response.getResponses()))
                         .flatMap(item -> {
                             if (item.isFailure()) {
@@ -133,8 +121,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
 
     @Override
     public <T> Mono<PagerResult<T>> queryPager(String[] index, QueryParam queryParam, Function<Map<String, Object>, T> mapper) {
-        return this
-            .doQuery(index, queryParam)
+        return this.doQuery(index, queryParam)
             .flatMap(tp2 ->
                 convertQueryResult(tp2.getT1(), tp2.getT2(), mapper)
                     .collectList()
@@ -147,24 +134,21 @@ public class DefaultElasticSearchService implements ElasticSearchService {
     private <T> Flux<T> convertQueryResult(List<ElasticSearchIndexMetadata> indexList,
                                            SearchResponse response,
                                            Function<Map<String, Object>, T> mapper) {
-        return Flux
-            .create(sink -> {
-                Map<String, ElasticSearchIndexMetadata> metadata = indexList
-                    .stream()
-                    .collect(Collectors.toMap(ElasticSearchIndexMetadata::getIndex, Function.identity()));
-                SearchHit[] hits = response.getHits().getHits();
-                for (SearchHit hit : hits) {
-                    Map<String, Object> hitMap = hit.getSourceAsMap();
-                    if (StringUtils.isEmpty(hitMap.get("id"))) {
-                        hitMap.put("id", hit.getId());
-                    }
+        Map<String, ElasticSearchIndexMetadata> metadata = indexList
+            .stream()
+            .collect(Collectors.toMap(ElasticSearchIndexMetadata::getIndex, Function.identity()));
 
-                    sink.next(mapper
-                        .apply(Optional
-                            .ofNullable(metadata.get(hit.getIndex())).orElse(indexList.get(0))
-                            .convertFromElastic(hitMap)));
+        return Flux
+            .fromIterable(response.getHits())
+            .map(hit -> {
+                Map<String, Object> hitMap = hit.getSourceAsMap();
+                if (StringUtils.isEmpty(hitMap.get("id"))) {
+                    hitMap.put("id", hit.getId());
                 }
-                sink.complete();
+                return mapper
+                    .apply(Optional
+                        .ofNullable(metadata.get(hit.getIndex())).orElse(indexList.get(0))
+                        .convertFromElastic(hitMap));
             });
 
     }
@@ -177,7 +161,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
             .filter(CollectionUtils::isNotEmpty)
             .flatMap(metadataList -> this
                 .createSearchRequest(queryParam, metadataList)
-                .flatMap(this::doSearch)
+                .flatMap(restClient::searchForPage)
                 .map(response -> Tuples.of(metadataList, response))
             ).onErrorResume(err -> {
                 log.error(err.getMessage(), err);
@@ -190,9 +174,8 @@ public class DefaultElasticSearchService implements ElasticSearchService {
     public Mono<Long> count(String[] index, QueryParam queryParam) {
         QueryParam param = queryParam.clone();
         param.setPaging(false);
-        return createCountRequest(param, index)
+        return createSearchRequest(param, index)
             .flatMap(this::doCount)
-            .map(CountResponse::getCount)
             .defaultIfEmpty(0L)
             .onErrorReturn(err -> {
                 log.error("query elastic error", err);
@@ -204,13 +187,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
     public Mono<Long> delete(String index, QueryParam queryParam) {
 
         return createQueryBuilder(queryParam, index)
-            .flatMap(request -> ReactorActionListener
-                .<BulkByScrollResponse>mono(listener ->
-                    restClient
-                        .getWriteClient()
-                        .deleteByQueryAsync(new DeleteByQueryRequest(index)
-                                .setQuery(request),
-                            RequestOptions.DEFAULT, listener)))
+            .flatMap(request -> restClient.deleteBy(delete -> delete.setQuery(request).indices(index)))
             .map(BulkByScrollResponse::getDeleted);
     }
 
@@ -279,7 +256,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
                 drop -> System.err.println("无法处理更多索引请求!"),
                 BufferOverflowStrategy.DROP_OLDEST)
             .parallel()
-            .runOn(Schedulers.newParallel("elasticsearch-writer"))
+            .runOn(Schedulers.parallel())
             .flatMap(buffers -> {
                 long time = System.currentTimeMillis();
                 return this
@@ -328,9 +305,9 @@ public class DefaultElasticSearchService implements ElasticSearchService {
 
                             IndexRequest request;
                             if (data.get("id") != null) {
-                                request = new IndexRequest(tp2.getT1(), "_doc", String.valueOf(data.get("id")));
+                                request = new IndexRequest(tp2.getT1()).type("_doc").id(String.valueOf(data.get("id")));
                             } else {
-                                request = new IndexRequest(tp2.getT1(), "_doc");
+                                request = new IndexRequest(tp2.getT1()).type("_doc");
                             }
                             request.source(tp2.getT2().convertToElastic(data));
                             return request;
@@ -341,9 +318,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
             .flatMap(lst -> {
                 BulkRequest request = new BulkRequest();
                 lst.forEach(request::add);
-                return ReactorActionListener.<BulkResponse>mono(listener ->
-                    restClient.getWriteClient().bulkAsync(request, RequestOptions.DEFAULT, listener))
-                    .doOnNext(this::checkResponse);
+                return restClient.bulk(request);
             })
             .thenReturn(buffers.size());
     }
@@ -371,22 +346,18 @@ public class DefaultElasticSearchService implements ElasticSearchService {
             .collect(Collectors.toList());
     }
 
-    private Mono<SearchResponse> doSearch(SearchRequest request) {
-        return this
-            .<SearchRequest, SearchResponse>execute(request, restClient.getQueryClient()::searchAsync)
+    private Flux<SearchHit> doSearch(SearchRequest request) {
+        return restClient
+            .search(request)
             .onErrorResume(err -> {
                 log.error("query elastic error", err);
                 return Mono.empty();
             });
     }
 
-    private <REQ, RES> Mono<RES> execute(REQ request, Consumer3<REQ, RequestOptions, ActionListener<RES>> function4) {
-        return ReactorActionListener.mono(actionListener -> function4.accept(request, RequestOptions.DEFAULT, actionListener));
-    }
-
-    private Mono<CountResponse> doCount(CountRequest request) {
-        return this
-            .execute(request, restClient.getQueryClient()::countAsync)
+    private Mono<Long> doCount(SearchRequest request) {
+        return restClient
+            .count(request)
             .onErrorResume(err -> {
                 log.error("query elastic error", err);
                 return Mono.empty();
@@ -410,8 +381,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
             .map(indexList ->
                 new SearchRequest(indexList.toArray(new String[0]))
                     .source(builder)
-                    .indicesOptions(indexOptions)
-                    .types("_doc"));
+                    .indicesOptions(indexOptions));
     }
 
     protected Mono<QueryBuilder> createQueryBuilder(QueryParam queryParam, String index) {

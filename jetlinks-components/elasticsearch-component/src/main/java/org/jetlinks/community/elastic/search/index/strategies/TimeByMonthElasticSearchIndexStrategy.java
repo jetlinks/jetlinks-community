@@ -1,8 +1,8 @@
 package org.jetlinks.community.elastic.search.index.strategies;
 
 import org.hswebframework.utils.time.DateFormatter;
-import org.jetlinks.community.elastic.search.ElasticRestClient;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
+import org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -18,7 +18,7 @@ public class TimeByMonthElasticSearchIndexStrategy extends TemplateElasticSearch
 
     private final String format = "yyyy-MM";
 
-    public TimeByMonthElasticSearchIndexStrategy(ElasticRestClient client, ElasticSearchIndexProperties properties) {
+    public TimeByMonthElasticSearchIndexStrategy(ReactiveElasticsearchClient client, ElasticSearchIndexProperties properties) {
         super("time-by-month", client,properties);
     }
 

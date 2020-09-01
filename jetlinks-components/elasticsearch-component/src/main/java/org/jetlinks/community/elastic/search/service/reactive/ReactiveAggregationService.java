@@ -1,17 +1,11 @@
-package org.jetlinks.community.elastic.search.aggreation;
+package org.jetlinks.community.elastic.search.service.reactive;
 
 import lombok.extern.slf4j.Slf4j;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.search.aggregations.bucket.histogram.ExtendedBounds;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.TermType;
-import org.jetlinks.community.elastic.search.ElasticRestClient;
 import org.jetlinks.community.elastic.search.aggreation.bucket.Bucket;
 import org.jetlinks.community.elastic.search.aggreation.bucket.BucketAggregationsStructure;
 import org.jetlinks.community.elastic.search.aggreation.bucket.BucketResponse;
@@ -24,13 +18,11 @@ import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.service.AggregationService;
 import org.jetlinks.community.elastic.search.service.DefaultElasticSearchService;
 import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
-import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoSink;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,84 +31,26 @@ import java.util.stream.Collectors;
  * @author bsetfeng
  * @since 1.0
  **/
-//@Service
+@Service
 @Slf4j
-public class DefaultAggregationService implements AggregationService {
+public class ReactiveAggregationService implements AggregationService {
 
-    private final ElasticRestClient restClient;
+    private final ReactiveElasticsearchClient restClient;
 
     private final ElasticSearchIndexManager indexManager;
 
     @Autowired
-    public DefaultAggregationService(ElasticSearchIndexManager indexManager,
-                                     ElasticRestClient restClient) {
+    public ReactiveAggregationService(ElasticSearchIndexManager indexManager,
+                                      ReactiveElasticsearchClient restClient) {
         this.restClient = restClient;
         this.indexManager = indexManager;
     }
-
-//    @Override
-//    public Mono<MetricsResponse> metricsAggregation(String index, QueryParam queryParam,
-//                                                    MetricsAggregationStructure structure) {
-//        return createSearchSourceBuilder(queryParam, index)
-//            .map(builder -> new SearchRequest(index)
-//                .source(builder.aggregation(structure.getType().aggregationBuilder(structure.getName(), structure.getField()))))
-//            .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
-//                restClient.getQueryClient().searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
-//            .map(searchResponse -> structure.getType().getResponse(structure.getName(), searchResponse));
-//    }
-//
-//    @Override
-//    public Mono<BucketResponse> bucketAggregation(String index, QueryParam queryParam, BucketAggregationsStructure structure) {
-//        return createSearchSourceBuilder(queryParam, index)
-//            .map(builder -> new SearchRequest(index)
-//                .source(builder
-//                    .aggregation(structure.getType().aggregationBuilder(structure))
-//                    //.aggregation(AggregationBuilders.topHits("last_val").from(1))
-//                ))
-////            .doOnNext(searchRequest -> {
-////                if (log.isDebugEnabled()) {
-////                    log.debug("聚合查询ElasticSearch:{},参数:{}", index, JSON.toJSON(searchRequest.source().toString()));
-////                }
-////            })
-//            .flatMap(request -> Mono.<SearchResponse>create(monoSink ->
-//                restClient
-//                    .getQueryClient()
-//                    .searchAsync(request, RequestOptions.DEFAULT, translatorActionListener(monoSink))))
-//            .map(response -> BucketResponse.builder()
-//                .name(structure.getName())
-//                .buckets(structure.getType().convert(response.getAggregations().get(structure.getName())))
-//                .build())
-//            ;
-//
-//    }
 
     private Mono<SearchSourceBuilder> createSearchSourceBuilder(QueryParam queryParam, String index) {
 
         return indexManager
             .getIndexMetadata(index)
             .map(metadata -> ElasticSearchConverter.convertSearchSourceBuilder(queryParam, metadata));
-    }
-
-    private <T> ActionListener<T> translatorActionListener(MonoSink<T> sink) {
-        return new ActionListener<T>() {
-            @Override
-            public void onResponse(T response) {
-                sink.success(response);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                if (e instanceof ElasticsearchException) {
-                    if (((ElasticsearchException) e).status().getStatus() == 404) {
-                        sink.success();
-                        return;
-                    } else if (((ElasticsearchException) e).status().getStatus() == 400) {
-                        sink.error(new ElasticsearchParseException("查询参数格式错误", e));
-                    }
-                }
-                sink.error(e);
-            }
-        };
     }
 
     @Override
@@ -138,12 +72,7 @@ public class DefaultAggregationService implements AggregationService {
                             )
                     )
             )
-            .flatMap(searchRequest ->
-                ReactorActionListener
-                    .<SearchResponse>mono(listener ->
-                        restClient.getQueryClient()
-                            .searchAsync(searchRequest, RequestOptions.DEFAULT, listener)
-                    ))
+            .flatMap(restClient::searchForPage)
             .filter(response -> response.getAggregations() != null)
             .map(response -> BucketResponse.builder()
                 .name(structure.getName())
@@ -266,4 +195,5 @@ public class DefaultAggregationService implements AggregationService {
                 return structure;
             }).collect(Collectors.toList());
     }
+
 }
