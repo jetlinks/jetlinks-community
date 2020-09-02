@@ -67,6 +67,7 @@ services:
       - 8000-8010:8000-8010 # 预留
     volumes:
       - "jetlinks-volume:/application/static/upload"  # 持久化上传的文件
+      - "jetlinks-protocol-volume:/application/data/protocols"
     environment:
      # - "JAVA_OPTS=-Xms4g -Xmx18g -XX:+UseG1GC"
       - "TZ=Asia/Shanghai"
@@ -97,3 +98,4 @@ volumes:
   redis-volume:
   elasticsearch-volume:
   jetlinks-volume:
+  jetlinks-protocol-volume:

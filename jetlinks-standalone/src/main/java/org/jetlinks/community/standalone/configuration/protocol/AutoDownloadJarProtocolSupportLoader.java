@@ -41,8 +41,8 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
 
     public AutoDownloadJarProtocolSupportLoader(WebClient.Builder builder) {
         this.webClient = builder.build();
-        tempPath = new File("./data/protocols");
-        tempPath.mkdir();
+        tempPath = new File(System.getProperty("jetlinks.protocol.temp.path","./data/protocols"));
+        tempPath.mkdirs();
     }
 
     @Override
