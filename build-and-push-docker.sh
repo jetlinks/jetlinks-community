@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 dockerImage=registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-./mvnw clean install -Dmaven.test.skip=true
+./mvnw clean package -Dmaven.test.skip=true
 if [ $? -ne 0 ];then
     echo "构建失败!"
 else
