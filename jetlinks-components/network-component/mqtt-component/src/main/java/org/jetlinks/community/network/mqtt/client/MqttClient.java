@@ -9,7 +9,11 @@ import java.util.List;
 
 public interface MqttClient extends Network {
 
-    Flux<MqttMessage> subscribe(List<String> topics);
+    default Flux<MqttMessage> subscribe(List<String> topics){
+        return subscribe(topics,0);
+    }
+
+    Flux<MqttMessage> subscribe(List<String> topics,int qos);
 
     Mono<Void> publish(MqttMessage message);
 

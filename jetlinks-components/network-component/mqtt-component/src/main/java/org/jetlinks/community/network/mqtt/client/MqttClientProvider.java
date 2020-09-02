@@ -1,12 +1,17 @@
 package org.jetlinks.community.network.mqtt.client;
 
+import com.alibaba.fastjson.JSONObject;
 import io.vertx.core.Vertx;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
-import org.jetlinks.community.network.*;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DefaultConfigMetadata;
+import org.jetlinks.core.metadata.types.BooleanType;
+import org.jetlinks.core.metadata.types.IntType;
+import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.network.*;
 import org.jetlinks.community.network.security.CertificateManager;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
 import org.springframework.stereotype.Component;
@@ -44,19 +49,23 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 
     @Override
     public void reload(@Nonnull Network network, @Nonnull MqttClientProperties properties) {
-        VertxMqttClient mqttClient = ((VertxMqttClient) network);
-        mqttClient.shutdown();
-
+       VertxMqttClient mqttClient = ((VertxMqttClient) network);
+        if (mqttClient.isLoading()) {
+            return;
+        }
         initMqttClient(mqttClient, properties);
     }
 
     public void initMqttClient(VertxMqttClient mqttClient, MqttClientProperties properties) {
+        mqttClient.setLoading(true);
         MqttClient client = MqttClient.create(vertx, properties.getOptions());
+        mqttClient.setClient(client);
         client.connect(properties.getPort(), properties.getHost(), result -> {
+            mqttClient.setLoading(false);
             if (!result.succeeded()) {
                 log.warn("connect mqtt [{}] error", properties.getId(), result.cause());
             } else {
-                mqttClient.setClient(client);
+                log.debug("connect mqtt [{}] success", properties.getId());
             }
         });
     }
@@ -64,8 +73,12 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
     @Nullable
     @Override
     public ConfigMetadata getConfigMetadata() {
-        // TODO: 2019/12/19
-        return null;
+        return new DefaultConfigMetadata()
+            .add("id", "id", "", new StringType())
+            .add("instance", "服务实例数量（线程数）", "", new IntType())
+            .add("certId", "证书id", "", new StringType())
+            .add("ssl", "是否开启ssl", "", new BooleanType())
+            .add("options.port", "MQTT服务设置", "", new IntType());
     }
 
     @Nonnull
@@ -74,12 +87,12 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
         return Mono.defer(() -> {
             MqttClientProperties config = FastBeanCopier.copy(properties.getConfigurations(), new MqttClientProperties());
             config.setId(properties.getId());
-            if (config.getOptions() == null) {
-                config.setOptions(new MqttClientOptions());
-                config.getOptions().setClientId(config.getClientId());
-                config.getOptions().setPassword(config.getPassword());
-                config.getOptions().setUsername(config.getUsername());
-            }
+            config.setOptions(new JSONObject(properties.getConfigurations()).toJavaObject(MqttClientOptions.class));
+
+            config.getOptions().setClientId(config.getClientId());
+            config.getOptions().setPassword(config.getPassword());
+            config.getOptions().setUsername(config.getUsername());
+
             if (config.isSsl()) {
                 config.getOptions().setSsl(true);
                 return certificateManager.getCertificate(config.getCertId())
