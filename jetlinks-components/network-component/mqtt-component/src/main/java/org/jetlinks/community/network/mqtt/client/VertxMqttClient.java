@@ -53,7 +53,11 @@ public class VertxMqttClient implements MqttClient {
 
     public void setClient(io.vertx.mqtt.MqttClient client) {
         if (this.client != null && this.client != client) {
-            this.client.disconnect();
+            try {
+                this.client.disconnect();
+            } catch (Exception ignore) {
+
+            }
         }
         this.client = client;
         client
