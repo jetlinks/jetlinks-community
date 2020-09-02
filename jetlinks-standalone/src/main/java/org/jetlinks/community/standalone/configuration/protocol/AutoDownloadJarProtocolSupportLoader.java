@@ -1,6 +1,7 @@
 package org.jetlinks.community.standalone.configuration.protocol;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.spi.ServiceContext;
@@ -31,6 +32,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoader {
 
+
     final WebClient webClient;
 
     final File tempPath;
@@ -39,7 +41,7 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
 
     public AutoDownloadJarProtocolSupportLoader(WebClient.Builder builder) {
         this.webClient = builder.build();
-        tempPath = new File(".temp");
+        tempPath = new File("./data/protocols");
         tempPath.mkdir();
     }
 
@@ -58,30 +60,38 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
     @Override
     protected void closeLoader(ProtocolClassLoader loader) {
         super.closeLoader(loader);
-        for (URL url : loader.getUrls()) {
-            if (new File(url.getFile()).delete()) {
-                log.debug("delete old protocol:{}", url);
-            }
-        }
+//        for (URL url : loader.getUrls()) {
+//            if (new File(url.getFile()).delete()) {
+//                log.debug("delete old protocol:{}", url);
+//            }
+//        }
     }
 
     @Override
     public Mono<? extends ProtocolSupport> load(ProtocolSupportDefinition definition) {
 
-        ProtocolSupportDefinition newDef = FastBeanCopier.copy(definition,new ProtocolSupportDefinition());
+        ProtocolSupportDefinition newDef = FastBeanCopier.copy(definition, new ProtocolSupportDefinition());
 
-        Map<String, Object> config =newDef.getConfiguration();
+        Map<String, Object> config = newDef.getConfiguration();
         String location = Optional.ofNullable(config.get("location"))
             .map(String::valueOf).orElseThrow(() -> new IllegalArgumentException("location"));
 
         if (location.startsWith("http")) {
+            String urlMd5 = DigestUtils.md5Hex(location);
+            //地址没变则直接加载本地文件
+            File file = new File(tempPath, (newDef.getId() + "_" + urlMd5) + ".jar");
+            if (file.exists()) {
+                config.put("location", file.getAbsolutePath());
+                return super
+                    .load(newDef)
+                    .subscribeOn(Schedulers.elastic());
+            }
             return webClient.get()
                 .uri(location)
                 .exchange()
                 .flatMap(clientResponse -> clientResponse.bodyToMono(Resource.class))
                 .flatMap(resource -> Mono.fromCallable(resource::getInputStream))
                 .flatMap(stream -> Mono.fromCallable(() -> {
-                    File file = new File(tempPath, (newDef.getId() + "_" + System.currentTimeMillis()) + ".jar");
                     log.debug("write protocol file {} to {}", location, file.getAbsolutePath());
                     try (InputStream input = stream;
                          OutputStream out = new FileOutputStream(file)) {
