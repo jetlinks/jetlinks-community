@@ -78,7 +78,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         Map<String, Object> mappingConfig = new HashMap<>();
         mappingConfig.put("properties", createElasticProperties(metadata.getProperties()));
         mappingConfig.put("dynamic_templates", createDynamicTemplates());
-        request.mapping("_doc",mappingConfig);
+        mappingConfig.forEach(request::mapping);
         return request;
     }
 
