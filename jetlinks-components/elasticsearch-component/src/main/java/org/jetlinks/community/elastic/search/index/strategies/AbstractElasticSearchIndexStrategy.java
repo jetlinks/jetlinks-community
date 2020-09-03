@@ -78,7 +78,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         Map<String, Object> mappingConfig = new HashMap<>();
         mappingConfig.put("properties", createElasticProperties(metadata.getProperties()));
         mappingConfig.put("dynamic_templates", createDynamicTemplates());
-        request.mapping("_doc",mappingConfig);
+        request.mapping("_doc", mappingConfig);
         return request;
     }
 
@@ -148,8 +148,8 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
 
     protected ElasticSearchIndexMetadata convertMetadata(String index, ImmutableOpenMap<String, ?> metaData) {
         MappingMetadata mappingMetadata = null;
-        if (metaData.size() == 1) {
-            Object res = metaData.values().iterator().next().value;
+        if (metaData.containsKey("properties")) {
+            Object res = metaData.get("properties");
             if (res instanceof MappingMetadata) {
                 mappingMetadata = ((MappingMetadata) res);
             } else if (res instanceof CompressedXContent) {
@@ -159,7 +159,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         if (mappingMetadata == null) {
             throw new UnsupportedOperationException("unsupported index metadata" + metaData);
         }
-        Object properties = mappingMetadata.getSourceAsMap().get("properties");
+        Object properties = mappingMetadata.sourceAsMap();
 
         return new DefaultElasticSearchIndexMetadata(index, convertProperties(properties));
     }
