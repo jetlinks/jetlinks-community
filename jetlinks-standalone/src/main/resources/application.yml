@@ -32,6 +32,14 @@ spring:
   reactor:
     debug-agent:
       enabled: false
+  data:
+    elasticsearch:
+      client:
+        reactive:
+          endpoints: ${elasticsearch.client.host}:${elasticsearch.client.port}
+          max-in-memory-size: 100MB
+          socket-timeout: ${elasticsearch.client.socket-timeout}
+          connection-timeout: ${elasticsearch.client.socket-timeout}
 easyorm:
   default-schema: public # 数据库默认的schema
   dialect: postgres #数据库方言
