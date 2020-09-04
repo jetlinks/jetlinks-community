@@ -147,20 +147,33 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
     }
 
     protected ElasticSearchIndexMetadata convertMetadata(String index, ImmutableOpenMap<String, ?> metaData) {
-        MappingMetadata mappingMetadata = null;
+        MappingMetadata mappingMetadata;
+        Object properties = null;
         if (metaData.containsKey("properties")) {
             Object res = metaData.get("properties");
             if (res instanceof MappingMetadata) {
                 mappingMetadata = ((MappingMetadata) res);
             } else if (res instanceof CompressedXContent) {
                 mappingMetadata = new MappingMetadata(((CompressedXContent) res));
+            } else {
+                throw new UnsupportedOperationException("unsupported index metadata" + metaData);
             }
+            properties = mappingMetadata.sourceAsMap();
         }
-        if (mappingMetadata == null) {
+        if (metaData.size() == 1) {
+            Object res = metaData.values().iterator().next().value;
+            if (res instanceof MappingMetadata) {
+                mappingMetadata = ((MappingMetadata) res);
+            } else if (res instanceof CompressedXContent) {
+                mappingMetadata = new MappingMetadata(((CompressedXContent) res));
+            } else {
+                throw new UnsupportedOperationException("unsupported index metadata" + metaData);
+            }
+            properties = mappingMetadata.getSourceAsMap().get("properties");
+        }
+        if (properties == null) {
             throw new UnsupportedOperationException("unsupported index metadata" + metaData);
         }
-        Object properties = mappingMetadata.sourceAsMap();
-
         return new DefaultElasticSearchIndexMetadata(index, convertProperties(properties));
     }
 

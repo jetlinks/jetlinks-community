@@ -1,5 +1,7 @@
 package org.jetlinks.community.elastic.search.service.reactive;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import lombok.SneakyThrows;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
@@ -48,9 +50,11 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
@@ -343,7 +347,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
 
             },
             state -> cleanupScroll(headers, state), //
-            (state,error) -> cleanupScroll(headers, state), //
+            (state, error) -> cleanupScroll(headers, state), //
             state -> cleanupScroll(headers, state)); //
     }
 
@@ -568,7 +572,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
     public Mono<Void> createIndex(HttpHeaders headers, CreateIndexRequest createIndexRequest) {
 
         return sendRequest(createIndexRequest, requestCreator.indexCreate().andThen(request -> {
-            request.addParameter("include_type_name","true");
+            request.addParameter("include_type_name", "true");
             return request;
         }), AcknowledgedResponse.class, headers) //
             .then();
@@ -791,7 +795,8 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
             } catch (Exception e) {
 
                 return Mono
-                    .error(new ElasticsearchStatusException(content, RestStatus.fromCode(response.statusCode().value())));
+                    .error(new ElasticsearchStatusException(content,
+                        RestStatus.fromCode(response.statusCode().value()),errorParseFailure));
             }
         }
     }
@@ -922,7 +927,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
         parameters.withMasterTimeout(getMappingsRequest.masterNodeTimeout());
         parameters.withIndicesOptions(getMappingsRequest.indicesOptions());
         parameters.withLocal(getMappingsRequest.local());
-
+        parameters.putParam("include_type_name", "true");
         return request;
     }
 
@@ -957,7 +962,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
         if (Strings.hasText(putIndexTemplateRequest.cause())) {
             params.putParam("cause", putIndexTemplateRequest.cause());
         }
-        params.putParam("include_type_name","true");
+        params.putParam("include_type_name", "true");
         BytesRef source = XContentHelper.toXContent(putIndexTemplateRequest, XContentType.JSON, false).toBytesRef();
         request.setEntity(new ByteArrayEntity(source.bytes, source.offset, source.length, ContentType.APPLICATION_JSON));
         return request;
