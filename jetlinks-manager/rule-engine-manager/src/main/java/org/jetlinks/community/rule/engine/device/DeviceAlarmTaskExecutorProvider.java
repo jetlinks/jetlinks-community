@@ -52,7 +52,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
     class DeviceAlarmTaskExecutor extends AbstractTaskExecutor {
 
         List<String> default_columns = Arrays.asList(
-            "timestamp", "deviceId", "this.header.deviceName deviceName"
+            "timestamp", "deviceId", "this.headers.deviceName deviceName"
         );
 
         private DeviceAlarmRule rule;
