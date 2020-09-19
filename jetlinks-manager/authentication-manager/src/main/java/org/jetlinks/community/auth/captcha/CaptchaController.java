@@ -30,7 +30,7 @@ public class CaptchaController {
     private final ReactiveRedisOperations<String, String> redis;
 
     @GetMapping("/config")
-    public Mono<CaptchaConfig> createCaptcha() {
+    public Mono<CaptchaConfig> getCaptcha() {
         CaptchaConfig captchaConfig=new CaptchaConfig();
         captchaConfig.setEnabled(properties.isEnabled());
         captchaConfig.setType(properties.getType().name());
