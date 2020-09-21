@@ -52,7 +52,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
     class DeviceAlarmTaskExecutor extends AbstractTaskExecutor {
 
         List<String> default_columns = Arrays.asList(
-            "timestamp", "deviceId", "this.header.deviceName deviceName"
+            "timestamp", "deviceId", "this.headers.deviceName deviceName"
         );
 
         private DeviceAlarmRule rule;
@@ -149,7 +149,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                     if ((property.getProperty().startsWith("'") && property.getProperty().endsWith("'"))
                         ||
                         property.getProperty().contains("(") || property.getProperty().contains("[")) {
-                        newColumns.add(property.getProperty() + "\"" + alias + "\"");
+                        newColumns.add(property.getProperty() + " \"" + alias + "\"");
                     } else {
                         newColumns.add("this['" + property.getProperty() + "'] \"" + alias + "\"");
                     }
