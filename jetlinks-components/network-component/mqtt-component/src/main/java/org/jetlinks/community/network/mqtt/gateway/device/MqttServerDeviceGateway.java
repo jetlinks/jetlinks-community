@@ -241,7 +241,9 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                         if (anotherSession == null) {
                             return registry
                                 .getDevice(msg.getDeviceId())
-                                .flatMap(device -> handleMessage(device.getDeviceId(), device, msg, session));
+                                .map(device -> handleMessage(device.getDeviceId(), device, msg, session))
+                                .defaultIfEmpty(Mono.defer(()->handleMessage(msg.getDeviceId(), operator, msg, session)))
+                                .flatMap(Function.identity());
                         }
                     }
                 }
