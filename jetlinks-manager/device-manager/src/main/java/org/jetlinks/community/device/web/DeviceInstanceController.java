@@ -423,7 +423,11 @@ public class DeviceInstanceController implements
                     .converter(DeviceExcelInfo::toMap)
                     .writeBuffer(
                         service.query(parameter)
-                            .map(entity -> FastBeanCopier.copy(entity, new DeviceExcelInfo()))
+                            .map(entity -> {
+                                DeviceExcelInfo exportEntity = FastBeanCopier.copy(entity, new DeviceExcelInfo(),"state");
+                                exportEntity.setState(entity.getState().getText());
+                                return exportEntity;
+                            })
                             .buffer(200)
                             .flatMap(list -> {
                                 Map<String, DeviceExcelInfo> importInfo = list
@@ -457,8 +461,13 @@ public class DeviceInstanceController implements
             .headers(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(),Collections.emptyList()))
             .converter(DeviceExcelInfo::toMap)
             .writeBuffer(
-                service.query(parameter)
-                    .map(entity -> FastBeanCopier.copy(entity, new DeviceExcelInfo()))
+                service
+                    .query(parameter)
+                    .map(entity -> {
+                        DeviceExcelInfo exportEntity = FastBeanCopier.copy(entity, new DeviceExcelInfo(),"state");
+                        exportEntity.setState(entity.getState().getText());
+                        return exportEntity;
+                    })
                 , 512 * 1024)//缓冲512k
             .doOnError(err -> log.error(err.getMessage(), err))
             .map(bufferFactory::wrap)
