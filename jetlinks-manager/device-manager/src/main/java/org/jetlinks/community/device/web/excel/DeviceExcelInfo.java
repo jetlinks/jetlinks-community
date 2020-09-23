@@ -35,6 +35,8 @@ public class DeviceExcelInfo {
 
     private long rowNumber;
 
+    private String state;
+
     public void config(String key, Object value) {
         if (value == null) {
             return;
@@ -101,7 +103,8 @@ public class DeviceExcelInfo {
             new ExcelHeader("name", "设备名称", CellDataType.STRING),
             new ExcelHeader("productName", "设备型号", CellDataType.STRING),
             new ExcelHeader("orgName", "所属机构", CellDataType.STRING),
-            new ExcelHeader("parentId", "父设备ID", CellDataType.STRING)
+            new ExcelHeader("parentId", "父设备ID", CellDataType.STRING),
+            new ExcelHeader("state", "状态", CellDataType.STRING)
         ));
         for (PropertyMetadata tag : tags) {
             arr.add(new ExcelHeader(tag.getId(), StringUtils.isEmpty(tag.getName()) ? tag.getId() : tag.getName(), CellDataType.STRING));
