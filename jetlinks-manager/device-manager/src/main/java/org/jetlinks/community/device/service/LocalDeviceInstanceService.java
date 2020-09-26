@@ -73,9 +73,6 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     private EventBus eventBus;
 
     @Autowired
-    private TimeSeriesManager timeSeriesManager;
-
-    @Autowired
     @SuppressWarnings("all")
     private ReactiveRepository<DeviceTagEntity, String> tagRepository;
 
@@ -192,6 +189,22 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     }
 
     /**
+     * 注销设备,取消后,设备无法再连接到服务. 注册中心也无法再获取到该设备信息.
+     *
+     * @param id 设备ID
+     * @return 注销结果
+     */
+    public Mono<Integer> unregisterDevice(String id) {
+        return this.findById(Mono.just(id))
+            .flatMap(device -> registry
+                .unregisterDevice(id)
+                .then(createUpdate()
+                    .set(DeviceInstanceEntity::getState, DeviceState.notActive.getValue())
+                    .where(DeviceInstanceEntity::getId, id)
+                    .execute()));
+    }
+
+    /**
      * 批量注销设备
      *
      * @param ids 设备ID
@@ -259,78 +272,6 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .defaultIfEmpty(DeviceState.notActive);
     }
 
-    public Mono<PagerResult<DevicePropertiesEntity>> queryDeviceProperties(String deviceId, QueryParamEntity entity) {
-        return registry.getDevice(deviceId)
-            .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.productId))
-            .flatMap(productId -> timeSeriesManager
-                .getService(devicePropertyMetric(productId))
-                .queryPager(entity.and("deviceId", TermType.eq, deviceId), data -> data.as(DevicePropertiesEntity.class)))
-            .defaultIfEmpty(PagerResult.empty());
-    }
-
-    public Mono<PagerResult<Map<String, Object>>> queryDeviceEvent(String deviceId, String eventId, QueryParamEntity entity, boolean format) {
-        return registry
-            .getDevice(deviceId)
-            .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.productId).zipWith(operator.getMetadata()))
-            .flatMap(tp -> timeSeriesManager
-                .getService(DeviceTimeSeriesMetric.deviceEventMetric(tp.getT1(), eventId))
-                .queryPager(entity.and("deviceId", TermType.eq, deviceId), data -> {
-                    if (!format) {
-                        return data.getData();
-                    }
-                    Map<String, Object> formatData = new HashMap<>(data.getData());
-                    tp.getT2()
-                        .getEvent(eventId)
-                        .ifPresent(eventMetadata -> {
-                            DataType type = eventMetadata.getType();
-                            if (type instanceof ObjectType) {
-                                @SuppressWarnings("all")
-                                Map<String, Object> val = (Map<String, Object>) type.format(formatData);
-                                val.forEach((k, v) -> formatData.put(k + "_format", v));
-                            } else {
-                                formatData.put("value_format", type.format(data.get("value")));
-                            }
-                        });
-                    return formatData;
-                })).defaultIfEmpty(PagerResult.empty());
-    }
-
-    public Mono<DevicePropertiesEntity> getDeviceLatestProperty(String deviceId, String property) {
-        return registry
-            .getDevice(deviceId)
-            .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.productId))
-            .flatMap(productId -> doGetLatestDeviceProperty(productId, deviceId, property));
-    }
-
-    public Flux<DevicePropertiesEntity> getDeviceLatestProperties(String deviceId) {
-        return registry.getDevice(deviceId)
-            .flatMap(operator -> Mono.zip(operator.getMetadata(), operator.getSelfConfig(DeviceConfigKey.productId)))
-            .flatMapMany(zip -> Flux.merge(zip.getT1().getProperties()
-                .stream()
-                .map(property -> doGetLatestDeviceProperty(zip.getT2(), deviceId, property.getId()))
-                .collect(Collectors.toList())));
-    }
-
-    private Mono<DevicePropertiesEntity> doGetLatestDeviceProperty(String productId, String deviceId, String property) {
-        return Query.of()
-            .and(DevicePropertiesEntity::getDeviceId, deviceId)
-            .and(DevicePropertiesEntity::getProperty, property)
-            .doPaging(0, 1)
-            .execute(timeSeriesManager.getService(devicePropertyMetric(productId))::query)
-            .map(data -> data.as(DevicePropertiesEntity.class))
-            .singleOrEmpty();
-    }
-
-    public Mono<PagerResult<DeviceOperationLogEntity>> queryDeviceLog(String deviceId, QueryParamEntity entity) {
-        return registry.getDevice(deviceId)
-            .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.productId))
-            .flatMap(productId -> timeSeriesManager
-                .getService(DeviceTimeSeriesMetric.deviceLogMetric(productId))
-                .queryPager(entity.and("deviceId", TermType.eq, deviceId),
-                    data -> data.as(DeviceOperationLogEntity.class)))
-            .defaultIfEmpty(PagerResult.empty());
-    }
-
     @PostConstruct
     public void init() {
 
@@ -358,12 +299,6 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .subscribe((i) -> log.info("同步设备状态成功:{}", i));
     }
 
-    public Mono<DeviceInfo> getDeviceInfoById(String id) {
-        return findById(Mono.justOrEmpty(id))
-            .zipWhen(instance -> deviceProductService
-                .findById(Mono.justOrEmpty(instance.getProductId())), DeviceInfo::of)
-            .switchIfEmpty(Mono.error(NotFoundException::new));
-    }
 
     public Flux<List<DeviceStateInfo>> syncStateBatch(Flux<List<String>> batch, boolean force) {
 
@@ -592,6 +527,38 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
         }
         return Mono.empty();
+    }
+
+    //保存标签
+    @Subscribe("/device/*/*/tags/update")
+    public Mono<Void> updateDeviceTag(UpdateTagMessage message) {
+        Map<String, Object> tags = message.getTags();
+        String deviceId = message.getDeviceId();
+
+        return registry
+            .getDevice(deviceId)
+            .flatMap(DeviceOperator::getMetadata)
+            .flatMapMany(metadata ->
+                Flux.fromIterable(tags.entrySet())
+                    .map(e -> {
+                        DeviceTagEntity tagEntity =
+                            metadata.getTag(e.getKey())
+                                .map(DeviceTagEntity::of)
+                                .orElseGet(() -> {
+                                    DeviceTagEntity entity = new DeviceTagEntity();
+                                    entity.setKey(e.getKey());
+                                    entity.setType("string");
+                                    entity.setName(e.getKey());
+                                    entity.setCreateTime(new Date());
+                                    entity.setDescription("设备上报");
+                                    return entity;
+                                });
+                        tagEntity.setDeviceId(deviceId);
+                        tagEntity.setId(DeviceTagEntity.createTagId(deviceId, tagEntity.getKey()));
+                        return tagEntity;
+                    }))
+            .as(tagRepository::save)
+            .then();
     }
 
 
