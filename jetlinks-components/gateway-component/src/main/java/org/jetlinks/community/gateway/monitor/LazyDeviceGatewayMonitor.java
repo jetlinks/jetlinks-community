@@ -13,7 +13,7 @@ class LazyDeviceGatewayMonitor implements DeviceGatewayMonitor {
     }
 
     public DeviceGatewayMonitor getTarget() {
-        if (target == null || target instanceof NoneMessageGatewayMonitor) {
+        if (target == null) {
             target = monitorSupplier.get();
         }
         return target;

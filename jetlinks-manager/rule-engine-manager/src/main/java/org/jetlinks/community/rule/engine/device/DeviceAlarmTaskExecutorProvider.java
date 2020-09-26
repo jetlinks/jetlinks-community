@@ -173,7 +173,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                 topics.add(topic);
                 binds.addAll(trigger.toFilterBinds());
             }
-            org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription.of(
+            Subscription subscription = Subscription.of(
                 "device_alarm:" + rule.getId(),
                 topics.toArray(new String[0]),
                 Subscription.Feature.local

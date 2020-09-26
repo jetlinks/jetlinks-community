@@ -1,5 +1,7 @@
 package org.jetlinks.community.rule.engine.device;
 
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,6 +14,7 @@ import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,53 +34,63 @@ public class DeviceAlarmRule implements Serializable {
     /**
      * 规则ID
      */
+    @Hidden
     private String id;
 
     /**
      * 规则名称
      */
+    @Hidden
     private String name;
 
     /**
      * 产品ID,不能为空
      */
+    @NotBlank
+    @Schema(description = "产品ID")
     private String productId;
 
     /**
      * 产品名称,不能为空
      */
+    @Schema(description = "产品名称")
     private String productName;
 
     /**
      * 设备ID,当对特定对设备设置规则时,不能为空
      */
+    @Schema(description = "设备ID,为空时则对产品下所有设备生效")
     private String deviceId;
 
     /**
      * 设备名称
      */
+    @Schema(description = "设备名称")
     private String deviceName;
 
     /**
      * 触发条件,不能为空
      */
+    @Schema(description = "触发条件")
     private List<Trigger> triggers;
 
     /**
      * 要单独获取哪些字段信息
      */
+    @Schema(description = "自定义字段映射")
     private List<Property> properties;
 
     /**
      * 警告发生后的操作,指向其他规则节点,如发送消息通知.
      */
+    @Schema(description = "执行动作")
     private List<Action> actions;
 
     /**
      * 防抖限制
      */
+    @Schema(description = "防抖限制")
     private ShakeLimit shakeLimit;
-
 
     public void validate() {
         if (org.apache.commons.collections.CollectionUtils.isEmpty(getTriggers())) {
@@ -179,21 +192,27 @@ public class DeviceAlarmRule implements Serializable {
     public static class Trigger implements Serializable {
 
         //触发方式,定时,设备
+        @Schema(description = "触发方式")
         private TriggerType trigger = TriggerType.device;
 
         //trigger为定时任务时的cron表达式
+        @Schema(description = "定时触发cron表达式")
         private String cron;
 
         //类型,属性或者事件.
+        @Schema(description = "触发消息类型")
         private MessageType type;
 
         //trigger为定时任务并且消息类型为功能调用时
+        @Schema(description = "定时调用下发功能指令时的参数")
         private List<FunctionParameter> parameters;
 
         //物模型属性或者事件的标识 如: fire_alarm
+        @Schema(description = "物模型表示,如:属性ID,事件ID")
         private String modelId;
 
         //过滤条件
+        @Schema(description = "条件")
         private List<ConditionFilter> filters;
 
         public Set<String> toColumns() {
@@ -252,16 +271,45 @@ public class DeviceAlarmRule implements Serializable {
         }
     }
 
+    /**
+     * 抖动限制
+     * <a href="https://github.com/jetlinks/jetlinks-community/issues/8">https://github.com/jetlinks/jetlinks-community/issues/8</a>
+     *
+     * @since 1.3
+     */
+    @Getter
+    @Setter
+    public static class ShakeLimit implements Serializable {
+        @Schema(description = "是否开启防抖")
+        private boolean enabled;
+
+        //时间限制,单位时间内发生多次告警时,只算一次。单位:秒
+        @Schema(description = "时间间隔(秒)")
+        private int time;
+
+        //触发阈值,单位时间内发生n次告警,只算一次。
+        @Schema(description = "触发阈值(次)")
+        private int threshold;
+
+        //当发生第一次告警时就触发,为false时表示最后一次才触发(告警有延迟,但是可以统计出次数)
+        @Schema(description = "是否第一次满足条件就触发")
+        private boolean alarmFirst;
+
+    }
+
     @Getter
     @Setter
     public static class ConditionFilter implements Serializable {
         //过滤条件key 如: temperature
+        @Schema(description = "条件key")
         private String key;
 
         //过滤条件值
+        @Schema(description = "值")
         private String value;
 
         //操作符, 等于,大于,小于....
+        @Schema(description = "比对方式")
         private Operator operator = Operator.eq;
 
         public String getColumn(MessageType type) {
@@ -291,28 +339,6 @@ public class DeviceAlarmRule implements Serializable {
     }
 
 
-    /**
-     * 抖动限制
-     * <a href="https://github.com/jetlinks/jetlinks-community/issues/8">https://github.com/jetlinks/jetlinks-community/issues/8</a>
-     *
-     * @since 1.3
-     */
-    @Getter
-    @Setter
-    public static class ShakeLimit implements Serializable {
-        private boolean enabled;
-
-        //时间限制,单位时间内发生多次告警时,只算一次。单位:秒
-        private int time;
-
-        //触发阈值,单位时间内发生n次告警,只算一次。
-        private int threshold;
-
-        //当发生第一次告警时就触发,为false时表示最后一次才触发(告警有延迟,但是可以统计出次数)
-        private boolean alarmFirst;
-
-    }
-
     @AllArgsConstructor
     @Getter
     public enum Operator {
@@ -333,8 +359,10 @@ public class DeviceAlarmRule implements Serializable {
     @Getter
     @Setter
     public static class Property implements Serializable {
+        @Schema(description = "属性")
         private String property;
 
+        @Schema(description = "别名")
         private String alias;
 
         @Override
@@ -342,5 +370,4 @@ public class DeviceAlarmRule implements Serializable {
             return property.concat(" \"").concat(StringUtils.hasText(alias) ? alias : property).concat("\"");
         }
     }
-
 }

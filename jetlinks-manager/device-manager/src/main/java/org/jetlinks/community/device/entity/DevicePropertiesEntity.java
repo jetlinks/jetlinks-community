@@ -21,7 +21,7 @@ import static java.util.Optional.ofNullable;
 @AllArgsConstructor
 public class DevicePropertiesEntity {
 
-    public String id;
+    private String id;
 
     private String deviceId;
 
@@ -34,6 +34,8 @@ public class DevicePropertiesEntity {
     private String formatValue;
 
     private BigDecimal numberValue;
+
+    private GeoPoint geoValue;
 
     private long timestamp;
 
@@ -49,13 +51,20 @@ public class DevicePropertiesEntity {
 
     private String type;
 
+    private long createTime;
 
     public Map<String, Object> toMap() {
-        return FastBeanCopier.copy(this, HashMap::new);
+        return FastBeanCopier.copy(this, new HashMap<>(22));
     }
 
     public DevicePropertiesEntity withValue(PropertyMetadata metadata, Object value) {
         if (metadata == null) {
+            setValue(String.valueOf(value));
+            if (value instanceof Number) {
+                numberValue = new BigDecimal(value.toString());
+            } else if (value instanceof Date) {
+                timeValue = ((Date) value);
+            }
             return this;
         }
         setProperty(metadata.getId());
@@ -103,6 +112,11 @@ public class DevicePropertiesEntity {
             Object val = objectType.convert(value);
             convertedValue = JSON.toJSONString(val);
             setObjectValue(val);
+        } else if (type instanceof GeoType) {
+            GeoType geoType = (GeoType) type;
+            GeoPoint val = geoType.convert(value);
+            convertedValue = String.valueOf(val);
+            setGeoValue(val);
         } else {
             setStringValue(convertedValue = String.valueOf(value));
         }

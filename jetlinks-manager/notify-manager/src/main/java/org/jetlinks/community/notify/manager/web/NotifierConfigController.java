@@ -1,5 +1,8 @@
 package org.jetlinks.community.notify.manager.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,12 +26,12 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/notifier/config")
 @Resource(id = "notifier", name = "通知管理")
+@Tag(name = "消息通知配置")
 public class NotifierConfigController implements ReactiveServiceCrudController<NotifyConfigEntity, String> {
 
     private final NotifyConfigService notifyConfigService;
 
     private final List<NotifierProvider> providers;
-
 
     public NotifierConfigController(NotifyConfigService notifyConfigService,
                                     List<NotifierProvider> providers) {
@@ -44,8 +47,9 @@ public class NotifierConfigController implements ReactiveServiceCrudController<N
 
     @GetMapping("/{type}/{provider}/metadata")
     @QueryAction
-    public Mono<ConfigMetadata> getAllTypes(@PathVariable String type,
-                                            @PathVariable String provider) {
+    @Operation(summary = "获取指定类型和服务商所需配置定义")
+    public Mono<ConfigMetadata> getAllTypes(@PathVariable @Parameter(description = "通知类型ID") String type,
+                                            @PathVariable @Parameter(description = "服务商ID") String provider) {
         return Flux.fromIterable(providers)
             .filter(prov -> prov.getType().getId().equalsIgnoreCase(type) && prov.getProvider().getId().equalsIgnoreCase(provider))
             .flatMap(prov -> Mono.justOrEmpty(prov.getNotifierConfigMetadata()))
@@ -55,6 +59,7 @@ public class NotifierConfigController implements ReactiveServiceCrudController<N
 
     @GetMapping("/types")
     @QueryAction
+    @Operation(summary = "获取平台支持的通知类型")
     public Flux<NotifyTypeInfo> getAllTypes() {
         return Flux.fromIterable(providers)
             .collect(Collectors.groupingBy(NotifierProvider::getType))
@@ -76,8 +81,11 @@ public class NotifierConfigController implements ReactiveServiceCrudController<N
      */
     @GetMapping("/type/{type}/providers")
     @QueryAction
-    public Flux<ProviderInfo> getTypeProviders(@PathVariable String type) {
-        return Flux.fromIterable(providers)
+    @Operation(summary = "获取支持的服务商")
+    public Flux<ProviderInfo> getTypeProviders(@PathVariable
+                                               @Parameter(description = "通知类型ID") String type) {
+        return Flux
+            .fromIterable(providers)
             .filter(provider -> provider.getType().getId().equals(type))
             .map(ProviderInfo::of);
     }
@@ -86,10 +94,13 @@ public class NotifierConfigController implements ReactiveServiceCrudController<N
     @Setter
     @EqualsAndHashCode(of = "id")
     public static class NotifyTypeInfo {
+        @Parameter(description = "通知类型ID")
         private String id;
 
+        @Parameter(description = "通知类型名称")
         private String name;
 
+        @Parameter(description = "服务商信息")
         private List<ProviderInfo> providerInfos;
 
     }
@@ -97,11 +108,15 @@ public class NotifierConfigController implements ReactiveServiceCrudController<N
     @AllArgsConstructor
     @Getter
     public static class ProviderInfo {
-        private String type;
 
-        private String id;
+        @Parameter(description = "通知类型")
+        private final String type;
 
-        private String name;
+        @Parameter(description = "服务商ID")
+        private final String id;
+
+        @Parameter(description = "服务商名称")
+        private final String name;
 
         public static ProviderInfo of(NotifierProvider provider) {
             return new ProviderInfo(provider.getType().getId(), provider.getProvider().getId(), provider.getProvider().getName());
@@ -110,3 +125,4 @@ public class NotifierConfigController implements ReactiveServiceCrudController<N
     }
 
 }
+

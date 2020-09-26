@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -43,10 +44,6 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
     @Getter
     @Setter
     private GatewayServerMonitor gatewayServerMonitor;
-
-    @Getter
-    @Setter
-    private ScheduledExecutorService executorService;
 
     @Getter
     @Setter
@@ -133,7 +130,7 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
             })
             .doOnError(err -> log.error(err.getMessage(), err))
             .doOnSubscribe(subscription -> {
-                log.info("start check session");
+                log.trace("start check session");
                 startWith.set(System.currentTimeMillis());
             })
             .doFinally(s -> {
@@ -147,8 +144,8 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
                         log.error(e.getMessage(), e);
                     }
                 }
-                if (log.isInfoEnabled()) {
-                    log.info("check session complete,current server sessions:{}.use time:{}ms.",
+                if (log.isTraceEnabled()) {
+                    log.trace("check session complete,current server sessions:{}.use time:{}ms.",
                         transportCounter,
                         System.currentTimeMillis() - startWith.get());
                 }
@@ -158,13 +155,13 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
     public void init() {
         Objects.requireNonNull(gatewayServerMonitor, "gatewayServerMonitor");
         Objects.requireNonNull(registry, "registry");
-        if (executorService == null) {
-            executorService = Executors.newSingleThreadScheduledExecutor();
-        }
         serverId = gatewayServerMonitor.getCurrentServerId();
+        Flux.interval(Duration.ofSeconds(10), Duration.ofSeconds(30), Schedulers.newSingle("device-session-checker"))
+            .flatMap(i -> this
+                .checkSession()
+                .onErrorContinue((err, val) -> log.error(err.getMessage(), err)))
+            .subscribe();
 
-        //每30秒检查一次设备连接情况
-        executorService.scheduleAtFixedRate(() -> this.checkSession().subscribe(), 10, 30, TimeUnit.SECONDS);
 
         unregisterHandler
             .publishOn(Schedulers.parallel())
@@ -252,6 +249,19 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
                 .thenReturn(session));
     }
 
+
+    @Override
+    public DeviceSession replace(DeviceSession oldSession, DeviceSession newSession) {
+        DeviceSession old = repository.put(oldSession.getDeviceId(), newSession);
+        if (old != null) {
+            //清空sessionId不同
+            if (!old.getId().equals(old.getDeviceId())) {
+                repository.put(oldSession.getId(), newSession);
+            }
+        }
+        return newSession;
+    }
+
     @Override
     public DeviceSession register(DeviceSession session) {
         DeviceSession old = repository.put(session.getDeviceId(), session);
@@ -295,16 +305,12 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
 
     @Override
     public Flux<DeviceSession> onRegister() {
-        return onDeviceRegister
-            .map(Function.identity())
-            .doOnError(err -> log.error(err.getMessage(), err));
+        return onDeviceRegister;
     }
 
     @Override
     public Flux<DeviceSession> onUnRegister() {
-        return onDeviceUnRegister
-            .map(Function.identity())
-            .doOnError(err -> log.error(err.getMessage(), err));
+        return onDeviceUnRegister;
     }
 
     @Override
@@ -338,9 +344,6 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
             transportCounter
                 .computeIfAbsent(session.getTransport().getId(), transport -> new LongAdder())
                 .decrement();
-            if (unregisterHandler.getPending() > 0) {
-                log.info("pending unregister session:{}", unregisterHandler.getPending());
-            }
             //通知
             unregisterSession.next(session);
             //加入关闭连接队列

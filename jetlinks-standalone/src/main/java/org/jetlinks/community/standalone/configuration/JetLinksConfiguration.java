@@ -12,6 +12,7 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.message.writer.TimeSeriesMessageWriterConnector;
 import org.jetlinks.community.device.service.AutoDiscoverDeviceRegistry;
+import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
@@ -28,9 +29,6 @@ import org.jetlinks.core.server.monitor.GatewayServerMonitor;
 import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.core.spi.ServiceContext;
 import org.jetlinks.community.device.message.DeviceMessageConnector;
-import org.jetlinks.community.gateway.MessageConnector;
-import org.jetlinks.community.gateway.supports.DefaultMessageGateway;
-import org.jetlinks.community.gateway.supports.LocalClientSessionManager;
 import org.jetlinks.supports.cluster.ClusterDeviceRegistry;
 import org.jetlinks.supports.cluster.redis.RedisClusterManager;
 import org.jetlinks.supports.event.BrokerEventBus;
@@ -38,7 +36,6 @@ import org.jetlinks.supports.protocol.ServiceLoaderProtocolSupports;
 import org.jetlinks.supports.protocol.management.ClusterProtocolSupportManager;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportManager;
-import org.jetlinks.supports.protocol.management.jar.JarProtocolSupportLoader;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.jetlinks.supports.server.DefaultClientMessageHandler;
 import org.jetlinks.supports.server.DefaultDecodedClientMessageHandler;
@@ -64,7 +61,6 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
 @EnableConfigurationProperties(JetLinksProperties.class)
@@ -137,17 +133,6 @@ public class JetLinksConfiguration {
         };
     }
 
-    @Bean(initMethod = "startup", destroyMethod = "shutdown")
-    public DefaultMessageGateway defaultMessageGateway(@Autowired(required = false) List<MessageConnector> connectors) {
-        DefaultMessageGateway gateway = new DefaultMessageGateway("default", "系统默认", new LocalClientSessionManager());
-        if (connectors != null) {
-            for (MessageConnector connector : connectors) {
-                gateway.registerMessageConnector(connector);
-            }
-        }
-        return gateway;
-    }
-
     @Bean
     public DeviceMessageConnector deviceMessageConnector(EventBus eventBus, DeviceRegistry registry) {
         return new DeviceMessageConnector(eventBus, registry);
@@ -155,8 +140,8 @@ public class JetLinksConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "device.message.writer.time-series", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public TimeSeriesMessageWriterConnector timeSeriesMessageWriterConnector(TimeSeriesManager timeSeriesManager, DeviceRegistry registry) {
-        return new TimeSeriesMessageWriterConnector(timeSeriesManager, registry);
+    public TimeSeriesMessageWriterConnector timeSeriesMessageWriterConnector(DeviceDataService deviceDataService) {
+        return new TimeSeriesMessageWriterConnector(deviceDataService);
     }
 
     @Bean(destroyMethod = "shutdown")
@@ -214,11 +199,8 @@ public class JetLinksConfiguration {
     public DefaultDeviceSessionManager deviceSessionManager(JetLinksProperties properties,
                                                             GatewayServerMonitor monitor,
                                                             DeviceMessageConnector messageConnector,
-                                                            DeviceRegistry registry,
-                                                            ScheduledExecutorService executorService,
-                                                            ApplicationEventPublisher eventPublisher) {
+                                                            DeviceRegistry registry) {
         DefaultDeviceSessionManager sessionManager = new DefaultDeviceSessionManager();
-        sessionManager.setExecutorService(executorService);
         sessionManager.setGatewayServerMonitor(monitor);
         sessionManager.setRegistry(registry);
         Optional.ofNullable(properties.getTransportLimit()).ifPresent(sessionManager::setTransportLimits);

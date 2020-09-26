@@ -1,6 +1,8 @@
 package org.jetlinks.community.device.web;
 
 import com.alibaba.fastjson.JSON;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
 import org.jetlinks.community.device.entity.DeviceCategory;
@@ -18,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/device/category")
 @Slf4j
+@Tag(name = "设备分类目录")
 public class DeviceCategoryController {
 
 
@@ -49,7 +52,7 @@ public class DeviceCategoryController {
                 String id = category.getId();
 
                 category.setId("|" + id + "|");
-                category.setParentId("|" + category.getParentId()+"|");
+                category.setParentId("|" + category.getParentId() + "|");
                 rebuild("|" + id, category.getChildren());
             }
 
@@ -62,11 +65,13 @@ public class DeviceCategoryController {
     }
 
     @GetMapping
+    @Operation(summary = "获取全部分类目录")
     public Flux<DeviceCategory> getAllCategory() {
         return Flux.fromIterable(statics);
     }
 
     @GetMapping("/_tree")
+    @Operation(summary = "获取全部分类目录(树结构)")
     public Flux<DeviceCategory> getAllCategoryTree() {
         return Flux.fromIterable(TreeSupportEntity.list2tree(statics, DeviceCategory::setChildren));
     }

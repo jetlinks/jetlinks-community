@@ -1,6 +1,10 @@
 package org.jetlinks.community.device.web;
 
 import com.alibaba.fastjson.JSON;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,8 +44,9 @@ import java.util.List;
 @RequestMapping("/protocol")
 @Authorize
 @Resource(id = "protocol-supports", name = "协议管理")
-public class ProtocolSupportController implements
-    ReactiveServiceCrudController<ProtocolSupportEntity, String> {
+@Tag(name = "协议管理")
+public class ProtocolSupportController
+    implements ReactiveServiceCrudController<ProtocolSupportEntity, String> {
 
     @Autowired
     @Getter
@@ -58,12 +63,14 @@ public class ProtocolSupportController implements
 
     @PostMapping("/{id}/_deploy")
     @SaveAction
+    @Operation(summary = "发布协议")
     public Mono<Boolean> deploy(@PathVariable String id) {
         return service.deploy(id);
     }
 
     @PostMapping("/{id}/_un-deploy")
     @SaveAction
+    @Operation(summary = "取消发布")
     public Mono<Boolean> unDeploy(@PathVariable String id) {
         return service.unDeploy(id);
     }
@@ -71,29 +78,34 @@ public class ProtocolSupportController implements
     //获取支持的协议类型
     @GetMapping("/providers")
     @Authorize(merge = false)
+    @Operation(summary = "获取当前支持的协议类型")
     public Flux<String> getProviders() {
-        return Flux.fromIterable(providers)
+        return Flux
+            .fromIterable(providers)
             .map(ProtocolSupportLoaderProvider::getProvider);
     }
 
     @GetMapping("/supports")
     @Authorize(merge = false)
+    @Operation(summary = "获取当前支持的协议")
     public Flux<ProtocolInfo> allProtocols() {
-        return protocolSupports.getProtocols()
-            .map(ProtocolInfo::of);
+        return protocolSupports.getProtocols().map(ProtocolInfo::of);
     }
 
     @GetMapping("/{id}/{transport}/configuration")
     @QueryAction
     @Authorize(merge = false)
-    public Mono<ConfigMetadata> getTransportConfiguration(@PathVariable String id, @PathVariable DefaultTransport transport) {
+    @Operation(summary = "获取协议对应使用传输协议的配置元数据")
+    public Mono<ConfigMetadata> getTransportConfiguration(@PathVariable @Parameter(description = "协议ID") String id,
+                                                          @PathVariable @Parameter(description = "传输协议") DefaultTransport transport) {
         return protocolSupports.getProtocol(id)
             .flatMap(support -> support.getConfigMetadata(transport));
     }
 
     @GetMapping("/{id}/transports")
     @Authorize(merge = false)
-    public Flux<TransportInfo> getAllTransport(@PathVariable String id) {
+    @Operation(summary = "获取协议支持的传输协议")
+    public Flux<TransportInfo> getAllTransport(@PathVariable @Parameter(description = "协议ID") String id) {
         return protocolSupports
             .getProtocol(id)
             .flatMapMany(ProtocolSupport::getSupportedTransport)
@@ -103,6 +115,7 @@ public class ProtocolSupportController implements
 
     @PostMapping("/convert")
     @QueryAction
+    @Hidden
     public Mono<ProtocolDetail> convertToDetail(@RequestBody Mono<ProtocolSupportEntity> entity) {
         return entity.map(ProtocolSupportEntity::toDeployDefinition)
             .doOnNext(def -> def.setId("_debug"))
@@ -112,6 +125,7 @@ public class ProtocolSupportController implements
 
     @PostMapping("/decode")
     @SaveAction
+    @Hidden
     public Mono<String> decode(@RequestBody Mono<ProtocolDecodeRequest> entity) {
         return entity
             .<Object>flatMapMany(request -> {
@@ -124,12 +138,13 @@ public class ProtocolSupportController implements
             })
             .collectList()
             .map(JSON::toJSONString)
-            .onErrorResume(err-> Mono.just(StringUtils.throwable2String(err)));
+            .onErrorResume(err -> Mono.just(StringUtils.throwable2String(err)));
     }
 
     @PostMapping("/encode")
     @SaveAction
-    public  Mono<String> encode(@RequestBody Mono<ProtocolEncodeRequest> entity) {
+    @Hidden
+    public Mono<String> encode(@RequestBody Mono<ProtocolEncodeRequest> entity) {
         return entity
             .flatMapMany(request -> {
                 ProtocolSupportDefinition supportEntity = request.getEntity().toDeployDefinition();
@@ -141,13 +156,13 @@ public class ProtocolSupportController implements
             })
             .collectList()
             .map(JSON::toJSONString)
-            .onErrorResume(err-> Mono.just(StringUtils.throwable2String(err)));
+            .onErrorResume(err -> Mono.just(StringUtils.throwable2String(err)));
     }
 
     @GetMapping("/units")
     @Authorize(merge = false)
+    @Operation(summary = "获取单位数据")
     public Flux<ValueUnit> allUnits() {
         return Flux.fromIterable(ValueUnits.getAllUnit());
     }
-
 }

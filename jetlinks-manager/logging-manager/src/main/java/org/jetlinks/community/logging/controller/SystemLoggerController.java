@@ -1,7 +1,9 @@
 package org.jetlinks.community.logging.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.jetlinks.community.logging.service.SystemLoggerService;
@@ -19,6 +21,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/logger/system")
 @Resource(id="system-logger",name = "系统日志")
+@Tag(name = "日志管理")
 public class SystemLoggerController {
 
     @Autowired
@@ -26,6 +29,7 @@ public class SystemLoggerController {
 
     @GetMapping("/_query")
     @QueryAction
+    @QueryOperation(summary = "查询系统日志")
     public Mono<PagerResult<SerializableSystemLog>> getSystemLogger(QueryParam queryParam) {
         return loggerService.getSystemLogger(queryParam);
     }

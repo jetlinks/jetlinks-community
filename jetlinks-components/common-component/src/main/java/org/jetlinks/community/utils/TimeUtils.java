@@ -2,6 +2,7 @@ package org.jetlinks.community.utils;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 public class TimeUtils {
@@ -49,6 +50,18 @@ public class TimeUtils {
             }
         }
         return duration;
+    }
+
+    public static ChronoUnit parseUnit(String expr) {
+
+        expr = expr.toUpperCase();
+
+        if (!expr.endsWith("S")) {
+            expr = expr + "S";
+        }
+
+        return ChronoUnit.valueOf(expr);
+
     }
 
     /**

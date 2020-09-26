@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.manager.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
@@ -24,26 +25,31 @@ public class NetworkConfigEntity extends GenericEntity<String> {
 
     @Column
     @NotNull(message = "名称不能为空")
+    @Schema(description = "名称")
     private String name;
 
     @Column
+    @Schema(description = "说明")
     private String description;
 
-    @Column
+    @Column(nullable = false)
     @EnumCodec
     @ColumnType(javaType = String.class)
     @NotNull(message = "类型不能为空")
+    @Schema(description = "类型")
     private DefaultNetworkType type;
 
-    @Column
+    @Column(nullable = false)
     @EnumCodec
     @ColumnType(javaType = String.class)
     @DefaultValue("disabled")
+    @Schema(description = "状态")
     private NetworkConfigState state;
 
     @Column
     @JsonCodec
     @ColumnType(jdbcType = JDBCType.CLOB, javaType = String.class)
+    @Schema(description = "配置(根据类型不同而不同)")
     private Map<String, Object> configuration;
 
     public NetworkProperties toNetworkProperties() {

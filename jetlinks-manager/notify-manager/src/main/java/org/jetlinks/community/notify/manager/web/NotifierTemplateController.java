@@ -1,5 +1,7 @@
 package org.jetlinks.community.notify.manager.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
@@ -24,6 +26,7 @@ import java.util.List;
 @RequestMapping("/notifier/template")
 @Authorize
 @Resource(id = "template", name = "通知模板")
+@Tag(name = "消息通知模版")
 public class NotifierTemplateController implements ReactiveServiceCrudController<NotifyTemplateEntity, String> {
 
     private final NotifyTemplateService templateService;
@@ -45,6 +48,7 @@ public class NotifierTemplateController implements ReactiveServiceCrudController
 
     @GetMapping("/{type}/{provider}/config/metadata")
     @QueryAction
+    @Operation(summary = "获取指定类型和服务商所需模版配置定义")
     public Mono<ConfigMetadata> getAllTypes(@PathVariable String type,
                                             @PathVariable String provider) {
         return Flux.fromIterable(providers)

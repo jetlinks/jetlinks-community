@@ -98,4 +98,8 @@ public interface ValueObject {
     static ValueObject of(Map<String, Object> mapVal) {
         return () -> mapVal;
     }
+
+    default <T> T as(Class<T> type) {
+        return FastBeanCopier.copy(values(), type);
+    }
 }

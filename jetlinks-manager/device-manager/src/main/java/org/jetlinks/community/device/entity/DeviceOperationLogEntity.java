@@ -29,8 +29,7 @@ public class DeviceOperationLogEntity {
 
     private DeviceLogType type;
 
-    @JSONField(format = "yyyy-MM-dd HH:mm:ss")
-    private Date createTime;
+    private Long createTime;
 
     private Object content;
 

@@ -1,43 +1,43 @@
 package org.jetlinks.community.device.web;
 
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.ExcelWriter;
-import com.alibaba.excel.write.metadata.WriteSheet;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.rdb.exception.DuplicateKeyException;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.reactor.excel.ReactorExcel;
-import org.hswebframework.reactor.excel.utils.StreamUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryNoPagingOperation;
+import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.hswebframework.web.authorization.Authentication;
-import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.BusinessException;
+import org.hswebframework.web.exception.ValidationException;
 import org.jetlinks.community.device.entity.*;
-import org.jetlinks.community.device.entity.excel.DeviceInstanceImportExportEntity;
 import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.community.device.response.DeviceDeployResult;
+import org.jetlinks.community.device.response.DeviceDetail;
+import org.jetlinks.community.device.response.ImportDeviceInstanceResult;
+import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
+import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.web.excel.DeviceExcelInfo;
 import org.jetlinks.community.device.web.excel.DeviceWrapper;
+import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.community.io.utils.FileUtils;
+import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.community.device.response.*;
-import org.jetlinks.community.device.service.LocalDeviceInstanceService;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.DeviceMetadata;
@@ -55,7 +55,6 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple4;
 import reactor.util.function.Tuples;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -70,6 +69,7 @@ import java.util.stream.Collectors;
 @Authorize
 @Resource(id = "device-instance", name = "设备实例")
 @Slf4j
+@Tag(name = "设备实例接口")
 public class DeviceInstanceController implements
     ReactiveServiceCrudController<DeviceInstanceEntity, String> {
 
@@ -84,79 +84,91 @@ public class DeviceInstanceController implements
 
     private final ReactiveRepository<DeviceTagEntity, String> tagRepository;
 
+    private final DeviceDataService deviceDataService;
+
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
                                     DeviceRegistry registry,
                                     LocalDeviceProductService productService,
                                     ImportExportService importExportService,
-                                    ReactiveRepository<DeviceTagEntity, String> tagRepository) {
+                                    ReactiveRepository<DeviceTagEntity, String> tagRepository,
+                                    DeviceDataService deviceDataService) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
         this.importExportService = importExportService;
         this.tagRepository = tagRepository;
+        this.deviceDataService = deviceDataService;
     }
 
 
     //获取设备详情
     @GetMapping("/{id:.+}/detail")
     @QueryAction
-    public Mono<DeviceDetail> getDeviceDetailInfo(@PathVariable String id) {
+    @Operation(summary = "获取指定ID设备详情")
+    public Mono<DeviceDetail> getDeviceDetailInfo(@PathVariable @Parameter(description = "设备ID") String id) {
         return service.getDeviceDetail(id);
-    }
-
-    //重置配置信息
-    @PutMapping("/{deviceId:.+}/configuration/_reset")
-    @SaveAction
-    public Mono<Map<String,Object>> resetConfiguration(@PathVariable String deviceId){
-        return service.resetConfiguration(deviceId);
     }
 
     //获取设备运行状态
     @GetMapping("/{id:.+}/state")
     @QueryAction
-    public Mono<DeviceState> getDeviceState(@PathVariable String id) {
+    @Operation(summary = "获取指定ID设备在线状态")
+    public Mono<DeviceState> getDeviceState(@PathVariable @Parameter(description = "设备ID") String id) {
         return service.getDeviceState(id);
     }
 
-    //激活
+    //激活设备
     @PostMapping("/{deviceId:.+}/deploy")
     @SaveAction
-    public Mono<DeviceDeployResult> deviceDeploy(@PathVariable String deviceId) {
+    @Operation(summary = "激活指定ID设备")
+    public Mono<DeviceDeployResult> deviceDeploy(@PathVariable @Parameter(description = "设备ID") String deviceId) {
         return service.deploy(deviceId);
     }
 
-    //注销
-    @PostMapping( "/{deviceId:.+}/undeploy")
+    //重置配置信息
+    @PutMapping("/{deviceId:.+}/configuration/_reset")
     @SaveAction
-    public Mono<Integer> cancelDeploy(@PathVariable String deviceId) {
-        return service.cancelDeploy(deviceId);
+    @Operation(summary = "重置设备配置信息")
+    public Mono<Map<String, Object>> resetConfiguration(@PathVariable @Parameter(description = "设备ID") String deviceId) {
+        return service.resetConfiguration(deviceId);
+    }
+
+    //批量激活设备
+    @GetMapping(value = "/deploy", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @SaveAction
+    @QueryOperation(summary = "查询并批量激活设备")
+    public Flux<DeviceDeployResult> deployAll(@Parameter(hidden = true) QueryParamEntity query) {
+        query.setPaging(false);
+        return service.query(query).as(service::deploy);
+    }
+
+    //取消激活
+    @PostMapping("/{deviceId:.+}/undeploy")
+    @SaveAction
+    @Operation(summary = "注销指定ID的设备")
+    public Mono<Integer> unDeploy(@PathVariable @Parameter(description = "设备ID") String deviceId) {
+        return service.unregisterDevice(deviceId);
     }
 
     //断开连接
     @PostMapping("/{deviceId:.+}/disconnect")
     @SaveAction
-    public Mono<Boolean> disconnect(@PathVariable String deviceId) {
+    @Operation(summary = "断开指定ID的设备连接")
+    public Mono<Boolean> disconnect(@PathVariable @Parameter(description = "设备ID") String deviceId) {
         return registry
             .getDevice(deviceId)
             .flatMapMany(DeviceOperator::disconnect)
             .singleOrEmpty();
     }
 
-    //添加设备
+    //新建设备
     @PostMapping
+    @Operation(summary = "新建设备")
     public Mono<DeviceInstanceEntity> add(@RequestBody Mono<DeviceInstanceEntity> payload) {
         return payload.flatMap(entity -> service.insert(Mono.just(entity))
             .onErrorMap(DuplicateKeyException.class, err -> new BusinessException("设备ID已存在", err))
             .thenReturn(entity));
-    }
-
-    //批量发布,激活设备
-    @GetMapping(value = "/deploy", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @SaveAction
-    public Flux<DeviceDeployResult> deployAll(QueryParamEntity query) {
-        query.setPaging(false);
-        return service.query(query).as(service::deploy);
     }
 
     /**
@@ -167,7 +179,8 @@ public class DeviceInstanceController implements
      */
     @GetMapping(value = "/state/_sync", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @SaveAction
-    public Flux<Integer> syncDeviceState(QueryParamEntity query) {
+    @QueryNoPagingOperation(summary = "同步设备状态")
+    public Flux<Integer> syncDeviceState(@Parameter(hidden = true) QueryParamEntity query) {
         query.setPaging(false);
         return service
             .query(query.includes("id"))
@@ -178,53 +191,137 @@ public class DeviceInstanceController implements
             .defaultIfEmpty(0);
     }
 
-    //获取最新的设备属性
+    //获取设备全部最新属性
     @GetMapping("/{deviceId:.+}/properties/latest")
     @QueryAction
-    public Flux<DevicePropertiesEntity> getDeviceLatestProperties(@PathVariable String deviceId) {
-        return service.getDeviceLatestProperties(deviceId);
+    @Operation(summary = "获取指定ID设备最新的全部属性")
+    public Flux<DeviceProperty> getDeviceLatestProperties(@PathVariable @Parameter(description = "设备ID") String deviceId) {
+        return deviceDataService.queryEachOneProperties(deviceId, QueryParamEntity.of());
     }
 
-    //获取单个最新的设备属性
+    //获取设备指定的最新属性
     @GetMapping("/{deviceId:.+}/property/{property:.+}")
     @QueryAction
-    public Mono<DevicePropertiesEntity> getDeviceLatestProperty(@PathVariable String deviceId, @PathVariable String property) {
-        return service.getDeviceLatestProperty(deviceId, property);
+    @Operation(summary = "获取指定ID设备最新的属性")
+    public Mono<DeviceProperty> getDeviceLatestProperty(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                        @PathVariable @Parameter(description = "属性ID") String property) {
+        return deviceDataService.queryEachOneProperties(deviceId, QueryParamEntity.of(), property)
+            .take(1)
+            .singleOrEmpty()
+            ;
     }
 
-    //获取设备事件数据
-    @GetMapping("/{deviceId:.+}/event/{eventId}")
+    //查询属性列表
+    @GetMapping("/{deviceId:.+}/property/{property}/_query")
     @QueryAction
-    public Mono<PagerResult<Map<String, Object>>> queryPagerByDeviceEvent(QueryParamEntity queryParam,
-                                                                          @RequestParam(defaultValue = "false") boolean format,
-                                                                          @PathVariable String deviceId,
-                                                                          @PathVariable String eventId) {
-        return service.queryDeviceEvent(deviceId, eventId, queryParam, format);
+    @QueryOperation(summary = "查询设备指定属性列表")
+    public Mono<PagerResult<DeviceProperty>> queryDeviceProperties(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                                   @PathVariable @Parameter(description = "属性ID") String property,
+                                                                   @Parameter(hidden = true) QueryParamEntity entity) {
+        return deviceDataService.queryPropertyPage(deviceId, property, entity);
     }
 
+    //查询属性列表
     @GetMapping("/{deviceId:.+}/properties/_query")
     @QueryAction
-    public Mono<PagerResult<DevicePropertiesEntity>> queryDeviceProperties(@PathVariable String deviceId, QueryParamEntity entity) {
-        return service.queryDeviceProperties(deviceId, entity);
+    @QueryOperation(summary = "查询设备指定属性列表(已弃用)")
+    @Deprecated
+    public Mono<PagerResult<DeviceProperty>> queryDeviceProperties(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                                   @Parameter(hidden = true) QueryParamEntity entity) {
+        return entity
+            .getTerms()
+            .stream()
+            .filter(term -> "property".equals(term.getColumn()))
+            .findFirst()
+            .map(term -> {
+                String val = String.valueOf(term.getValue());
+                term.setValue(null);
+                return val;
+            })
+            .map(property -> deviceDataService.queryPropertyPage(deviceId, property, entity))
+            .orElseThrow(() -> new ValidationException("请设置[property]参数"));
+
     }
 
+    //查询设备事件数据
+    @GetMapping("/{deviceId:.+}/event/{eventId}")
+    @QueryAction
+    @QueryOperation(summary = "查询设备事件数据")
+    public Mono<PagerResult<DeviceEvent>> queryPagerByDeviceEvent(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                                  @PathVariable @Parameter(description = "事件ID") String eventId,
+                                                                  @Parameter(hidden = true) QueryParamEntity queryParam,
+
+                                                                  @RequestParam(defaultValue = "false")
+                                                                  @Parameter(description = "是否格式化返回结果,格式化对字段添加_format后缀") boolean format) {
+        return deviceDataService.queryEventPage(deviceId, eventId, queryParam, format);
+    }
+
+    //查询设备日志
     @GetMapping("/{deviceId:.+}/logs")
     @QueryAction
-    public Mono<PagerResult<DeviceOperationLogEntity>> queryDeviceLog(@PathVariable String deviceId,
-                                                                      QueryParamEntity entity) {
-        return service.queryDeviceLog(deviceId, entity);
+    @QueryOperation(summary = "查询设备日志数据")
+    public Mono<PagerResult<DeviceOperationLogEntity>> queryDeviceLog(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                                      @Parameter(hidden = true) QueryParamEntity entity) {
+        return deviceDataService.queryDeviceMessageLog(deviceId, entity);
     }
 
     //删除标签
     @DeleteMapping("/{deviceId}/tag/{tagId:.+}")
     @SaveAction
-    public Mono<Void> deleteDeviceTag(@PathVariable String deviceId,
-                                      @PathVariable String tagId) {
+    @Operation(summary = "删除设备标签")
+    public Mono<Void> deleteDeviceTag(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                      @PathVariable @Parameter(description = "标签ID") String tagId) {
         return tagRepository.createDelete()
             .where(DeviceTagEntity::getDeviceId, deviceId)
             .and(DeviceTagEntity::getId, tagId)
             .execute()
             .then();
+    }
+
+    /**
+     * 批量删除设备,只会删除未激活的设备.
+     *
+     * @param idList ID列表
+     * @return 被删除数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_delete")
+    @DeleteAction
+    @Operation(summary = "批量删除设备")
+    public Mono<Integer> deleteBatch(@RequestBody Mono<List<String>> idList) {
+        return idList.flatMapMany(Flux::fromIterable)
+            .as(service::deleteById);
+    }
+
+    /**
+     * 批量注销设备
+     *
+     * @param idList ID列表
+     * @return 被注销的数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_unDeploy")
+    @SaveAction
+    @Operation(summary = "批量注销设备")
+    public Mono<Integer> unDeployBatch(@RequestBody Mono<List<String>> idList) {
+        return idList.flatMap(list -> service.unregisterDevice(Flux.fromIterable(list)));
+    }
+
+    /**
+     * 批量激活设备
+     *
+     * @param idList ID列表
+     * @return 被注销的数量
+     * @since 1.1
+     */
+    @PutMapping("/batch/_deploy")
+    @SaveAction
+    @Operation(summary = "批量激活设备")
+    public Mono<Integer> deployBatch(@RequestBody Mono<List<String>> idList) {
+        return idList.flatMapMany(service::findById)
+            .as(service::deploy)
+            .map(DeviceDeployResult::getTotal)
+            .reduce(Math::addExact);
     }
 
     /**
@@ -247,7 +344,8 @@ public class DeviceInstanceController implements
      */
     @GetMapping("/{deviceId}/tags")
     @SaveAction
-    public Flux<DeviceTagEntity> getDeviceTags(@PathVariable String deviceId) {
+    @Operation(summary = "获取设备全部标签数据")
+    public Flux<DeviceTagEntity> getDeviceTags(@PathVariable @Parameter(description = "设备ID") String deviceId) {
         return tagRepository.createQuery()
             .where(DeviceTagEntity::getDeviceId, deviceId)
             .fetch();
@@ -256,7 +354,8 @@ public class DeviceInstanceController implements
     //保存设备标签
     @PatchMapping("/{deviceId}/tag")
     @SaveAction
-    public Flux<DeviceTagEntity> saveDeviceTag(@PathVariable String deviceId,
+    @Operation(summary = "保存设备标签")
+    public Flux<DeviceTagEntity> saveDeviceTag(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                                @RequestBody Flux<DeviceTagEntity> tags) {
         return tags
             .doOnNext(tag -> {
@@ -266,54 +365,6 @@ public class DeviceInstanceController implements
             })
             .as(tagRepository::save)
             .thenMany(getDeviceTags(deviceId));
-    }
-
-    /**
-     * 批量删除设备,只会删除未激活的设备.
-     *
-     * @param idList ID列表
-     * @return 被删除数量
-     * @since 1.1
-     */
-    @PutMapping("/batch/_delete")
-    @DeleteAction
-    public Mono<Integer> deleteBatch(@RequestBody Mono<List<String>> idList) {
-        return idList
-            .flatMap(list -> service.createDelete()
-                .where()
-                .in(DeviceInstanceEntity::getId, list)
-                .and(DeviceInstanceEntity::getState, DeviceState.notActive)
-                .execute());
-    }
-
-    /**
-     * 批量注销设备
-     *
-     * @param idList ID列表
-     * @return 被注销的数量
-     * @since 1.1
-     */
-    @PutMapping("/batch/_unDeploy")
-    @SaveAction
-    public Mono<Integer> unDeployBatch(@RequestBody Mono<List<String>> idList) {
-        return idList.flatMap(list -> service.unregisterDevice(Flux.fromIterable(list)));
-    }
-
-
-    /**
-     * 批量激活设备
-     *
-     * @param idList ID列表
-     * @return 被注销的数量
-     * @since 1.1
-     */
-    @PutMapping("/batch/_deploy")
-    @SaveAction
-    public Mono<Integer> deployBatch(@RequestBody Mono<List<String>> idList) {
-        return idList.flatMapMany(service::findById)
-            .as(service::deploy)
-            .map(DeviceDeployResult::getTotal)
-            .reduce(Math::addExact);
     }
 
     DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
@@ -345,11 +396,12 @@ public class DeviceInstanceController implements
 
     }
 
-    //按型号导入数据
+    //按产品导入数据
     @GetMapping(value = "/{productId}/import", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @SaveAction
-    public Flux<ImportDeviceInstanceResult> doBatchImportByProduct(@PathVariable String productId,
-                                                                   @RequestParam String fileUrl) {
+    @Operation(summary = "导入设备数据")
+    public Flux<ImportDeviceInstanceResult> doBatchImportByProduct(@PathVariable @Parameter(description = "产品ID") String productId,
+                                                                   @RequestParam @Parameter(description = "文件地址,支持csv,xlsx文件格式") String fileUrl) {
         return this
             .getDeviceProductDetail(productId)
             .map(tp4 -> Tuples.of(new DeviceWrapper(tp4.getT3().getTags(), tp4.getT4()), tp4.getT1()))
@@ -382,15 +434,13 @@ public class DeviceInstanceController implements
     //获取导出模版
     @GetMapping("/{productId}/template.{format}")
     @QueryAction
-    public Mono<Void> downloadExportTemplate(ServerHttpResponse response,
-                                             QueryParamEntity parameter,
-                                             @PathVariable String format,
-                                             @PathVariable String productId) throws IOException {
+    @Operation(summary = "下载设备导入模版")
+    public Mono<Void> downloadExportTemplate(@PathVariable @Parameter(description = "产品ID") String productId,
+                                             ServerHttpResponse response,
+                                             @PathVariable @Parameter(description = "文件格式,支持csv,xlsx") String format) throws IOException {
         response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=".concat(URLEncoder.encode("设备导入模版." + format, StandardCharsets.UTF_8.displayName())));
-        parameter.setPaging(false);
-        parameter.toNestQuery(q -> q.is(DeviceInstanceEntity::getProductId, productId));
-        return  getDeviceProductDetail(productId)
+        return getDeviceProductDetail(productId)
             .map(tp4 -> DeviceExcelInfo.getTemplateHeaderMapping(tp4.getT3().getTags(), tp4.getT4()))
             .defaultIfEmpty(DeviceExcelInfo.getTemplateHeaderMapping(Collections.emptyList(), Collections.emptyList()))
             .flatMapMany(headers ->
@@ -406,15 +456,16 @@ public class DeviceInstanceController implements
     //按照型号导出数据.
     @GetMapping("/{productId}/export.{format}")
     @QueryAction
-    public Mono<Void> export(ServerHttpResponse response,
-                             QueryParamEntity parameter,
-                             @PathVariable String format,
-                             @PathVariable String productId) throws IOException {
+    @QueryNoPagingOperation(summary = "按产品导出设备实例数据")
+    public Mono<Void> export(@PathVariable @Parameter(description = "产品ID") String productId,
+                             ServerHttpResponse response,
+                             @Parameter(hidden = true) QueryParamEntity parameter,
+                             @PathVariable @Parameter(description = "文件格式,支持csv,xlsx") String format) throws IOException {
         response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=".concat(URLEncoder.encode("设备实例." + format, StandardCharsets.UTF_8.displayName())));
         parameter.setPaging(false);
         parameter.toNestQuery(q -> q.is(DeviceInstanceEntity::getProductId, productId));
-        return  getDeviceProductDetail(productId)
+        return getDeviceProductDetail(productId)
             .map(tp4 -> DeviceExcelInfo.getExportHeaderMapping(tp4.getT3().getTags(), tp4.getT4()))
             .defaultIfEmpty(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(), Collections.emptyList()))
             .flatMapMany(headers ->
@@ -448,13 +499,14 @@ public class DeviceInstanceController implements
     //直接导出数据,不支持导出标签.
     @GetMapping("/export.{format}")
     @QueryAction
+    @QueryNoPagingOperation(summary = "导出设备实例数据", description = "此操作不支持导出设备标签和配置信息")
     public Mono<Void> export(ServerHttpResponse response,
-                             QueryParamEntity parameter,
-                             @PathVariable String format) throws IOException {
+                             @Parameter(hidden = true) QueryParamEntity parameter,
+                             @PathVariable @Parameter(description = "文件格式,支持csv,xlsx") String format) throws IOException {
         response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
             "attachment; filename=".concat(URLEncoder.encode("设备实例." + format, StandardCharsets.UTF_8.displayName())));
         return ReactorExcel.<DeviceExcelInfo>writer(format)
-            .headers(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(),Collections.emptyList()))
+            .headers(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(), Collections.emptyList()))
             .converter(DeviceExcelInfo::toMap)
             .writeBuffer(
                 service.query(parameter)
@@ -468,7 +520,8 @@ public class DeviceInstanceController implements
     //设置设备影子
     @PutMapping("/{deviceId:.+}/shadow")
     @SaveAction
-    public Mono<String> setDeviceShadow(@PathVariable String deviceId,
+    @Operation(summary = "设置设备影子")
+    public Mono<String> setDeviceShadow(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                         @RequestBody Mono<String> shadow) {
         return Mono
             .zip(registry.getDevice(deviceId), shadow)
@@ -480,35 +533,29 @@ public class DeviceInstanceController implements
     //获取设备影子
     @GetMapping("/{deviceId:.+}/shadow")
     @SaveAction
-    public Mono<String> getDeviceShadow(@PathVariable String deviceId) {
+    @Operation(summary = "获取设备影子")
+    public Mono<String> getDeviceShadow(@PathVariable @Parameter(description = "设备ID") String deviceId) {
         return registry
             .getDevice(deviceId)
             .flatMap(operator -> operator.getSelfConfig(DeviceConfigKey.shadow))
             .defaultIfEmpty("{\n}");
     }
 
-    //获取设备属性
-    @GetMapping("/{deviceId}/property/{property:.+}")
-    @SneakyThrows
-    @QueryAction
-    public Mono<DevicePropertiesEntity> getStandardProperty(@PathVariable String deviceId, @PathVariable String property) {
-        return service.readAndConvertProperty(deviceId, property);
-
-    }
-
     //设置设备属性
-    @PutMapping("/{deviceId}/property")
+    @PutMapping("/{deviceId:.+}/property")
     @SneakyThrows
     @QueryAction
-    public Flux<?> writeProperties(@PathVariable String deviceId,
+    @Operation(summary = "发送设置属性指令到设备", description = "请求示例: {\"属性ID\":\"值\"}")
+    public Flux<?> writeProperties(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                    @RequestBody Mono<Map<String, Object>> properties) {
         return properties.flatMapMany(props -> service.writeProperties(deviceId, props));
     }
 
     //设备功能调用
-    @PostMapping("/{deviceId}/function/{functionId}")
+    @PostMapping("/{deviceId:.+}/function/{functionId}")
     @SneakyThrows
     @QueryAction
+    @Operation(summary = "发送调用设备功能指令到设备", description = "请求示例: {\"参数\":\"值\"}")
     public Flux<?> invokedFunction(@PathVariable String deviceId,
                                    @PathVariable String functionId,
                                    @RequestBody Mono<Map<String, Object>> properties) {
@@ -516,5 +563,19 @@ public class DeviceInstanceController implements
         return properties.flatMapMany(props -> service.invokeFunction(deviceId, functionId, props));
     }
 
+    @PostMapping("/{deviceId:.+}/agg/_query")
+    @QueryAction
+    @Operation(summary = "聚合查询设备属性")
+    public Flux<Map<String, Object>> aggDeviceProperty(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                       @RequestBody Mono<AggRequest> param) {
+
+        return param
+            .flatMapMany(request -> deviceDataService
+                .aggregationPropertiesByDevice(deviceId,
+                    request.getQuery(),
+                    request.getColumns().toArray(new DeviceDataService.DevicePropertyAggregation[0]))
+            )
+            .map(AggregationData::values);
+    }
 
 }

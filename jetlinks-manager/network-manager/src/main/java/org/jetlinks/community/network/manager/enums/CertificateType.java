@@ -1,6 +1,7 @@
 package org.jetlinks.community.network.manager.enums;
 
 import lombok.Getter;
+import org.jetlinks.community.network.manager.entity.CertificateEntity;
 import org.jetlinks.community.network.security.DefaultCertificate;
 
 import java.util.*;
@@ -14,31 +15,31 @@ import java.util.*;
 public enum CertificateType {
     PFX {
         @Override
-        public DefaultCertificate init(DefaultCertificate certificate, Map<String, String> param) {
+        public DefaultCertificate init(DefaultCertificate certificate, CertificateEntity.CertificateConfig config) {
             return certificate
-                    .initPfxKey(Base64.getDecoder().decode(param.get("keystoreBase64")), param.get("keystorePwd"))
-                    .initPfxTrust(Base64.getDecoder().decode(param.get("trustKeyStoreBase64")), param.get("trustKeyStorePwd"));
+                .initPfxKey(Base64.getDecoder().decode(config.getKeystoreBase64()), config.getKeystorePwd())
+                .initPfxTrust(Base64.getDecoder().decode(config.getTrustKeyStoreBase64()), config.getTrustKeyStorePwd());
         }
     },
     JKS {
         @Override
-        public DefaultCertificate init(DefaultCertificate certificate, Map<String, String> param) {
+        public DefaultCertificate init(DefaultCertificate certificate, CertificateEntity.CertificateConfig config) {
             return certificate
-                    .initJksKey(Base64.getDecoder().decode(param.get("keystoreBase64")), param.get("keystorePwd"))
-                    .initJksTrust(Base64.getDecoder().decode(param.get("trustKeyStoreBase64")), param.get("trustKeyStorePwd"));
+                .initJksKey(Base64.getDecoder().decode(config.getKeystoreBase64()), config.getKeystorePwd())
+                .initJksTrust(Base64.getDecoder().decode(config.getTrustKeyStoreBase64()), config.getTrustKeyStorePwd());
         }
     },
     PEM {
         @Override
-        public DefaultCertificate init(DefaultCertificate certificate, Map<String, String> param) {
-            List<byte[]> keyCert = Collections.singletonList(Base64.getDecoder().decode(param.get("keystoreBase64")));
+        public DefaultCertificate init(DefaultCertificate certificate, CertificateEntity.CertificateConfig config) {
+            List<byte[]> keyCert = Collections.singletonList(Base64.getDecoder().decode(config.getKeystoreBase64()));
 
             return certificate
-                    .initPemKey(keyCert,keyCert)
-                    .initPemTrust(Collections.singletonList(Base64.getDecoder().decode(param.get("trustKeyStoreBase64"))));
+                .initPemKey(keyCert, keyCert)
+                .initPemTrust(Collections.singletonList(Base64.getDecoder().decode(config.getTrustKeyStoreBase64())));
 
         }
     };
 
-    public abstract DefaultCertificate init(DefaultCertificate certificate, Map<String, String> param);
+    public abstract DefaultCertificate init(DefaultCertificate certificate, CertificateEntity.CertificateConfig config);
 }

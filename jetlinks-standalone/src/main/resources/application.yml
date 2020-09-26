@@ -86,7 +86,10 @@ hsweb:
       static-file-path: ./static/upload
       static-location: http://localhost:8848/upload
   webflux:
-    response-wrapper: enabled #开启响应包装器(将返回值包装为ResponseMessage)
+    response-wrapper:
+      enabled: true #开启响应包装器(将返回值包装为ResponseMessage)
+      excludes: # 这下包下的接口不包装
+        - org.springdoc
   #  auth:   #默认的用户配置
   #    users:
   #      admin:

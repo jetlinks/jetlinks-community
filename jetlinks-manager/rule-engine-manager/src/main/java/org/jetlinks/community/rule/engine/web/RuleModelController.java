@@ -1,5 +1,6 @@
 package org.jetlinks.community.rule.engine.web;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.ResourceAction;
@@ -19,6 +20,8 @@ import java.util.function.Function;
 @RestController
 @RequestMapping("rule-engine/model")
 @Resource(id = "rule-model", name = "规则引擎-模型")
+@Deprecated
+@Hidden
 public class RuleModelController implements ReactiveServiceCrudController<RuleModelEntity, String> {
 
     @Autowired

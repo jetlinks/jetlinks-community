@@ -1,5 +1,9 @@
 package org.jetlinks.community.notify.manager.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.authorization.annotation.Resource;
@@ -22,6 +26,7 @@ import java.util.function.Function;
 @RestController
 @RequestMapping("/notifier")
 @Resource(id = "notifier", name = "通知管理")
+@Tag(name = "消息通知管理")
 public class NotifierController {
 
 
@@ -43,16 +48,17 @@ public class NotifierController {
      */
     @PostMapping("/{notifierId}/_send")
     @ResourceAction(id = "send", name = "发送通知")
-    public Mono<Void> sendNotify(@PathVariable String notifierId,
+    @Operation(summary = "发送消息通知")
+    public Mono<Void> sendNotify(@PathVariable @Parameter(description = "通知配置ID") String notifierId,
                                  @RequestBody Mono<SendNotifyRequest> mono) {
         return mono.flatMap(tem -> {
             NotifyType type = DefaultNotifyType.valueOf(tem.getTemplate().getType());
             return Mono.zip(
-                    notifierManager.getNotifier(type, notifierId)
-                            .switchIfEmpty(Mono.error(() -> new NotFoundException("通知器[" + notifierId + "]不存在"))),
-                    templateManager.createTemplate(type, tem.getTemplate().toTemplateProperties()),
-                    (notifier, template) -> notifier.send(template, Values.of(tem.getContext())))
-                    .flatMap(Function.identity());
+                notifierManager.getNotifier(type, notifierId)
+                    .switchIfEmpty(Mono.error(() -> new NotFoundException("通知器[" + notifierId + "]不存在"))),
+                templateManager.createTemplate(type, tem.getTemplate().toTemplateProperties()),
+                (notifier, template) -> notifier.send(template, Values.of(tem.getContext())))
+                .flatMap(Function.identity());
         });
     }
 
@@ -61,8 +67,10 @@ public class NotifierController {
     public static class SendNotifyRequest {
 
         @NotNull
+        @Schema(description = "通知模版")
         private NotifyTemplateEntity template;
 
+        @Schema(description = "上下文数据")
         private Map<String, Object> context = new HashMap<>();
     }
 

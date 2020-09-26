@@ -1,8 +1,11 @@
 package org.jetlinks.community.device.web;
 
 import com.alibaba.fastjson.JSON;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
@@ -35,6 +38,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/device/gateway")
 @Resource(id = "device-gateway", name = "网关设备管理")
+@Tag(name = "网关设备管理")
 public class GatewayDeviceController {
 
     @Autowired
@@ -60,10 +64,11 @@ public class GatewayDeviceController {
 
     @GetMapping("/_query")
     @QueryAction
-    public Mono<PagerResult<GatewayDeviceInfo>> queryGatewayDevice(QueryParamEntity param) {
+    @QueryOperation(summary = "查询网关设备详情")
+    public Mono<PagerResult<GatewayDeviceInfo>> queryGatewayDevice(@Parameter(hidden = true) QueryParamEntity param) {
         return getGatewayProductList()
             .flatMap(productIdList ->
-                param.toNestQuery(q -> q.in(DeviceInstanceEntity::getProductId, productIdList))
+                param.toNestQuery(query -> query.in(DeviceInstanceEntity::getProductId, productIdList))
                     .execute(instanceService::queryPager)
                     .filter(r -> r.getTotal() > 0)
                     .flatMap(result -> {
@@ -72,7 +77,7 @@ public class GatewayDeviceController {
                                 .stream()
                                 .collect(Collectors.toMap(DeviceInstanceEntity::getId, Function.identity()));
 
-                        //查询所有子设备
+                        //查询所有子设备并按父设备ID分组
                         return instanceService.createQuery()
                             .where()
                             .in(DeviceInstanceEntity::getParentId, mapping.keySet())
@@ -82,6 +87,7 @@ public class GatewayDeviceController {
                                 String parentId = group.key();
                                 return group
                                     .collectList()
+                                    //将父设备和分组的子设备合并在一起
                                     .map(children -> GatewayDeviceInfo.of(mapping.get(parentId), children));
                             })
                             .collectMap(GatewayDeviceInfo::getId)//收集所有有子设备的网关设备信息
@@ -98,6 +104,7 @@ public class GatewayDeviceController {
 
     @GetMapping("/{id}")
     @QueryAction
+    @QueryOperation(summary = "获取单个网关设备详情")
     public Mono<GatewayDeviceInfo> getGatewayInfo(@PathVariable String id) {
         return Mono.zip(
             instanceService.findById(id),
@@ -113,8 +120,9 @@ public class GatewayDeviceController {
 
     @PostMapping("/{gatewayId}/bind/{deviceId}")
     @SaveAction
-    public Mono<GatewayDeviceInfo> bindDevice(@PathVariable String gatewayId,
-                                              @PathVariable String deviceId) {
+    @QueryOperation(summary = "绑定单个子设备到网关设备")
+    public Mono<GatewayDeviceInfo> bindDevice(@PathVariable @Parameter(description = "网关设备ID") String gatewayId,
+                                              @PathVariable @Parameter(description = "子设备ID") String deviceId) {
         return instanceService
             .createUpdate()
             .set(DeviceInstanceEntity::getParentId, gatewayId)
@@ -128,17 +136,12 @@ public class GatewayDeviceController {
 
     @PostMapping("/{gatewayId}/bind")
     @SaveAction
-    public Mono<GatewayDeviceInfo> bindDevice(@PathVariable String gatewayId,
-                                              @RequestBody Flux<String> deviceId) {
+    @QueryOperation(summary = "绑定多个子设备到网关设备")
+    public Mono<GatewayDeviceInfo> bindDevice(@PathVariable @Parameter(description = "网关设备ID") String gatewayId,
+                                              @RequestBody @Parameter(description = "子设备ID集合") Mono<List<String>> deviceId) {
+
 
         return deviceId
-            .flatMapIterable(str -> {
-                if (str.startsWith("[")) {
-                    return JSON.parseArray(str, String.class);
-                }
-                return Collections.singletonList(str);
-            })
-            .collectList()
             .filter(CollectionUtils::isNotEmpty)
             .flatMap(deviceIdList -> instanceService
                 .createUpdate()
@@ -154,12 +157,14 @@ public class GatewayDeviceController {
                 )
             ).then(getGatewayInfo(gatewayId));
 
+
     }
 
     @PostMapping("/{gatewayId}/unbind/{deviceId}")
     @SaveAction
-    public Mono<GatewayDeviceInfo> unBindDevice(@PathVariable String gatewayId,
-                                                @PathVariable String deviceId) {
+    @QueryOperation(summary = "从网关设备中解绑子设备")
+    public Mono<GatewayDeviceInfo> unBindDevice(@PathVariable @Parameter(description = "网关设备ID") String gatewayId,
+                                                @PathVariable @Parameter(description = "自设备ID") String deviceId) {
         return instanceService
             .createUpdate()
             .setNull(DeviceInstanceEntity::getParentId)
@@ -172,4 +177,5 @@ public class GatewayDeviceController {
                 .flatMap(operator -> operator.removeConfig(DeviceConfigKey.parentGatewayId.getKey())))
             .then(getGatewayInfo(gatewayId));
     }
+
 }

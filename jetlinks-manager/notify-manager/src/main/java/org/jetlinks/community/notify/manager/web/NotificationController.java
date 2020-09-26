@@ -1,9 +1,13 @@
 package org.jetlinks.community.notify.manager.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
@@ -24,6 +28,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/notifications")
+@Tag(name = "系统通知管理")
 public class NotificationController {
 
     private final NotificationService notificationService;
@@ -42,7 +47,8 @@ public class NotificationController {
 
     @GetMapping("/subscriptions/_query")
     @Authorize(ignore = true)
-    public Mono<PagerResult<NotifySubscriberEntity>> querySubscription(QueryParamEntity query) {
+    @QueryOperation(summary = "查询当前用户订阅信息")
+    public Mono<PagerResult<NotifySubscriberEntity>> querySubscription(@Parameter(hidden = true) QueryParamEntity query) {
         return Authentication
             .currentReactive()
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
@@ -55,6 +61,7 @@ public class NotificationController {
 
     @PutMapping("/subscription/{id}/_{state}")
     @Authorize(ignore = true)
+    @Operation(summary = "修改通知订阅状态")
     public Mono<Void> changeSubscribeState(@PathVariable String id, @PathVariable SubscribeState state) {
         return Authentication
             .currentReactive()
@@ -72,6 +79,7 @@ public class NotificationController {
 
     @DeleteMapping("/subscription/{id}")
     @Authorize(ignore = true)
+    @Operation(summary = "删除订阅")
     public Mono<Void> deleteSubscription(@PathVariable String id) {
         return Authentication
             .currentReactive()
@@ -86,9 +94,9 @@ public class NotificationController {
             );
     }
 
-
     @PatchMapping("/subscribe")
     @Authorize(ignore = true)
+    @Operation(summary = "订阅通知")
     public Mono<NotifySubscriberEntity> doSubscribe(@RequestBody Mono<NotifySubscriberEntity> subscribe) {
         return Authentication
             .currentReactive()
@@ -105,16 +113,17 @@ public class NotificationController {
 
     @GetMapping("/providers")
     @Authorize(merge = false)
+    @Operation(summary = "获取全部订阅支持")
     public Flux<SubscriberProviderInfo> getProviders() {
         return Flux
             .fromIterable(providers)
             .map(SubscriberProviderInfo::of);
     }
 
-
     @GetMapping("/_query")
     @Authorize(ignore = true)
-    public Mono<PagerResult<NotificationEntity>> queryMyNotifications(QueryParamEntity query) {
+    @QueryOperation(summary = "查询通知记录")
+    public Mono<PagerResult<NotificationEntity>> queryMyNotifications(@Parameter(hidden = true) QueryParamEntity query) {
         return Authentication
             .currentReactive()
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
@@ -128,6 +137,7 @@ public class NotificationController {
 
     @GetMapping("/{id}/read")
     @Authorize(ignore = true)
+    @QueryOperation(summary = "获取通知记录")
     public Mono<NotificationEntity> readNotification(@PathVariable String id) {
         return Authentication
             .currentReactive()
@@ -143,6 +153,7 @@ public class NotificationController {
 
     @PostMapping("/_{state}")
     @Authorize(ignore = true)
+    @QueryOperation(summary = "修改通知状态")
     public Mono<Integer> readNotification(@RequestBody Mono<List<String>> idList,
                                           @PathVariable NotificationState state) {
         return Authentication

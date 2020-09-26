@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.web;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.annotation.Authorize;
@@ -35,6 +36,8 @@ import java.util.function.Function;
 @Slf4j
 @Authorize
 @Resource(id = "device-instance", name = "设备实例")
+@Tag(name = "设备指令API")
+@Deprecated
 public class DeviceMessageController {
 
     @Autowired
@@ -43,6 +46,7 @@ public class DeviceMessageController {
     //获取设备属性
     @GetMapping("/{deviceId}/property/{property:.+}")
     @SneakyThrows
+    @Deprecated
     public Flux<?> getProperty(@PathVariable String deviceId, @PathVariable String property) {
 
         return registry
@@ -58,6 +62,7 @@ public class DeviceMessageController {
     //获取标准设备属性
     @GetMapping("/standard/{deviceId}/property/{property:.+}")
     @SneakyThrows
+    @Deprecated
     public Mono<DevicePropertiesEntity> getStandardProperty(@PathVariable String deviceId, @PathVariable String property) {
         return Mono.from(registry
             .getDevice(deviceId)
@@ -85,6 +90,7 @@ public class DeviceMessageController {
     //设置设备属性
     @PostMapping("/setting/{deviceId}/property")
     @SneakyThrows
+    @Deprecated
     public Flux<?> settingProperties(@PathVariable String deviceId, @RequestBody Map<String, Object> properties) {
 
         return registry
@@ -103,6 +109,7 @@ public class DeviceMessageController {
     //设备功能调用
     @PostMapping("invoked/{deviceId}/function/{functionId}")
     @SneakyThrows
+    @Deprecated
     public Flux<?> invokedFunction(@PathVariable String deviceId,
                                    @PathVariable String functionId,
                                    @RequestBody Map<String, Object> properties) {
@@ -124,6 +131,7 @@ public class DeviceMessageController {
     //获取设备所有属性
     @PostMapping("/{deviceId}/properties")
     @SneakyThrows
+    @Deprecated
     public Flux<?> getProperties(@PathVariable String deviceId,
                                  @RequestBody Mono<List<String>> properties) {
 

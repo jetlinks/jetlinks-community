@@ -1,7 +1,12 @@
 package org.jetlinks.community.network.manager.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.hswebframework.web.authorization.annotation.Authorize;
+import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
+import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 import org.jetlinks.core.message.Message;
@@ -19,6 +24,7 @@ import reactor.core.publisher.Mono;
 @RequestMapping("gateway/device")
 @Resource(id = "device-gateway", name = "设备网关")
 @Authorize
+@Tag(name = "设备网关管理")
 public class DeviceGatewayController implements ReactiveServiceCrudController<DeviceGatewayEntity, String> {
 
     private final DeviceGatewayService deviceGatewayService;
@@ -36,7 +42,10 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
     }
 
     @PostMapping("/{id}/_startup")
-    public Mono<Void> startup(@PathVariable String id) {
+    @SaveAction
+    @Operation(summary = "启动网关")
+    public Mono<Void> startup(@PathVariable
+                              @Parameter(description = "网关ID") String id) {
         return gatewayManager
             .getGateway(id)
             .flatMap(DeviceGateway::startup)
@@ -45,7 +54,10 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
     }
 
     @PostMapping("/{id}/_pause")
-    public Mono<Void> pause(@PathVariable String id) {
+    @SaveAction
+    @Operation(summary = "暂停")
+    public Mono<Void> pause(@PathVariable
+                            @Parameter(description = "网关ID") String id) {
         return gatewayManager
             .getGateway(id)
             .flatMap(DeviceGateway::pause)
@@ -54,7 +66,10 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
     }
 
     @PostMapping("/{id}/_shutdown")
-    public Mono<Void> shutdown(@PathVariable String id) {
+    @SaveAction
+    @Operation(summary = "停止")
+    public Mono<Void> shutdown(@PathVariable
+                               @Parameter(description = "网关ID") String id) {
         return gatewayManager
             .shutdown(id)
             .then(deviceGatewayService.updateState(id, NetworkConfigState.disabled).then())
@@ -62,13 +77,17 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
     }
 
     @GetMapping(value = "/{id}/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Message> getMessages(@PathVariable String id) {
+    @QueryAction
+    @Operation(summary = "从设备网关中订阅消息")
+    public Flux<Message> getMessages(@PathVariable
+                                     @Parameter(description = "网关ID") String id) {
         return gatewayManager
             .getGateway(id)
             .flatMapMany(DeviceGateway::onMessage);
     }
 
     @GetMapping(value = "/providers")
+    @Operation(summary = "获取支持的设备网关")
     public Flux<DeviceGatewayProvider> getProviders() {
         return Flux.fromIterable(gatewayManager.getProviders());
     }

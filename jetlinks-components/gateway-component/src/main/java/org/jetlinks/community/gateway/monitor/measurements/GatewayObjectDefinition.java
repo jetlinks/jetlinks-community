@@ -8,7 +8,6 @@ import org.jetlinks.community.dashboard.ObjectDefinition;
 @Getter
 public enum GatewayObjectDefinition implements ObjectDefinition {
     deviceGateway("设备网关"),
-    messageGateway("消息网关"),
 
     ;
 

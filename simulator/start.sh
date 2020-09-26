@@ -9,3 +9,5 @@ java -jar -Dfile.encoding=UTF-8 device-simulator.jar \
   mqtt.scriptFile=./scripts/demo-device.js \
   mqtt.address=127.0.0.1 \
   mqtt.port=1883
+
+

@@ -1,6 +1,6 @@
 package org.jetlinks.community.notify.manager.web;
 
-import org.hswebframework.web.authorization.annotation.Resource;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceQueryController;
 import org.jetlinks.community.notify.manager.entity.NotifyHistoryEntity;
 import org.jetlinks.community.notify.manager.service.NotifyHistoryService;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/notify/history")
-@Resource(id = "notifier", name = "通知管理")
+@Tag(name = "消息通知记录")
 public class NotifierHistoryController implements ReactiveServiceQueryController<NotifyHistoryEntity, String> {
 
     private final NotifyHistoryService historyService;
