@@ -76,7 +76,7 @@ public class MqttClientDebugSubscriptionProvider implements SubscriptionProvider
     public Flux<String> mqttClientPublish(MqttClient client,
                                           PayloadType type,
                                           SubscribeRequest request) {
-        MqttMessageRequest messageRequest = FastBeanCopier.copy(request.getAll(), new MqttMessageRequest());
+        MqttMessageRequest messageRequest = FastBeanCopier.copy(request.values(), new MqttMessageRequest());
 
         return client
             .publish(MqttMessageRequest.of(messageRequest, type))
