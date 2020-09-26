@@ -1,5 +1,6 @@
 package org.jetlinks.community.timeseries.query;
 
+
 import org.jetlinks.community.ValueObject;
 
 import java.util.Map;
@@ -15,7 +16,7 @@ public interface AggregationData extends ValueObject {
     }
 
     @Override
-    default Map<String, Object> getAll() {
+    default Map<String, Object> values() {
         return asMap();
     }
 

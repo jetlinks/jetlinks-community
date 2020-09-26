@@ -11,10 +11,10 @@ import java.util.Optional;
 
 public interface ValueObject {
 
-    Map<String, Object> getAll();
+    Map<String, Object> values();
 
     default Optional<Object> get(String name) {
-        return Optional.ofNullable(getAll())
+        return Optional.ofNullable(values())
             .map(map -> map.get(name));
     }
 

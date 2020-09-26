@@ -1,5 +1,6 @@
 package org.jetlinks.community.elastic.search.service.reactive;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
@@ -25,5 +26,7 @@ public interface ReactiveElasticsearchClient extends
     Mono<GetIndexTemplatesResponse> getTemplate(GetIndexTemplatesRequest request);
 
     Mono<AcknowledgedResponse> updateTemplate(PutIndexTemplateRequest request);
+
+    Version serverVersion();
 
 }

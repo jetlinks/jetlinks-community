@@ -2,6 +2,13 @@ package org.jetlinks.community.timeseries.query;
 
 public enum Aggregation {
 
-    MIN, MAX, AVG, SUM, COUNT, NONE;
+    MIN,
+    MAX,
+    AVG,
+    SUM,
+    COUNT,
+    FIRST,
+    TOP,
+    NONE;
 
 }

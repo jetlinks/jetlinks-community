@@ -53,7 +53,7 @@ public class TcpServerProperties implements ValueObject {
     }
 
     @Override
-    public Map<String, Object> getAll() {
+    public Map<String, Object> values() {
         return parserConfiguration;
     }
 }

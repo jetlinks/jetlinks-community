@@ -18,9 +18,15 @@ public class Interval {
     public static String minutes = "m";
     public static String seconds = "s";
 
-    private BigDecimal number;
+    private final BigDecimal number;
 
-    private String expression;
+    private final String expression;
+
+    public boolean isFixed() {
+        return expression.equals(hours) ||
+            expression.equals(minutes) ||
+            expression.equals(seconds);
+    }
 
     @Override
     public String toString() {

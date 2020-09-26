@@ -23,7 +23,7 @@ public class SubscribeRequest implements ValueObject {
     private Authentication authentication;
 
     @Override
-    public Map<String, Object> getAll() {
+    public Map<String, Object> values() {
         return parameter;
     }
 

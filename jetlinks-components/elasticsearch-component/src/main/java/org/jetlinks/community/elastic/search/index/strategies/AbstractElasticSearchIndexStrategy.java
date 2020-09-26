@@ -95,7 +95,12 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         }
         Map<String, Object> mappingConfig = new HashMap<>();
         PutMappingRequest request = new PutMappingRequest(wrapIndex(metadata.getIndex()));
-        mappingConfig.put("properties", createElasticProperties(metadata.getProperties()));
+        request.type("_doc");
+        List<PropertyMetadata> allProperties = new ArrayList<>();
+        allProperties.addAll(metadata.getProperties());
+        allProperties.addAll(ignore.getProperties());
+
+        mappingConfig.put("properties", createElasticProperties(allProperties));
         request.source(mappingConfig);
         return request;
     }

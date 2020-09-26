@@ -20,7 +20,7 @@ public class DeviceGatewayProperties  implements ValueObject {
     private Map<String,Object> configuration=new HashMap<>();
 
     @Override
-    public Map<String, Object> getAll() {
+    public Map<String, Object> values() {
         return configuration;
     }
 }

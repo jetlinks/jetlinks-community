@@ -1,8 +1,9 @@
 package org.jetlinks.community.elastic.search.service.reactive;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
@@ -11,6 +12,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -50,16 +52,15 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.get.GetResult;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -110,8 +111,10 @@ import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static org.elasticsearch.rest.BaseRestHandler.INCLUDE_TYPE_NAME_PARAMETER;
 import static org.springframework.data.elasticsearch.client.util.RequestConverters.createContentType;
 
+@Slf4j
 public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearchClient {
     private final HostProvider hostProvider;
     private final RequestCreator requestCreator;
@@ -131,6 +134,11 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
 
         this.hostProvider = hostProvider;
         this.requestCreator = requestCreator;
+        info()
+            .subscribe(mainResponse -> {
+                log.debug("connect elasticsearch server : {}", JSON.toJSONString(mainResponse, SerializerFeature.PrettyFormat));
+                version = mainResponse.getVersion();
+            });
     }
 
     public void setHeadersSupplier(Supplier<HttpHeaders> headersSupplier) {
@@ -216,7 +224,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
      * @see org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient#indices()
      */
     @Override
-    public Indices indices() {
+    public org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient.Indices indices() {
         return this;
     }
 
@@ -547,9 +555,10 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
      */
     @Override
     public Mono<Boolean> existsIndex(HttpHeaders headers, GetIndexRequest request) {
-
-        return sendRequest(request, requestCreator.indexExists(), RawActionResponse.class, headers) //
-            .map(response -> response.statusCode().is2xxSuccessful()) //
+        return sendRequest(request, requestCreator.indexExists()
+            , RawActionResponse.class, headers) //
+            .map(response -> response.statusCode().is2xxSuccessful())
+            .onErrorReturn(false)
             .next();
     }
 
@@ -585,7 +594,15 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
     @Override
     public Mono<Void> openIndex(HttpHeaders headers, OpenIndexRequest request) {
 
-        return sendRequest(request, requestCreator.indexOpen(), AcknowledgedResponse.class, headers) //
+        return sendRequest(
+            request,
+            requestCreator
+                .indexOpen()
+                .andThen(r -> {
+                    r.addParameter("include_type_name", "true");
+                    return r;
+                }),
+            AcknowledgedResponse.class, headers) //
             .then();
     }
 
@@ -618,7 +635,9 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
     @Override
     public Mono<Void> updateMapping(HttpHeaders headers, PutMappingRequest putMappingRequest) {
 
-        return sendRequest(putMappingRequest, requestCreator.putMapping(), AcknowledgedResponse.class, headers) //
+        return sendRequest(putMappingRequest
+            , requestCreator.putMapping()
+            , AcknowledgedResponse.class, headers) //
             .then();
     }
 
@@ -638,7 +657,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
      * @see org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient#ping(org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient.ReactiveElasticsearchClientCallback)
      */
     @Override
-    public Mono<ClientResponse> execute(ReactiveElasticsearchClientCallback callback) {
+    public Mono<ClientResponse> execute(org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient.ReactiveElasticsearchClientCallback callback) {
 
         return this.hostProvider.getActive(HostProvider.Verification.LAZY) //
             .flatMap(callback::doWithClient) //
@@ -655,7 +674,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
     }
 
     @Override
-    public Mono<Status> status() {
+    public Mono<org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient.Status> status() {
 
         return hostProvider.clusterInfo() //
             .map(it -> new ClientStatus(it.getNodes()));
@@ -795,8 +814,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
             } catch (Exception e) {
 
                 return Mono
-                    .error(new ElasticsearchStatusException(content,
-                        RestStatus.fromCode(response.statusCode().value()),errorParseFailure));
+                    .error(new ElasticsearchStatusException(content, RestStatus.fromCode(response.statusCode().value())));
             }
         }
     }
@@ -900,9 +918,15 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
 
     @Override
     public Mono<SearchResponse> searchForPage(SearchRequest request) {
-
+        long startTime = System.currentTimeMillis();
         return sendRequest(request, requestCreator.search(), SearchResponse.class, HttpHeaders.EMPTY)
-            .singleOrEmpty();
+            .singleOrEmpty()
+            .doOnNext(res -> {
+                log.trace("execute search {} {}ms : {}", request.indices(), System.currentTimeMillis() - startTime, request.source());
+            })
+            .doOnError(err -> {
+                log.warn("execute search {} error : {}", request.indices(), request.source(), err);
+            });
     }
 
     @SneakyThrows
@@ -940,9 +964,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
     }
 
     Request convertGetIndexTemplateRequest(GetIndexTemplatesRequest getIndexTemplatesRequest) {
-        final Request request = new Request(HttpGet.METHOD_NAME, "/_template/" + String.join(",", getIndexTemplatesRequest.names()));
-
-        return request;
+        return new Request(HttpGet.METHOD_NAME, "/_template/" + String.join(",", getIndexTemplatesRequest.names()));
     }
 
     @Override
@@ -974,16 +996,23 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
             .singleOrEmpty();
     }
 
+    private Version version = Version.CURRENT;
+
+    @Override
+    public Version serverVersion() {
+        return version;
+    }
+
     // endregion
 
     // region internal classes
 
     /**
-     * Reactive client {@link Status} implementation.
+     * Reactive client {@link ReactiveElasticsearchClient.Status} implementation.
      *
      * @author Christoph Strobl
      */
-    class ClientStatus implements Status {
+    class ClientStatus implements ReactiveElasticsearchClient.Status {
 
         private final Collection<ElasticsearchHost> connectedHosts;
 

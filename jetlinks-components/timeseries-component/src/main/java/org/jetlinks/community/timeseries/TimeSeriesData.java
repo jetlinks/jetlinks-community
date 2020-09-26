@@ -14,7 +14,7 @@ public interface TimeSeriesData extends ValueObject {
     Map<String, Object> getData();
 
     @Override
-    default Map<String, Object> getAll() {
+    default Map<String, Object> values() {
         return getData();
     }
 
