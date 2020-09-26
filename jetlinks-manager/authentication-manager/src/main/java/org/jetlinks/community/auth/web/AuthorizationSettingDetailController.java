@@ -1,17 +1,17 @@
 package org.jetlinks.community.auth.web;
 
-import org.hswebframework.web.authorization.DimensionProvider;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
-import org.hswebframework.web.system.authorization.api.entity.AuthorizationSettingEntity;
-import org.hswebframework.web.system.authorization.defaults.service.DefaultAuthorizationSettingService;
+import org.jetlinks.community.auth.service.AuthorizationSettingDetailService;
 import org.jetlinks.community.auth.web.request.AuthorizationSettingDetail;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/autz-setting/detail")
@@ -19,56 +19,32 @@ import java.util.List;
 @Resource(
     id = "autz-setting",
     name = "权限分配",
-    group = {"system"}
+    group = "system"
 )
+@AllArgsConstructor
+@Tag(name = "权限分配")
 public class AuthorizationSettingDetailController {
 
-    private final DefaultAuthorizationSettingService settingService;
-
-    private final List<DimensionProvider> providers;
-
-    public AuthorizationSettingDetailController(DefaultAuthorizationSettingService settingService, List<DimensionProvider> providers) {
-        this.settingService = settingService;
-        this.providers = providers;
-    }
+    private final AuthorizationSettingDetailService settingService;
 
     @PostMapping("/_save")
     @SaveAction
+    @Operation(summary = "赋权")
     public Mono<Boolean> saveSettings(@RequestBody Flux<AuthorizationSettingDetail> detailFlux) {
-        return detailFlux
-            //先删除旧的权限设置
-            .flatMap(detail -> settingService.getRepository().createDelete()
-                .where(AuthorizationSettingEntity::getDimensionType, detail.getTargetType())
-                .and(AuthorizationSettingEntity::getDimensionTarget, detail.getTargetId())
-                .execute()
-                .thenReturn(detail))
-            .flatMap(detail ->
-                Flux.fromIterable(providers)
-                    .flatMap(provider -> provider
-                        .getAllType()
-                        .filter(type -> type.getId().equals(detail.getTargetType()))
-                        .singleOrEmpty()
-                        .flatMap(type -> provider.getDimensionById(type, detail.getTargetId())))
-                    .singleOrEmpty()
-                    .flatMapIterable(detail::toEntity)
-                    .switchIfEmpty(Flux.defer(() -> Flux.fromIterable(detail.toEntity())))
-            )
-            .as(settingService::save)
+
+        return settingService
+            .saveDetail(detailFlux)
             .thenReturn(true);
     }
 
     @GetMapping("/{targetType}/{target}")
     @SaveAction
-    public Mono<AuthorizationSettingDetail> getSettings(@PathVariable String targetType, @PathVariable String target) {
-
+    @Operation(summary = "获取权限详情")
+    public Mono<AuthorizationSettingDetail> getSettings(@PathVariable @Parameter(description = "权限类型") String targetType,
+                                                        @PathVariable @Parameter(description = "权限类型对应数据ID") String target) {
 
         return settingService
-            .createQuery()
-            .where(AuthorizationSettingEntity::getDimensionTarget, target)
-            .and(AuthorizationSettingEntity::getDimensionType, targetType)
-            .fetch()
-            .collectList()
-            .map(AuthorizationSettingDetail::fromEntity)
+            .getSettingDetail(targetType, target)
             ;
     }
 

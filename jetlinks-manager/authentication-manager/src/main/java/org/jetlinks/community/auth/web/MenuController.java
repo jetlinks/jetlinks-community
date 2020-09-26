@@ -1,5 +1,6 @@
 package org.jetlinks.community.auth.web;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.AuthenticationUtils;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/menu")
 @Authorize
 @Resource(id = "menu", name = "菜单管理", group = "system")
+@Hidden
 public class MenuController implements ReactiveServiceCrudController<MenuEntity, String> {
 
     @Autowired

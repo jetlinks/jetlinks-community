@@ -1,6 +1,10 @@
 package org.jetlinks.community.auth.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
 import org.hswebframework.web.authorization.annotation.*;
@@ -14,15 +18,15 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/organization")
 @RestController
 @Resource(id = "organization", name = "机构管理")
+@Tag(name = "机构管理")
 public class OrganizationController {
-
     static String orgDimensionTypeId = "org";
-
     @Autowired
     private DefaultDimensionService dimensionService;
 
     @GetMapping("/_all/tree")
     @Authorize(merge = false)
+    @Operation(summary = "获取全部机构信息(树结构)")
     public Flux<DimensionEntity> getAllOrgTree() {
         return getAllOrg()
             .collectList()
@@ -31,6 +35,7 @@ public class OrganizationController {
 
     @GetMapping("/_all")
     @Authorize(merge = false)
+    @Operation(summary = "获取全部机构信息")
     public Flux<DimensionEntity> getAllOrg() {
         return dimensionService
             .createQuery()
@@ -40,7 +45,8 @@ public class OrganizationController {
 
     @GetMapping("/_query")
     @QueryAction
-    public Mono<PagerResult<DimensionEntity>> queryDimension(QueryParamEntity entity) {
+    @QueryOperation(summary = "查询结构列表")
+    public Mono<PagerResult<DimensionEntity>> queryDimension(@Parameter(hidden = true) QueryParamEntity entity) {
         return entity
             .toNestQuery(q -> q.where(DimensionEntity::getTypeId, orgDimensionTypeId))
             .execute(Mono::just)
@@ -49,6 +55,7 @@ public class OrganizationController {
 
     @PatchMapping
     @SaveAction
+    @QueryOperation(summary = "保存机构信息")
     public Mono<Void> saveOrg(@RequestBody Flux<DimensionEntity> entityFlux) {
         return entityFlux
             .doOnNext(entity -> entity.setTypeId(orgDimensionTypeId))
@@ -56,12 +63,12 @@ public class OrganizationController {
             .then();
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     @DeleteAction
-    public Mono<Void> deleteOrg(@RequestBody Flux<DimensionEntity> entityFlux) {
-        return entityFlux
-            .doOnNext(entity -> entity.setTypeId(orgDimensionTypeId))
-            .as(dimensionService::save)
+    @QueryOperation(summary = "删除机构信息")
+    public Mono<Void> deleteOrg(@PathVariable String id) {
+        return dimensionService
+            .deleteById(Mono.just(id))
             .then();
     }
 

@@ -1,5 +1,7 @@
 package org.jetlinks.community.auth.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
@@ -12,6 +14,7 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/user/detail")
 @AllArgsConstructor
+@Tag(name = "用户信息接口")
 public class UserDetailController {
 
     private final UserDetailService userDetailService;
@@ -22,6 +25,7 @@ public class UserDetailController {
      * @return 用户详情
      */
     @GetMapping
+    @Operation(summary = "获取当前登录用户详情")
     public Mono<UserDetail> getCurrentLoginUserDetail() {
         return Authentication
             .currentReactive()
@@ -35,6 +39,7 @@ public class UserDetailController {
      * @return 用户详情
      */
     @PutMapping
+    @Operation(summary = "保存当前用户详情")
     public Mono<Void> saveUserDetail(@RequestBody Mono<SaveUserDetailRequest> request) {
         return Authentication
             .currentReactive()
