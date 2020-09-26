@@ -59,6 +59,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import reactor.core.publisher.EmitterProcessor;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
@@ -162,14 +163,14 @@ public class JetLinksConfiguration {
     public DefaultDecodedClientMessageHandler defaultDecodedClientMessageHandler(MessageHandler handler,
                                                                                  DeviceMessageConnector messageConnector,
                                                                                  DeviceSessionManager deviceSessionManager,
-                                                                                 ApplicationEventPublisher eventPublisher) {
+                                                                                 Scheduler scheduler) {
         DefaultDecodedClientMessageHandler clientMessageHandler = new DefaultDecodedClientMessageHandler(handler, deviceSessionManager,
             EmitterProcessor.create(false)
         );
         clientMessageHandler
             .subscribe()
             .parallel()
-            .runOn(Schedulers.parallel())
+            .runOn(scheduler)
             .flatMap(msg -> messageConnector.onMessage(msg).onErrorContinue((err, r) -> log.error(err.getMessage(), err)))
             .subscribe();
 

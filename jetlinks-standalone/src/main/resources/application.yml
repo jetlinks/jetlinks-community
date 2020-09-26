@@ -140,3 +140,37 @@ management:
   health:
     elasticsearch:
       enabled: false  # 关闭elasticsearch健康检查
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  #  packages-to-scan: org.jetlinks
+  group-configs:
+    - group: 设备管理相关接口
+      packages-to-scan:
+        - org.jetlinks.community.device
+      paths-to-exclude:
+        - /device-instance/**
+        - /device-product/**
+        - /protocol/**
+    - group: 规则引擎相关接口
+      packages-to-scan: org.jetlinks.community.rule.engine.web
+      paths-to-exclude: /api/**
+    - group: 通知管理相关接口
+      packages-to-scan: org.jetlinks.community.notify.manager.web
+    - group: 设备接入相关接口
+      packages-to-scan:
+        - org.jetlinks.community.network.manager.web
+        - org.jetlinks.community.device.web
+      paths-to-match:
+        - /gateway/**
+        - /network/**
+        - /protocol/**
+    - group: 系统管理相关接口
+      packages-to-scan:
+        - org.jetlinks.community.auth
+        - org.hswebframework.web.system.authorization.defaults.webflux
+        - org.hswebframework.web.file
+        - org.hswebframework.web.authorization.basic.web
+        - org.jetlinks.community.logging.controller
+  cache:
+    disabled: false
