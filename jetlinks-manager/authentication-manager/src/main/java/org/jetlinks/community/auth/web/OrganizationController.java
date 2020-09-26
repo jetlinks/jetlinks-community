@@ -55,7 +55,7 @@ public class OrganizationController {
 
     @PatchMapping
     @SaveAction
-    @QueryOperation(summary = "保存机构信息")
+    @Operation(summary = "保存机构信息")
     public Mono<Void> saveOrg(@RequestBody Flux<DimensionEntity> entityFlux) {
         return entityFlux
             .doOnNext(entity -> entity.setTypeId(orgDimensionTypeId))
@@ -65,7 +65,7 @@ public class OrganizationController {
 
     @DeleteMapping("/{id}")
     @DeleteAction
-    @QueryOperation(summary = "删除机构信息")
+    @Operation(summary = "删除机构信息")
     public Mono<Void> deleteOrg(@PathVariable String id) {
         return dimensionService
             .deleteById(Mono.just(id))

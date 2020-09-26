@@ -114,17 +114,24 @@ jetlinks:
 logging:
   level:
     org.jetlinks: debug
-    rule.engine: warn
+    rule.engine: debug
     org.hswebframework: debug
     org.springframework.transaction: debug
-    #    org.springframework.data.r2dbc.connectionfactory: debug
+    org.springframework.data.r2dbc.connectionfactory: warn
     io.micrometer: warn
     org.hswebframework.expands: error
     system: debug
     org.jetlinks.rule.engine: warn
-    org.jetlinks.gateway: debug
+    org.jetlinks.supports.event: warn
     org.springframework: warn
-    org.elasticsearch: error
+    org.jetlinks.community.device.message.writer: warn
+    org.jetlinks.community.elastic.search.service: trace
+    org.jetlinks.community.elastic.search.service.reactive: trace
+    org.jetlinks.community.network: warn
+    io.vertx.mqtt.impl: warn
+    #    org.springframework.data.elasticsearch.client: trace
+    #    org.elasticsearch: error
+    org.jetlinks.pro.influx: trace
   config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds
