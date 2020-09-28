@@ -273,5 +273,9 @@ public interface DeviceDataService {
         //过滤条件
         @Schema(description = "过滤条件")
         QueryParamEntity filter = QueryParamEntity.of();
+
+        public AggregationRequest copy() {
+            return new AggregationRequest(interval, format, from, to, limit, filter.clone());
+        }
     }
 }

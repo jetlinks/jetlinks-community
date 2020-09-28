@@ -113,7 +113,7 @@ public class DefaultDeviceDataService implements DeviceDataService {
                                                                 @Nonnull DevicePropertyAggregation... properties) {
         return this
             .getStoreStrategy(productId)
-            .flatMapMany(strategy -> strategy.aggregationPropertiesByProduct(productId, request, properties));
+            .flatMapMany(strategy -> strategy.aggregationPropertiesByProduct(productId, request.copy(), properties));
     }
 
     @Override
@@ -122,7 +122,7 @@ public class DefaultDeviceDataService implements DeviceDataService {
                                                                @Nonnull DevicePropertyAggregation... properties) {
         return this
             .getDeviceStrategy(deviceId)
-            .flatMapMany(strategy -> strategy.aggregationPropertiesByDevice(deviceId, request, properties));
+            .flatMapMany(strategy -> strategy.aggregationPropertiesByDevice(deviceId, request.copy(), properties));
     }
 
     @Nonnull

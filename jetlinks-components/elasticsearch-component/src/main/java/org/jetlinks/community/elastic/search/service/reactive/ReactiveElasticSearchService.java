@@ -255,8 +255,6 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
             .onBackpressureBuffer(bufferBackpressure,
                 drop -> System.err.println("无法处理更多索引请求!"),
                 BufferOverflowStrategy.DROP_OLDEST)
-            .parallel()
-            .runOn(Schedulers.parallel())
             .flatMap(buffers -> {
                 long time = System.currentTimeMillis();
                 return this
