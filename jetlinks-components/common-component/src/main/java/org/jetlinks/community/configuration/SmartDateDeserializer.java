@@ -20,6 +20,10 @@ public class SmartDateDeserializer extends JsonDeserializer<Date> {
             }
             return TimeUtils.parseDate(str);
         }
+        if (p.hasToken(JsonToken.VALUE_NUMBER_INT)) {
+            long ts = p.getLongValue();
+            return new Date(ts);
+        }
         return null;
     }
 }

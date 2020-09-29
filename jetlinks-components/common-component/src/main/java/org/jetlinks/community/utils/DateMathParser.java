@@ -22,6 +22,7 @@ package org.jetlinks.community.utils;
 
 import lombok.SneakyThrows;
 import org.hswebframework.utils.time.DateFormatter;
+import org.jetlinks.core.metadata.types.DateTimeType;
 import org.springframework.util.StringUtils;
 
 import java.time.*;
@@ -166,6 +167,6 @@ public class DateMathParser {
         if (StringUtils.isEmpty(value)) {
             throw new IllegalArgumentException("cannot parse empty date");
         }
-        return DateFormatter.fromString(value).getTime();
+        return DateTimeType.GLOBAL.convert(value).getTime();
     }
 }
