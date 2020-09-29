@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.service.data;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import org.hswebframework.web.api.crud.entity.PagerResult;
@@ -276,6 +277,11 @@ public interface DeviceDataService {
 
         public AggregationRequest copy() {
             return new AggregationRequest(interval, format, from, to, limit, filter.clone());
+        }
+
+        @Hidden
+        public void setQuery(QueryParamEntity filter) {
+            setFilter(filter);
         }
     }
 }
