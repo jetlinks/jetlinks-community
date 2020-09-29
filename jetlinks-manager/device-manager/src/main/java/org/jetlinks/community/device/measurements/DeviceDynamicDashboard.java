@@ -1,11 +1,11 @@
 package org.jetlinks.community.device.measurements;
 
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.community.dashboard.DashboardObject;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.event.EventBus;
+import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -21,16 +21,16 @@ public class DeviceDynamicDashboard implements DeviceDashboard {
 
     private final EventBus eventBus;
 
-    private final TimeSeriesManager timeSeriesManager;
+    private final DeviceDataService dataService;
 
     public DeviceDynamicDashboard(LocalDeviceProductService productService,
                                   DeviceRegistry registry,
-                                  EventBus eventBus,
-                                  TimeSeriesManager timeSeriesManager) {
+                                  DeviceDataService deviceDataService,
+                                  EventBus eventBus) {
         this.productService = productService;
         this.registry = registry;
         this.eventBus = eventBus;
-        this.timeSeriesManager = timeSeriesManager;
+        this.dataService = deviceDataService;
     }
 
     @PostConstruct
@@ -53,6 +53,6 @@ public class DeviceDynamicDashboard implements DeviceDashboard {
 
     protected Mono<DeviceDashboardObject> convertObject(DeviceProductEntity product) {
         return registry.getProduct(product.getId())
-            .map(operator -> DeviceDashboardObject.of(product.getId(), product.getName(), operator, eventBus, timeSeriesManager));
+            .map(operator -> DeviceDashboardObject.of(product.getId(), product.getName(), operator, eventBus, dataService));
     }
 }

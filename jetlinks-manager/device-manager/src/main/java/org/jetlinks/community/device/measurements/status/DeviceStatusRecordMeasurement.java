@@ -1,6 +1,5 @@
 package org.jetlinks.community.device.measurements.status;
 
-import org.jetlinks.community.Interval;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
@@ -8,6 +7,7 @@ import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.EnumType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.Interval;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
@@ -16,10 +16,12 @@ import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -27,9 +29,9 @@ import java.util.Date;
 class DeviceStatusRecordMeasurement
     extends StaticMeasurement {
 
-    private final LocalDeviceInstanceService instanceService;
+    public LocalDeviceInstanceService instanceService;
 
-    private final TimeSeriesManager timeSeriesManager;
+    private TimeSeriesManager timeSeriesManager;
 
     static MeasurementDefinition definition = MeasurementDefinition.of("record", "设备状态记录");
 
@@ -76,6 +78,9 @@ class DeviceStatusRecordMeasurement
 
         @Override
         public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
+            String format = parameter.getString("format").orElse("yyyy年MM月dd日");
+            DateTimeFormatter formatter = DateTimeFormat.forPattern(format);
+
             return AggregationQueryParam.of()
                 .max("value")
                 .filter(query ->
@@ -88,10 +93,15 @@ class DeviceStatusRecordMeasurement
                     parameter.getString("format").orElse("yyyy年MM月dd日"))
                 .limit(parameter.getInt("limit").orElse(10))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
-                .index((index, data) -> SimpleMeasurementValue.of(
-                    data.getInt("value").orElse(0),
-                    data.getString("time").orElse("-"),
-                    index))
+                .map(data -> {
+                    long ts = data.getString("time")
+                        .map(time -> DateTime.parse(time, formatter).getMillis())
+                        .orElse(System.currentTimeMillis());
+                    return SimpleMeasurementValue.of(
+                        data.get("value").orElse(0),
+                        data.getString("time", ""),
+                        ts);
+                })
                 .sort();
         }
     }

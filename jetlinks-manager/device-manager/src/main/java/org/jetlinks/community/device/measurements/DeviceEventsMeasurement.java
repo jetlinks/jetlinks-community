@@ -1,10 +1,6 @@
 package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
@@ -12,6 +8,9 @@ import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.service.data.DeviceDataService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,7 +22,7 @@ class DeviceEventsMeasurement extends StaticMeasurement {
 
     private final EventBus eventBus;
 
-    private final TimeSeriesManager timeSeriesManager;
+    private final DeviceDataService deviceDataService;
 
     private final DeviceMetadata metadata;
 
@@ -32,11 +31,11 @@ class DeviceEventsMeasurement extends StaticMeasurement {
     public DeviceEventsMeasurement(String productId,
                                    EventBus eventBus,
                                    DeviceMetadata deviceMetadata,
-                                   TimeSeriesManager timeSeriesManager) {
+                                   DeviceDataService deviceDataService) {
         super(MeasurementDefinition.of("events", "事件记录"));
         this.productId = productId;
         this.eventBus = eventBus;
-        this.timeSeriesManager = timeSeriesManager;
+        this.deviceDataService = deviceDataService;
         this.metadata = deviceMetadata;
         addDimension(new RealTimeDevicePropertyDimension());
     }
@@ -47,9 +46,8 @@ class DeviceEventsMeasurement extends StaticMeasurement {
         return history <= 0 ? Flux.empty() : Flux.fromIterable(metadata.getEvents())
             .flatMap(event -> QueryParamEntity.newQuery()
                 .doPaging(0, history)
-                .where("deviceId", deviceId)
-                .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceEventMetric(productId, event.getId()))::query)
-                .map(data -> SimpleMeasurementValue.of(createValue(event.getId(), data.getData()), data.getTimestamp()))
+                .execute(q -> deviceDataService.queryEvent(deviceId, event.getId(), q, false))
+                .map(data -> SimpleMeasurementValue.of(createValue(event.getId(), data), data.getTimestamp()))
                 .sort(MeasurementValue.sort()));
     }
 
@@ -61,10 +59,10 @@ class DeviceEventsMeasurement extends StaticMeasurement {
     }
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
-        org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription.of(
+        Subscription subscription = Subscription.of(
             "realtime-device-events-measurement",
             "/device/" + productId + "/" + deviceId + "/message/event/*",
-            org.jetlinks.core.event.Subscription.Feature.local, Subscription.Feature.broker
+            Subscription.Feature.local, Subscription.Feature.broker
         );
         return
             eventBus
@@ -117,17 +115,18 @@ class DeviceEventsMeasurement extends StaticMeasurement {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
-            return Mono.justOrEmpty(parameter.getString("deviceId"))
+            return Mono
+                .justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(0);
-                    //合并历史数据和实时数据
-                    return Flux.concat(
-                        //查询历史数据
-                        fromHistory(deviceId, history)
-                        ,
-                        //从消息网关订阅实时事件消息
-                        fromRealTime(deviceId)
-                    );
+                    return //合并历史数据和实时数据
+                        Flux.concat(
+                            //查询历史数据
+                            fromHistory(deviceId, history)
+                            ,
+                            //从消息网关订阅实时事件消息
+                            fromRealTime(deviceId)
+                        );
                 });
         }
     }

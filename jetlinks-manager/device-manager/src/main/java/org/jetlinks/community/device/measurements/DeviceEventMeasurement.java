@@ -1,9 +1,6 @@
 package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.timeseries.TimeSeriesService;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
@@ -14,6 +11,9 @@ import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.service.data.DeviceDataService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,19 +23,19 @@ class DeviceEventMeasurement extends StaticMeasurement {
 
     public EventBus eventBus;
 
-    private final TimeSeriesService eventTsService;
+    private final DeviceDataService deviceDataService;
 
     private final String productId;
 
     public DeviceEventMeasurement(String productId,
                                   EventBus eventBus,
                                   EventMetadata eventMetadata,
-                                  TimeSeriesService eventTsService) {
+                                  DeviceDataService deviceDataService) {
         super(MetadataMeasurementDefinition.of(eventMetadata));
         this.productId = productId;
         this.eventBus = eventBus;
         this.eventMetadata = eventMetadata;
-        this.eventTsService = eventTsService;
+        this.deviceDataService = deviceDataService;
         addDimension(new RealTimeDeviceEventDimension());
     }
 
@@ -48,14 +48,14 @@ class DeviceEventMeasurement extends StaticMeasurement {
         return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
             .doPaging(0, history)
             .where("deviceId", deviceId)
-            .execute(eventTsService::query)
-            .map(data -> SimpleMeasurementValue.of(data.getData(), data.getTimestamp()))
+            .execute(q->deviceDataService.queryEvent(deviceId,eventMetadata.getId(),q,false))
+            .map(data -> SimpleMeasurementValue.of(data, data.getTimestamp()))
             .sort(MeasurementValue.sort());
     }
 
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
-        org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription
+        Subscription subscription = Subscription
             .of("deviceEventMeasurement", "/device/" + productId + "/" + deviceId + "/message/event/" + eventMetadata.getId(), Subscription.Feature.local);
 
         return eventBus

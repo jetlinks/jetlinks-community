@@ -1,11 +1,7 @@
 package org.jetlinks.community.device.measurements.message;
 
-import org.jetlinks.community.Interval;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.jetlinks.core.device.DeviceProductOperator;
+import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.metadata.ConfigMetadata;
@@ -14,12 +10,25 @@ import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.Interval;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.timeseries.TimeSeriesMetric;
+import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 class DeviceMessageMeasurement extends StaticMeasurement {
 
@@ -27,11 +36,14 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
     private final TimeSeriesManager timeSeriesManager;
 
+    private final DeviceRegistry deviceRegistry;
     static MeasurementDefinition definition = MeasurementDefinition.of("quantity", "设备消息量");
 
     public DeviceMessageMeasurement(EventBus eventBus,
+                                    DeviceRegistry registry,
                                     TimeSeriesManager timeSeriesManager) {
         super(definition);
+        this.deviceRegistry = registry;
         this.eventBus = eventBus;
         this.timeSeriesManager = timeSeriesManager;
         addDimension(new RealTimeMessageDimension());
@@ -65,9 +77,11 @@ class DeviceMessageMeasurement extends StaticMeasurement {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
+
+
             //通过订阅消息来统计实时数据量
             return eventBus
-                .subscribe(org.jetlinks.core.event.Subscription.of("real-time-device-message", "/device/**", org.jetlinks.core.event.Subscription.Feature.local, Subscription.Feature.broker))
+                .subscribe(Subscription.of("real-time-device-message", "/device/**", Subscription.Feature.local, Subscription.Feature.broker))
                 .window(parameter.getDuration("interval").orElse(Duration.ofSeconds(1)))
                 .flatMap(Flux::count)
                 .map(total -> SimpleMeasurementValue.of(total, System.currentTimeMillis()));
@@ -107,10 +121,41 @@ class DeviceMessageMeasurement extends StaticMeasurement {
             return false;
         }
 
+        private AggregationQueryParam createQueryParam(MeasurementParameter parameter) {
+            return AggregationQueryParam.of()
+//                .sum("count")
+                .groupBy(
+                    parameter.getInterval("time").orElse(Interval.ofHours(1)),
+                    parameter.getString("format").orElse("MM月dd日 HH时"))
+//                .filter(query ->
+//                    query
+//                        .where("name", "message-count")
+//                        .is("productId", parameter.getString("productId").orElse(null))
+//                        .is("msgType", parameter.getString("msgType").orElse(null))
+//                )
+                .limit(parameter.getInt("limit").orElse(1))
+                .from(parameter.getDate("from").orElseGet(() -> Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
+                .to(parameter.getDate("to").orElse(new Date()));
+        }
+
+        private Mono<TimeSeriesMetric[]> getProductMetrics(List<String> productIdList) {
+            return Flux
+                .fromIterable(productIdList)
+                .flatMap(id -> deviceRegistry
+                    .getProduct(id)
+                    .flatMap(DeviceProductOperator::getMetadata)
+                    .onErrorResume(err -> Mono.empty())
+                    .flatMapMany(metadata -> Flux.fromIterable(metadata.getEvents())
+                        .map(event -> DeviceTimeSeriesMetric.deviceEventMetric(id, event.getId())))
+                    .concatWithValues(DeviceTimeSeriesMetric.devicePropertyMetric(id)))
+                .collectList()
+                .map(list -> list.toArray(new TimeSeriesMetric[0]));
+        }
+
         @Override
         public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
 
-            return AggregationQueryParam.of()
+             return AggregationQueryParam.of()
                 .sum("count")
                 .groupBy(
                     parameter.getInterval("time").orElse(Interval.ofHours(1)),

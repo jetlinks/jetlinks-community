@@ -1,57 +1,54 @@
 package org.jetlinks.community.device.measurements;
 
+import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.timeseries.TimeSeriesService;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.property.ReadPropertyMessageReply;
-import org.jetlinks.core.message.property.ReportPropertyMessage;
-import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.gateway.DeviceMessageUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 class DevicePropertiesMeasurement extends StaticMeasurement {
 
     private final EventBus eventBus;
 
-    private final TimeSeriesService timeSeriesService;
-
     private final DeviceMetadata metadata;
+
+    private final DeviceDataService dataService;
 
     private final String productId;
 
     public DevicePropertiesMeasurement(String productId,
                                        EventBus eventBus,
-                                       DeviceMetadata deviceMetadata,
-                                       TimeSeriesService timeSeriesService) {
+                                       DeviceDataService dataService,
+                                       DeviceMetadata deviceMetadata) {
         super(MeasurementDefinition.of("properties", "属性记录"));
         this.productId = productId;
         this.eventBus = eventBus;
-        this.timeSeriesService = timeSeriesService;
         this.metadata = deviceMetadata;
+        this.dataService = dataService;
         addDimension(new RealTimeDevicePropertyDimension());
         addDimension(new HistoryDevicePropertyDimension());
 
     }
 
     Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
-        return history <= 0 ? Flux.empty() : Flux.fromIterable(metadata.getProperties())
-            .flatMap(propertyMetadata -> QueryParamEntity.newQuery()
-                .doPaging(0, history)
-                .where("deviceId", deviceId)
-                .and("property", propertyMetadata.getId())
-                .execute(timeSeriesService::query)
-                .map(data -> SimpleMeasurementValue.of(createValue(propertyMetadata.getId(), data.get("value").orElse(null)), data.getTimestamp()))
-                .sort(MeasurementValue.sort()));
+        return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
+            .doPaging(0, history)
+            .execute(q -> dataService.queryEachProperties(deviceId, q))
+            .map(data -> SimpleMeasurementValue.of(data, data.getTimestamp()))
+            .sort(MeasurementValue.sort());
     }
 
     Map<String, Object> createValue(String property, Object value) {
@@ -77,32 +74,22 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
     Flux<MeasurementValue> fromRealTime(String deviceId) {
 
-        org.jetlinks.core.event.Subscription subscription= org.jetlinks.core.event.Subscription.of(
+        Subscription subscription = Subscription.of(
             "realtime-device-properties-measurement",
             new String[]{
                 "/device/" + productId + "/" + deviceId + "/message/property/report",
                 "/device/" + productId + "/" + deviceId + "/message/property/*/reply"
             },
-            org.jetlinks.core.event.Subscription.Feature.local, Subscription.Feature.broker
+            Subscription.Feature.local, Subscription.Feature.broker
         );
 
         return
             eventBus
                 .subscribe(subscription, DeviceMessage.class)
-                .flatMap(msg -> {
-                    if (msg instanceof ReportPropertyMessage) {
-                        return Mono.justOrEmpty(((ReportPropertyMessage) msg).getProperties());
-                    }
-                    if (msg instanceof ReadPropertyMessageReply) {
-                        return Mono.justOrEmpty(((ReadPropertyMessageReply) msg).getProperties());
-                    }
-                    if (msg instanceof WritePropertyMessageReply) {
-                        return Mono.justOrEmpty(((WritePropertyMessageReply) msg).getProperties());
-                    }
-                    return Mono.empty();
-                })
+                .flatMap(msg -> Mono.justOrEmpty(DeviceMessageUtils.tryGetProperties(msg)))
                 .flatMap(map -> Flux.fromIterable(map.entrySet()))
-                .map(kv -> SimpleMeasurementValue.of(createValue(kv.getKey(), kv.getValue()), System.currentTimeMillis()))
+                .<MeasurementValue>map(kv -> SimpleMeasurementValue.of(createValue(kv.getKey(), kv.getValue()), System.currentTimeMillis()))
+                .onErrorContinue((err, v) -> log.error(err.getMessage(), err))
             ;
     }
 
@@ -110,7 +97,7 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
 
     /**
-     * 历史设备事件
+     * 历史
      */
     private class HistoryDevicePropertyDimension implements MeasurementDimension {
 
@@ -122,9 +109,9 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
         @Override
         public DataType getValueType() {
             return new ObjectType()
-                .addProperty("property","属性", StringType.GLOBAL)
-                .addProperty("value","值", StringType.GLOBAL)
-                .addProperty("formatValue","格式化值", StringType.GLOBAL);
+                .addProperty("property", "属性", StringType.GLOBAL)
+                .addProperty("value", "值", StringType.GLOBAL)
+                .addProperty("formatValue", "格式化值", StringType.GLOBAL);
         }
 
         @Override
@@ -149,7 +136,7 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
     }
 
     /**
-     * 实时设备事件
+     * 实时
      */
     private class RealTimeDevicePropertyDimension implements MeasurementDimension {
 
@@ -161,9 +148,9 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
         @Override
         public DataType getValueType() {
             return new ObjectType()
-                .addProperty("property","属性", StringType.GLOBAL)
-                .addProperty("value","值", StringType.GLOBAL)
-                .addProperty("formatValue","格式化值", StringType.GLOBAL);
+                .addProperty("property", "属性", StringType.GLOBAL)
+                .addProperty("value", "值", StringType.GLOBAL)
+                .addProperty("formatValue", "格式化值", StringType.GLOBAL);
         }
 
         @Override
@@ -182,7 +169,7 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(0);
                     //合并历史数据和实时数据
-                    return Flux.concat(
+                    return  Flux.concat(
                         //查询历史数据
                         fromHistory(deviceId, history)
                         ,

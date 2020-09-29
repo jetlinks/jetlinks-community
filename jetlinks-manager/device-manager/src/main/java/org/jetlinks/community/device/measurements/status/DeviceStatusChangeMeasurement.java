@@ -1,11 +1,5 @@
 package org.jetlinks.community.device.measurements.status;
 
-import org.jetlinks.community.Interval;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
@@ -17,6 +11,15 @@ import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.EnumType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.Interval;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,7 +35,7 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
 
     private final TimeSeriesManager timeSeriesManager;
 
-    static final MeasurementDefinition definition = MeasurementDefinition.of("change", "设备状态变更");
+    static MeasurementDefinition definition = MeasurementDefinition.of("change", "设备状态变更");
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
@@ -88,11 +91,12 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
 
         @Override
         public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
+            String format = parameter.getString("format").orElse("yyyy年MM月dd日");
+            DateTimeFormatter formatter = DateTimeFormat.forPattern(format);
 
             return AggregationQueryParam.of()
                 .sum("count")
-                .groupBy(parameter.getInterval("time").orElse(Interval.ofHours(1)),
-                    parameter.getString("format").orElse("MM月dd日 HH时"))
+                .groupBy(parameter.getInterval("time", Interval.ofDays(1)), format)
                 .filter(query ->
                     query.where("name", parameter.getString("type").orElse("online"))
                         .is("productId", parameter.getString("productId").orElse(null))
@@ -101,10 +105,15 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
                 .from(parameter.getDate("from").orElse(Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
-                .index((index, data) -> SimpleMeasurementValue.of(
-                    data.getInt("count").orElse(0),
-                    data.getString("time").orElse(""),
-                    index))
+                .map(data -> {
+                    long ts = data.getString("time")
+                        .map(time -> DateTime.parse(time, formatter).getMillis())
+                        .orElse(System.currentTimeMillis());
+                    return SimpleMeasurementValue.of(
+                        data.get("count").orElse(0),
+                        data.getString("time", ""),
+                        ts);
+                })
                 .sort();
         }
     }
@@ -124,7 +133,6 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
             return type;
         }
 
-
         @Override
         public ConfigMetadata getParams() {
             return configMetadata;
@@ -137,21 +145,20 @@ class DeviceStatusChangeMeasurement extends StaticMeasurement {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
+
+
             return Mono.justOrEmpty(parameter.getString("deviceId"))
-                .flatMapMany(deviceId -> {
-                    //从消息网关订阅消息
-                    return eventBus.subscribe(org.jetlinks.core.event.Subscription.of(
+                .flatMapMany(deviceId ->//从消息网关订阅消息
+                    eventBus.subscribe(Subscription.of(
                         "RealTimeDeviceStateDimension"
                         , new String[]{
                             "/device/*/" + deviceId + "/online",
                             "/device/*/" + deviceId + "/offline"
                         },
-                        org.jetlinks.core.event.Subscription.Feature.local,
+                        Subscription.Feature.local,
                         Subscription.Feature.broker
                     ), DeviceMessage.class)
-                        .map(msg -> SimpleMeasurementValue.of(createStateValue(msg), msg.getTimestamp()))
-                        ;
-                });
+                        .map(msg -> SimpleMeasurementValue.of(createStateValue(msg), msg.getTimestamp())));
         }
 
         Map<String, Object> createStateValue(DeviceMessage message) {

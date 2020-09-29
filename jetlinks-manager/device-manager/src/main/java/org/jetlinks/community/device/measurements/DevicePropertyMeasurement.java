@@ -2,27 +2,27 @@ package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.utils.time.DateFormatter;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.community.Interval;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.timeseries.TimeSeriesService;
-import org.jetlinks.community.timeseries.query.Aggregation;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.property.ReadPropertyMessageReply;
-import org.jetlinks.core.message.property.ReportPropertyMessage;
-import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.NumberType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.Interval;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.gateway.DeviceMessageUtils;
+import org.jetlinks.community.timeseries.query.Aggregation;
+import org.jetlinks.community.timeseries.query.AggregationData;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,19 +33,19 @@ class DevicePropertyMeasurement extends StaticMeasurement {
 
     private final EventBus eventBus;
 
-    private final TimeSeriesService timeSeriesService;
+    private final DeviceDataService deviceDataService;
 
     private final String productId;
 
     public DevicePropertyMeasurement(String productId,
                                      EventBus eventBus,
                                      PropertyMetadata metadata,
-                                     TimeSeriesService timeSeriesService) {
+                                     DeviceDataService deviceDataService) {
         super(MetadataMeasurementDefinition.of(metadata));
         this.productId = productId;
         this.eventBus = eventBus;
         this.metadata = metadata;
-        this.timeSeriesService = timeSeriesService;
+        this.deviceDataService = deviceDataService;
         addDimension(new RealTimeDevicePropertyDimension());
         addDimension(new HistoryDevicePropertyDimension());
         if (metadata.getValueType() instanceof NumberType) {
@@ -64,12 +64,15 @@ class DevicePropertyMeasurement extends StaticMeasurement {
     }
 
     Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
-        return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
+        return history <= 0
+            ? Flux.empty()
+            : QueryParamEntity
+            .newQuery()
             .doPaging(0, history)
             .where("deviceId", deviceId)
             .and("property", metadata.getId())
-            .execute(timeSeriesService::query)
-            .map(data -> SimpleMeasurementValue.of(createValue(data.get("value").orElse(null)), data.getTimestamp()))
+            .execute(q -> deviceDataService.queryProperty(deviceId, q, metadata.getId()))
+            .map(data -> SimpleMeasurementValue.of(data, data.getTimestamp()))
             .sort(MeasurementValue.sort());
     }
 
@@ -85,18 +88,7 @@ class DevicePropertyMeasurement extends StaticMeasurement {
 
         return eventBus
             .subscribe(subscription, DeviceMessage.class)
-            .flatMap(msg -> {
-                if (msg instanceof ReportPropertyMessage) {
-                    return Mono.justOrEmpty(((ReportPropertyMessage) msg).getProperties());
-                }
-                if (msg instanceof ReadPropertyMessageReply) {
-                    return Mono.justOrEmpty(((ReadPropertyMessageReply) msg).getProperties());
-                }
-                if (msg instanceof WritePropertyMessageReply) {
-                    return Mono.justOrEmpty(((WritePropertyMessageReply) msg).getProperties());
-                }
-                return Mono.empty();
-            })
+            .flatMap(msg -> Mono.justOrEmpty(DeviceMessageUtils.tryGetProperties(msg)))
             .filter(msg -> msg.containsKey(metadata.getId()))
             .map(msg -> SimpleMeasurementValue.of(createValue(msg.get(metadata.getId())), System.currentTimeMillis()));
     }
@@ -150,23 +142,38 @@ class DevicePropertyMeasurement extends StaticMeasurement {
         @Override
         public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
 
-            return AggregationQueryParam.of()
-                .agg("numberValue", "value", parameter.getString("agg").map(String::toUpperCase).map(Aggregation::valueOf).orElse(Aggregation.AVG))
-                .filter(query -> query
-                    .where("property", metadata.getId())
-                    .and("deviceId", parameter.getString("deviceId").orElse(null))
-                )
-                .limit(parameter.getInt("limit", 10))
-                .groupBy(parameter.getInterval("time", Interval.ofSeconds(10)), parameter.getString("format", "HH:mm:ss"))
-                .from(parameter.getDate("from").orElseGet(() -> Date.from(LocalDateTime.now().plusDays(-1).atZone(ZoneId.systemDefault()).toInstant())))
-                .to(parameter.getDate("to").orElse(new Date()))
-                .execute(timeSeriesService::aggregation)
-                .index((index, data) -> SimpleMeasurementValue.of(
-                    createValue(data.getInt("value").orElse(0)),
-                    data.getString("time").orElse(""),
-                    index))
-                .sort();
+            String deviceId = parameter.getString("deviceId", null);
+            DeviceDataService.AggregationRequest request = new DeviceDataService.AggregationRequest();
+            DeviceDataService.DevicePropertyAggregation aggregation = new DeviceDataService.DevicePropertyAggregation(
+                metadata.getId(), metadata.getId(), parameter.getString("agg").map(String::toUpperCase).map(Aggregation::valueOf).orElse(Aggregation.AVG)
+            );
+            String format = parameter.getString("format", "HH:mm:ss");
+            DateTimeFormatter formatter = DateTimeFormat.forPattern(format);
 
+            request.setLimit(parameter.getInt("limit", 10));
+            request.setInterval(parameter.getInterval("time", Interval.ofSeconds(10)));
+            request.setFormat(format);
+            request.setFrom(parameter.getDate("from", DateTime.now().plusDays(-1).toDate()));
+            request.setTo(parameter.getDate("to", DateTime.now().plusDays(-1).toDate()));
+            Flux<AggregationData> dataFlux;
+
+            if (StringUtils.hasText(deviceId)) {
+                dataFlux = deviceDataService
+                    .aggregationPropertiesByDevice(deviceId, request, aggregation);
+            } else {
+                dataFlux = deviceDataService.aggregationPropertiesByProduct(productId, request, aggregation);
+            }
+            return dataFlux
+                .map(data -> {
+                    long ts = data.getString("time")
+                        .map(time -> DateTime.parse(time, formatter).getMillis())
+                        .orElse(System.currentTimeMillis());
+                    return SimpleMeasurementValue.of(createValue(
+                        data.get(metadata.getId()).orElse(0)),
+                        data.getString("time",""),
+                        ts);
+                })
+                .sort();
         }
     }
 
@@ -203,18 +210,15 @@ class DevicePropertyMeasurement extends StaticMeasurement {
             return Mono.justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(1);
-
-                    return QueryParamEntity.newQuery()
+                    return  QueryParamEntity.newQuery()
                         .doPaging(0, history)
-                        .where("deviceId", deviceId)
-                        .and("property", metadata.getId())
                         .as(query -> query
                             .gte("timestamp", parameter.getDate("from").orElse(null))
                             .lte("timestamp", parameter.getDate("to").orElse(null)))
-                        .execute(timeSeriesService::query)
+                        .execute(q -> deviceDataService.queryProperty(deviceId, q, metadata.getId()))
                         .map(data -> SimpleMeasurementValue.of(
-                            createValue(data.get("value").orElse(null)),
-                            DateFormatter.toString(new Date(data.getTimestamp()), parameter.getString("timeFormat","HH:mm:ss")),
+                            data,
+                            DateFormatter.toString(new Date(data.getTimestamp()), parameter.getString("timeFormat", "HH:mm:ss")),
                             data.getTimestamp()))
                         .sort(MeasurementValue.sort());
                 });
@@ -254,14 +258,14 @@ class DevicePropertyMeasurement extends StaticMeasurement {
             return Mono.justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(0);
-                    //合并历史数据和实时数据
-                    return Flux.concat(
-                        //查询历史数据
-                        fromHistory(deviceId, history)
-                        ,
-                        //从消息网关订阅实时事件消息
-                        fromRealTime(deviceId)
-                    );
+                    return  //合并历史数据和实时数据
+                        Flux.concat(
+                            //查询历史数据
+                            fromHistory(deviceId, history)
+                            ,
+                            //从消息网关订阅实时事件消息
+                            fromRealTime(deviceId)
+                        );
                 });
         }
     }
