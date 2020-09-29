@@ -23,9 +23,15 @@ public class Interval {
     private final String expression;
 
     public boolean isFixed() {
-        return expression.equals(hours) ||
+        return expression.equalsIgnoreCase(hours) ||
             expression.equals(minutes) ||
             expression.equals(seconds);
+    }
+
+    public boolean isCalendar() {
+        return expression.equals(days) ||
+            expression.equals(month) ||
+            expression.equals(year);
     }
 
     @Override
