@@ -104,7 +104,7 @@ public class DefaultDeviceDataService implements DeviceDataService {
 
         return this
             .getDeviceStrategy(deviceId)
-            .flatMapMany(strategy -> strategy.queryProperty(deviceId, query));
+            .flatMapMany(strategy -> strategy.queryProperty(deviceId, query, property));
     }
 
     @Override

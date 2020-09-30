@@ -69,8 +69,6 @@ class DevicePropertyMeasurement extends StaticMeasurement {
             : QueryParamEntity
             .newQuery()
             .doPaging(0, history)
-            .where("deviceId", deviceId)
-            .and("property", metadata.getId())
             .execute(q -> deviceDataService.queryProperty(deviceId, q, metadata.getId()))
             .map(data -> SimpleMeasurementValue.of(data, data.getTimestamp()))
             .sort(MeasurementValue.sort());
