@@ -59,7 +59,7 @@ services:
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.5.0-SNAPSHOT
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.5.0
     container_name: jetlinks-ce
     ports:
       - 8848:8848 # API端口

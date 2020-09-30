@@ -30,7 +30,7 @@ import java.util.List;
         title = "物联网平台",
         description = "物联网平台接口文档",
         contact = @Contact(name = "admin",url = "https://github.com/jetlinks"),
-        version = "1.5.0-SNAPSHOT"
+        version = "1.5.0"
     )
 )
 @SecuritySchemes(

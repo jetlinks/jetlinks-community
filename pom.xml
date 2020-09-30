@@ -6,7 +6,7 @@
 
     <groupId>org.jetlinks.community</groupId>
     <artifactId>jetlinks-community</artifactId>
-    <version>1.5.0-SNAPSHOT</version>
+    <version>1.5.0</version>
     <modules>
         <module>jetlinks-components</module>
         <module>jetlinks-manager</module>
@@ -19,10 +19,10 @@
         <spring.boot.version>2.3.3.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.7-SNAPSHOT</hsweb.framework.version>
-        <easyorm.version>4.0.7-SNAPSHOT</easyorm.version>
+        <hsweb.framework.version>4.0.7</hsweb.framework.version>
+        <easyorm.version>4.0.7</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.1.2-SNAPSHOT</jetlinks.version>
+        <jetlinks.version>1.1.2</jetlinks.version>
         <r2dbc.version>Arabba-SR6</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.50.Final</netty.version>
