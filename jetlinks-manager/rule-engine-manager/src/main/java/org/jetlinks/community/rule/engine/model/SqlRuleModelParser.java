@@ -108,7 +108,6 @@ public class SqlRuleModelParser implements RuleModelParserStrategy {
                 model.getNodes().add(action);
                 action.getInputs().add(link);
                 sqlNode.getOutputs().add(link);
-                model.getNodes().add(action);
 
                 action.getEvents().addAll(errorHandler);
             }
