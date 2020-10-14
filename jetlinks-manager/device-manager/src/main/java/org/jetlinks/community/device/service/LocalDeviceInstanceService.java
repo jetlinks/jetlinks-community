@@ -530,7 +530,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     }
 
     //保存标签
-    @Subscribe("/device/*/*/tags/update")
+    @Subscribe("/device/*/*/message/tags/update")
     public Mono<Void> updateDeviceTag(UpdateTagMessage message) {
         Map<String, Object> tags = message.getTags();
         String deviceId = message.getDeviceId();
