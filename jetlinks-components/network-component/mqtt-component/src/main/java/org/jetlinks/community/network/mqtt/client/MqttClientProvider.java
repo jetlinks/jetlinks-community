@@ -6,6 +6,7 @@ import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.utils.ExpressionUtils;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.BooleanType;
@@ -14,11 +15,16 @@ import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.network.*;
 import org.jetlinks.community.network.security.CertificateManager;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
+
+import static org.springframework.util.StringUtils.isEmpty;
 
 @Component
 @Slf4j
@@ -28,9 +34,14 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 
     private final CertificateManager certificateManager;
 
-    public MqttClientProvider(CertificateManager certificateManager, Vertx vertx) {
+    private final Environment environment;
+
+    public MqttClientProvider(CertificateManager certificateManager,
+                              Vertx vertx,
+                              Environment environment) {
         this.vertx = vertx;
         this.certificateManager = certificateManager;
+        this.environment=environment;
     }
 
     @Nonnull
@@ -49,7 +60,7 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 
     @Override
     public void reload(@Nonnull Network network, @Nonnull MqttClientProperties properties) {
-       VertxMqttClient mqttClient = ((VertxMqttClient) network);
+        VertxMqttClient mqttClient = ((VertxMqttClient) network);
         if (mqttClient.isLoading()) {
             return;
         }
@@ -89,9 +100,21 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
             config.setId(properties.getId());
             config.setOptions(new JSONObject(properties.getConfigurations()).toJavaObject(MqttClientOptions.class));
 
-            config.getOptions().setClientId(config.getClientId());
-            config.getOptions().setPassword(config.getPassword());
-            config.getOptions().setUsername(config.getUsername());
+            Map<String, Object> ctx = Collections.singletonMap("env", environment);
+
+            String clientId = ExpressionUtils.analytical(String.valueOf(config.getClientId()), ctx, "spel");
+
+            String username = isEmpty(config.getUsername())
+                ? config.getUsername()
+                : ExpressionUtils.analytical(String.valueOf(config.getUsername()), ctx, "spel");
+
+            String password = isEmpty(config.getPassword())
+                ? config.getPassword()
+                : ExpressionUtils.analytical(String.valueOf(config.getPassword()), ctx, "spel");
+
+            config.getOptions().setClientId(clientId);
+            config.getOptions().setPassword(username);
+            config.getOptions().setUsername(password);
 
             if (config.isSsl()) {
                 config.getOptions().setSsl(true);
