@@ -1,7 +1,7 @@
 # JetLinks 物联网基础平台
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
-![Version](https://img.shields.io/badge/Version-1.4--RELEASE-brightgreen)
+![Version](https://img.shields.io/badge/Version-1.5--RELEASE-brightgreen)
 ![QQ群2021514](https://img.shields.io/badge/QQ群-2021514-brightgreen)
 ![jetlinks](https://visitor-badge.glitch.me/badge?page_id=jetlinks)
 
@@ -81,7 +81,7 @@ JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发,
 | Geo地理位置支持     | ⭕   |  ✅ |  ✅    |
 | 规则引擎-可视化设计器     | ⭕   |  ✅ |  ✅    |
 | OpenAPI    |  ⭕  |  ✅ |     ✅     |
-| 多租户(建设中)   |  ⭕  |  ✅ |   ✅   |
+| 多租户   |  ⭕  |  ✅ |   ✅   |
 | 集群支持    |  ⭕  |  ✅ |     ✅     |
 | QQ群技术支持 |  ⭕  |  ✅ |   ✅   |
 | 一对一技术支持 |  ⭕  |  ⭕ |   ✅   |
