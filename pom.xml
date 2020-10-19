@@ -6,7 +6,7 @@
 
     <groupId>org.jetlinks.community</groupId>
     <artifactId>jetlinks-community</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0-SNAPSHOT</version>
     <modules>
         <module>jetlinks-components</module>
         <module>jetlinks-manager</module>
@@ -16,19 +16,19 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.3.3.RELEASE</spring.boot.version>
+        <spring.boot.version>2.3.4.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.7</hsweb.framework.version>
-        <easyorm.version>4.0.7</easyorm.version>
+        <hsweb.framework.version>4.0.8-SNAPSHOT</hsweb.framework.version>
+        <easyorm.version>4.0.8-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.1.2</jetlinks.version>
-        <r2dbc.version>Arabba-SR6</r2dbc.version>
+        <jetlinks.version>1.1.3-SNAPSHOT</jetlinks.version>
+        <r2dbc.version>Arabba-SR7</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
-        <netty.version>4.1.50.Final</netty.version>
-        <elasticsearch.version>7.9.0</elasticsearch.version>
+        <netty.version>4.1.51.Final</netty.version>
+        <elasticsearch.version>7.9.2</elasticsearch.version>
         <reactor.excel.version>1.0.0</reactor.excel.version>
-        <reactor.ql.version>1.0.6</reactor.ql.version>
+        <reactor.ql.version>1.0.8-SNAPSHOT</reactor.ql.version>
         <fastjson.version>1.2.70</fastjson.version>
     </properties>
 
