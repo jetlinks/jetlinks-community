@@ -7,6 +7,7 @@ import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttServer;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -28,7 +29,7 @@ class MqttClientProviderTest {
                     .publish("/test", Buffer.buffer("test"), MqttQoS.AT_MOST_ONCE, false, false);
         }).listen(11223);
 
-        MqttClientProvider provider = new MqttClientProvider(id -> Mono.empty(), vertx);
+        MqttClientProvider provider = new MqttClientProvider(id -> Mono.empty(), vertx,new MockEnvironment());
 
         MqttClientProperties properties = new MqttClientProperties();
         properties.setHost("127.0.0.1");

@@ -15,6 +15,7 @@ import org.jetlinks.community.network.security.DefaultCertificate;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.StreamUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -67,7 +68,7 @@ public class VertxMqttSslProviderTest {
                 .setKeyCertOptions(new VertxKeyCertTrustOptions(clientCert))
                 .setTrustOptions(new VertxKeyCertTrustOptions(clientCert)));
 
-        MqttClientProvider provider = new MqttClientProvider(id -> Mono.empty(), vertx);
+        MqttClientProvider provider = new MqttClientProvider(id -> Mono.empty(), vertx,new MockEnvironment());
         VertxMqttClient client = provider.createNetwork(propertiesClient);
         mqttServer.handleConnection()
                 .map(MqttConnection::getClientId)
