@@ -6,7 +6,6 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.hswebframework.ezorm.core.param.Term;
 import org.jetlinks.community.elastic.search.utils.TermCommonUtils;
-import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.util.StringUtils;
 
@@ -51,25 +50,29 @@ public enum TermTypeEnum {
     gt("gt") {
         @Override
         public QueryBuilder process(Term term) {
-            return QueryBuilders.rangeQuery(term.getColumn().trim()).gt(term.getValue());
+            Object value = CastUtils.castNumber(term.getValue());
+            return QueryBuilders.rangeQuery(term.getColumn().trim()).gt(value);
         }
     },
     gte("gte") {
         @Override
         public QueryBuilder process(Term term) {
-            return QueryBuilders.rangeQuery(term.getColumn().trim()).gte(term.getValue());
+            Object value = CastUtils.castNumber(term.getValue());
+            return QueryBuilders.rangeQuery(term.getColumn().trim()).gte(value);
         }
     },
     lt("lt") {
         @Override
         public QueryBuilder process(Term term) {
-            return QueryBuilders.rangeQuery(term.getColumn().trim()).lt(term.getValue());
+            Object value = CastUtils.castNumber(term.getValue());
+            return QueryBuilders.rangeQuery(term.getColumn().trim()).lt(value);
         }
     },
     lte("lte") {
         @Override
         public QueryBuilder process(Term term) {
-            return QueryBuilders.rangeQuery(term.getColumn().trim()).lte(term.getValue());
+            Object value = CastUtils.castNumber(term.getValue());
+            return QueryBuilders.rangeQuery(term.getColumn().trim()).lte(value);
         }
     },
     in("in") {
