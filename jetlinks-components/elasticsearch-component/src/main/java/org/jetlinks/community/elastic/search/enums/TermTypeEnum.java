@@ -6,6 +6,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.hswebframework.ezorm.core.param.Term;
 import org.jetlinks.community.elastic.search.utils.TermCommonUtils;
+import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -38,10 +39,10 @@ public enum TermTypeEnum {
             Object and = null;
             List<?> values = TermCommonUtils.convertToList(term.getValue());
             if (values.size() > 0) {
-                between = values.get(0);
+                between = CastUtils.castNumber(values.get(0));
             }
             if (values.size() > 1) {
-                and = values.get(1);
+                and = CastUtils.castNumber(values.get(1));
             }
             return QueryBuilders.rangeQuery(term.getColumn().trim()).gte(between).lte(and);
         }
