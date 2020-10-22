@@ -125,7 +125,8 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
         DeviceOperationLogEntity operationLog = new DeviceOperationLogEntity();
         operationLog.setId(IDGenerator.SNOW_FLAKE_STRING.generate());
         operationLog.setDeviceId(message.getDeviceId());
-        operationLog.setCreateTime(message.getTimestamp());
+        operationLog.setTimestamp(message.getTimestamp());
+        operationLog.setCreateTime(System.currentTimeMillis());
         operationLog.setProductId(productId);
         operationLog.setType(DeviceLogType.of(message));
 

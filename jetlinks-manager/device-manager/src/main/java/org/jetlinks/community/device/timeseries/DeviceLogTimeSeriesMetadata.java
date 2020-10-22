@@ -76,6 +76,13 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
             property.setName("创建事件");
             metadata.add(property);
         }
+        {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("timestamp");
+            property.setValueType(DateTimeType.GLOBAL);
+            property.setName("数据时间");
+            metadata.add(property);
+        }
     }
 
     @Override
