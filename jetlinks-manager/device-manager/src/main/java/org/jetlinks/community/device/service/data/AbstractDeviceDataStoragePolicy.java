@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.service.data;
 
 import com.alibaba.fastjson.JSON;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections.MapUtils;
 import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.web.api.crud.entity.PagerResult;
@@ -11,6 +12,7 @@ import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.DeviceMessageReply;
+import org.jetlinks.core.message.Headers;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
@@ -116,7 +118,7 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
 
     protected String createDataId(DeviceMessage message) {
         long ts = message.getTimestamp();
-        return String.join("_", message.getDeviceId(), String.valueOf(createUniqueNanoTime(ts)));
+        return DigestUtils.md5Hex(String.join("_", message.getDeviceId(), String.valueOf(createUniqueNanoTime(ts))));
     }
 
     protected Mono<Tuple2<String, TimeSeriesData>> createDeviceMessageLog(String productId,
@@ -317,14 +319,20 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
                 .getMetadata()
                 .map(metadata -> {
                     int size = properties.size();
-
+                    String id;
+                    //强制使用时间戳作为数据ID
+                    if (message.getHeader(Headers.useTimestampAsId).orElse(false)) {
+                        id = String.join("_", message.getDeviceId(), String.valueOf(message.getTimestamp()));
+                    } else {
+                        id = createDataId(message);
+                    }
                     Map<String, Object> newData = new HashMap<>(size < 5 ? 16 : (int) ((size + 5) / 0.75D) + 1);
                     properties.forEach((k, v) -> newData.put(k, convertPropertyValue(v, metadata.getPropertyOrNull(k))));
                     newData.put("deviceId", message.getDeviceId());
                     newData.put("productId", productId);
                     newData.put("timestamp", message.getTimestamp());
                     newData.put("createTime", System.currentTimeMillis());
-                    newData.put("id", createDataId(message));
+                    newData.put("id", DigestUtils.md5Hex(id));
                     return Tuples.of(getPropertyTimeSeriesMetric(productId), TimeSeriesData.of(message.getTimestamp(), newData));
                 }));
     }
@@ -344,13 +352,20 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
                     .fromIterable(properties.entrySet())
                     .index()
                     .map(entry -> {
-                        long ts = message.getTimestamp() + entry.getT1();
-                        String id = String.join("_", message.getDeviceId(), String.valueOf(createUniqueNanoTime(ts)));
+                        String id;
+                        long ts = message.getTimestamp();
+                        String property = entry.getT2().getKey();
+                        //强制使用时间戳作为数据ID
+                        if (message.getHeader(Headers.useTimestampAsId).orElse(false)) {
+                            id = String.join("_", message.getDeviceId(), property, String.valueOf(message.getTimestamp()));
+                        } else {
+                            id = String.join("_", message.getDeviceId(), property, String.valueOf(createUniqueNanoTime(ts)));
+                        }
                         DevicePropertiesEntity entity = DevicePropertiesEntity.builder()
-                            .id(id)
+                            .id(DigestUtils.md5Hex(id))
                             .deviceId(device.getDeviceId())
                             .timestamp(ts)
-                            .property(entry.getT2().getKey())
+                            .property(property)
                             .productId(productId)
                             .createTime(System.currentTimeMillis())
                             .build()

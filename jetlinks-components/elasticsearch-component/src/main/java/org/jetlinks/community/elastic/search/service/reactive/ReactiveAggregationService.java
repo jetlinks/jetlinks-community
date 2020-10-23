@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ReactiveAggregationService implements AggregationService {
 
+
     private final ReactiveElasticsearchClient restClient;
 
     private final ElasticSearchIndexManager indexManager;
@@ -129,17 +130,20 @@ public class ReactiveAggregationService implements AggregationService {
             groups.add(aggregationQueryParam.getGroupByTime());
         }
         groups.addAll(aggregationQueryParam.getGroupBy());
-        AggregationBuilder aggregationBuilder;
-        AggregationBuilder lastAggBuilder;
+        List<AggregationBuilder> aggs = new ArrayList<>();
+
+        AggregationBuilder aggregationBuilder = null;
+        AggregationBuilder lastAgg = null;
         if (!groups.isEmpty()) {
             Group first = groups.get(0);
-            aggregationBuilder = lastAggBuilder = createBuilder(first, aggregationQueryParam);
+            aggregationBuilder = lastAgg = createBuilder(first, aggregationQueryParam);
             for (int i = 1; i < groups.size(); i++) {
-                aggregationBuilder.subAggregation(lastAggBuilder = createBuilder(groups.get(i), aggregationQueryParam));
+                aggregationBuilder.subAggregation(lastAgg = createBuilder(groups.get(i), aggregationQueryParam));
             }
-        } else {
-            aggregationBuilder = lastAggBuilder = AggregationBuilders.count("count");
+            aggs.add(aggregationBuilder);
         }
+
+        boolean group = aggregationBuilder != null;
         for (AggregationColumn aggColumn : aggregationQueryParam.getAggColumns()) {
             AggregationBuilder builder = AggType.of(aggColumn.getAggregation().name())
                 .aggregationBuilder(aggColumn.getAlias(), aggColumn.getProperty());
@@ -160,10 +164,12 @@ public class ReactiveAggregationService implements AggregationService {
                     topHitsBuilder.size(1);
                 }
             }
-            lastAggBuilder.subAggregation(builder);
+            if (group) {
+                lastAgg.subAggregation(builder);
+            } else {
+                aggs.add(builder);
+            }
         }
-
-        AggregationBuilder ageBuilder = aggregationBuilder;
 
         return Flux.fromArray(index)
             .flatMap(idx -> Mono.zip(indexManager.getIndexStrategy(idx), Mono.just(idx)))
@@ -171,18 +177,29 @@ public class ReactiveAggregationService implements AggregationService {
             .flatMap(strategy ->
                 this
                     .createSearchSourceBuilder(queryParam, index[0])
-                    .map(builder ->
-                        new SearchRequest(strategy
-                            .stream()
-                            .map(tp2 -> tp2.getT1().getIndexForSearch(tp2.getT2()))
-                            .toArray(String[]::new))
-                            .indicesOptions(DefaultElasticSearchService.indexOptions)
-                            .source(builder.size(0).aggregation(ageBuilder))
+                    .map(builder -> {
+                            aggs.forEach(builder.size(0)::aggregation);
+                            return new SearchRequest(strategy
+                                .stream()
+                                .map(tp2 -> tp2.getT1().getIndexForSearch(tp2.getT2()))
+                                .toArray(String[]::new))
+                                .indicesOptions(DefaultElasticSearchService.indexOptions)
+                                .source(builder);
+                        }
                     )
             )
             .flatMap(restClient::searchForPage)
             .flatMapMany(this::parseResult)
-            .as(flux -> aggregationQueryParam.getLimit() > 0 ? flux.take(aggregationQueryParam.getLimit()) : flux)
+            .as(flux -> {
+                if (!group) {
+                    return flux
+                        .map(Map::entrySet)
+                        .flatMap(Flux::fromIterable)
+                        .collectMap(Map.Entry::getKey, Map.Entry::getValue)
+                        .flux();
+                }
+                return flux;
+            })
             ;
     }
 
@@ -230,15 +247,18 @@ public class ReactiveAggregationService implements AggregationService {
         return Flux
             .fromIterable(aggregation.getBuckets())
             .flatMap(bucket ->
-                Flux.fromIterable(bucket.getAggregations().asList())
-                    .flatMap(agg -> this.parseAggregation(agg.getName(), agg))
-                    .defaultIfEmpty(Collections.emptyMap())
-                    .map(map -> {
-                        Map<String, Object> val = new HashMap<>(map);
-                        val.put(aggregation.getName(), bucket.getKeyAsString());
-                        val.put("_" + aggregation.getName(), bucket.getKey());
-                        return val;
-                    })
+                    Flux.fromIterable(bucket.getAggregations().asList())
+                        .flatMap(agg -> this.parseAggregation(agg.getName(), agg))
+                        .defaultIfEmpty(Collections.emptyMap())
+//                    .map(Map::entrySet)
+//                    .flatMap(Flux::fromIterable)
+//                    .collectMap(Map.Entry::getKey, Map.Entry::getValue)
+                        .map(map -> {
+                            Map<String, Object> val = new HashMap<>(map);
+                            val.put(aggregation.getName(), bucket.getKeyAsString());
+                            val.put("_" + aggregation.getName(), bucket.getKey());
+                            return val;
+                        })
             );
     }
 

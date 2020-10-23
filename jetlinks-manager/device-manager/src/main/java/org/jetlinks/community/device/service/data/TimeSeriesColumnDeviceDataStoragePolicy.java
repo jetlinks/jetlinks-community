@@ -2,6 +2,7 @@ package org.jetlinks.community.device.service.data;
 
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.timeseries.query.*;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
@@ -13,10 +14,8 @@ import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationData;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
-import org.jetlinks.community.timeseries.query.Group;
-import org.jetlinks.community.timeseries.query.TimeGroup;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetric;
+import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetricId;
 
 @Component
 public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDataStoragePolicy implements DeviceDataStoragePolicy {
@@ -190,6 +190,7 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
     public Flux<AggregationData> aggregationPropertiesByProduct(@Nonnull String productId,
                                                                 @Nonnull DeviceDataService.AggregationRequest request,
                                                                 @Nonnull DeviceDataService.DevicePropertyAggregation... properties) {
+        org.joda.time.format.DateTimeFormatter formatter = DateTimeFormat.forPattern(request.getFormat());
 
         return AggregationQueryParam.of()
             .as(param -> {
@@ -198,13 +199,26 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
                 }
                 return param;
             })
-            .groupBy((Group) new TimeGroup(request.interval, "time", request.format))
-            .limit(request.limit)
+            .as(param -> {
+                if (request.interval == null) {
+                    return param;
+                }
+                return param.groupBy((Group) new TimeGroup(request.interval, "time", request.format));
+            })
+            .limit(request.limit * properties.length)
             .from(request.from)
             .to(request.to)
             .filter(request.filter)
             .execute(timeSeriesManager.getService(getPropertyTimeSeriesMetric(productId))::aggregation)
-            .doOnNext(agg -> agg.values().remove("_time"))
+            .groupBy(agg -> agg.getString("time", ""))
+            .flatMap(group -> group
+                .map(AggregationData::asMap)
+                .reduce((a, b) -> {
+                    a.putAll(b);
+                    return a;
+                })
+                .map(AggregationData::of))
+            .sort(Comparator.<AggregationData, Date>comparing(agg -> DateTime.parse(agg.getString("time", ""), formatter).toDate()).reversed())
             ;
     }
 
