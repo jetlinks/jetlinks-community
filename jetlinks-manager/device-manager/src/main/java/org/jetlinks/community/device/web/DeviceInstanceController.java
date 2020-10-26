@@ -14,6 +14,7 @@ import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryNoPagingOperation;
 import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
@@ -166,9 +167,10 @@ public class DeviceInstanceController implements
     @PostMapping
     @Operation(summary = "新建设备")
     public Mono<DeviceInstanceEntity> add(@RequestBody Mono<DeviceInstanceEntity> payload) {
-        return payload.flatMap(entity -> service.insert(Mono.just(entity))
-            .onErrorMap(DuplicateKeyException.class, err -> new BusinessException("设备ID已存在", err))
-            .thenReturn(entity));
+        return Mono
+            .zip(payload, Authentication.currentReactive(), this::applyAuthentication)
+            .flatMap(entity -> service.insert(Mono.just(entity)).thenReturn(entity))
+            .onErrorMap(DuplicateKeyException.class, err -> new BusinessException("设备ID已存在", err));
     }
 
     /**
