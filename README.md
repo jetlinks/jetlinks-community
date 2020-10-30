@@ -1,7 +1,7 @@
 # JetLinks 物联网基础平台
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
-![Version](https://img.shields.io/badge/Version-1.5--RELEASE-brightgreen)
+![Version](https://img.shields.io/badge/Version-1.6--RELEASE-brightgreen)
 ![QQ群2021514](https://img.shields.io/badge/QQ群-2021514-brightgreen)
 ![jetlinks](https://visitor-badge.glitch.me/badge?page_id=jetlinks)
 
@@ -16,7 +16,9 @@ JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发,
 
 统一设备连接管理,多协议适配(TCP,MQTT,UDP,CoAP,HTTP等),屏蔽网络编程复杂性,灵活接入不同厂家不同协议的设备。
 
-灵活的规则引擎,设备告警,消息通知,数据转发.可基于SQL进行复杂的数据处理逻辑.
+灵活的规则引擎,设备告警,消息通知,数据转发.
+
+强大的ReactorQL引擎,使用SQL来处理实时数据.
 
 地理位置:统一管理地理位置信息,支持区域搜索. 
 
