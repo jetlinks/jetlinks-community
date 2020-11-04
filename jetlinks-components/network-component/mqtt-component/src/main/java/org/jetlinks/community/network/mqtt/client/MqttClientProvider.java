@@ -113,8 +113,8 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
                 : ExpressionUtils.analytical(String.valueOf(config.getPassword()), ctx, "spel");
 
             config.getOptions().setClientId(clientId);
-            config.getOptions().setPassword(username);
-            config.getOptions().setUsername(password);
+            config.getOptions().setPassword(password);
+            config.getOptions().setUsername(username);
 
             if (config.isSsl()) {
                 config.getOptions().setSsl(true);
