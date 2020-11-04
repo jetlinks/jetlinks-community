@@ -461,6 +461,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             instance.setProductId(tps.getT3());
             instance.setProductName(tps.getT4().getName());
             instance.setConfiguration(tps.getT5());
+            instance.setRegistryTime(message.getTimestamp());
             instance.setCreateTimeNow();
             instance.setCreatorId(tps.getT4().getCreatorId());
             instance.setOrgId(tps.getT4().getOrgId());
@@ -468,7 +469,9 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             return super
                 .save(Mono.just(instance))
                 .thenReturn(instance)
-                .flatMap(device -> registry.register(device.toDeviceInfo()));
+                .flatMap(device -> registry
+                    .register(device.toDeviceInfo()
+                                    .addConfig("state", DeviceState.online)));
         });
     }
 
