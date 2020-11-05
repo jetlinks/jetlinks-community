@@ -7,23 +7,21 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hswebframework.ezorm.core.param.QueryParam;
-import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.service.data.DeviceDataStoragePolicy;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.device.web.request.AggRequest;
-import org.jetlinks.community.timeseries.TimeSeriesData;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.core.metadata.ConfigMetadata;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jetlinks.core.metadata.DeviceMetadataCodec;
+import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,19 +35,80 @@ import java.util.Map;
 @Tag(name = "设备产品接口")
 public class DeviceProductController implements ReactiveServiceCrudController<DeviceProductEntity, String> {
 
-    @Autowired
-    private LocalDeviceProductService productService;
+    private final LocalDeviceProductService productService;
 
-    @Autowired
-    private List<DeviceDataStoragePolicy> policies;
+    private final List<DeviceDataStoragePolicy> policies;
 
-    @Autowired
-    private DeviceDataService deviceDataService;
+    private final DeviceDataService deviceDataService;
 
+    private final DeviceConfigMetadataManager configMetadataManager;
+
+    private final ObjectProvider<DeviceMetadataCodec> metadataCodecs;
+
+    private final DeviceMetadataCodec defaultCodec = new JetLinksDeviceMetadataCodec();
+
+    public DeviceProductController(LocalDeviceProductService productService,
+                                   List<DeviceDataStoragePolicy> policies,
+                                   DeviceDataService deviceDataService,
+                                   DeviceConfigMetadataManager configMetadataManager,
+                                   ObjectProvider<DeviceMetadataCodec> metadataCodecs) {
+        this.productService = productService;
+        this.policies = policies;
+        this.deviceDataService = deviceDataService;
+        this.configMetadataManager = configMetadataManager;
+        this.metadataCodecs = metadataCodecs;
+    }
 
     @Override
     public LocalDeviceProductService getService() {
         return productService;
+    }
+
+    @GetMapping("/{id:.+}/config-metadata")
+    @QueryAction
+    @Operation(summary = "获取产品需要的配置定义信息")
+    public Flux<ConfigMetadata> getDeviceConfigMetadata(@PathVariable
+                                                        @Parameter(description = "产品ID") String id) {
+        return configMetadataManager.getProductConfigMetadata(id);
+    }
+
+    @GetMapping("/metadata/codecs")
+    @QueryAction
+    @Operation(summary = "获取支持的物模型格式")
+    public Flux<DeviceMetadataCodec> getMetadataCodec() {
+        return Flux.fromIterable(metadataCodecs);
+    }
+
+    @PostMapping("/metadata/convert-to/{id}")
+    @QueryAction
+    @Operation(summary = "转换平台的物模型为指定的物模型格式")
+    public Mono<String> convertMetadataTo(@RequestBody Mono<String> metadata,
+                                          @PathVariable String id) {
+
+        return metadata
+            .flatMap(str -> Flux
+                .fromIterable(metadataCodecs)
+                .filter(codec -> codec.getId().equals(id))
+                .next()
+                .flatMap(codec -> defaultCodec
+                    .decode(str)
+                    .flatMap(codec::encode)));
+    }
+
+    @PostMapping("/metadata/convert-from/{id}")
+    @QueryAction
+    @Operation(summary = "转换指定的物模型为平台的物模型格式")
+    public Mono<String> convertMetadataFrom(@RequestBody Mono<String> metadata,
+                                            @PathVariable String id) {
+
+        return metadata
+            .flatMap(str -> Flux
+                .fromIterable(metadataCodecs)
+                .filter(codec -> codec.getId().equals(id))
+                .next()
+                .flatMap(codec -> codec
+                    .decode(str)
+                    .flatMap(defaultCodec::encode)));
     }
 
     @PostMapping("/{productId:.+}/deploy")
