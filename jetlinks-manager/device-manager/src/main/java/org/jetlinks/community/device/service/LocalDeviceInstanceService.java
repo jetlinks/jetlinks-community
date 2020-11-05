@@ -93,28 +93,35 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      * @since 1.2
      */
     public Mono<Map<String, Object>> resetConfiguration(String deviceId) {
-        return findById(deviceId)
-            .flatMap(device ->
-                Mono.defer(() -> {
-                    if (!MapUtils.isEmpty(device.getConfiguration())) {
-                        //重置注册中心里的配置
-                        return registry.getDevice(deviceId)
-                            .flatMap(opts -> opts.removeConfigs(device.getConfiguration().keySet()))
-                            .then();
-                    }
-                    return Mono.empty();
-                }).then(
-                    //更新数据库
-                    createUpdate()
-                        .set(DeviceInstanceEntity::getConfiguration, new HashMap<>())
-                        .where(DeviceInstanceEntity::getId, deviceId)
-                        .execute()
-                ).then(
-                    //获取产品信息的配置
-                    deviceProductService
-                        .findById(device.getProductId())
-                        .flatMap(product -> Mono.justOrEmpty(product.getConfiguration()))
-                ))
+        return this
+            .findById(deviceId)
+            .zipWhen(device -> deviceProductService.findById(device.getProductId()))
+            .flatMap(tp2 -> {
+                DeviceProductEntity product = tp2.getT2();
+                DeviceInstanceEntity device = tp2.getT1();
+                return Mono
+                    .defer(() -> {
+                        if (MapUtils.isNotEmpty(product.getConfiguration())) {
+                            if (MapUtils.isNotEmpty(device.getConfiguration())) {
+                                product.getConfiguration()
+                                       .keySet()
+                                       .forEach(device.getConfiguration()::remove);
+                            }
+                            //重置注册中心里的配置
+                            return registry.getDevice(deviceId)
+                                           .flatMap(opts -> opts.removeConfigs(product.getConfiguration().keySet()))
+                                           .then();
+                        }
+                        return Mono.empty();
+                    }).then(
+                        //更新数据库
+                        createUpdate()
+                            .set(device::getConfiguration)
+                            .where(device::getId)
+                            .execute()
+                    )
+                    .thenReturn(device.getConfiguration());
+            })
             .defaultIfEmpty(Collections.emptyMap())
             ;
     }
@@ -220,43 +227,58 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 .execute());
     }
 
+    protected Mono<DeviceDetail> createDeviceDetail(DeviceProductEntity product,
+                                                    DeviceInstanceEntity device,
+                                                    List<DeviceTagEntity> tags) {
+
+        DeviceDetail detail = new DeviceDetail().with(product).with(device).with(tags);
+
+        return registry
+            .getDevice(device.getId())
+            .flatMap(operator ->
+                         //检查设备的真实状态,可能出现设备已经离线,但是数据库状态未及时更新的.
+                         operator.checkState()
+                                 .map(DeviceState::of)
+                                 .filter(state -> state != detail.getState())
+                                 .doOnNext(detail::setState)
+                                 .flatMap(state -> createUpdate()
+                                     .set(DeviceInstanceEntity::getState, state)
+                                     .where(DeviceInstanceEntity::getId, device.getId())
+                                     .execute())
+                                 .thenReturn(operator))
+            .flatMap(detail::with)
+            .switchIfEmpty(Mono.defer(() -> {
+                //如果设备注册中心里没有设备信息,并且数据库里的状态不是未激活.
+                //可能是因为注册中心信息丢失,修改数据库中的状态信息.
+                if (detail.getState() != DeviceState.notActive) {
+                    return createUpdate()
+                        .set(DeviceInstanceEntity::getState, DeviceState.notActive)
+                        .where(DeviceInstanceEntity::getId, detail.getId())
+                        .execute()
+                        .thenReturn(detail.notActive());
+                }
+                return Mono.just(detail.notActive());
+            }).thenReturn(detail))
+            .onErrorResume(err -> {
+                log.warn("get device detail error", err);
+                return Mono.just(detail);
+            })
+            ;
+
+    }
+
     public Mono<DeviceDetail> getDeviceDetail(String deviceId) {
-        return this.findById(deviceId)
-            .zipWhen(
-                //合并设备和型号信息
-                (device) -> deviceProductService.findById(device.getProductId()),
-                (device, product) -> new DeviceDetail().with(device).with(product)
-            ).flatMap(detail -> registry
-                .getDevice(deviceId)
-                .flatMap(
-                    operator -> operator.checkState() //检查设备的真实状态,设备已经离线,但是数据库状态未及时更新的.
-                        .map(DeviceState::of)
-                        .filter(state -> state != detail.getState())
-                        .doOnNext(detail::setState)
-                        .flatMap(state -> createUpdate()
-                            .set(DeviceInstanceEntity::getState, state)
-                            .where(DeviceInstanceEntity::getId, deviceId)
-                            .execute())
-                        .thenReturn(operator))
-                .flatMap(detail::with)
-                .switchIfEmpty(Mono.defer(() -> {
-                    if (detail.getState() != DeviceState.notActive) {
-                        return createUpdate()
-                            .set(DeviceInstanceEntity::getState, DeviceState.notActive)
-                            .where(DeviceInstanceEntity::getId, deviceId)
-                            .execute()
-                            .thenReturn(detail.notActive());
-                    }
-                    return Mono.just(detail.notActive());
-                })))
-            //设备标签信息
-            .flatMap(detail -> tagRepository
-                .createQuery()
-                .where(DeviceTagEntity::getDeviceId, deviceId)
-                .fetch()
-                .collectList()
-                .map(detail::with)
-                .defaultIfEmpty(detail));
+        return this
+            .findById(deviceId)
+            .zipWhen(device -> deviceProductService.findById(device.getProductId()))//合并型号
+            .zipWith(tagRepository
+                         .createQuery()
+                         .where(DeviceTagEntity::getDeviceId, deviceId)
+                         .fetch()
+                         .collectList()
+                         .defaultIfEmpty(Collections.emptyList()) //合并标签
+                , (left, right) -> Tuples.of(left.getT2(), left.getT1(), right))
+            .flatMap(tp3 -> createDeviceDetail(tp3.getT1(), tp3.getT2(), tp3.getT3()));
     }
 
     public Mono<DeviceState> getDeviceState(String deviceId) {

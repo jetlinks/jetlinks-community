@@ -170,14 +170,16 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
     }
 
     public ProductInfo toProductInfo() {
-        return ProductInfo.builder()
+        return ProductInfo
+            .builder()
             .id(getId())
             .protocol(getMessageProtocol())
             .metadata(getMetadata())
             .build()
             .addConfig(DeviceConfigKey.isGatewayDevice, getDeviceType() == gateway)
             .addConfig("storePolicy", storePolicy)
-            .addConfig("storePolicyConfiguration", storePolicyConfiguration);
+            .addConfig("storePolicyConfiguration", storePolicyConfiguration)
+            .addConfigs(configuration);
     }
 
 }

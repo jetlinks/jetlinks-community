@@ -125,7 +125,8 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     private String parentId;
 
     public DeviceInfo toDeviceInfo() {
-        DeviceInfo info = DeviceInfo.builder()
+        DeviceInfo info = org.jetlinks.core.device.DeviceInfo
+            .builder()
             .id(this.getId())
             .productId(this.getProductId())
             .build()
@@ -133,7 +134,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         info.addConfig("deviceName", name);
         info.addConfig("productName", productName);
         if (!CollectionUtils.isEmpty(configuration)) {
-            configuration.forEach(info::addConfig);
+            info.addConfigs(configuration);
         }
         if (StringUtils.hasText(deriveMetadata)) {
             info.addConfig(DeviceConfigKey.metadata, deriveMetadata);

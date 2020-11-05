@@ -2,6 +2,7 @@ package org.jetlinks.community.device.events;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hswebframework.web.event.DefaultAsyncEvent;
 
 import java.util.Map;
 
@@ -11,7 +12,7 @@ import java.util.Map;
  **/
 @Getter
 @Setter
-public class DeviceProductDeployEvent {
+public class DeviceProductDeployEvent extends DefaultAsyncEvent {
 
     private String id;
 

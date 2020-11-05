@@ -33,25 +33,20 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
     @Autowired
     private ReactiveRepository<DeviceInstanceEntity, String> instanceRepository;
 
-
     public Mono<Integer> deploy(String id) {
         return findById(Mono.just(id))
-            .flatMap(product -> registry.register(
-                ProductInfo.builder()
-                    .id(id)
-                    .protocol(product.getMessageProtocol())
-                    .metadata(product.getMetadata())
-                    .build()
-                    .addConfig(DeviceConfigKey.isGatewayDevice, product.getDeviceType() == gateway))
-                .flatMap(deviceProductOperator -> deviceProductOperator.setConfigs(product.getConfiguration()))
-                .flatMap(re -> createUpdate()
-                    .set(DeviceProductEntity::getState, DeviceProductState.registered.getValue())
-                    .where(DeviceProductEntity::getId, id)
-                    .execute())
-                .doOnNext(i -> {
-                    log.debug("设备型号：{}发布成功", product.getName());
-                    eventPublisher.publishEvent(FastBeanCopier.copy(product, new DeviceProductDeployEvent()));
-                })
+            .flatMap(product -> registry
+                .register(product.toProductInfo())
+                .then(
+                    createUpdate()
+                        .set(DeviceProductEntity::getState, DeviceProductState.registered.getValue())
+                        .where(DeviceProductEntity::getId, id)
+                        .execute()
+                )
+                .flatMap(i -> FastBeanCopier
+                    .copy(product, new DeviceProductDeployEvent())
+                    .publish(eventPublisher)
+                    .thenReturn(i))
             );
     }
 
