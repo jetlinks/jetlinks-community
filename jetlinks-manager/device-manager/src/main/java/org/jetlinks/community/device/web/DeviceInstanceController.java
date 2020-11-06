@@ -40,6 +40,8 @@ import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.manager.DeviceBindHolder;
+import org.jetlinks.core.device.manager.DeviceBindProvider;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.DeviceMetadata;
@@ -123,6 +125,14 @@ public class DeviceInstanceController implements
     public Flux<ConfigMetadata> getDeviceConfigMetadata(@PathVariable @Parameter(description = "设备ID") String id) {
         return metadataManager.getDeviceConfigMetadata(id);
     }
+
+    @GetMapping("/bind-providers")
+    @QueryAction
+    @Operation(summary = "获取支持的云云对接")
+    public Flux<DeviceBindProvider> getBindProviders() {
+        return Flux.fromIterable(DeviceBindHolder.getAllProvider());
+    }
+
 
     //获取设备运行状态
     @GetMapping("/{id:.+}/state")
