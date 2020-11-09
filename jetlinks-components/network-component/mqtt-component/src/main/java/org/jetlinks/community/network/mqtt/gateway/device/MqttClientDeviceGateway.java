@@ -134,6 +134,11 @@ public class MqttClientDeviceGateway implements DeviceGateway {
                         public DeviceOperator getDevice() {
                             return null;
                         }
+
+                        @Override
+                        public Mono<DeviceOperator> getDevice(String deviceId) {
+                            return registry.getDevice(deviceId);
+                        }
                     }))
                     .doOnError((err) -> log.error("解码MQTT客户端消息失败 {}:{}",
                         mqttMessage.getTopic(), mqttMessage.getPayload().toString(StandardCharsets.UTF_8), err))

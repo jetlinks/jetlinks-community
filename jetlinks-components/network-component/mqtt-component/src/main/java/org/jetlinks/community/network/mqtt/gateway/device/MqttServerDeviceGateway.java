@@ -224,7 +224,7 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
         return operator
             .getProtocol()
             .flatMap(protocol -> protocol.getMessageCodec(getTransport()))
-            .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(session, message)))
+            .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(session, message,registry)))
             .cast(DeviceMessage.class)
             .flatMap(msg -> {
                 if (msg instanceof CommonDeviceMessage) {

@@ -162,7 +162,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
 
             return getProtocol()
                 .flatMap(pt -> pt.getMessageCodec(getTransport()))
-                .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(sessionRef.get(), message)))
+                .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(sessionRef.get(), message,registry)))
                 .cast(DeviceMessage.class)
                 .doOnNext(msg-> gatewayMonitor.receivedMessage())
                 .flatMap(this::handleDeviceMessage)
