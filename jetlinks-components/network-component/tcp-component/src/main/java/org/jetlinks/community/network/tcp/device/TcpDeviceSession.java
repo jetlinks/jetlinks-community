@@ -1,6 +1,7 @@
 package org.jetlinks.community.network.tcp.device;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.Transport;
@@ -19,8 +20,10 @@ class TcpDeviceSession implements DeviceSession {
     private String id;
 
     @Getter
+    @Setter
     private DeviceOperator operator;
 
+    @Setter
     private TcpClient client;
 
     @Getter

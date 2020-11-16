@@ -209,9 +209,15 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                         } else {
                             client.onDisconnect(() -> sessionManager.unregister(device.getDeviceId()));
                         }
-                        sessionRef.set(fSession);
                         sessionManager.register(fSession);
                     }
+                    try {
+                        fSession.unwrap(TcpDeviceSession.class)
+                                .setClient(client);
+                    } catch (Throwable ignore) {
+
+                    }
+                    sessionRef.set(fSession);
                     fSession.keepAlive();
                     Duration timeout = message.getHeader(Headers.keepOnlineTimeoutSeconds).map(Duration::ofSeconds).orElse(keepaliveTimeout.get());
                     if (timeout != null) {
