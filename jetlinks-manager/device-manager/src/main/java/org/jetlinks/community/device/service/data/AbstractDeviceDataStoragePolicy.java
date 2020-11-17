@@ -142,7 +142,7 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
     protected Flux<Tuple2<String, TimeSeriesData>> convertMessageToTimeSeriesData(DeviceMessage message) {
         String productId = (String) message.getHeader("productId").orElse("null");
         Consumer<DeviceOperationLogEntity> logEntityConsumer = null;
-        List<Publisher<Tuple2<String, TimeSeriesData>>> all = new ArrayList<>();
+        List<Publisher<Tuple2<String, TimeSeriesData>>> all = new ArrayList<>(2);
 
         if (message instanceof EventMessage) {
             logEntityConsumer = log -> log.setContent(JSON.toJSONString(((EventMessage) message).getData()));

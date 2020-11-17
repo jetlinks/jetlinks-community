@@ -1,20 +1,21 @@
 package org.jetlinks.community.device.message;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.*;
 import org.jetlinks.core.message.event.EventMessage;
-import org.jetlinks.core.message.firmware.*;
-import org.jetlinks.core.message.function.FunctionInvokeMessage;
-import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
-import org.jetlinks.core.message.property.*;
+import org.jetlinks.core.server.MessageHandler;
+import org.jetlinks.core.server.session.DeviceSessionManager;
+import org.jetlinks.supports.server.DecodedClientMessageHandler;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nonnull;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -25,67 +26,106 @@ import java.util.function.Function;
  * @since 1.0
  */
 @Slf4j
-public class DeviceMessageConnector{
-    //将设备注册中心到配置追加到消息header中,下游订阅者可直接使用.
-    private final String[] appendConfigHeader = {"productId", "deviceName"};
+public class DeviceMessageConnector implements DecodedClientMessageHandler {
+
+    //将设备注册中心的配置追加到消息header中,下游订阅者可直接使用.
+    private final static String[] allConfigHeader = {
+        PropertyConstants.productId.getKey(),
+        PropertyConstants.deviceName.getKey(),
+    };
 
     //设备注册中心
     private final DeviceRegistry registry;
 
     private final EventBus eventBus;
 
+    private final MessageHandler messageHandler;
+
+    private final DeviceSessionManager sessionManager;
+
     private final static BiConsumer<Throwable, Object> doOnError = (error, val) -> log.error(error.getMessage(), error);
 
-    private final Function<DeviceOperator, Mono<Values>> configGetter;
+    private final static Function<DeviceOperator, Mono<Values>> configGetter = operator -> operator.getSelfConfigs(allConfigHeader);
 
     private final static Values emptyValues = Values.of(Collections.emptyMap());
 
     public DeviceMessageConnector(EventBus eventBus,
-                                  DeviceRegistry registry) {
+                                  DeviceRegistry registry,
+                                  MessageHandler messageHandler,
+                                  DeviceSessionManager sessionManager) {
         this.registry = registry;
         this.eventBus = eventBus;
-        this.configGetter = operator -> operator.getSelfConfigs(appendConfigHeader);
+        this.messageHandler = messageHandler;
+        this.sessionManager = sessionManager;
+        sessionManager
+            .onRegister()
+            .flatMap(session -> {
+                DeviceOnlineMessage message = new DeviceOnlineMessage();
+                message.setDeviceId(session.getDeviceId());
+                message.setTimestamp(session.connectTime());
+                return onMessage(message);
+            })
+            .onErrorContinue(doOnError)
+            .subscribe();
+
+        sessionManager
+            .onUnRegister()
+            .flatMap(session -> {
+                DeviceOfflineMessage message = new DeviceOfflineMessage();
+                message.setDeviceId(session.getDeviceId());
+                message.setTimestamp(System.currentTimeMillis());
+                return onMessage(message);
+            })
+            .onErrorContinue(doOnError)
+            .subscribe();
     }
 
     public Mono<Void> onMessage(Message message) {
         if (null == message) {
             return Mono.empty();
         }
-        return this.getTopic(message)
+        return this
+            .getTopic(message)
             .flatMap(topic -> eventBus.publish(topic, message).then())
             .onErrorContinue(doOnError)
             .then();
     }
 
-    public Mono<String> getTopic(Message message) {
-        if (message instanceof DeviceMessage) {
-            DeviceMessage deviceMessage = ((DeviceMessage) message);
-            String deviceId = deviceMessage.getDeviceId();
-            if (deviceId == null) {
-                log.warn("无法从消息中获取设备ID:{}", deviceMessage);
-                return Mono.empty();
-            }
-            return registry
-                .getDevice(deviceId)
-                .flatMap(configGetter)
-                .defaultIfEmpty(emptyValues)
-                .flatMap(configs -> {
-                    configs.getAllValues().forEach(deviceMessage::addHeader);
-                    String productId = deviceMessage.getHeader("productId").map(String::valueOf).orElse("null");
-                    String topic = createDeviceMessageTopic(productId, deviceId, deviceMessage);
-
-                    if (message instanceof ChildDeviceMessage) { //子设备消息
-                        return onMessage(((ChildDeviceMessage) message).getChildDeviceMessage())
-                            .thenReturn(topic);
-                    } else if (message instanceof ChildDeviceMessageReply) { //子设备消息
-                        return onMessage(((ChildDeviceMessageReply) message).getChildDeviceMessage())
-                            .thenReturn(topic);
-                    }
-                    return Mono.just(topic);
-                });
-
+    private Flux<String> getTopic(Message message) {
+        Flux<String> topicsStream = createDeviceMessageTopic(registry, message);
+        if (message instanceof ChildDeviceMessage) { //子设备消息
+            return this
+                .onMessage(((ChildDeviceMessage) message).getChildDeviceMessage())
+                .thenMany(topicsStream);
+        } else if (message instanceof ChildDeviceMessageReply) { //子设备消息
+            return this
+                .onMessage(((ChildDeviceMessageReply) message).getChildDeviceMessage())
+                .thenMany(topicsStream);
         }
-        return Mono.just("/device/unknown/message/unknown");
+        return topicsStream;
+    }
+
+    public static Flux<String> createDeviceMessageTopic(DeviceRegistry deviceRegistry, Message message) {
+        return Flux.defer(() -> {
+            if (message instanceof DeviceMessage) {
+                DeviceMessage deviceMessage = ((DeviceMessage) message);
+                String deviceId = deviceMessage.getDeviceId();
+                if (deviceId == null) {
+                    log.warn("无法从消息中获取设备ID:{}", deviceMessage);
+                    return Mono.empty();
+                }
+                return deviceRegistry
+                    .getDevice(deviceId)
+                    .flatMap(configGetter)
+                    .defaultIfEmpty(emptyValues)
+                    .map(configs -> {
+                        configs.getAllValues().forEach(deviceMessage::addHeader);
+                        String productId = deviceMessage.getHeader(PropertyConstants.productId).orElse("null");
+                        return createDeviceMessageTopic(productId, deviceId, deviceMessage);
+                    });
+            }
+            return Mono.just("/device/unknown/message/unknown");
+        });
     }
 
     public static String createDeviceMessageTopic(String productId, String deviceId, DeviceMessage message) {
@@ -99,68 +139,165 @@ public class DeviceMessageConnector{
         return builder.toString();
     }
 
-    public static void appendDeviceMessageTopic(Message message, StringBuilder builder) {
-        if (message instanceof EventMessage) {   //事件
+    private static final BiConsumer<Message, StringBuilder>[] fastTopicBuilder;
+
+    static {
+        fastTopicBuilder = new BiConsumer[MessageType.values().length];
+
+
+        //事件
+        createFastBuilder(MessageType.EVENT, (message, builder) -> {
             EventMessage event = ((EventMessage) message);
             builder.append("/message/event/").append(event.getEvent());
-        } else if (message instanceof ReportPropertyMessage) {   //上报属性
-            builder.append("/message/property/report");
-        } else if (message instanceof DeviceOnlineMessage) {   //设备上线
-            builder.append("/online");
-        } else if (message instanceof DeviceOfflineMessage) {   //设备离线
-            builder.append("/offline");
-        } else if (message instanceof ChildDeviceMessage) { //子设备消息
+        });
+
+        //上报属性
+        createFastBuilder(MessageType.REPORT_PROPERTY, "/message/property/report");
+        //读取属性
+        createFastBuilder(MessageType.READ_PROPERTY, "/message/send/property/read");
+        //读取属性回复
+        createFastBuilder(MessageType.READ_PROPERTY_REPLY, "/message/property/read/reply");
+        //修改属性
+        createFastBuilder(MessageType.WRITE_PROPERTY, "/message/send/property/write");
+        //修改属性回复
+        createFastBuilder(MessageType.WRITE_PROPERTY_REPLY, "/message/property/write/reply");
+        //调用功能
+        createFastBuilder(MessageType.INVOKE_FUNCTION, "/message/send/function");
+        //调用功能回复
+        createFastBuilder(MessageType.INVOKE_FUNCTION_REPLY, "/message/function/reply");
+        //注册
+        createFastBuilder(MessageType.REGISTER, "/register");
+        //注销
+        createFastBuilder(MessageType.UN_REGISTER, "/unregister");
+        //拉取固件
+        createFastBuilder(MessageType.REQUEST_FIRMWARE, "/firmware/pull");
+        //拉取固件回复
+        createFastBuilder(MessageType.REQUEST_FIRMWARE_REPLY, "/firmware/pull/reply");
+        //上报固件信息
+        createFastBuilder(MessageType.REPORT_FIRMWARE, "/firmware/report");
+        //上报固件安装进度
+        createFastBuilder(MessageType.UPGRADE_FIRMWARE_PROGRESS, "/firmware/progress");
+        //推送固件
+        createFastBuilder(MessageType.UPGRADE_FIRMWARE, "/firmware/push");
+        //推送固件回复
+        createFastBuilder(MessageType.UPGRADE_FIRMWARE_REPLY, "/firmware/push/reply");
+        //未知
+        createFastBuilder(MessageType.UNKNOWN, "/message/unknown");
+        //日志
+        createFastBuilder(MessageType.LOG, "/message/log");
+        //透传
+        createFastBuilder(MessageType.DIRECT, "/message/direct");
+        //更新标签
+        createFastBuilder(MessageType.UPDATE_TAG, "/message/tags/update");
+        //上线
+        createFastBuilder(MessageType.ONLINE, "/online");
+        //离线
+        createFastBuilder(MessageType.OFFLINE, "/offline");
+        //断开连接
+        createFastBuilder(MessageType.DISCONNECT, "/disconnect");
+        //断开连接回复
+        createFastBuilder(MessageType.DISCONNECT_REPLY, "/disconnect/reply");
+        //子设备消息
+        createFastBuilder(MessageType.CHILD, (message, builder) -> {
             Message msg = ((ChildDeviceMessage) message).getChildDeviceMessage();
             if (msg instanceof DeviceMessage) {
                 builder.append("/message/children/")
-                    .append(((DeviceMessage) msg).getDeviceId());
-                appendDeviceMessageTopic(msg, builder);
+                       .append(((DeviceMessage) msg).getDeviceId());
             } else {
                 builder.append("/message/children");
-                appendDeviceMessageTopic(message, builder);
             }
-        } else if (message instanceof ChildDeviceMessageReply) { //子设备消息
+            appendDeviceMessageTopic(msg, builder);
+        });
+        //子设备消息回复
+        createFastBuilder(MessageType.CHILD_REPLY, (message, builder) -> {
             Message msg = ((ChildDeviceMessageReply) message).getChildDeviceMessage();
             if (msg instanceof DeviceMessage) {
                 builder.append("/message/children/reply/")
-                    .append(((DeviceMessage) msg).getDeviceId());
-                appendDeviceMessageTopic(msg, builder);
+                       .append(((DeviceMessage) msg).getDeviceId());
             } else {
                 builder.append("/message/children/reply");
-                appendDeviceMessageTopic(message, builder);
             }
-        } else if (message instanceof ReadPropertyMessage) { //读取属性
-            builder.append("/message/send/property/read");
-        } else if (message instanceof WritePropertyMessage) { //修改属性
-            builder.append("/message/send/property/write");
-        } else if (message instanceof FunctionInvokeMessage) { //调用功能
-            builder.append("/message/send/function");
-        } else if (message instanceof ReadPropertyMessageReply) { //读取属性回复
-            builder.append("/message/property/read/reply");
-        } else if (message instanceof WritePropertyMessageReply) { //修改属性回复
-            builder.append("/message/property/write/reply");
-        } else if (message instanceof FunctionInvokeMessageReply) { //调用功能回复
-            builder.append("/message/function/reply");
-        } else if (message instanceof DeviceRegisterMessage) { //注册
-            builder.append("/register");
-        } else if (message instanceof DeviceUnRegisterMessage) { //注销
-            builder.append("/unregister");
-        } else if (message instanceof RequestFirmwareMessage) { //拉取固件请求 since 1.3
-            builder.append("/firmware/pull");
-        } else if (message instanceof RequestFirmwareMessageReply) { //拉取固件响应 since 1.3
-            builder.append("/firmware/pull/reply");
-        } else if (message instanceof ReportFirmwareMessage) { //上报固件信息 since 1.3
-            builder.append("/firmware/report");
-        } else if (message instanceof UpgradeFirmwareProgressMessage) { //上报固件更新进度 since 1.3
-            builder.append("/firmware/progress");
-        } else if (message instanceof UpgradeFirmwareMessage) { //推送固件更新 since 1.3
-            builder.append("/firmware/push");
-        } else if (message instanceof UpgradeFirmwareMessageReply) { //推送固件更新回复 since 1.3
-            builder.append("/firmware/push/reply");
-        } else if (message instanceof DirectDeviceMessage) { //透传消息 since 1.4
-            builder.append("/message/direct");
+            appendDeviceMessageTopic(msg, builder);
+        });
+    }
+
+    private static void createFastBuilder(MessageType messageType,
+                                          String topic) {
+        fastTopicBuilder[messageType.ordinal()] = (ignore, builder) -> builder.append(topic);
+    }
+
+    private static void createFastBuilder(MessageType messageType,
+                                          BiConsumer<Message, StringBuilder> builderBiConsumer) {
+        fastTopicBuilder[messageType.ordinal()] = builderBiConsumer;
+    }
+
+    public static void appendDeviceMessageTopic(Message message, StringBuilder builder) {
+
+        BiConsumer<Message, StringBuilder> fastBuilder = fastTopicBuilder[message.getMessageType().ordinal()];
+        if (null != fastBuilder) {
+            fastBuilder.accept(message, builder);
         } else {
             builder.append("/message/").append(message.getMessageType().name().toLowerCase());
         }
+    }
+
+    protected Mono<Boolean> handleChildrenDeviceMessage(DeviceOperator device, String childrenId, Message message) {
+        if (message instanceof DeviceMessageReply) {
+            return doReply(((DeviceMessageReply) message));
+        } else if (message instanceof DeviceOnlineMessage) {
+            return sessionManager.registerChildren(device.getDeviceId(), childrenId)
+                                 .thenReturn(true)
+                                 .defaultIfEmpty(false);
+        } else if (message instanceof DeviceOfflineMessage) {
+            return sessionManager.unRegisterChildren(device.getDeviceId(), childrenId)
+                                 .thenReturn(true)
+                                 .defaultIfEmpty(false);
+        }
+        return Mono.just(true);
+    }
+
+    protected Mono<Boolean> handleChildrenDeviceMessageReply(DeviceOperator session, ChildDeviceMessage reply) {
+        return handleChildrenDeviceMessage(session, reply.getChildDeviceId(), reply.getChildDeviceMessage());
+    }
+
+    protected Mono<Boolean> handleChildrenDeviceMessageReply(DeviceOperator session, ChildDeviceMessageReply reply) {
+        return handleChildrenDeviceMessage(session, reply.getChildDeviceId(), reply.getChildDeviceMessage());
+    }
+
+    @Override
+    public Mono<Boolean> handleMessage(DeviceOperator device, @Nonnull Message message) {
+        return this
+            .onMessage(message)
+            .then(Mono.defer(() -> {
+                if (device != null) {
+                    if (message instanceof ChildDeviceMessageReply) {
+                        return handleChildrenDeviceMessageReply(device, ((ChildDeviceMessageReply) message));
+                    } else if (message instanceof ChildDeviceMessage) {
+                        return handleChildrenDeviceMessageReply(device, ((ChildDeviceMessage) message));
+                    }
+                }
+                if (message instanceof DeviceMessageReply) {
+                    return doReply(((DeviceMessageReply) message));
+                }
+                return Mono.just(true);
+            }))
+            .defaultIfEmpty(false);
+
+    }
+
+    private Mono<Boolean> doReply(DeviceMessageReply reply) {
+        if (log.isDebugEnabled()) {
+            log.debug("reply message {}", reply.getMessageId());
+        }
+        return messageHandler
+            .reply(reply)
+            .doOnSuccess(success -> {
+                if (log.isDebugEnabled()) {
+                    log.debug("reply message {} complete", reply.getMessageId());
+                }
+            })
+            .thenReturn(true)
+            .doOnError((error) -> log.error("reply message error", error))
+            ;
     }
 }

@@ -1,6 +1,7 @@
 package org.jetlinks.community.standalone.configuration;
 
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.guava.CaffeinatedGuava;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -10,56 +11,44 @@ import org.hswebframework.web.authorization.token.UserTokenManager;
 import org.hswebframework.web.authorization.token.redis.RedisUserTokenManager;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
-import org.jetlinks.community.device.message.writer.TimeSeriesMessageWriterConnector;
 import org.jetlinks.community.device.service.AutoDiscoverDeviceRegistry;
-import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
+import org.jetlinks.core.config.ConfigStorageManager;
 import org.jetlinks.core.device.DeviceOperationBroker;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.StandaloneDeviceMessageBroker;
 import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.message.DeviceOfflineMessage;
-import org.jetlinks.core.message.DeviceOnlineMessage;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
 import org.jetlinks.core.server.MessageHandler;
 import org.jetlinks.core.server.monitor.GatewayServerMetrics;
 import org.jetlinks.core.server.monitor.GatewayServerMonitor;
 import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.core.spi.ServiceContext;
-import org.jetlinks.community.device.message.DeviceMessageConnector;
 import org.jetlinks.supports.cluster.ClusterDeviceRegistry;
 import org.jetlinks.supports.cluster.redis.RedisClusterManager;
+import org.jetlinks.supports.config.EventBusStorageManager;
 import org.jetlinks.supports.event.BrokerEventBus;
 import org.jetlinks.supports.protocol.ServiceLoaderProtocolSupports;
 import org.jetlinks.supports.protocol.management.ClusterProtocolSupportManager;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportManager;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
-import org.jetlinks.supports.server.DefaultClientMessageHandler;
-import org.jetlinks.supports.server.DefaultDecodedClientMessageHandler;
 import org.jetlinks.supports.server.DefaultSendToDeviceMessageHandler;
 import org.jetlinks.supports.server.monitor.MicrometerGatewayServerMetrics;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
-import java.util.List;
 import java.util.Optional;
 
 @Configuration
@@ -98,6 +87,13 @@ public class JetLinksConfiguration {
         return new StandaloneDeviceMessageBroker();
     }
 
+    @Bean
+    public EventBusStorageManager eventBusStorageManager(ClusterManager clusterManager, EventBus eventBus) {
+        return new EventBusStorageManager(clusterManager,
+                                          eventBus,
+                                          () -> CaffeinatedGuava.build(Caffeine.newBuilder()));
+    }
+
     @Bean(initMethod = "startup")
     public RedisClusterManager clusterManager(JetLinksProperties properties, ReactiveRedisTemplate<Object, Object> template) {
         return new RedisClusterManager(properties.getClusterName(), properties.getServerId(), template);
@@ -106,8 +102,14 @@ public class JetLinksConfiguration {
     @Bean
     public ClusterDeviceRegistry clusterDeviceRegistry(ProtocolSupports supports,
                                                        ClusterManager manager,
+                                                       ConfigStorageManager storageManager,
                                                        DeviceOperationBroker handler) {
-        return new ClusterDeviceRegistry(supports, manager, handler, CacheBuilder.newBuilder().build());
+
+        return new ClusterDeviceRegistry(supports,
+                                         storageManager,
+                                         manager,
+                                         handler,
+                                         CaffeinatedGuava.build(Caffeine.newBuilder()));
     }
 
     @Bean
@@ -133,35 +135,6 @@ public class JetLinksConfiguration {
         };
     }
 
-    @Bean
-    public DeviceMessageConnector deviceMessageConnector(EventBus eventBus, DeviceRegistry registry) {
-        return new DeviceMessageConnector(eventBus, registry);
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "device.message.writer.time-series", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public TimeSeriesMessageWriterConnector timeSeriesMessageWriterConnector(DeviceDataService deviceDataService) {
-        return new TimeSeriesMessageWriterConnector(deviceDataService);
-    }
-
-    @Bean(destroyMethod = "shutdown")
-    public DefaultDecodedClientMessageHandler defaultDecodedClientMessageHandler(MessageHandler handler,
-                                                                                 DeviceMessageConnector messageConnector,
-                                                                                 DeviceSessionManager deviceSessionManager,
-                                                                                 Scheduler scheduler) {
-        DefaultDecodedClientMessageHandler clientMessageHandler = new DefaultDecodedClientMessageHandler(handler, deviceSessionManager,
-            EmitterProcessor.create(false)
-        );
-        clientMessageHandler
-            .subscribe()
-            .parallel()
-            .runOn(scheduler)
-            .flatMap(msg -> messageConnector.onMessage(msg).onErrorContinue((err, r) -> log.error(err.getMessage(), err)))
-            .subscribe();
-
-        return clientMessageHandler;
-    }
-
     @Bean(initMethod = "startup")
     public DefaultSendToDeviceMessageHandler defaultSendToDeviceMessageHandler(JetLinksProperties properties,
                                                                                DeviceSessionManager sessionManager,
@@ -170,12 +143,6 @@ public class JetLinksConfiguration {
                                                                                DecodedClientMessageHandler clientMessageHandler) {
         return new DefaultSendToDeviceMessageHandler(properties.getServerId(), sessionManager, messageHandler, registry, clientMessageHandler);
     }
-
-    @Bean
-    public DefaultClientMessageHandler defaultClientMessageHandler(DefaultDecodedClientMessageHandler handler) {
-        return new DefaultClientMessageHandler(handler);
-    }
-
 
     @Bean
     public GatewayServerMonitor gatewayServerMonitor(JetLinksProperties properties, MeterRegistry registry) {
@@ -198,32 +165,11 @@ public class JetLinksConfiguration {
     @Bean(initMethod = "init", destroyMethod = "shutdown")
     public DefaultDeviceSessionManager deviceSessionManager(JetLinksProperties properties,
                                                             GatewayServerMonitor monitor,
-                                                            DeviceMessageConnector messageConnector,
                                                             DeviceRegistry registry) {
         DefaultDeviceSessionManager sessionManager = new DefaultDeviceSessionManager();
         sessionManager.setGatewayServerMonitor(monitor);
         sessionManager.setRegistry(registry);
         Optional.ofNullable(properties.getTransportLimit()).ifPresent(sessionManager::setTransportLimits);
-
-        sessionManager.onRegister()
-            .flatMap(session -> {
-                DeviceOnlineMessage message = new DeviceOnlineMessage();
-                message.setDeviceId(session.getDeviceId());
-                message.setTimestamp(session.connectTime());
-                return messageConnector.onMessage(message);
-            })
-            .onErrorContinue((err, r) -> log.error(err.getMessage(), err))
-            .subscribe();
-
-        sessionManager.onUnRegister()
-            .flatMap(session -> {
-                DeviceOfflineMessage message = new DeviceOfflineMessage();
-                message.setDeviceId(session.getDeviceId());
-                message.setTimestamp(System.currentTimeMillis());
-                return messageConnector.onMessage(message);
-            })
-            .onErrorContinue((err, r) -> log.error(err.getMessage(), err))
-            .subscribe();
 
         return sessionManager;
     }
