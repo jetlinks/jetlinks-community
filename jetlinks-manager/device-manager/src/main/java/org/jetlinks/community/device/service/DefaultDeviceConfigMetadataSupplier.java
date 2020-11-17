@@ -8,6 +8,7 @@ import org.jetlinks.core.metadata.DeviceConfigScope;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
 @Component
@@ -21,17 +22,35 @@ public class DefaultDeviceConfigMetadataSupplier implements DeviceConfigMetadata
     private final ProtocolSupports protocolSupports;
 
     @Override
+    @SuppressWarnings("all")
     public Flux<ConfigMetadata> getDeviceConfigMetadata(String deviceId) {
-
+        if(StringUtils.isEmpty(deviceId)){
+            return Flux.empty();
+        }
         return instanceService
-            .findById(deviceId)
+            .createQuery()
+            .select(DeviceInstanceEntity::getProductId)
+            .where(DeviceInstanceEntity::getId,deviceId)
+            .fetchOne()
             .map(DeviceInstanceEntity::getProductId)
             .flatMapMany(this::getProductConfigMetadata0)
             .filter(metadata -> metadata.hasScope(DeviceConfigScope.device));
     }
 
     @Override
+    public Flux<ConfigMetadata> getDeviceConfigMetadataByProductId(String productId) {
+        if(StringUtils.isEmpty(productId)){
+            return Flux.empty();
+        }
+        return getProductConfigMetadata0(productId)
+            .filter(metadata -> metadata.hasScope(DeviceConfigScope.device));
+    }
+
+    @Override
     public Flux<ConfigMetadata> getProductConfigMetadata(String productId) {
+        if(StringUtils.isEmpty(productId)){
+            return Flux.empty();
+        }
         return getProductConfigMetadata0(productId)
             .filter(metadata -> metadata.hasScope(DeviceConfigScope.product));
     }

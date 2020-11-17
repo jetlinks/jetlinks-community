@@ -2,8 +2,10 @@ package org.jetlinks.community.device.service;
 
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DeviceConfigScope;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Nonnull;
@@ -21,9 +23,20 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
     }
 
     @Override
+    public Flux<ConfigMetadata> getDeviceConfigMetadataByProductId(String productId) {
+        return Flux.fromIterable(suppliers)
+                   .flatMap(supplier -> supplier.getDeviceConfigMetadataByProductId(productId))
+                   .map(config -> config.copy(DeviceConfigScope.device))
+                   .filter(config-> !CollectionUtils.isEmpty(config.getProperties()))
+                   .sort(Comparator.comparing(ConfigMetadata::getName));
+    }
+
+    @Override
     public Flux<ConfigMetadata> getDeviceConfigMetadata(String deviceId) {
         return Flux.fromIterable(suppliers)
                    .flatMap(supplier -> supplier.getDeviceConfigMetadata(deviceId))
+                   .map(config -> config.copy(DeviceConfigScope.device))
+                   .filter(config-> !CollectionUtils.isEmpty(config.getProperties()))
                    .sort(Comparator.comparing(ConfigMetadata::getName));
     }
 
@@ -31,6 +44,8 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
     public Flux<ConfigMetadata> getProductConfigMetadata(String productId) {
         return Flux.fromIterable(suppliers)
                    .flatMap(supplier -> supplier.getProductConfigMetadata(productId))
+                   .map(config -> config.copy(DeviceConfigScope.product))
+                   .filter(config-> !CollectionUtils.isEmpty(config.getProperties()))
                    .sort(Comparator.comparing(ConfigMetadata::getName));
     }
 

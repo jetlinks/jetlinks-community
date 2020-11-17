@@ -395,30 +395,20 @@ public class DeviceInstanceController implements
     DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
 
     private Mono<Tuple4<DeviceProductEntity, DeviceProductOperator, DeviceMetadata, List<ConfigPropertyMetadata>>> getDeviceProductDetail(String productId) {
-        return registry
-            .getProduct(productId)
-            .switchIfEmpty(Mono.error(() -> new BusinessException("型号[{" + productId + "]不存在或未发布")))
-            .flatMap(product -> Mono.zip(
-                product.getMetadata(),
-                product.getProtocol(),
-                productService.findById(productId))
-                                    .flatMap(tp3 -> {
-                                        DeviceMetadata metadata = tp3.getT1();
-                                        ProtocolSupport protocol = tp3.getT2();
-                                        DeviceProductEntity entity = tp3.getT3();
 
-                                        return protocol.getSupportedTransport()
-                                                       .collectList()
-                                                       .map(entity::getTransportEnum)
-                                                       .flatMap(Mono::justOrEmpty)
-                                                       .flatMap(protocol::getConfigMetadata)
-                                                       .map(ConfigMetadata::getProperties)
-                                                       .defaultIfEmpty(Collections.emptyList())
-                                                       .map(configs -> Tuples.of(entity, product, metadata, configs));
-
-                                    })
-            );
-
+        return Mono.zip(
+            //产品
+            productService.findById(productId),
+            //操作接口
+            registry.getProduct(productId),
+            //物模型
+            registry.getProduct(productId).flatMap(DeviceProductOperator::getMetadata),
+            //配置
+            metadataManager.getDeviceConfigMetadataByProductId(productId)
+                           .flatMapIterable(ConfigMetadata::getProperties)
+                           .collectList()
+                           .defaultIfEmpty(Collections.emptyList())
+        );
     }
 
     //按产品导入数据
