@@ -1,6 +1,5 @@
 package org.jetlinks.community.notify.manager.message;
 
-import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;
 import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
@@ -40,6 +39,6 @@ public class NotificationsPublishProvider implements SubscriptionProvider {
                 "/notifications/user/" + request.getAuthentication().getUser().getId() + "/*/*",
                 Subscription.Feature.local, Subscription.Feature.broker
             ))
-            .map(msg -> Message.success(request.getId(), msg.getTopic(), JSON.parseObject(msg.bodyToString())));
+            .map(msg -> Message.success(request.getId(), msg.getTopic(), msg.bodyToJson(true)));
     }
 }

@@ -9,6 +9,7 @@ import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+@Deprecated
 public interface TopicMessage {
 
     /**

@@ -59,7 +59,7 @@ public class DeviceAlarmProvider implements SubscriberProvider {
                 Subscription.Feature.local
             ))
             .map(msg -> {
-                JSONObject json = msg.bodyToJson();
+                JSONObject json = msg.bodyToJson(true);
 
                 return Notify.of(
                     String.format("设备[%s]发生告警:[%s]!", json.getString("deviceName"), json.getString("alarmName")),
