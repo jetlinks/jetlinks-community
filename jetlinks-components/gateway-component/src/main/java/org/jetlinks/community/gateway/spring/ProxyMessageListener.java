@@ -79,11 +79,11 @@ class ProxyMessageListener implements MessageListener {
         if (Payload.class.isAssignableFrom(paramType)) {
             return message;
         }
-        if (paramType.equals(TopicMessage.class)) {
-            log.warn("TopicMessage已弃用,请替换为TopicPayload! {}", method);
-            return TopicMessageWrap.wrap(message);
-        }
         try {
+            if (paramType.equals(TopicMessage.class)) {
+                log.warn("TopicMessage已弃用,请替换为TopicPayload! {}", method);
+                return TopicMessageWrap.wrap(message);
+            }
             Payload payload = message.getPayload();
             Object decodedPayload;
             if (payload instanceof NativePayload) {
@@ -105,17 +105,27 @@ class ProxyMessageListener implements MessageListener {
 
     @Override
     public Mono<Void> onMessage(TopicPayload message) {
-        boolean paramVoid = paramType == Void.class;
         try {
-            Object val = proxy.apply(target, paramVoid ? null : convert(message));
-            if (val instanceof Publisher) {
-                return Mono.from((Publisher<?>) val).then();
+            boolean paramVoid = paramType == Void.class;
+            try {
+                Object val = proxy.apply(target, paramVoid ? null : convert(message));
+                if (val instanceof Publisher) {
+                    return Mono.from((Publisher<?>) val).then();
+                }
+                return Mono.empty();
+            } finally {
+                if (paramVoid) {
+                    message.release();
+                }
             }
-            return Mono.empty();
-        } finally {
-            if (paramVoid) {
-                message.release();
-            }
+        } catch (Throwable e) {
+            log.error("invoke event listener [{}] error", toString(), e);
         }
+        return Mono.empty();
+    }
+
+    @Override
+    public String toString() {
+        return ClassUtils.getUserClass(target).getSimpleName() + "." + method.getName();
     }
 }

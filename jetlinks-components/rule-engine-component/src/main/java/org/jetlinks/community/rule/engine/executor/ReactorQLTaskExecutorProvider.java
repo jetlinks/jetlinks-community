@@ -82,9 +82,9 @@ public class ReactorQLTaskExecutorProvider implements TaskExecutorProvider {
                                         .concat(context.getJob().getNodeId()),
                                     table,
                                     Subscription.Feature.local
-                                    ),
-                                    JsonCodec.of(Map.class)
-                                );
+                                    )
+                                )
+                                .map(payload -> payload.bodyToJson(true));
                         }
                         return Flux.just(1);
                     });
