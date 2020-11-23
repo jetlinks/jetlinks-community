@@ -20,6 +20,7 @@ import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceMetadataCodec;
+import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.*;
@@ -70,6 +71,16 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
     public Flux<ConfigMetadata> getDeviceConfigMetadata(@PathVariable
                                                         @Parameter(description = "产品ID") String id) {
         return configMetadataManager.getProductConfigMetadata(id);
+    }
+
+    @GetMapping("/{id:.+}/config-metadata/{metadataType}/{metadataId}/{typeId}")
+    @QueryAction
+    @Operation(summary = "获取产品物模型的拓展配置定义")
+    public Flux<ConfigMetadata> getExpandsConfigMetadata(@PathVariable @Parameter(description = "产品ID") String id,
+                                                         @PathVariable @Parameter(description = "物模型类型") DeviceMetadataType metadataType,
+                                                         @PathVariable @Parameter(description = "物模型ID") String metadataId,
+                                                         @PathVariable @Parameter(description = "类型ID") String typeId) {
+        return configMetadataManager.getMetadataExpandsConfig(id, metadataType, metadataId, typeId);
     }
 
     @GetMapping("/metadata/codecs")

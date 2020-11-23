@@ -1,15 +1,22 @@
 package org.jetlinks.community.device.service;
 
 import lombok.AllArgsConstructor;
+import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceConfigScope;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
+import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Arrays;
+import java.util.function.Function;
 
 @Component
 @AllArgsConstructor
@@ -53,6 +60,35 @@ public class DefaultDeviceConfigMetadataSupplier implements DeviceConfigMetadata
         }
         return getProductConfigMetadata0(productId)
             .filter(metadata -> metadata.hasScope(DeviceConfigScope.product));
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
+                                                         DeviceMetadataType metadataType,
+                                                         String metadataId,
+                                                         String typeId) {
+        Assert.hasText(productId, "productId can not be empty");
+        Assert.notNull(metadataType, "metadataType can not be empty");
+
+        return productService
+            .createQuery()
+            .select(DeviceProductEntity::getMessageProtocol, DeviceProductEntity::getTransportProtocol)
+            .where(DeviceInstanceEntity::getId, productId)
+            .fetchOne()
+            .flatMap(product -> {
+                return Mono
+                    .zip(
+                        //消息协议
+                        protocolSupports.getProtocol(product.getMessageProtocol()),
+                        //传输协议
+                        Mono.justOrEmpty(product.getTransportEnum(Arrays.asList(DefaultTransport.values()))),
+                        (protocol, transport) -> {
+                            return protocol.getMetadataExpandsConfig(transport, metadataType, metadataId, typeId);
+                        }
+                    );
+            })
+            .flatMapMany(Function.identity());
     }
 
     private Flux<ConfigMetadata> getProductConfigMetadata0(String productId) {

@@ -6,6 +6,7 @@ import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
+import org.jetlinks.core.metadata.DeviceMetadataType;
 import reactor.core.publisher.Flux;
 
 
@@ -62,5 +63,17 @@ public interface DeviceConfigMetadataManager {
      */
     Flux<ConfigMetadata> getProductConfigMetadata(String productId);
 
+    /**
+     * 获取物模型拓展配置定义
+     * @param productId 产品ID
+     * @param metadataType 物模型类型
+     * @param metadataId 物模型ID
+     * @param typeId 类型
+     * @return 配置定义信息
+     */
+    Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
+                                                  DeviceMetadataType metadataType,
+                                                  String metadataId,
+                                                  String typeId);
 
 }

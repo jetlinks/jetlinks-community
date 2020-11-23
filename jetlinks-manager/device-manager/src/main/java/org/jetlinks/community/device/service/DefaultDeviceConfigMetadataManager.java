@@ -3,6 +3,7 @@ package org.jetlinks.community.device.service;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceConfigScope;
+import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -46,6 +47,16 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
                    .flatMap(supplier -> supplier.getProductConfigMetadata(productId))
                    .map(config -> config.copy(DeviceConfigScope.product))
                    .filter(config-> !CollectionUtils.isEmpty(config.getProperties()))
+                   .sort(Comparator.comparing(ConfigMetadata::getName));
+    }
+
+    @Override
+    public Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
+                                                         DeviceMetadataType metadataType,
+                                                         String metadataId,
+                                                         String typeId) {
+        return Flux.fromIterable(suppliers)
+                   .flatMap(supplier -> supplier.getMetadataExpandsConfig(productId, metadataType, metadataId, typeId))
                    .sort(Comparator.comparing(ConfigMetadata::getName));
     }
 

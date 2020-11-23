@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.spi;
 
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DeviceMetadataType;
 import reactor.core.publisher.Flux;
 
 /**
@@ -28,4 +29,13 @@ public interface DeviceConfigMetadataSupplier {
      */
     Flux<ConfigMetadata> getProductConfigMetadata(String productId);
 
+    /**
+     * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getMetadataExpandsConfig(String, DeviceMetadataType, String, String)
+     */
+    default Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
+                                                          DeviceMetadataType metadataType,
+                                                          String metadataId,
+                                                          String typeId) {
+        return Flux.empty();
+    }
 }
