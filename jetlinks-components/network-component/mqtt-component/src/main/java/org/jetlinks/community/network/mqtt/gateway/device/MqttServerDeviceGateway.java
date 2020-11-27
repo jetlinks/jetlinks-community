@@ -255,47 +255,75 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
             ;
     }
 
+    protected Mono<Boolean> handleOnlineOffline(DeviceMessage message, MqttConnectionSession firstSession) {
+        if (message == null || message.getDeviceId() == null) {
+            return Mono.just(false);
+        }
+        String deviceId = message.getDeviceId();
+        Mono<Boolean> then = Mono.empty();
+        if (message instanceof ChildDeviceMessage) {
+            then = handleOnlineOffline((DeviceMessage) ((ChildDeviceMessage) message).getChildDeviceMessage(), firstSession);
+        } else if (message instanceof ChildDeviceMessageReply) {
+            then = handleOnlineOffline((DeviceMessage) ((ChildDeviceMessageReply) message).getChildDeviceMessage(), firstSession);
+        } else if (message instanceof DeviceOnlineMessage) {
+            then = Mono.just(true);
+        } else if (message instanceof DeviceOfflineMessage) {
+            sessionManager.unregister(deviceId);
+            return Mono.just(true);
+        }
+        if (firstSession.isAlive()) {
+            DeviceSession[] managedSession = new DeviceSession[]{
+                sessionManager.getSession(deviceId)
+            };
+            //session 不存在,可能是同一个mqtt返回多个设备消息
+            if (managedSession[0] == null) {
+                then = registry
+                    .getDevice(deviceId)
+                    .doOnNext(device -> sessionManager
+                        .register(managedSession[0] =
+                                      new MqttConnectionSession(deviceId,
+                                                                device,
+                                                                getTransport(),
+                                                                firstSession.getConnection(),
+                                                                gatewayMonitor)))
+                    .then(then);
+            } else {
+                managedSession[0] = firstSession;
+            }
+
+            //保持会话，在低功率设备上,可能无法保持mqtt长连接.
+            if (message.getHeader(Headers.keepOnline).orElse(false)) {
+                then = Mono
+                    .fromRunnable(() -> {
+                        DeviceSession session = managedSession[0];
+                        if (!session.isWrapFrom(KeepOnlineSession.class)) {
+                            int timeout = message.getHeaderOrDefault(Headers.keepOnlineTimeoutSeconds);
+                            KeepOnlineSession keepOnlineSession = new KeepOnlineSession(session, Duration.ofSeconds(timeout));
+                            //替换会话
+                            session = sessionManager.replace(session, keepOnlineSession);
+                            session.keepAlive();
+                        }
+                    })
+                    .then(then);
+            }else if(managedSession[0]!=null) {
+                managedSession[0].keepAlive();
+            }
+        }
+
+        return then;
+    }
+
     private Mono<Void> handleMessage(String deviceId,
                                      DeviceOperator device,
                                      DeviceMessage message,
                                      MqttConnectionSession firstSession) {
-        DeviceSession managedSession = sessionManager.getSession(deviceId);
-
-        //主动离线
-        if (message instanceof DeviceOfflineMessage) {
-            sessionManager.unregister(deviceId);
-            return Mono.empty();
-        }
-
-        //session 不存在,可能是同一个mqtt返回多个设备消息
-        if (managedSession == null) {
-            firstSession = new MqttConnectionSession(deviceId, device, getTransport(), firstSession.getConnection(), gatewayMonitor);
-            sessionManager.register(managedSession = firstSession);
-        }
-
-        //保持会话，在低功率设备上,可能无法保持mqtt长连接.
-        if (message.getHeader(Headers.keepOnline).orElse(false)) {
-            if (!managedSession.isWrapFrom(KeepOnlineSession.class)) {
-                int timeout = message.getHeaderOrDefault(Headers.keepOnlineTimeoutSeconds);
-                KeepOnlineSession keepOnlineSession = new KeepOnlineSession(firstSession, Duration.ofSeconds(timeout));
-                //替换会话
-                managedSession = sessionManager.replace(firstSession, keepOnlineSession);
-            }
-        } else {
-            managedSession = firstSession;
-        }
-
-        managedSession.keepAlive();
-
         if (messageProcessor.hasDownstreams()) {
             sink.next(message);
         }
-        if (message instanceof DeviceOnlineMessage) {
-            return Mono.empty();
-        }
 
-        return messageHandler
-            .handleMessage(device, message)
+        return handleOnlineOffline(message, firstSession)
+            //只有empty才转发消息
+            .switchIfEmpty(messageHandler.handleMessage(device, message))
             .then();
     }
 
