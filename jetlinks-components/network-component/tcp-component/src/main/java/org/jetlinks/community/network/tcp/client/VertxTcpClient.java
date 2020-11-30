@@ -48,6 +48,8 @@ public class VertxTcpClient implements TcpClient {
 
     private final FluxSink<TcpMessage> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
 
+    private final boolean serverClient;
+
     @Override
     public void keepAlive() {
         lastKeepAliveTime = System.currentTimeMillis();
@@ -75,8 +77,9 @@ public class VertxTcpClient implements TcpClient {
         return true;
     }
 
-    public VertxTcpClient(String id) {
+    public VertxTcpClient(String id,boolean serverClient) {
         this.id = id;
+        this.serverClient=serverClient;
     }
 
     protected void received(TcpMessage message) {
@@ -136,6 +139,9 @@ public class VertxTcpClient implements TcpClient {
             execute(runnable);
         }
         disconnectListener.clear();
+        if(serverClient){
+            processor.onComplete();
+        }
     }
 
     public void setClient(NetClient client) {

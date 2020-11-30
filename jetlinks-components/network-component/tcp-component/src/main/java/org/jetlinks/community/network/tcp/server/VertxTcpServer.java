@@ -81,7 +81,7 @@ public class VertxTcpServer implements TcpServer {
             socket.close();
             return;
         }
-        VertxTcpClient client = new VertxTcpClient(id + "_" + socket.remoteAddress());
+        VertxTcpClient client = new VertxTcpClient(id + "_" + socket.remoteAddress(), true);
         client.setKeepAliveTimeoutMs(keepAliveTimeout);
         try {
             socket.exceptionHandler(err -> {

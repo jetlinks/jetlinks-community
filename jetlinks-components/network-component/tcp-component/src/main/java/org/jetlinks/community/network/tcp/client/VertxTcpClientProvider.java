@@ -43,7 +43,7 @@ public class VertxTcpClientProvider implements NetworkProvider<TcpClientProperti
     @Nonnull
     @Override
     public VertxTcpClient createNetwork(@Nonnull TcpClientProperties properties) {
-        VertxTcpClient client = new VertxTcpClient(properties.getId());
+        VertxTcpClient client = new VertxTcpClient(properties.getId(),false);
 
         initClient(client, properties);
 
