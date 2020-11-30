@@ -133,6 +133,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
             .addConfig(DeviceConfigKey.parentGatewayId, this.getParentId());
         info.addConfig("deviceName", name);
         info.addConfig("productName", productName);
+        info.addConfig("orgId", orgId);
         if (!CollectionUtils.isEmpty(configuration)) {
             info.addConfigs(configuration);
         }
