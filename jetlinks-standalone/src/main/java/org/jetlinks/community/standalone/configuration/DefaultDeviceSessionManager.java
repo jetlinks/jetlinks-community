@@ -227,7 +227,10 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
                     .online(session.getServerId().orElse(serverId), session.getId(), session.getClientAddress().map(String::valueOf).orElse(null))
                     .then(deviceOperator.setConfig(DeviceConfigKey.parentGatewayId, deviceId))
                     .thenReturn(new ChildrenDeviceSession(childrenDeviceId, session, deviceOperator)))
-                .doOnNext(s -> children.computeIfAbsent(deviceId, __ -> new ConcurrentHashMap<>()).put(childrenDeviceId, s));
+                .doOnNext(s ->{
+                    registerListener.next(s);
+                    children.computeIfAbsent(deviceId, __ -> new ConcurrentHashMap<>()).put(childrenDeviceId, s);
+                });
         });
 
     }
