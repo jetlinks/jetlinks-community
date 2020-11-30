@@ -244,14 +244,6 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
     protected Mono<Boolean> handleChildrenDeviceMessage(DeviceOperator device, String childrenId, Message message) {
         if (message instanceof DeviceMessageReply) {
             return doReply(((DeviceMessageReply) message));
-        } else if (message instanceof DeviceOnlineMessage) {
-            return sessionManager.registerChildren(device.getDeviceId(), childrenId)
-                                 .thenReturn(true)
-                                 .defaultIfEmpty(false);
-        } else if (message instanceof DeviceOfflineMessage) {
-            return sessionManager.unRegisterChildren(device.getDeviceId(), childrenId)
-                                 .thenReturn(true)
-                                 .defaultIfEmpty(false);
         }
         return Mono.just(true);
     }
