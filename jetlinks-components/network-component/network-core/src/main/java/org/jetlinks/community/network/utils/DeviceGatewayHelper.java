@@ -60,15 +60,15 @@ public class DeviceGatewayHelper {
         String deviceId = message.getDeviceId();
         Mono<DeviceOperator> then = Mono.empty();
         if (message instanceof ChildDeviceMessage) {
-            then = handleDeviceMessage((DeviceMessage) ((ChildDeviceMessage) message).getChildDeviceMessage(),
-                                       sessionBuilder,
-                                       sessionConsumer,
-                                       deviceNotFoundListener, true);
+//            then = handleDeviceMessage((DeviceMessage) ((ChildDeviceMessage) message).getChildDeviceMessage(),
+//                                       sessionBuilder,
+//                                       sessionConsumer,
+//                                       deviceNotFoundListener, true);
         } else if (message instanceof ChildDeviceMessageReply) {
-            then = handleDeviceMessage((DeviceMessage) ((ChildDeviceMessageReply) message).getChildDeviceMessage(),
-                                       sessionBuilder,
-                                       sessionConsumer,
-                                       deviceNotFoundListener, true);
+//            then = handleDeviceMessage((DeviceMessage) ((ChildDeviceMessageReply) message).getChildDeviceMessage(),
+//                                       sessionBuilder,
+//                                       sessionConsumer,
+//                                       deviceNotFoundListener, true);
         } else if (message instanceof DeviceOnlineMessage) {
             //设备在线消息
             then = registry.getDevice(deviceId);
