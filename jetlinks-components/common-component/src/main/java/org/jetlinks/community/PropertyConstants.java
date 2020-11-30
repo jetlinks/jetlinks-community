@@ -25,6 +25,11 @@ public interface PropertyConstants {
 
     interface Key<V> extends ConfigKey<V>, HeaderKey<V> {
 
+        @Override
+        default Class<V> getType() {
+            return ConfigKey.super.getType();
+        }
+
         static <T> Key<T> of(String key) {
             return new Key<T>() {
                 @Override

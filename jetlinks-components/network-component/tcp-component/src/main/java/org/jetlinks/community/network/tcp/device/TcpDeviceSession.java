@@ -6,18 +6,18 @@ import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSession;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
 import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.client.TcpClient;
 import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 
 class TcpDeviceSession implements DeviceSession {
 
-    @Getter
-    private String id;
 
     @Getter
     @Setter
@@ -27,17 +27,27 @@ class TcpDeviceSession implements DeviceSession {
     private TcpClient client;
 
     @Getter
-    private Transport transport;
+    private final Transport transport;
 
     private long lastPingTime = System.currentTimeMillis();
 
-    private long connectTime = System.currentTimeMillis();
+    private final long connectTime = System.currentTimeMillis();
 
-    TcpDeviceSession(String id, DeviceOperator operator, TcpClient client, Transport transport) {
-        this.id = id;
+    private final DeviceGatewayMonitor monitor;
+
+    TcpDeviceSession(DeviceOperator operator,
+                     TcpClient client,
+                     Transport transport,
+                     DeviceGatewayMonitor monitor) {
         this.operator = operator;
         this.client = client;
         this.transport = transport;
+        this.monitor=monitor;
+    }
+
+    @Override
+    public String getId() {
+        return getDeviceId();
     }
 
     @Override
@@ -57,6 +67,7 @@ class TcpDeviceSession implements DeviceSession {
 
     @Override
     public Mono<Boolean> send(EncodedMessage encodedMessage) {
+        monitor.sentMessage();
         return client.send(new TcpMessage(encodedMessage.getPayload()));
     }
 
@@ -70,7 +81,6 @@ class TcpDeviceSession implements DeviceSession {
         lastPingTime = System.currentTimeMillis();
         client.keepAlive();
     }
-
 
     @Override
     public void setKeepAliveTimeout(Duration timeout) {
@@ -90,5 +100,18 @@ class TcpDeviceSession implements DeviceSession {
     @Override
     public void onClose(Runnable call) {
         client.onDisconnect(call);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TcpDeviceSession session = (TcpDeviceSession) o;
+        return Objects.equals(client, session.client);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(client);
     }
 }

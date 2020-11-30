@@ -12,16 +12,16 @@ import reactor.core.publisher.Mono;
 class UnknownTcpDeviceSession implements DeviceSession {
 
     @Getter
-    private String id;
+    private final String id;
 
-    private TcpClient client;
+    private final TcpClient client;
 
     @Getter
-    private Transport transport;
+    private final Transport transport;
 
     private long lastPingTime = System.currentTimeMillis();
 
-    private long connectTime = System.currentTimeMillis();
+    private final long connectTime = System.currentTimeMillis();
 
     UnknownTcpDeviceSession(String id, TcpClient client, Transport transport) {
         this.id = id;

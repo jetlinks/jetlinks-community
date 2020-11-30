@@ -36,7 +36,7 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
         this.registry = registry;
         this.sessionManager = sessionManager;
         this.messageHandler = messageHandler;
-        this.protocolSupports=protocolSupports;
+        this.protocolSupports = protocolSupports;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
 
     @Override
     public String getName() {
-        return "MQTT服务设备网关";
+        return "MQTT直连接入";
     }
 
     @Override
@@ -56,6 +56,7 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
 
     @Override
     public Mono<DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties) {
+
         return networkManager
             .<MqttServer>getNetwork(getNetworkType(), properties.getNetworkId())
             .map(mqttServer -> new MqttServerDeviceGateway(

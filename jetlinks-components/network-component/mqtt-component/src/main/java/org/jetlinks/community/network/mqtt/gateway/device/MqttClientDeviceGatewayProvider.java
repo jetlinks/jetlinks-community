@@ -2,7 +2,7 @@ package org.jetlinks.community.network.mqtt.gateway.device;
 
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.server.MessageHandler;
+import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProperties;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
@@ -10,7 +10,6 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
-import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -20,7 +19,6 @@ import java.util.Objects;
 
 @Component
 public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
-
     private final NetworkManager networkManager;
 
     private final DeviceRegistry registry;
@@ -50,7 +48,7 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
 
     @Override
     public String getName() {
-        return "MQTT客户端设备网关";
+        return "MQTT Broker接入";
     }
 
     @Override
@@ -69,13 +67,13 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
                 Objects.requireNonNull(topics, "topics");
 
                 return new MqttClientDeviceGateway(properties.getId(),
-                    mqttClient,
-                    registry,
-                    protocolSupports,
-                    protocol,
-                    sessionManager,
-                    clientMessageHandler,
-                    Arrays.asList(topics.split("[,;\n]"))
+                                                   mqttClient,
+                                                   registry,
+                                                   protocolSupports,
+                                                   protocol,
+                                                   sessionManager,
+                                                   clientMessageHandler,
+                                                   Arrays.asList(topics.split("[,;\n]"))
                 );
 
             });

@@ -48,7 +48,7 @@ public class TcpServerDeviceGatewayProvider implements DeviceGatewayProvider {
 
     @Override
     public String getName() {
-        return "TCP服务设备网关";
+        return "TCP 透传接入";
     }
 
     @Override

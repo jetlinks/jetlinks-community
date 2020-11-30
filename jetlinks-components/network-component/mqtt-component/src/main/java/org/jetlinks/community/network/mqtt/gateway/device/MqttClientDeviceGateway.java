@@ -2,6 +2,17 @@ package org.jetlinks.community.network.mqtt.gateway.device;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.ProtocolSupport;
+import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.Message;
+import org.jetlinks.core.message.codec.DefaultTransport;
+import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.FromDeviceMessageContext;
+import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
 import org.jetlinks.community.gateway.monitor.GatewayMonitors;
@@ -10,21 +21,7 @@ import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
 import org.jetlinks.community.network.mqtt.gateway.device.session.MqttClientSession;
 import org.jetlinks.community.network.mqtt.gateway.device.session.UnknownDeviceMqttClientSession;
-import org.jetlinks.core.ProtocolSupport;
-import org.jetlinks.core.ProtocolSupports;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.DeviceOfflineMessage;
-import org.jetlinks.core.message.DeviceOnlineMessage;
-import org.jetlinks.core.message.Message;
-import org.jetlinks.core.message.codec.DefaultTransport;
-import org.jetlinks.core.message.codec.EncodedMessage;
-import org.jetlinks.core.message.codec.FromDeviceMessageContext;
-import org.jetlinks.core.message.codec.Transport;
-import org.jetlinks.core.server.MessageHandler;
-import org.jetlinks.core.server.session.DeviceSession;
-import org.jetlinks.core.server.session.DeviceSessionManager;
+import org.jetlinks.community.network.utils.DeviceGatewayHelper;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import reactor.core.Disposable;
 import reactor.core.publisher.EmitterProcessor;
@@ -32,7 +29,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -40,7 +36,6 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
 @Slf4j
 public class MqttClientDeviceGateway implements DeviceGateway {
@@ -58,11 +53,9 @@ public class MqttClientDeviceGateway implements DeviceGateway {
 
     private final ProtocolSupports protocolSupport;
 
-    private final DecodedClientMessageHandler clientMessageHandler;
+    private final EmitterProcessor<Message> processor = EmitterProcessor.create(false);
 
-    private final EmitterProcessor<Message> messageProcessor = EmitterProcessor.create(false);
-
-    private final FluxSink<Message> sink = messageProcessor.sink(FluxSink.OverflowStrategy.BUFFER);
+    private final FluxSink<Message> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
 
     private final AtomicBoolean started = new AtomicBoolean();
 
@@ -70,7 +63,7 @@ public class MqttClientDeviceGateway implements DeviceGateway {
 
     private final DeviceGatewayMonitor gatewayMonitor;
 
-    private final DeviceSessionManager sessionManager;
+    private final DeviceGatewayHelper helper;
 
     public MqttClientDeviceGateway(String id,
                                    MqttClient mqttClient,
@@ -87,9 +80,8 @@ public class MqttClientDeviceGateway implements DeviceGateway {
         this.registry = Objects.requireNonNull(registry, "registry");
         this.protocolSupport = Objects.requireNonNull(protocolSupport, "protocolSupport");
         this.protocol = Objects.requireNonNull(protocol, "protocol");
-        this.clientMessageHandler = Objects.requireNonNull(clientMessageHandler, "clientMessageHandler");
-        this.sessionManager = Objects.requireNonNull(sessionManager, "sessionManager");
         this.topics = Objects.requireNonNull(topics, "topics");
+        this.helper = new DeviceGatewayHelper(registry, sessionManager, clientMessageHandler);
     }
 
 
@@ -101,86 +93,62 @@ public class MqttClientDeviceGateway implements DeviceGateway {
         if (started.getAndSet(true) || !disposable.isEmpty()) {
             return;
         }
-        disposable.add(mqttClient
-            .subscribe(topics)
-            .filter((msg) -> started.get())
-            .flatMap(mqttMessage -> {
-                AtomicReference<Duration> timeoutRef = new AtomicReference<>();
-                return getProtocol()
-                    .flatMap(codec -> codec.getMessageCodec(getTransport()))
-                    .flatMapMany(codec -> codec.decode(new FromDeviceMessageContext() {
-                        @Nonnull
-                        @Override
-                        public EncodedMessage getMessage() {
-                            return mqttMessage;
-                        }
+        disposable
+            .add(mqttClient
+                     .subscribe(topics)
+                     .filter((msg) -> started.get())
+                     .flatMap(mqttMessage -> {
+                         AtomicReference<Duration> timeoutRef = new AtomicReference<>();
+                         return this
+                             .getProtocol()
+                             .flatMap(codec -> codec.getMessageCodec(getTransport()))
+                             .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
+                                 new UnknownDeviceMqttClientSession(id + ":unknown", mqttClient) {
+                                     @Override
+                                     public Mono<Boolean> send(EncodedMessage encodedMessage) {
+                                         return super
+                                             .send(encodedMessage)
+                                             .doOnSuccess(r -> gatewayMonitor.sentMessage());
+                                     }
 
-                        @Override
-                        public DeviceSession getSession() {
-                            return new UnknownDeviceMqttClientSession(id + ":unknown", mqttClient) {
-                                @Override
-                                public Mono<Boolean> send(EncodedMessage encodedMessage) {
-                                    return super.send(encodedMessage).doOnSuccess(r -> gatewayMonitor.sentMessage());
-                                }
+                                     @Override
+                                     public void setKeepAliveTimeout(Duration timeout) {
+                                         timeoutRef.set(timeout);
+                                     }
+                                 }
+                                 , mqttMessage, registry)
+                             ))
+                             .doOnError((err) -> log.error("解码MQTT客户端消息失败 {}:{}",
+                                                           mqttMessage.getTopic(),
+                                                           mqttMessage
+                                                               .getPayload()
+                                                               .toString(StandardCharsets.UTF_8),
+                                                           err))
+                             .cast(DeviceMessage.class)
+                             .flatMap(message -> {
+                                 if (processor.hasDownstreams()) {
+                                     sink.next(message);
+                                 }
+                                 gatewayMonitor.receivedMessage();
+                                 return helper
+                                     .handleDeviceMessage(message,
+                                                          device -> createDeviceSession(device, mqttClient),
+                                                          DeviceGatewayHelper.applySessionKeepaliveTimeout(message, timeoutRef::get),
+                                                          () -> log.warn("无法从MQTT[{}]消息中获取设备信息:{}", mqttMessage.print(), message)
+                                     );
+                             })
+                             .then()
+                             .onErrorResume((err) -> {
+                                 log.error("处理MQTT消息失败:{}", mqttMessage, err);
+                                 return Mono.empty();
+                             });
+                     }, Integer.MAX_VALUE)
+                     .onErrorContinue((err, ms) -> log.error("处理MQTT客户端消息失败", err))
+                     .subscribe());
+    }
 
-                                @Override
-                                public void setKeepAliveTimeout(Duration timeout) {
-                                    timeoutRef.set(timeout);
-                                }
-                            };
-                        }
-
-                        @Override
-                        public DeviceOperator getDevice() {
-                            return null;
-                        }
-
-                        @Override
-                        public Mono<DeviceOperator> getDevice(String deviceId) {
-                            return registry.getDevice(deviceId);
-                        }
-                    }))
-                    .doOnError((err) -> log.error("解码MQTT客户端消息失败 {}:{}",
-                        mqttMessage.getTopic(), mqttMessage.getPayload().toString(StandardCharsets.UTF_8), err))
-                    .cast(DeviceMessage.class)
-                    .flatMap(msg -> {
-                        gatewayMonitor.receivedMessage();
-                        if (messageProcessor.hasDownstreams()) {
-                            sink.next(msg);
-                        }
-                        return registry
-                            .getDevice(msg.getDeviceId())
-                            .switchIfEmpty(Mono.fromRunnable(() -> log.debug("无法识别的设备:{}", msg)))
-                            .flatMap(device -> {
-                                DeviceSession session = sessionManager.getSession(device.getDeviceId());
-                                if (session == null) {
-                                    session = new MqttClientSession(id + ":" + device.getDeviceId(), device, mqttClient) {
-                                        @Override
-                                        public Mono<Boolean> send(EncodedMessage encodedMessage) {
-                                            return super.send(encodedMessage).doOnSuccess(r -> gatewayMonitor.sentMessage());
-                                        }
-                                    };
-                                    if (!(msg instanceof DeviceOfflineMessage)) {
-                                        sessionManager.register(session);
-                                    }
-                                }
-                                session.keepAlive();
-                                if (timeoutRef.get() != null) {
-                                    session.setKeepAliveTimeout(timeoutRef.get());
-                                }
-                                if (msg instanceof DeviceOnlineMessage) {
-                                    return Mono.empty();
-                                } else if (msg instanceof DeviceOfflineMessage) {
-                                    return Mono.fromRunnable(() -> sessionManager.unregister(device.getDeviceId()));
-                                } else {
-                                    return clientMessageHandler.handleMessage(device, msg).then();
-                                }
-                            });
-                    })
-                    .onErrorContinue((err, ms) -> log.error("处理MQTT消息失败:{}", mqttMessage, err));
-            })
-            .onErrorContinue((err, ms) -> log.error("处理MQTT客户端消息失败", err))
-            .subscribe());
+    private MqttClientSession createDeviceSession(DeviceOperator device, MqttClient client) {
+        return new MqttClientSession(device.getDeviceId(), device, client, gatewayMonitor);
     }
 
     @Override
@@ -195,7 +163,7 @@ public class MqttClientDeviceGateway implements DeviceGateway {
 
     @Override
     public Flux<Message> onMessage() {
-        return messageProcessor.map(Function.identity());
+        return processor;
     }
 
     @Override
