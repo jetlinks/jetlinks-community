@@ -46,6 +46,14 @@ public class DeviceGatewayHelper {
 
     protected Mono<Void> handleChildrenDeviceMessage(String deviceId, DeviceMessage children) {
         ChildrenDeviceSession deviceSession = sessionManager.getSession(deviceId, children.getDeviceId());
+        //子设备离线
+        if(children instanceof DeviceOfflineMessage){
+            //注销会话,这里子设备可能会收到多次离线消息
+            //注销会话一次离线,消息网关转发子设备消息一次
+            return sessionManager
+                .unRegisterChildren(deviceId,children.getDeviceId())
+                .then();
+        }
         if (deviceSession == null && null != children.getDeviceId()) {
             Mono<Void> then = sessionManager
                 .registerChildren(deviceId, children.getDeviceId())
