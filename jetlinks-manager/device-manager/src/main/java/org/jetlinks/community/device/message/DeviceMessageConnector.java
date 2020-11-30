@@ -15,7 +15,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -32,6 +34,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
     private final static String[] allConfigHeader = {
         PropertyConstants.productId.getKey(),
         PropertyConstants.deviceName.getKey(),
+        PropertyConstants.orgId.getKey()
     };
 
     //设备注册中心
@@ -40,8 +43,6 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
     private final EventBus eventBus;
 
     private final MessageHandler messageHandler;
-
-    private final DeviceSessionManager sessionManager;
 
     private final static BiConsumer<Throwable, Object> doOnError = (error, val) -> log.error(error.getMessage(), error);
 
@@ -56,7 +57,6 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         this.registry = registry;
         this.eventBus = eventBus;
         this.messageHandler = messageHandler;
-        this.sessionManager = sessionManager;
         sessionManager
             .onRegister()
             .flatMap(session -> {
@@ -118,10 +118,16 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
                     .getDevice(deviceId)
                     .flatMap(configGetter)
                     .defaultIfEmpty(emptyValues)
-                    .map(configs -> {
+                    .flatMapIterable(configs -> {
                         configs.getAllValues().forEach(deviceMessage::addHeader);
                         String productId = deviceMessage.getHeader(PropertyConstants.productId).orElse("null");
-                        return createDeviceMessageTopic(productId, deviceId, deviceMessage);
+                        String topic = createDeviceMessageTopic(productId, deviceId, deviceMessage);
+                        List<String> topics = new ArrayList<>(2);
+                        topics.add(topic);
+                        configs.getValue(PropertyConstants.orgId)
+                               .ifPresent(orgId -> topics.add("/org/" + orgId + topic));
+
+                        return topics;
                     });
             }
             return Mono.just("/device/unknown/message/unknown");

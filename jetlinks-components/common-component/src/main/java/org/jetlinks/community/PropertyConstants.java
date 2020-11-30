@@ -12,6 +12,7 @@ import java.util.Optional;
  * @since 1.0
  */
 public interface PropertyConstants {
+    Key<String> orgId = Key.of("orgId");
 
     Key<String> deviceName = Key.of("deviceName");
 
