@@ -181,7 +181,8 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
             logEntityConsumer = log -> log.setContent(message.toJson().toJSONString());
         }
         //配置了记录日志
-        if (properties.getLog().match(message.getMessageType())) {
+        if (properties.getLog().match(message.getMessageType())
+            || !message.getHeader("ignoreLog").isPresent()) {
             all.add(createDeviceMessageLog(productId, message, logEntityConsumer));
         }
 
