@@ -182,7 +182,7 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
         }
         //配置了记录日志
         if (properties.getLog().match(message.getMessageType())
-            || !message.getHeader("ignoreLog").isPresent()) {
+            && !message.getHeader("ignoreLog").isPresent()) {
             all.add(createDeviceMessageLog(productId, message, logEntityConsumer));
         }
 
