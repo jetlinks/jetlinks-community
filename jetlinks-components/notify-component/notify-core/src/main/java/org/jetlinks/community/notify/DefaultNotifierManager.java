@@ -49,7 +49,6 @@ public class DefaultNotifierManager implements NotifierManager, BeanPostProcesso
             .map(notifier -> new NotifierEventDispatcher<>(eventBus, notifier))
             .flatMap(notifier -> Mono.justOrEmpty(notifiers.put(properties.getId(), notifier))
                 .flatMap(Notifier::close)//如果存在旧的通知器则关掉之
-                .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))//忽略异常
                 .thenReturn(notifier));
     }
 
