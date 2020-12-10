@@ -186,6 +186,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                          .andThen(session -> {
                                              TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
                                              deviceSession.setClient(client);
+                                             sessionRef.set(deviceSession);
                                          }),
                                      () -> log.warn("无法从tcp[{}]消息中获取设备信息:{}", address, message)
                 )
