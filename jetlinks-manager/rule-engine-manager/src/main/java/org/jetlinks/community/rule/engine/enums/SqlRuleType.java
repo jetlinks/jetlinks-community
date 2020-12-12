@@ -32,7 +32,7 @@ public enum SqlRuleType implements EnumDict<String> {
     realTime("实时") {
         @Override
         public void validate(SqlRule rule) {
-            Assert.notNull(rule.getSql(), "sql能为空");
+            Assert.notNull(rule.getSql(), "sql不能为空");
             try {
                 PlainSelect select = ((PlainSelect) ((Select) CCJSqlParserUtil.parse(rule.getSql())).getSelectBody());
                 if (select.getGroupBy() != null && select.getGroupBy().getGroupByExpressions() != null) {
