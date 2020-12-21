@@ -100,6 +100,10 @@ public class DeviceDetail {
     @Schema(description = "配置信息")
     private Map<String, Object> configuration = new HashMap<>();
 
+    //已生效的配置信息
+    @Schema(description = "已生效的配置信息")
+    private Map<String, Object> cachedConfiguration = new HashMap<>();
+
     //设备单独的配置信息
     @Schema(description = "是否为单独的配置,false表示部分配置信息继承自产品.")
     private boolean aloneConfiguration;
@@ -145,7 +149,8 @@ public class DeviceDetail {
                        .map(DeviceTagEntity::of)
                        .collect(Collectors.toList()));
                 Map<String, Object> cachedConfigs = tp.getT5().getAllValues();
-                cachedConfigs.forEach(configuration::putIfAbsent);
+                cachedConfiguration.putAll(cachedConfigs);
+//                cachedConfigs.forEach(configuration::putIfAbsent);
             })
             .thenReturn(this);
     }
