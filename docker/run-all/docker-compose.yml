@@ -53,7 +53,7 @@ services:
     ports:
       - 9000:80
     environment:
-      - "API_BASE_PATH=http://jetlinks:8848" #API根路径
+      - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
     volumes:
       - "jetlinks-volume:/usr/share/nginx/html/upload"
     links:
