@@ -10,6 +10,7 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -99,6 +100,10 @@ public class DeviceDetail {
     @Schema(description = "配置信息")
     private Map<String, Object> configuration = new HashMap<>();
 
+    //已生效的配置信息
+    @Schema(description = "已生效的配置信息")
+    private Map<String, Object> cachedConfiguration = new HashMap<>();
+
     //设备单独的配置信息
     @Schema(description = "是否为单独的配置,false表示部分配置信息继承自产品.")
     private boolean aloneConfiguration;
@@ -117,22 +122,37 @@ public class DeviceDetail {
         return this;
     }
 
-    public Mono<DeviceDetail> with(DeviceOperator operator) {
-        return Mono.zip(
-            operator.getAddress().defaultIfEmpty("/"),
-            operator.getOnlineTime().defaultIfEmpty(0L),
-            operator.getOfflineTime().defaultIfEmpty(0L),
-            operator.getMetadata()
-        ).doOnNext(tp -> {
-            setOnlineTime(tp.getT2());
-            setOfflineTime(tp.getT3());
-            setAddress(tp.getT1());
-            with(tp.getT4()
-                   .getTags()
-                   .stream()
-                   .map(DeviceTagEntity::of)
-                   .collect(Collectors.toList()));
-        }).thenReturn(this);
+    public Mono<DeviceDetail> with(DeviceOperator operator, List<ConfigPropertyMetadata> configs) {
+        return Mono
+            .zip(
+                //T1: 远程地址
+                operator.getAddress().defaultIfEmpty("/"),
+                //T2: 上线时间
+                operator.getOnlineTime().defaultIfEmpty(0L),
+                //T3: 离线时间
+                operator.getOfflineTime().defaultIfEmpty(0L),
+                //T4: 物模型
+                operator.getMetadata(),
+                //T5: 真实的配置信息
+                operator.getSelfConfigs(configs
+                                            .stream()
+                                            .map(ConfigPropertyMetadata::getProperty)
+                                            .collect(Collectors.toList()))
+            )
+            .doOnNext(tp -> {
+                setOnlineTime(tp.getT2());
+                setOfflineTime(tp.getT3());
+                setAddress(tp.getT1());
+                with(tp.getT4()
+                       .getTags()
+                       .stream()
+                       .map(DeviceTagEntity::of)
+                       .collect(Collectors.toList()));
+                Map<String, Object> cachedConfigs = tp.getT5().getAllValues();
+                cachedConfiguration.putAll(cachedConfigs);
+//                cachedConfigs.forEach(configuration::putIfAbsent);
+            })
+            .thenReturn(this);
     }
 
     public synchronized DeviceDetail with(List<DeviceTagEntity> tags) {

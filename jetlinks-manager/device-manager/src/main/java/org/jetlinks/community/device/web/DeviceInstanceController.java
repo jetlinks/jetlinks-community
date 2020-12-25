@@ -36,6 +36,7 @@ import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.community.io.utils.FileUtils;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.core.ProtocolSupport;
+import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
@@ -483,18 +484,38 @@ public class DeviceInstanceController implements
         parameter.setPaging(false);
         parameter.toNestQuery(q -> q.is(DeviceInstanceEntity::getProductId, productId));
         return getDeviceProductDetail(productId)
-            .map(tp4 -> DeviceExcelInfo.getExportHeaderMapping(tp4.getT3().getTags(), tp4.getT4()))
-            .defaultIfEmpty(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(), Collections.emptyList()))
-            .flatMapMany(headers ->
+            .map(tp4 -> Tuples
+                .of(
+                    //表头
+                    DeviceExcelInfo.getExportHeaderMapping(tp4.getT3().getTags(), tp4.getT4()),
+                    //配置key集合
+                    tp4
+                        .getT4()
+                        .stream()
+                        .map(ConfigPropertyMetadata::getProperty)
+                        .collect(Collectors.toList())
+                ))
+            .defaultIfEmpty(Tuples.of(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(),
+                                                                             Collections.emptyList()),
+                                      Collections.emptyList()))
+            .flatMapMany(headerAndConfigKey ->
                              ReactorExcel.<DeviceExcelInfo>writer(format)
-                                 .headers(headers)
+                                 .headers(headerAndConfigKey.getT1())
                                  .converter(DeviceExcelInfo::toMap)
                                  .writeBuffer(
                                      service.query(parameter)
-                                            .map(entity -> {
+                                            .flatMap(entity -> {
                                                 DeviceExcelInfo exportEntity = FastBeanCopier.copy(entity, new DeviceExcelInfo(), "state");
                                                 exportEntity.setState(entity.getState().getText());
-                                                return exportEntity;
+                                                return registry
+                                                    .getDevice(entity.getId())
+                                                    .flatMap(deviceOperator -> deviceOperator
+                                                        .getSelfConfigs(headerAndConfigKey.getT2())
+                                                        .map(Values::getAllValues))
+                                                    .doOnNext(configs -> exportEntity
+                                                        .getConfiguration()
+                                                        .putAll(configs))
+                                                    .thenReturn(exportEntity);
                                             })
                                             .buffer(200)
                                             .flatMap(list -> {
