@@ -164,9 +164,13 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
                 throw new UnsupportedOperationException("unsupported index metadata" + metaData);
             }
             properties = mappingMetadata.sourceAsMap();
-        }
-        if (metaData.size() == 1) {
-            Object res = metaData.values().iterator().next().value;
+        } else {
+            Object res;
+            if (metaData.size() == 1) {
+                res = metaData.values().iterator().next().value;
+            } else {
+                res = metaData.get("_doc");
+            }
             if (res instanceof MappingMetadata) {
                 mappingMetadata = ((MappingMetadata) res);
             } else if (res instanceof CompressedXContent) {
@@ -179,6 +183,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         if (properties == null) {
             throw new UnsupportedOperationException("unsupported index metadata" + metaData);
         }
+
         return new DefaultElasticSearchIndexMetadata(index, convertProperties(properties));
     }
 
