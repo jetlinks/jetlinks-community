@@ -239,13 +239,13 @@ public class TimeSeriesRowDeviceDataStoreStoragePolicy extends TimeSeriesDeviceD
             //执行查询
             .execute(timeSeriesManager.getService(getTimeSeriesMetric(productId))::aggregation)
             //按时间分组,然后将返回的结果合并起来
-            .groupBy(agg -> agg.getString("time", ""))
+            .groupBy(agg -> agg.getString("time", ""),Integer.MAX_VALUE)
             .flatMap(group ->
                 {
                     String time = group.key();
                     return group
                         //按属性分组
-                        .groupBy(agg -> agg.getString("property", ""))
+                        .groupBy(agg -> agg.getString("property", ""),Integer.MAX_VALUE)
                         .flatMap(propsGroup -> {
                             String property = propsGroup.key();
                             return propsGroup

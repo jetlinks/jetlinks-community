@@ -82,7 +82,7 @@ public class GatewayDeviceController {
                             .where()
                             .in(DeviceInstanceEntity::getParentId, mapping.keySet())
                             .fetch()
-                            .groupBy(DeviceInstanceEntity::getParentId)
+                            .groupBy(DeviceInstanceEntity::getParentId,Integer.MAX_VALUE)
                             .flatMap(group -> {
                                 String parentId = group.key();
                                 return group
