@@ -116,6 +116,9 @@ public class DeviceDetail {
     @Schema(description = "标签信息")
     private List<DeviceTagEntity> tags = new ArrayList<>();
 
+    @Schema(description = "设备描述")
+    private String description;
+
     public DeviceDetail notActive() {
 
         state = DeviceState.notActive;
@@ -205,6 +208,7 @@ public class DeviceDetail {
         setState(device.getState());
         setOrgId(device.getOrgId());
         setParentId(device.getParentId());
+        setDescription(device.getDescribe());
         Optional.ofNullable(device.getRegistryTime())
                 .ifPresent(this::setRegisterTime);
 
