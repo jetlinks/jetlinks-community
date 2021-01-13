@@ -1,26 +1,37 @@
 package org.jetlinks.community;
 
+import com.alibaba.fastjson.annotation.JSONType;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 
 import java.math.BigDecimal;
 
 @Getter
 @AllArgsConstructor
+@NoArgsConstructor
+@JsonDeserialize(using = Interval.IntervalJSONDeserializer.class)
+@JSONType(deserializer = Interval.IntervalJSONDeserializer.class)
 public class Interval {
 
-    public static String year = "y";
-    public static String quarter = "q";
-    public static String month = "M";
-    public static String weeks = "w";
-    public static String days = "d";
-    public static String hours = "h";
-    public static String minutes = "m";
-    public static String seconds = "s";
+    public static final String year = "y";
+    public static final String quarter = "q";
+    public static final String month = "M";
+    public static final String weeks = "w";
+    public static final String days = "d";
+    public static final String hours = "h";
+    public static final String minutes = "m";
+    public static final String seconds = "s";
 
-    private final BigDecimal number;
+    private BigDecimal number;
 
-    private final String expression;
+    private String expression;
 
     public boolean isFixed() {
         return expression.equalsIgnoreCase(hours) ||
@@ -61,18 +72,55 @@ public class Interval {
 
     public static Interval of(String expr) {
 
-        char[] number = new char[32];
+        char[] chars = expr.toCharArray();
         int numIndex = 0;
         for (char c : expr.toCharArray()) {
             if (c == '-' || c == '.' || (c >= '0' && c <= '9')) {
-                number[numIndex++] = c;
-                continue;
+                numIndex++;
+            } else {
+                BigDecimal val = new BigDecimal(chars, 0, numIndex);
+                return new Interval(val, expr.substring(numIndex));
             }
-            BigDecimal val = new BigDecimal(number, 0, numIndex);
-            return new Interval(val, expr.substring(numIndex));
+
         }
 
         throw new IllegalArgumentException("can not parse interval expression:" + expr);
+    }
+
+    public String getDefaultFormat() {
+        switch (getExpression()) {
+            case year:
+                return "yyyy";
+            case quarter:
+            case month:
+                return "yyyy-MM";
+            case days:
+                return "yyyy-MM-dd";
+            case hours:
+                return "MM-dd HH";
+            case minutes:
+                return "MM-dd HH:mm";
+            case seconds:
+                return "HH:mm:ss";
+            default:
+                return "yyyy-MM-dd HH:mm:ss";
+        }
+    }
+
+    public static class IntervalJSONDeserializer extends JsonDeserializer<Interval> {
+
+        @Override
+        @SneakyThrows
+        public Interval deserialize(JsonParser jp, DeserializationContext ctxt) {
+            JsonNode node = jp.getCodec().readTree(jp);
+
+            String currentName = jp.currentName();
+            Object currentValue = jp.getCurrentValue();
+            if (currentName == null || currentValue == null) {
+                return null;
+            }
+            return of(node.textValue());
+        }
     }
 
 }
