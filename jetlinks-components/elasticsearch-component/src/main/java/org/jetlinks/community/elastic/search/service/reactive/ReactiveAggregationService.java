@@ -88,17 +88,17 @@ public class ReactiveAggregationService implements AggregationService {
             builder.timeZone(ZoneId.systemDefault());
             builder.order(BucketOrder.key(false));
             if (timeGroup.getInterval() != null) {
+                Interval interval = timeGroup.getInterval();
+                String intervalString = interval.toString();
                 if (restClient.serverVersion().after(Version.V_7_2_0)) {
-                    Interval interval = timeGroup.getInterval();
-                    if (interval.isFixed()) {
-                        builder.fixedInterval(new DateHistogramInterval(timeGroup.getInterval().toString()));
-                    } else if (interval.isCalendar()) {
-                        builder.calendarInterval(new DateHistogramInterval(timeGroup.getInterval().toString()));
+                    if (DateHistogramAggregationBuilder.DATE_FIELD_UNITS.containsKey(intervalString)) {
+                        builder.calendarInterval(new DateHistogramInterval(intervalString));
                     } else {
-                        builder.dateHistogramInterval(new DateHistogramInterval(timeGroup.getInterval().toString()));
+                        builder.fixedInterval(new DateHistogramInterval(intervalString));
+//                        builder.dateHistogramInterval(new DateHistogramInterval(intervalString));
                     }
                 } else {
-                    builder.dateHistogramInterval(new DateHistogramInterval(timeGroup.getInterval().toString()));
+                    builder.dateHistogramInterval(new DateHistogramInterval(intervalString));
                 }
             }
 
