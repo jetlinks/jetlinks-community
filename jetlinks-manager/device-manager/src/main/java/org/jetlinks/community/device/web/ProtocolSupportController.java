@@ -102,6 +102,20 @@ public class ProtocolSupportController
             .flatMap(support -> support.getConfigMetadata(transport));
     }
 
+    @GetMapping("/{id}/{transport}/metadata")
+    @QueryAction
+    @Authorize(merge = false)
+    @Operation(summary = "获取协议设置的默认物模型")
+    public Mono<String> getDefaultMetadata(@PathVariable @Parameter(description = "协议ID") String id,
+                                           @PathVariable @Parameter(description = "传输协议") DefaultTransport transport) {
+        return protocolSupports
+            .getProtocol(id)
+            .flatMap(support ->support
+                .getDefaultMetadata(transport)
+                .flatMap(metadata-> support.getMetadataCodec().encode(metadata))
+            ).defaultIfEmpty("{}");
+    }
+
     @GetMapping("/{id}/transports")
     @Authorize(merge = false)
     @Operation(summary = "获取协议支持的传输协议")
