@@ -49,41 +49,6 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>com.spotify</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>1.2.0</version>
-                <configuration>
-                    <imageName>${docker.image.name}</imageName>
-                    <imageTags>
-                        <imageTag>${project.version}</imageTag>
-                    </imageTags>
-                    <baseImage>openjdk:8</baseImage>
-                    <workdir>/</workdir>
-                    <env>
-                        <TZ>Asia/Shanghai</TZ>
-                        <APP_JAR>/${project.build.finalName}.jar</APP_JAR>
-                    </env>
-                    <runs>
-                        <run>chmod +x docker-entrypoint.sh</run>
-                    </runs>
-                    <entryPoint>["/docker-entrypoint.sh"]</entryPoint>
-                    <resources>
-                        <resource>
-                            <targetPath>/</targetPath>
-                            <directory>${project.basedir}</directory>
-                            <include>docker-entrypoint.sh</include>
-                        </resource>
-                        <resource>
-                            <targetPath>/</targetPath>
-                            <directory>${project.build.directory}</directory>
-                            <include>${project.build.finalName}.jar</include>
-                        </resource>
-                    </resources>
-                    <serverId>docker-repo</serverId>
-                </configuration>
-            </plugin>
-
         </plugins>
     </build>
 
