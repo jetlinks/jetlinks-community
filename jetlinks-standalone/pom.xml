@@ -115,7 +115,6 @@
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty</artifactId>
-            <version>0.9.10.RELEASE</version>
             <scope>compile</scope>
         </dependency>
 
