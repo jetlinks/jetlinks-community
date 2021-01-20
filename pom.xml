@@ -16,7 +16,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.3.4.RELEASE</spring.boot.version>
+        <spring.boot.version>2.3.8.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <hsweb.framework.version>4.0.9</hsweb.framework.version>
