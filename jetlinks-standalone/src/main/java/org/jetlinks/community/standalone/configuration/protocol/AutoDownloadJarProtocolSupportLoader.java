@@ -96,24 +96,10 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
                 .retrieve()
                 .bodyToFlux(DataBuffer.class)
                 .as(dataStream -> {
-                    Path filePath = file.toPath();
-                    log.debug("write protocol file {} to {}", location, file.getAbsolutePath());
-                    try {
-                        @SuppressWarnings("all")
-                        AsynchronousFileChannel asynchronousFileChannel = AsynchronousFileChannel.open(filePath, CREATE,WRITE);
-                        return DataBufferUtils
-                            .write(dataStream, asynchronousFileChannel)
-                            .doOnNext(DataBufferUtils.releaseConsumer())
-                            .doAfterTerminate(() -> {
-                                try {
-                                    asynchronousFileChannel.close();
-                                } catch (IOException ignored) {
-                                }
-                            })
-                            .then(Mono.just(file.getAbsolutePath()));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+                    log.debug("download protocol file {} to {}", location, file.getAbsolutePath());
+                    return DataBufferUtils
+                        .write(dataStream, file.toPath(), CREATE, WRITE)
+                        .thenReturn(file.getAbsolutePath());
                 })
                 .subscribeOn(Schedulers.elastic())
                 .doOnNext(path -> config.put("location", path))
