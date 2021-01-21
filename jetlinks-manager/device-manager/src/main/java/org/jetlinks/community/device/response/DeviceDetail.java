@@ -141,6 +141,7 @@ public class DeviceDetail {
                                             .stream()
                                             .map(ConfigPropertyMetadata::getProperty)
                                             .collect(Collectors.toList()))
+                         .defaultIfEmpty(Values.of(Collections.emptyMap()))
             )
             .doOnNext(tp -> {
                 setOnlineTime(tp.getT2());
