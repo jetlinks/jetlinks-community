@@ -67,7 +67,7 @@ public class RuleInstanceEntity extends GenericEntity<String> implements RecordC
     @Schema(description = "创建者ID")
     private String creatorId;
 
-    @Column(name = "state")
+    @Column(name = "state",length = 16)
     @EnumCodec
     @ColumnType(javaType = String.class)
     @DefaultValue("stopped")

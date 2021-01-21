@@ -76,7 +76,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @Schema(description = "派生物模型(预留)")
     private String deriveMetadata;
 
-    @Column(name = "state")
+    @Column(name = "state",length = 16)
     @EnumCodec
     @ColumnType(javaType = String.class)
     @DefaultValue("notActive")
