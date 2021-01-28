@@ -11,6 +11,8 @@ import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
+import org.jetlinks.core.metadata.Converter;
+import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 
 import javax.persistence.Column;
@@ -72,6 +74,21 @@ public class DeviceTagEntity extends GenericEntity<String> {
         entity.setCreateTime(new Date());
         return entity;
     }
+
+    public static DeviceTagEntity of(PropertyMetadata property, Object value) {
+        DeviceTagEntity tag = of(property);
+
+        DataType type = property.getValueType();
+        if (type instanceof Converter) {
+            Object newValue = ((Converter<?>) type).convert(value);
+            if (newValue != null) {
+                value = newValue;
+            }
+        }
+        tag.setValue(String.valueOf(value));
+        return tag;
+    }
+
 
     public static String createTagId(String deviceId, String key) {
         return DigestUtils.md5Hex(deviceId + ":" + key);

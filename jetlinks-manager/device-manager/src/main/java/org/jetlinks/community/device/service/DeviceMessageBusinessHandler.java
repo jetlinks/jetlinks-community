@@ -163,7 +163,7 @@ public class DeviceMessageBusinessHandler {
                 .map(e -> {
                     DeviceTagEntity tagEntity = metadata
                         .getTag(e.getKey())
-                        .map(DeviceTagEntity::of)
+                        .map(tagMeta -> DeviceTagEntity.of(tagMeta, e.getValue()))
                         .orElseGet(() -> {
                             DeviceTagEntity entity = new DeviceTagEntity();
                             entity.setKey(e.getKey());
@@ -171,9 +171,9 @@ public class DeviceMessageBusinessHandler {
                             entity.setName(e.getKey());
                             entity.setCreateTime(new Date());
                             entity.setDescription("设备上报");
+                            entity.setValue(String.valueOf(e.getValue()));
                             return entity;
                         });
-                    tagEntity.setValue(String.valueOf(e.getValue()));
                     tagEntity.setDeviceId(deviceId);
                     tagEntity.setId(DeviceTagEntity.createTagId(deviceId, tagEntity.getKey()));
                     return tagEntity;
