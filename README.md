@@ -4,6 +4,7 @@
 ![Version](https://img.shields.io/badge/Version-1.8--RELEASE-brightgreen)
 ![QQ群2021514](https://img.shields.io/badge/QQ群-2021514-brightgreen)
 ![jetlinks](https://visitor-badge.glitch.me/badge?page_id=jetlinks)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjetlinks%2Fjetlinks-community.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjetlinks%2Fjetlinks-community?ref=badge_shield)
 
 JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发, 
 是一个开箱即用,可二次开发的企业级物联网基础平台。平台实现了物联网相关的众多基础功能,
@@ -61,3 +62,7 @@ JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发,
 [快速开始](http://doc.jetlinks.cn/basics-guide/quick-start.html) 
 [开发文档](http://doc.jetlinks.cn/dev-guide/start.html) 
 [常见问题](http://doc.jetlinks.cn/common-problems/network-components.html) 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjetlinks%2Fjetlinks-community.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjetlinks%2Fjetlinks-community?ref=badge_large)
