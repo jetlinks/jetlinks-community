@@ -5,7 +5,7 @@
     <parent>
         <artifactId>jetlinks-community</artifactId>
         <groupId>org.jetlinks.community</groupId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.8.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -49,41 +49,6 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>com.spotify</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>1.2.0</version>
-                <configuration>
-                    <imageName>${docker.image.name}</imageName>
-                    <imageTags>
-                        <imageTag>${project.version}</imageTag>
-                    </imageTags>
-                    <baseImage>openjdk:8</baseImage>
-                    <workdir>/</workdir>
-                    <env>
-                        <TZ>Asia/Shanghai</TZ>
-                        <APP_JAR>/${project.build.finalName}.jar</APP_JAR>
-                    </env>
-                    <runs>
-                        <run>chmod +x docker-entrypoint.sh</run>
-                    </runs>
-                    <entryPoint>["/docker-entrypoint.sh"]</entryPoint>
-                    <resources>
-                        <resource>
-                            <targetPath>/</targetPath>
-                            <directory>${project.basedir}</directory>
-                            <include>docker-entrypoint.sh</include>
-                        </resource>
-                        <resource>
-                            <targetPath>/</targetPath>
-                            <directory>${project.build.directory}</directory>
-                            <include>${project.build.finalName}.jar</include>
-                        </resource>
-                    </resources>
-                    <serverId>docker-repo</serverId>
-                </configuration>
-            </plugin>
-
         </plugins>
     </build>
 
@@ -115,7 +80,6 @@
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
             <artifactId>reactor-netty</artifactId>
-            <version>0.9.10.RELEASE</version>
             <scope>compile</scope>
         </dependency>
 
