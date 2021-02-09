@@ -156,7 +156,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
             if (!CollectionUtils.isEmpty(inputs)) {
                 for (FunctionParameter input : inputs) {
-                    input.setValue(ExpressionUtils.analytical(String.valueOf(input), ctx, "spel"));
+                    input.setValue(ExpressionUtils.analytical(String.valueOf(input.getValue()), ctx, "spel"));
                 }
             }
 
