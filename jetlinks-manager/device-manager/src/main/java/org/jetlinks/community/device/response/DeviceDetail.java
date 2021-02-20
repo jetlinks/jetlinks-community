@@ -97,6 +97,10 @@ public class DeviceDetail {
     @Schema(description = "物模型")
     private String metadata;
 
+    //是否为独立物模型
+    @Schema(description = "是否为独立物模型")
+    private boolean independentMetadata;
+
     //设备配置信息
     @Schema(description = "配置信息")
     private Map<String, Object> configuration = new HashMap<>();
@@ -231,6 +235,7 @@ public class DeviceDetail {
         }
         if (StringUtils.hasText(device.getDeriveMetadata())) {
             setMetadata(device.getDeriveMetadata());
+            setIndependentMetadata(true);
         }
 
         for (DeviceTagEntity tag : getTags()) {
