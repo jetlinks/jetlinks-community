@@ -741,7 +741,7 @@ public class DeviceInstanceController implements
     //更新设备物模型
     @PutMapping(value = "/{id}/metadata")
     @SaveAction
-    @QueryOperation(summary = "更新物模型")
+    @Operation(summary = "更新物模型")
     public Mono<Void> updateMetadata(@PathVariable String id,
                                      @RequestBody Mono<String> metadata) {
 
