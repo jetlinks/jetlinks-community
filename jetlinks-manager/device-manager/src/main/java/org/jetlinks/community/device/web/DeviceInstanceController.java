@@ -738,4 +738,26 @@ public class DeviceInstanceController implements
             });
     }
 
+    //更新设备物模型
+    @PutMapping(value = "/{id}/metadata")
+    @SaveAction
+    @QueryOperation(summary = "更新物模型")
+    public Mono<Void> updateMetadata(@PathVariable String id,
+                                     @RequestBody Mono<String> metadata) {
+
+        return Mono
+            .zip(
+                registry.getDevice(id),
+                metadata
+            )
+            .flatMap(tp2 -> service
+                .createUpdate()
+                .set(DeviceInstanceEntity::getDeriveMetadata, tp2.getT2())
+                .where(DeviceInstanceEntity::getId, id)
+                .execute()
+                .then(tp2.getT1().updateMetadata(tp2.getT2())))
+            .then();
+    }
+
+
 }
