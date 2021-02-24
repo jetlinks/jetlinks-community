@@ -46,7 +46,7 @@ public class LazyInitManagementProtocolSupports extends StaticProtocolSupports i
                 .filter(de -> de.getState() == 1)
                 .flatMap(this::init)
                 .blockLast(loadTimeOut);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("load protocol error", e);
         }
 
@@ -73,7 +73,10 @@ public class LazyInitManagementProtocolSupports extends StaticProtocolSupports i
                 configProtocolIdMapping.put(definition.getId(), e.getId());
                 consumer.accept(e);
             })
-            .onErrorContinue((e, obj) -> log.error("{} protocol[{}] error: {}", operation, definition.getId(), e))
+            .onErrorResume((e) -> {
+                log.error("{} protocol[{}] error: {}", operation, definition.getId(), e);
+                return Mono.empty();
+            })
             .then();
 
     }
