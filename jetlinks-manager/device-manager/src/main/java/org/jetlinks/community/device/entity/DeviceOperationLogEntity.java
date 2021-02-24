@@ -47,6 +47,9 @@ public class DeviceOperationLogEntity {
     @Schema(description = "数据时间")
     private long timestamp;
 
+    @Schema(description = "消息ID")
+    private String messageId;
+
     public Map<String, Object> toSimpleMap() {
         Map<String, Object> result = (Map) JSON.toJSON(this);
         result.put("type", type.getValue());

@@ -57,7 +57,7 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("productId");
             property.setValueType(new StringType());
-            property.setName("型号ID");
+            property.setName("产品ID");
             metadata.add(property);
         }
 
@@ -69,6 +69,14 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
             metadata.add(property);
         }
 
+
+        {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("messageId");
+            property.setValueType(StringType.GLOBAL);
+            property.setName("消息ID");
+            metadata.add(property);
+        }
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("createTime");

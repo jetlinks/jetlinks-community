@@ -130,6 +130,7 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
         operationLog.setTimestamp(message.getTimestamp());
         operationLog.setCreateTime(System.currentTimeMillis());
         operationLog.setProductId(productId);
+        operationLog.setMessageId(message.getMessageId());
         operationLog.setType(DeviceLogType.of(message));
 
         if (null != logEntityConsumer) {
