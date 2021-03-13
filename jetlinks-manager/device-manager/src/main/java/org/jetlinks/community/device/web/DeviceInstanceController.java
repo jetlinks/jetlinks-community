@@ -744,19 +744,32 @@ public class DeviceInstanceController implements
     @Operation(summary = "更新物模型")
     public Mono<Void> updateMetadata(@PathVariable String id,
                                      @RequestBody Mono<String> metadata) {
-
-        return Mono
-            .zip(
-                registry.getDevice(id),
-                metadata
-            )
-            .flatMap(tp2 -> service
+        return metadata
+            .flatMap(metadata_ -> service
                 .createUpdate()
-                .set(DeviceInstanceEntity::getDeriveMetadata, tp2.getT2())
+                .set(DeviceInstanceEntity::getDeriveMetadata, metadata_)
                 .where(DeviceInstanceEntity::getId, id)
                 .execute()
-                .then(tp2.getT1().updateMetadata(tp2.getT2())))
+                .then(registry.getDevice(id))
+                .flatMap(device -> device.updateMetadata(metadata_)))
             .then();
+    }
+
+    //重置设备物模型
+    @DeleteMapping(value = "/{id}/metadata")
+    @SaveAction
+    @Operation(summary = "重置物模型")
+    public Mono<Void> resetMetadata(@PathVariable String id) {
+
+        return registry
+            .getDevice(id)
+            .flatMap(DeviceOperator::resetMetadata)
+            .then(service
+                      .createUpdate()
+                      .setNull(DeviceInstanceEntity::getDeriveMetadata)
+                      .where(DeviceInstanceEntity::getId, id)
+                      .execute()
+                      .then());
     }
 
 

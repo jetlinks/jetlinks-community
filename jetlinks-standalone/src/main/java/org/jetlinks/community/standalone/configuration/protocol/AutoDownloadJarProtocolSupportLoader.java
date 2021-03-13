@@ -77,8 +77,10 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
         ProtocolSupportDefinition newDef = FastBeanCopier.copy(definition, new ProtocolSupportDefinition());
 
         Map<String, Object> config = newDef.getConfiguration();
-        String location = Optional.ofNullable(config.get("location"))
-            .map(String::valueOf).orElseThrow(() -> new IllegalArgumentException("location"));
+        String location = Optional
+            .ofNullable(config.get("location"))
+            .map(String::valueOf)
+            .orElseThrow(() -> new IllegalArgumentException("configuration.location不能为空"));
 
         if (location.startsWith("http")) {
             String urlMd5 = DigestUtils.md5Hex(location);
@@ -88,7 +90,8 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
                 config.put("location", file.getAbsolutePath());
                 return super
                     .load(newDef)
-                    .subscribeOn(Schedulers.elastic());
+                    .subscribeOn(Schedulers.elastic())
+                    .doOnError(err -> file.delete());
             }
             return webClient
                 .get()
@@ -105,6 +108,7 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
                 .doOnNext(path -> config.put("location", path))
                 .then(super.load(newDef))
                 .timeout(loadTimeout, Mono.error(() -> new TimeoutException("获取协议文件失败:" + location)))
+                .doOnError(err -> file.delete())
                 ;
         }
         return super.load(newDef);
