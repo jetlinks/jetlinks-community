@@ -409,12 +409,6 @@
             </snapshots>
         </repository>
 
-        <repository>
-            <id>spring.io</id>
-            <name>spring</name>
-            <url>https://repo.spring.io/milestone</url>
-        </repository>
-
     </repositories>
 
     <distributionManagement>
