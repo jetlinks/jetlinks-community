@@ -116,7 +116,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
                 .where(conf::getId)
                 .execute()
                 .thenReturn(conf))
-            .flatMap(conf -> networkManager.reload(conf.getType(), id));
+            .flatMap(conf -> networkManager.reload(conf.lookupNetworkType(), id));
     }
 
     @PostMapping("/{id}/_shutdown")
@@ -131,7 +131,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
                 .where(conf::getId)
                 .execute()
                 .thenReturn(conf))
-            .flatMap(conf -> networkManager.shutdown(conf.getType(), id));
+            .flatMap(conf -> networkManager.shutdown(conf.lookupNetworkType(), id));
     }
 
 }

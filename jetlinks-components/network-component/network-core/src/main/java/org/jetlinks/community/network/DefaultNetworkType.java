@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.hswebframework.web.dict.Dict;
 import org.hswebframework.web.dict.EnumDict;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +33,11 @@ public enum DefaultNetworkType implements NetworkType, EnumDict<String> {
 
     ;
 
-    private String name;
+    static {
+        NetworkTypes.register(Arrays.asList(DefaultNetworkType.values()));
+    }
+
+    private final String name;
 
     @Override
     public String getId() {
