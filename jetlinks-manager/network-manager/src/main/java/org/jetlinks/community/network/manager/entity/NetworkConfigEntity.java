@@ -10,6 +10,7 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkProperties;
+import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 
 import javax.persistence.Column;
@@ -33,11 +34,8 @@ public class NetworkConfigEntity extends GenericEntity<String> {
     private String description;
 
     @Column(nullable = false)
-    @EnumCodec
-    @ColumnType(javaType = String.class)
     @NotNull(message = "类型不能为空")
-    @Schema(description = "类型")
-    private DefaultNetworkType type;
+    private String type;
 
     @Column(nullable = false)
     @EnumCodec
@@ -51,6 +49,10 @@ public class NetworkConfigEntity extends GenericEntity<String> {
     @ColumnType(jdbcType = JDBCType.CLOB, javaType = String.class)
     @Schema(description = "配置(根据类型不同而不同)")
     private Map<String, Object> configuration;
+
+    public NetworkType lookupNetworkType() {
+        return NetworkType.lookup(type).orElseGet(() -> NetworkType.of(type));
+    }
 
     public NetworkProperties toNetworkProperties() {
         NetworkProperties properties = new NetworkProperties();
