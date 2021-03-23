@@ -231,6 +231,15 @@ public class DeviceInstanceController implements
         return deviceDataService.queryEachOneProperties(deviceId, QueryParamEntity.of());
     }
 
+    //获取设备全部最新属性
+    @GetMapping("/{deviceId:.+}/properties")
+    @QueryAction
+    @QueryNoPagingOperation(summary = "按条件查询指定ID设备的全部属性")
+    public Flux<DeviceProperty> getDeviceLatestProperties(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                          @Parameter(hidden = true) QueryParamEntity queryParamEntity) {
+        return deviceDataService.queryEachProperties(deviceId, queryParamEntity);
+    }
+
     //获取设备指定的最新属性
     @GetMapping("/{deviceId:.+}/property/{property:.+}")
     @QueryAction
