@@ -2,7 +2,8 @@
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
 ![Version](https://img.shields.io/badge/Version-1.8--RELEASE-brightgreen)
-![QQ群2021514](https://img.shields.io/badge/QQ群-2021514-brightgreen)
+![QQ①群2021514](https://img.shields.io/badge/QQ①群-2021514-brightgreen)
+![QQ②群324606263](https://img.shields.io/badge/QQ②群-324606263-brightgreen)
 ![jetlinks](https://visitor-badge.glitch.me/badge?page_id=jetlinks)
 
 JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发, 
