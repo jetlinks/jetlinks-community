@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.message.codec.DefaultTransport;
+import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.message.codec.Transports;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceConfigScope;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
@@ -82,7 +84,7 @@ public class DefaultDeviceConfigMetadataSupplier implements DeviceConfigMetadata
                         //消息协议
                         protocolSupports.getProtocol(product.getMessageProtocol()),
                         //传输协议
-                        Mono.justOrEmpty(product.getTransportEnum(Arrays.asList(DefaultTransport.values()))),
+                        Mono.justOrEmpty(product.getTransportEnum(Transports.get())),
                         (protocol, transport) -> {
                             return protocol.getMetadataExpandsConfig(transport, metadataType, metadataId, typeId);
                         }
@@ -96,6 +98,6 @@ public class DefaultDeviceConfigMetadataSupplier implements DeviceConfigMetadata
             .findById(productId)
             .flatMapMany(product -> protocolSupports
                 .getProtocol(product.getMessageProtocol())
-                .flatMap(support -> support.getConfigMetadata(DefaultTransport.valueOf(product.getTransportProtocol()))));
+                .flatMap(support -> support.getConfigMetadata(Transport.of(product.getTransportProtocol()))));
     }
 }

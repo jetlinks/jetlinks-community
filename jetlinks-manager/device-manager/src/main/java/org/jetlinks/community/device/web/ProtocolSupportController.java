@@ -97,9 +97,9 @@ public class ProtocolSupportController
     @Authorize(merge = false)
     @Operation(summary = "获取协议对应使用传输协议的配置元数据")
     public Mono<ConfigMetadata> getTransportConfiguration(@PathVariable @Parameter(description = "协议ID") String id,
-                                                          @PathVariable @Parameter(description = "传输协议") DefaultTransport transport) {
+                                                          @PathVariable @Parameter(description = "传输协议") String transport) {
         return protocolSupports.getProtocol(id)
-            .flatMap(support -> support.getConfigMetadata(transport));
+            .flatMap(support -> support.getConfigMetadata(Transport.of(transport)));
     }
 
     @GetMapping("/{id}/{transport}/metadata")
@@ -107,11 +107,11 @@ public class ProtocolSupportController
     @Authorize(merge = false)
     @Operation(summary = "获取协议设置的默认物模型")
     public Mono<String> getDefaultMetadata(@PathVariable @Parameter(description = "协议ID") String id,
-                                           @PathVariable @Parameter(description = "传输协议") DefaultTransport transport) {
+                                           @PathVariable @Parameter(description = "传输协议") String transport) {
         return protocolSupports
             .getProtocol(id)
             .flatMap(support ->support
-                .getDefaultMetadata(transport)
+                .getDefaultMetadata(Transport.of(transport))
                 .flatMap(metadata-> support.getMetadataCodec().encode(metadata))
             ).defaultIfEmpty("{}");
     }
