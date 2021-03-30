@@ -133,6 +133,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                     @Override
                     public void setKeepAliveTimeout(Duration timeout) {
                         keepaliveTimeout.set(timeout);
+                        client.setKeepAliveTimeout(timeout);
                     }
 
                     @Override
