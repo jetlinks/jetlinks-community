@@ -30,6 +30,10 @@ public class OrganizationController {
     @Autowired
     private DefaultDimensionService dimensionService;
 
+    public OrganizationController(DefaultDimensionService dimensionService) {
+        this.dimensionService = dimensionService;
+    }
+
     @GetMapping("/_all/tree")
     @Authorize(merge = false)
     @Operation(summary = "获取全部机构信息(树结构)")
@@ -86,6 +90,29 @@ public class OrganizationController {
         return entity
             .toNestQuery(q -> q.where(DimensionEntity::getTypeId, orgDimensionTypeId))
             .execute(dimensionService::queryIncludeChildren);
+    }
+
+    @PostMapping
+    @CreateAction
+    @Operation(summary = "新增机构信息")
+    public Mono<Void> addOrg(@RequestBody Flux<DimensionEntity> entityFlux) {
+        return entityFlux
+            .doOnNext(entity -> entity.setTypeId(orgDimensionTypeId))
+            .as(dimensionService::insert)
+            .then();
+    }
+
+    @PutMapping("/{id}")
+    @SaveAction
+    @Operation(summary = "更新机构信息")
+    public Mono<Void> updateOrg(@PathVariable String id, @RequestBody Mono<DimensionEntity> entityMono) {
+        return entityMono
+            .doOnNext(entity -> {
+                entity.setTypeId(orgDimensionTypeId);
+                entity.setId(id);
+            })
+            .as(payload -> dimensionService.updateById(id, payload))
+            .then();
     }
 
     @PatchMapping
