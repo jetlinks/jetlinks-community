@@ -225,6 +225,8 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
             }
             appendDeviceMessageTopic(msg, builder);
         });
+        //上报了新的物模型
+        createFastBuilder(MessageType.DERIVED_METADATA, "/metadata/derived");
     }
 
     private static void createFastBuilder(MessageType messageType,
@@ -247,38 +249,37 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         }
     }
 
-    protected Mono<Boolean> handleChildrenDeviceMessage(DeviceOperator device, String childrenId, Message message) {
+    protected Mono<Boolean> handleChildrenDeviceMessage(Message message) {
         if (message instanceof DeviceMessageReply) {
             return doReply(((DeviceMessageReply) message));
         }
+        //不处理子设备上下线,统一由 DeviceGatewayHelper处理
         return Mono.just(true);
     }
 
-    protected Mono<Boolean> handleChildrenDeviceMessageReply(DeviceOperator session, ChildDeviceMessage reply) {
-        return handleChildrenDeviceMessage(session, reply.getChildDeviceId(), reply.getChildDeviceMessage());
+    protected Mono<Boolean> handleChildrenDeviceMessageReply(ChildDeviceMessage reply) {
+        return handleChildrenDeviceMessage(reply.getChildDeviceMessage());
     }
 
-    protected Mono<Boolean> handleChildrenDeviceMessageReply(DeviceOperator session, ChildDeviceMessageReply reply) {
-        return handleChildrenDeviceMessage(session, reply.getChildDeviceId(), reply.getChildDeviceMessage());
+    protected Mono<Boolean> handleChildrenDeviceMessageReply(ChildDeviceMessageReply reply) {
+        return handleChildrenDeviceMessage(reply.getChildDeviceMessage());
     }
 
     @Override
     public Mono<Boolean> handleMessage(DeviceOperator device, @Nonnull Message message) {
+        Mono<Boolean> then;
+        if (message instanceof ChildDeviceMessageReply) {
+            then = handleChildrenDeviceMessageReply(((ChildDeviceMessageReply) message));
+        } else if (message instanceof ChildDeviceMessage) {
+            then = handleChildrenDeviceMessageReply(((ChildDeviceMessage) message));
+        } else if (message instanceof DeviceMessageReply) {
+            then = doReply(((DeviceMessageReply) message));
+        } else {
+            then = Mono.just(true);
+        }
         return this
             .onMessage(message)
-            .then(Mono.defer(() -> {
-                if (device != null) {
-                    if (message instanceof ChildDeviceMessageReply) {
-                        return handleChildrenDeviceMessageReply(device, ((ChildDeviceMessageReply) message));
-                    } else if (message instanceof ChildDeviceMessage) {
-                        return handleChildrenDeviceMessageReply(device, ((ChildDeviceMessage) message));
-                    }
-                }
-                if (message instanceof DeviceMessageReply) {
-                    return doReply(((DeviceMessageReply) message));
-                }
-                return Mono.just(true);
-            }))
+            .then(then)
             .defaultIfEmpty(false);
 
     }
@@ -289,11 +290,6 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         }
         return messageHandler
             .reply(reply)
-            .doOnSuccess(success -> {
-                if (log.isDebugEnabled()) {
-                    log.debug("reply message {} complete", reply.getMessageId());
-                }
-            })
             .thenReturn(true)
             .doOnError((error) -> log.error("reply message error", error))
             ;

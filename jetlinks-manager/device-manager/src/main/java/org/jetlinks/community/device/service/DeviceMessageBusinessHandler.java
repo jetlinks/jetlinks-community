@@ -9,11 +9,13 @@ import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.*;
+import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -179,6 +181,41 @@ public class DeviceMessageBusinessHandler {
                     return tagEntity;
                 }))
             .as(tagRepository::save)
+            .then();
+    }
+
+    @Subscribe("/device/*/*/metadata/derived")
+    public Mono<Void> updateMetadata(DerivedMetadataMessage message) {
+        if (message.isAll()) {
+            return updateMedata(message.getDeviceId(), message.getMetadata());
+        }
+        return Mono
+            .zip(
+                //原始物模型
+                registry
+                    .getDevice(message.getDeviceId())
+                    .flatMap(DeviceOperator::getMetadata),
+                //新的物模型
+                JetLinksDeviceMetadataCodec
+                    .getInstance()
+                    .decode(message.getMetadata()),
+                //合并在一起
+                DeviceMetadata::merge
+            )
+            //重新编码为字符串
+            .flatMap(JetLinksDeviceMetadataCodec.getInstance()::encode)
+            //更新物模型
+            .flatMap(metadata -> updateMedata(message.getDeviceId(), metadata));
+    }
+
+    private Mono<Void> updateMedata(String deviceId, String metadata) {
+        return deviceService
+            .createUpdate()
+            .set(DeviceInstanceEntity::getDeriveMetadata, metadata)
+            .where(DeviceInstanceEntity::getId, deviceId)
+            .execute()
+            .then(registry.getDevice(deviceId))
+            .flatMap(device -> device.updateMetadata(metadata))
             .then();
     }
 
