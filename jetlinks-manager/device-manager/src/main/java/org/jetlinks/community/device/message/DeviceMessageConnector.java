@@ -44,7 +44,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
 
     private final MessageHandler messageHandler;
 
-    private final static BiConsumer<Throwable, Object> doOnError = (error, val) -> log.error(error.getMessage(), error);
+    private final static BiConsumer<Throwable, Object> doOnError = (error, val) -> DeviceMessageConnector.log.error(error.getMessage(), error);
 
     private final static Function<DeviceOperator, Mono<Values>> configGetter = operator -> operator.getSelfConfigs(allConfigHeader);
 
