@@ -138,6 +138,16 @@ public class DeviceGatewayHelper {
                 .flatMap(then::thenReturn)
                 ;
         } else {
+            //消息中指定保存在线
+            if (message.getHeader(Headers.keepOnline).orElse(false)
+                && !(session instanceof KeepOnlineSession)) {
+                Duration timeout = message
+                    .getHeader(Headers.keepOnlineTimeoutSeconds)
+                    .map(Duration::ofSeconds)
+                    .orElse(Duration.ofHours(1));
+                //替换session
+                session = sessionManager.replace(session, new KeepOnlineSession(session, timeout));
+            }
             sessionConsumer.accept(session);
             session.keepAlive();
             if (doHandle) {
