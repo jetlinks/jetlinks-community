@@ -10,8 +10,8 @@ import org.elasticsearch.search.aggregations.Aggregations;
 import org.elasticsearch.search.aggregations.BucketOrder;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
-import org.elasticsearch.search.aggregations.bucket.histogram.ExtendedBounds;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
+import org.elasticsearch.search.aggregations.bucket.histogram.LongBounds;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.NumericMetricsAggregation;
@@ -293,9 +293,9 @@ public class ReactiveAggregationService implements AggregationService {
         return queryParam;
     }
 
-    protected static ExtendedBounds getExtendedBounds(AggregationQueryParam param) {
+    protected static LongBounds getExtendedBounds(AggregationQueryParam param) {
 
-        return new ExtendedBounds(calculateStartWithTime(param), param.getEndWithTime());
+        return new LongBounds(calculateStartWithTime(param), param.getEndWithTime());
     }
 
     //聚合查询默认的时间间隔
