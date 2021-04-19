@@ -6,6 +6,7 @@ import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
+import org.jetlinks.core.metadata.ConfigScope;
 import org.jetlinks.core.metadata.DeviceMetadataType;
 import reactor.core.publisher.Flux;
 
@@ -74,6 +75,7 @@ public interface DeviceConfigMetadataManager {
     Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
                                                   DeviceMetadataType metadataType,
                                                   String metadataId,
-                                                  String typeId);
+                                                  String typeId,
+                                                  ConfigScope... scopes);
 
 }

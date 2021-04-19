@@ -47,9 +47,7 @@ import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.MessageType;
 import org.jetlinks.core.message.RepayableDeviceMessage;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.ConfigPropertyMetadata;
-import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.*;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.data.util.Lazy;
@@ -131,6 +129,20 @@ public class DeviceInstanceController implements
     @Operation(summary = "获取设备需要的配置定义信息")
     public Flux<ConfigMetadata> getDeviceConfigMetadata(@PathVariable @Parameter(description = "设备ID") String id) {
         return metadataManager.getDeviceConfigMetadata(id);
+    }
+
+
+    @GetMapping("/{id:.+}/config-metadata/{metadataType}/{metadataId}/{typeId}")
+    @QueryAction
+    @Operation(summary = "获取设备物模型的拓展配置定义")
+    public Flux<ConfigMetadata> getExpandsConfigMetadata(@PathVariable @Parameter(description = "设备ID") String id,
+                                                         @PathVariable @Parameter(description = "物模型类型") DeviceMetadataType metadataType,
+                                                         @PathVariable @Parameter(description = "物模型ID") String metadataId,
+                                                         @PathVariable @Parameter(description = "类型ID") String typeId) {
+        return service
+            .findById(id)
+            .flatMapMany(device -> metadataManager
+                .getMetadataExpandsConfig(device.getProductId(), metadataType, metadataId, typeId, DeviceConfigScope.device));
     }
 
     @GetMapping("/bind-providers")
