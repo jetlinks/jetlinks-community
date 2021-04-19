@@ -22,6 +22,11 @@ public interface Message {
         return new SimpleMessage(id, topic, null, Type.error, message);
     }
 
+    static Message error(String id, String topic, Throwable message) {
+
+        return new SimpleMessage(id, topic, null, Type.error, message.getMessage() == null ? message.getClass().getSimpleName() : message.getMessage());
+    }
+
     static Message success(String id, String topic, Object payload) {
         return new SimpleMessage(id, topic, payload, Type.result, null);
     }
