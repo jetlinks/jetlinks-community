@@ -85,6 +85,7 @@ public class ReactorQLTaskExecutorProvider implements TaskExecutorProvider {
                                                                  .concat(context.getInstanceId())
                                                                  .concat(":")
                                                                  .concat(context.getJob().getNodeId()))
+                                               .topics(table)
                                                .local()
                                                .build())
                                 .flatMap(payload -> {
