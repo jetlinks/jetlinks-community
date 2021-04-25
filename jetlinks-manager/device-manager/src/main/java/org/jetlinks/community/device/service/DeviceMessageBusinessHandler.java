@@ -2,6 +2,7 @@ package org.jetlinks.community.device.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
@@ -86,6 +87,16 @@ public class DeviceMessageBusinessHandler {
     public Mono<Void> autoRegisterDevice(DeviceRegisterMessage message) {
         return registry
             .getDevice(message.getDeviceId())
+            .flatMap(device -> {
+                @SuppressWarnings("all")
+                Map<String, Object> config = message.getHeader("configuration").map(Map.class::cast).orElse(null);
+                if (MapUtils.isNotEmpty(config)) {
+                    return device
+                        .setConfigs(config)
+                        .thenReturn(device);
+                }
+                return Mono.just(device);
+            })
             .switchIfEmpty(Mono.defer(() -> {
                 //自动注册
                 return doAutoRegister(message);
@@ -150,6 +161,15 @@ public class DeviceMessageBusinessHandler {
                     .then());
         }
         return Mono.empty();
+    }
+
+    @Subscribe("/device/*/*/unregister")
+    @Transactional(propagation = Propagation.NEVER)
+    public Mono<Void> unRegisterDevice(DeviceUnRegisterMessage message) {
+        //注销设备
+        return deviceService
+            .unregisterDevice(message.getDeviceId())
+            .then();
     }
 
     @Subscribe("/device/*/*/message/tags/update")

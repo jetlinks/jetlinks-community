@@ -7,7 +7,9 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.validator.CreateGroup;
+import org.jetlinks.community.device.enums.DeviceFeature;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceInfo;
 import org.jetlinks.community.device.enums.DeviceState;
@@ -22,6 +24,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.sql.JDBCType;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Getter
 @Setter
@@ -124,6 +127,14 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @Schema(description = "父级设备ID")
     private String parentId;
 
+    //拓展特性,比如是否为子设备独立状态管理。
+    @Column
+    @ColumnType(javaType = Long.class, jdbcType = JDBCType.BIGINT)
+    @EnumCodec(toMask = true)
+    @Schema(description = "设备特性")
+    @DefaultValue("0")
+    private DeviceFeature[] features;
+
     public DeviceInfo toDeviceInfo() {
         DeviceInfo info = org.jetlinks.core.device.DeviceInfo
             .builder()
@@ -134,6 +145,10 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         info.addConfig("deviceName", name);
         info.addConfig("productName", productName);
         info.addConfig("orgId", orgId);
+
+        if (hasFeature(DeviceFeature.selfManageState)) {
+            info.addConfig(DeviceConfigKey.selfManageState, true);
+        }
         if (!CollectionUtils.isEmpty(configuration)) {
             info.addConfigs(configuration);
         }
@@ -141,5 +156,23 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
             info.addConfig(DeviceConfigKey.metadata, deriveMetadata);
         }
         return info;
+    }
+
+    public void addFeature(DeviceFeature... features) {
+        if (this.features == null) {
+            this.features = features;
+        }
+        if (features.length > 0) {
+            this.features = Stream
+                .concat(Stream.of(this.features), Stream.of(features))
+                .toArray(DeviceFeature[]::new);
+        }
+    }
+
+    public boolean hasFeature(DeviceFeature feature) {
+        if (this.features == null) {
+            return false;
+        }
+        return EnumDict.in(feature, DeviceFeature.values());
     }
 }
