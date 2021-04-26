@@ -12,6 +12,7 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
+import org.jetlinks.core.message.codec.EncodedMessage;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -65,6 +66,44 @@ public class VertxTcpClient implements TcpClient {
         if (null != payloadParser) {
             payloadParser.reset();
         }
+    }
+
+
+    @Override
+    public InetSocketAddress address() {
+        return getRemoteAddress();
+    }
+
+    @Override
+    public Mono<Void> sendMessage(EncodedMessage message) {
+        return Mono
+            .<Void>create((sink) -> {
+                if (socket == null) {
+                    sink.error(new SocketException("socket closed"));
+                    return;
+                }
+                Buffer buffer = Buffer.buffer(message.getPayload());
+                socket.write(buffer, r -> {
+                    keepAlive();
+                    if (r.succeeded()) {
+                        sink.success();
+                    } else {
+                        sink.error(r.cause());
+                    }
+                });
+            });
+    }
+
+    @Override
+    public Flux<EncodedMessage> receiveMessage() {
+        return this
+            .subscribe()
+            .cast(EncodedMessage.class);
+    }
+
+    @Override
+    public void disconnect() {
+        shutdown();
     }
 
     @Override
@@ -193,21 +232,8 @@ public class VertxTcpClient implements TcpClient {
 
     @Override
     public Mono<Boolean> send(TcpMessage message) {
-        return Mono.<Boolean>create((sink) -> {
-            if (socket == null) {
-                sink.error(new SocketException("socket closed"));
-                return;
-            }
-            Buffer buffer = Buffer.buffer(message.getPayload());
-            socket.write(buffer, r -> {
-                keepAlive();
-                if (r.succeeded()) {
-                    sink.success(true);
-                } else {
-                    sink.error(r.cause());
-                }
-            });
-        });
+        return sendMessage(message)
+            .thenReturn(true);
     }
 
     @Override

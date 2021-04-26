@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.Message;
@@ -12,6 +14,7 @@ import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.server.DeviceGatewayContext;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.community.gateway.DeviceGateway;
@@ -106,7 +109,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
     }
 
 
-    class TcpConnection {
+    class TcpConnection implements DeviceGatewayContext {
         final TcpClient client;
         final AtomicReference<Duration> keepaliveTimeout = new AtomicReference<>();
         final AtomicReference<DeviceSession> sessionRef = new AtomicReference<>();
@@ -148,17 +151,21 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
         }
 
         Mono<Void> accept() {
-            return client
-                .subscribe()
-                .filter(tcp -> started.get())
-                .publishOn(Schedulers.parallel())
-                .flatMap(this::handleTcpMessage)
-                .onErrorResume((err) -> {
-                    log.error(err.getMessage(), err);
-                    client.shutdown();
-                    return Mono.empty();
-                })
-                .then()
+            return getProtocol()
+                .flatMap(protocol -> protocol.onClientConnect(getTransport(), client, this))
+                .then(
+                    client
+                        .subscribe()
+                        .filter(tcp -> started.get())
+                        .publishOn(Schedulers.parallel())
+                        .flatMap(this::handleTcpMessage)
+                        .onErrorResume((err) -> {
+                            log.error(err.getMessage(), err);
+                            client.shutdown();
+                            return Mono.empty();
+                        })
+                        .then()
+                )
                 .doOnCancel(client::shutdown);
         }
 
@@ -169,8 +176,10 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                 .cast(DeviceMessage.class)
                 .doOnNext(msg -> gatewayMonitor.receivedMessage())
                 .flatMap(this::handleDeviceMessage)
-                .doOnEach(ReactiveLogger.onError(err -> log
-                    .error("处理TCP[{}]消息失败:\n{}", address, message, err)))
+                .doOnEach(ReactiveLogger.onError(err -> log.error("处理TCP[{}]消息失败:\n{}",
+                                                                  address,
+                                                                  message
+                    , err)))
                 .onErrorResume((err) -> Mono.fromRunnable(client::reset))
                 .then();
         }
@@ -194,6 +203,20 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                 .then();
         }
 
+        @Override
+        public Mono<DeviceOperator> getDevice(String deviceId) {
+            return registry.getDevice(deviceId);
+        }
+
+        @Override
+        public Mono<DeviceProductOperator> getProduct(String productId) {
+            return registry.getProduct(productId);
+        }
+
+        @Override
+        public Mono<Void> onMessage(DeviceMessage message) {
+            return handleDeviceMessage(message);
+        }
     }
 
 

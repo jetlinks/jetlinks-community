@@ -2,6 +2,7 @@ package org.jetlinks.community.network.tcp.client;
 
 import org.jetlinks.community.network.Network;
 import org.jetlinks.community.network.tcp.TcpMessage;
+import org.jetlinks.core.server.ClientConnection;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -14,7 +15,7 @@ import java.time.Duration;
  * @author zhouhao
  * @version 1.0
  */
-public interface TcpClient extends Network {
+public interface TcpClient extends Network, ClientConnection {
 
     /**
      * 获取客户端远程地址
