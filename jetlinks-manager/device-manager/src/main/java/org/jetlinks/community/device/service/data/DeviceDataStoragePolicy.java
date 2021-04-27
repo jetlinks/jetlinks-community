@@ -23,10 +23,19 @@ import javax.annotation.Nonnull;
  */
 public interface DeviceDataStoragePolicy {
 
+    /**
+     * @return 策略唯一标识
+     */
     String getId();
 
+    /**
+     * @return 策略名称
+     */
     String getName();
 
+    /**
+     * @return 说明
+     */
     String getDescription();
 
     /**
