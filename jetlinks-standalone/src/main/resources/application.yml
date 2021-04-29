@@ -22,6 +22,7 @@ spring:
         max-active: 1024
     timeout: 20s
     serializer: jdk # 设置fst时,redis key使用string序列化,value使用 fst序列化.
+    database: 3
   #        max-wait: 10s
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/jetlinks
@@ -132,6 +133,7 @@ logging:
     #    org.springframework.data.elasticsearch.client: trace
     #    org.elasticsearch: error
     org.jetlinks.pro.influx: trace
+    org.elasticsearch: error
   config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds
