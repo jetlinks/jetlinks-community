@@ -58,7 +58,6 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
         for (int i = 0; i < instance; i++) {
             instances.add(vertx.createNetServer(properties.getOptions()));
         }
-        payloadParserBuilder.build(properties.getParserType(), properties);
         tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(), properties));
         tcpServer.setServer(instances);
         tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout", Duration.ofMinutes(10).toMillis()));
