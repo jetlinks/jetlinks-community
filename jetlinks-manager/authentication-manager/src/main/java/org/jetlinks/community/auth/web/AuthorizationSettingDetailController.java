@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
@@ -32,9 +33,12 @@ public class AuthorizationSettingDetailController {
     @Operation(summary = "赋权")
     public Mono<Boolean> saveSettings(@RequestBody Flux<AuthorizationSettingDetail> detailFlux) {
 
-        return settingService
-            .saveDetail(detailFlux)
-            .thenReturn(true);
+        return Authentication
+            .currentReactive()
+            .flatMap(authentication -> settingService
+                .saveDetail(authentication, detailFlux)
+                .thenReturn(true)
+            );
     }
 
     @GetMapping("/{targetType}/{target}")
