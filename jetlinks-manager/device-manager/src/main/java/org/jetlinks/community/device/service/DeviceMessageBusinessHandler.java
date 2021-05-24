@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.jetlinks.community.device.enums.DeviceFeature;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -16,6 +17,7 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -73,12 +75,24 @@ public class DeviceMessageBusinessHandler {
                 instance.setCreateTimeNow();
                 instance.setCreatorId(tps.getT4().getCreatorId());
                 instance.setOrgId(tps.getT4().getOrgId());
-                instance.setState(DeviceState.online);
+                @SuppressWarnings("all")
+                boolean selfManageState = CastUtils
+                    .castBoolean(tps.getT5().getOrDefault(DeviceConfigKey.selfManageState.getKey(), false));
+
+                if (selfManageState) {
+                    instance.addFeature(DeviceFeature.selfManageState);
+                }
+
+                instance.setState(selfManageState ? DeviceState.offline : DeviceState.online);
+
                 return deviceService
                     .save(Mono.just(instance))
                     .thenReturn(instance)
                     .flatMap(device -> registry
-                        .register(device.toDeviceInfo().addConfig("state", DeviceState.online)));
+                        .register(device.toDeviceInfo()
+                                        .addConfig("state", selfManageState
+                                            ? org.jetlinks.core.device.DeviceState.offline
+                                            : org.jetlinks.core.device.DeviceState.online)));
             });
     }
 
