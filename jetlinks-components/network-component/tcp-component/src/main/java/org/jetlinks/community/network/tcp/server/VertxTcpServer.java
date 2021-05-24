@@ -62,11 +62,11 @@ public class VertxTcpServer implements TcpServer {
         this.parserSupplier = parserSupplier;
     }
 
-    public void setServer(Collection<NetServer> mqttServer) {
+    public void setServer(Collection<NetServer> servers) {
         if (this.tcpServers != null && !this.tcpServers.isEmpty()) {
             shutdown();
         }
-        this.tcpServers = mqttServer;
+        this.tcpServers = servers;
 
         for (NetServer tcpServer : this.tcpServers) {
             tcpServer.connectHandler(this::acceptTcpConnection);
