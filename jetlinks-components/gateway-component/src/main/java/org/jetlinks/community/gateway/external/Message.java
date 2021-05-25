@@ -35,11 +35,16 @@ public interface Message {
         return new SimpleMessage(id, null, null, Type.complete, null);
     }
 
+    static Message pong(String id) {
+        return new SimpleMessage(id, null, null, Type.pong, null);
+    }
+
     enum Type {
         authError,
         result,
         error,
-        complete
+        complete,
+        ping,
+        pong
     }
-
 }
