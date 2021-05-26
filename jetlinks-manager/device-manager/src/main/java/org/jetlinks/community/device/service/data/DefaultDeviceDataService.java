@@ -90,10 +90,11 @@ public class DefaultDeviceDataService implements DeviceDataService {
     @Nonnull
     @Override
     public Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                                    @Nonnull QueryParamEntity query) {
+                                                    @Nonnull QueryParamEntity query,
+                                                    @Nonnull String... properties) {
         return this
             .getDeviceStrategy(deviceId)
-            .flatMapMany(strategy -> strategy.queryEachProperties(deviceId, query));
+            .flatMapMany(strategy -> strategy.queryEachProperties(deviceId, query,properties));
     }
 
     @Nonnull

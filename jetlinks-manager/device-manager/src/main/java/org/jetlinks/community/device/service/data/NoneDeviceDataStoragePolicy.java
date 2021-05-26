@@ -84,7 +84,8 @@ public class NoneDeviceDataStoragePolicy implements DeviceDataStoragePolicy {
     @Nonnull
     @Override
     public Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                                    @Nonnull QueryParamEntity query) {
+                                                    @Nonnull QueryParamEntity query,
+                                                    @Nonnull String... property) {
         return Flux.empty();
     }
 
