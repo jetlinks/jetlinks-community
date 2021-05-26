@@ -23,18 +23,8 @@ import java.util.function.Function;
 @Component
 public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
 
-    private MeterRegistry registry;
 
-    Map<String, LongAdder> productCounts = new ConcurrentHashMap<>();
-
-    Function<String, LongAdder> counterAdder = productId ->
-        productCounts.computeIfAbsent(productId, __id -> {
-            LongAdder adder = new LongAdder();
-            Gauge.builder("online-count", adder, LongAdder::sum)
-                .tag("productId", __id)
-                .register(registry);
-            return adder;
-        });
+    private final MeterRegistry registry;
 
     public DeviceStatusMeasurementProvider(MeterRegistryManager registryManager,
                                            LocalDeviceInstanceService instanceService,
@@ -47,14 +37,13 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
         addMeasurement(new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager));
 
         registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId(),
-            "target", "msgType", "productId");
+                                                    "target", "msgType", "productId");
     }
 
     @Subscribe("/device/*/*/online")
-    public Mono<Void> incrementOnline(DeviceMessage msg){
-        return Mono.fromRunnable(()->{
+    public Mono<Void> incrementOnline(DeviceMessage msg) {
+        return Mono.fromRunnable(() -> {
             String productId = parseProductId(msg);
-            counterAdder.apply(productId).increment();
             registry
                 .counter("online", "productId", productId)
                 .increment();
@@ -62,10 +51,9 @@ public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
     }
 
     @Subscribe("/device/*/*/offline")
-    public Mono<Void> incrementOffline(DeviceMessage msg){
-        return Mono.fromRunnable(()->{
+    public Mono<Void> incrementOffline(DeviceMessage msg) {
+        return Mono.fromRunnable(() -> {
             String productId = parseProductId(msg);
-           // counterAdder.apply(productId).decrement();
             registry
                 .counter("offline", "productId", productId)
                 .increment();
