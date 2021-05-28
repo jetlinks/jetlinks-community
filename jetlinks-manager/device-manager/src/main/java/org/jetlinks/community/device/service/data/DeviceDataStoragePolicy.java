@@ -127,7 +127,8 @@ public interface DeviceDataStoragePolicy {
      */
     @Nonnull
     Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                             @Nonnull QueryParamEntity query);
+                                             @Nonnull QueryParamEntity query,
+                                             @Nonnull String... property);
 
     /**
      * 查询指定的设备属性列表

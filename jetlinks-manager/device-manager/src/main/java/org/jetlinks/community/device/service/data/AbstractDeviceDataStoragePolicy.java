@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.jetlinks.community.device.service.data.StorageConstants.propertyIsIgnoreStorage;
 import static org.jetlinks.community.device.service.data.StorageConstants.propertyIsJsonStringStorage;
@@ -537,7 +538,29 @@ public abstract class AbstractDeviceDataStoragePolicy implements DeviceDataStora
             .flatMap(product -> Mono.zip(Mono.just(product), product.getMetadata()));
     }
 
-    //将毫秒转为纳秒，努力让数据不重复
+    protected List<PropertyMetadata> getPropertyMetadata(DeviceMetadata metadata, String... properties) {
+        if (properties == null || properties.length == 0) {
+            return metadata.getProperties();
+        }
+        if (properties.length == 1) {
+            return metadata.getProperty(properties[0])
+                .map(Arrays::asList)
+                .orElseGet(Collections::emptyList);
+        }
+        Set<String> ids = new HashSet<>(Arrays.asList(properties));
+        return metadata
+            .getProperties()
+            .stream()
+            .filter(prop -> ids.isEmpty() || ids.contains(prop.getId()))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 将毫秒转为纳秒，努力让数据不重复
+     *
+     * @param millis 毫秒值
+     * @return 尽可能不会重复的long值
+     */
     protected long createUniqueNanoTime(long millis) {
         long nano = TimeUnit.MILLISECONDS.toNanos(millis);
 

@@ -176,23 +176,19 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
     @Nonnull
     @Override
     public Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                                    @Nonnull QueryParamEntity query) {
+                                                    @Nonnull QueryParamEntity query,
+                                                    @Nonnull String... property) {
 
-        return deviceRegistry
-            .getDevice(deviceId)
-            .flatMapMany(device -> Mono
-                .zip(device.getProduct(), device.getMetadata())
-                .flatMapMany(tp2 -> {
+        return this
+            .getProductAndMetadataByDevice(deviceId)
+            .flatMapMany(tp2 -> {
 
-                    Map<String, PropertyMetadata> propertiesMap = tp2
-                        .getT2()
-                        .getProperties()
-                        .stream()
-                        .collect(Collectors.toMap(PropertyMetadata::getId, Function
-                            .identity(), (a, b) -> a));
+                Map<String, PropertyMetadata> propertiesMap = getPropertyMetadata(tp2.getT2(), property)
+                    .stream()
+                    .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity(), (a, b) -> a));
 
-                    return queryEachDeviceProperty(tp2.getT1().getId(), deviceId, propertiesMap, query);
-                }));
+                return queryEachDeviceProperty(tp2.getT1().getId(), deviceId, propertiesMap, query);
+            });
     }
 
 

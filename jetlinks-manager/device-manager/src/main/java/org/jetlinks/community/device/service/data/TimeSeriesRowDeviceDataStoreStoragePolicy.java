@@ -169,33 +169,30 @@ public class TimeSeriesRowDeviceDataStoreStoragePolicy extends TimeSeriesDeviceD
     @Nonnull
     @Override
     public Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                                    @Nonnull QueryParamEntity query) {
+                                                    @Nonnull QueryParamEntity query,
+                                                    @Nonnull String... property) {
 
-        return deviceRegistry
-            .getDevice(deviceId)
-            .flatMapMany(device -> Mono
-                .zip(device.getProduct(), device.getMetadata())
-                .flatMapMany(tp2 -> {
+        return getProductAndMetadataByDevice(deviceId)
+            .flatMapMany(tp2 -> {
 
-                    Map<String, PropertyMetadata> propertiesMap = tp2.getT2()
-                        .getProperties()
-                        .stream()
-                        .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity(), (a, b) -> a));
-                    if (propertiesMap.isEmpty()) {
-                        return Flux.empty();
-                    }
-                    return timeSeriesManager
-                        .getService(devicePropertyMetric(tp2.getT1().getId()))
-                        .aggregation(AggregationQueryParam
-                            .of()
-                            .agg(new LimitAggregationColumn("property", "property", Aggregation.TOP, query.getPageSize()))
-                            .groupBy(new LimitGroup("property", "property", propertiesMap.size() * 2)) //按property分组
-                            .filter(query)
-                            .filter(q -> q.where("deviceId", deviceId))
-                        ).map(data -> DeviceProperty
-                            .of(data, data.getString("property").map(propertiesMap::get).orElse(null))
-                            .deviceId(deviceId));
-                }));
+                Map<String, PropertyMetadata> propertiesMap = getPropertyMetadata(tp2.getT2(), property)
+                    .stream()
+                    .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity(), (a, b) -> a));
+                if (propertiesMap.isEmpty()) {
+                    return Flux.empty();
+                }
+                return timeSeriesManager
+                    .getService(devicePropertyMetric(tp2.getT1().getId()))
+                    .aggregation(AggregationQueryParam
+                                     .of()
+                                     .agg(new LimitAggregationColumn("property", "property", Aggregation.TOP, query.getPageSize()))
+                                     .groupBy(new LimitGroup("property", "property", propertiesMap.size() * 2)) //按property分组
+                                     .filter(query)
+                                     .filter(q -> q.where("deviceId", deviceId).in("property", propertiesMap.keySet()))
+                    ).map(data -> DeviceProperty
+                        .of(data, data.getString("property").map(propertiesMap::get).orElse(null))
+                        .deviceId(deviceId));
+            });
     }
 
     protected String getTimeSeriesMetric(String productId) {
