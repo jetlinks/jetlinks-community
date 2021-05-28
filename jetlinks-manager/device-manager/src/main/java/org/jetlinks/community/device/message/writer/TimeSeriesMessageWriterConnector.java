@@ -23,7 +23,7 @@ public class TimeSeriesMessageWriterConnector {
      * 订阅设备消息 入库
      *
      * @param message 设备消息
-     * @return null
+     * @return void
      */
     @Subscribe(topics = "/device/**", id = "device-message-ts-writer")
     public Mono<Void> writeDeviceMessageToTs(DeviceMessage message) {

@@ -32,6 +32,11 @@ import java.util.stream.Stream;
 
 import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetric;
 
+/**
+ * 时序数据列存储策略
+ *
+ * @author zhouhao
+ */
 @Component
 public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDataStoragePolicy implements DeviceDataStoragePolicy {
 
@@ -67,10 +72,10 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
     public Mono<Void> registerMetadata(@Nonnull String productId, @Nonnull DeviceMetadata metadata) {
         return Flux
             .concat(Flux
-                        .fromIterable(metadata.getEvents())
-                        .flatMap(event -> timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.event(productId, event))),
-                    timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.properties(productId, metadata.getProperties())),
-                    timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.log(productId)))
+                    .fromIterable(metadata.getEvents())
+                    .flatMap(event -> timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.event(productId, event))),
+                timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.properties(productId, metadata.getProperties())),
+                timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.log(productId)))
             .then();
     }
 
@@ -79,8 +84,6 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
                                                          String deviceId,
                                                          Map<String, PropertyMetadata> property,
                                                          QueryParamEntity param) {
-
-
         //查询多个属性,分组聚合获取第一条数据
         return param
             .toQuery()
@@ -121,20 +124,20 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
             .getDevice(deviceId)
             .flatMap(device -> Mono.zip(device.getProduct(), device.getMetadata()))
             .flatMap(tp2 -> {
-                         PropertyMetadata prop = tp2.getT2().getPropertyOrNull(property);
+                    PropertyMetadata prop = tp2.getT2().getPropertyOrNull(property);
 
-                         return param
-                             .toQuery()
-                             .includes(property)
-                             .where("deviceId", deviceId)
-                             .execute(query -> timeSeriesManager
-                                 .getService(devicePropertyMetric(tp2.getT1().getId()))
-                                 .queryPager(query,
-                                             data -> DeviceProperty
-                                                 .of(data, data.get(property).orElse(0), prop)
-                                                 .property(property)
-                                 ));
-                     }
+                    return param
+                        .toQuery()
+                        .includes(property)
+                        .where("deviceId", deviceId)
+                        .execute(query -> timeSeriesManager
+                            .getService(devicePropertyMetric(tp2.getT1().getId()))
+                            .queryPager(query,
+                                data -> DeviceProperty
+                                    .of(data, data.get(property).orElse(0), prop)
+                                    .property(property)
+                            ));
+                }
             );
     }
 

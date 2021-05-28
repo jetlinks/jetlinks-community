@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 @Slf4j(topic = "system.tcp.gateway")
-public class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGateway {
+class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGateway {
 
     @Getter
     private final String id;
@@ -226,7 +226,7 @@ public class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDevi
         /**
          * 接收消息
          *
-         * @return null
+         * @return void
          */
         Mono<Void> accept() {
             return getProtocol()
@@ -251,7 +251,7 @@ public class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDevi
          * 处理TCP消息 ==>> 设备消息
          *
          * @param message tcp消息
-         * @return null
+         * @return void
          */
         Mono<Void> handleTcpMessage(TcpMessage message) {
             return getProtocol()
@@ -272,7 +272,7 @@ public class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDevi
          * 处理设备消息
          *
          * @param message 设备消息
-         * @return null
+         * @return void
          */
         Mono<Void> handleDeviceMessage(DeviceMessage message) {
             if (processor.hasDownstreams()) {

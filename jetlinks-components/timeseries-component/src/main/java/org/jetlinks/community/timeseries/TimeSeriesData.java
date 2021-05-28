@@ -7,7 +7,20 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 时序数据封装类
+ *
+ * @author zhouhao
+ */
 public interface TimeSeriesData extends ValueObject {
+
+    static TimeSeriesData of(Date date, Map<String, Object> data) {
+        return of(date == null ? System.currentTimeMillis() : date.getTime(), data);
+    }
+
+    static TimeSeriesData of(long timestamp, Map<String, Object> data) {
+        return new SimpleTimeSeriesData(timestamp, data);
+    }
 
     long getTimestamp();
 
@@ -21,14 +34,6 @@ public interface TimeSeriesData extends ValueObject {
     @Override
     default Optional<Object> get(String name) {
         return Optional.ofNullable(getData().get(name));
-    }
-
-    static TimeSeriesData of(Date date, Map<String, Object> data) {
-        return of(date == null ? System.currentTimeMillis() : date.getTime(), data);
-    }
-
-    static TimeSeriesData of(long timestamp, Map<String, Object> data) {
-        return new SimpleTimeSeriesData(timestamp, data);
     }
 
     @Override

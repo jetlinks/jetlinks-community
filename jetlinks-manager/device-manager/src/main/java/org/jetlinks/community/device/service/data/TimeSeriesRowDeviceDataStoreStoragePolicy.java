@@ -28,6 +28,11 @@ import java.util.stream.Stream;
 
 import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetric;
 
+/**
+ * 设备时序数据行存储策略
+ *
+ * @author zhouhao
+ */
 @Component
 public class TimeSeriesRowDeviceDataStoreStoragePolicy extends TimeSeriesDeviceDataStoragePolicy implements DeviceDataStoragePolicy {
 
@@ -184,11 +189,11 @@ public class TimeSeriesRowDeviceDataStoreStoragePolicy extends TimeSeriesDeviceD
                 return timeSeriesManager
                     .getService(devicePropertyMetric(tp2.getT1().getId()))
                     .aggregation(AggregationQueryParam
-                                     .of()
-                                     .agg(new LimitAggregationColumn("property", "property", Aggregation.TOP, query.getPageSize()))
-                                     .groupBy(new LimitGroup("property", "property", propertiesMap.size() * 2)) //按property分组
-                                     .filter(query)
-                                     .filter(q -> q.where("deviceId", deviceId).in("property", propertiesMap.keySet()))
+                        .of()
+                        .agg(new LimitAggregationColumn("property", "property", Aggregation.TOP, query.getPageSize()))
+                        .groupBy(new LimitGroup("property", "property", propertiesMap.size() * 2)) //按property分组
+                        .filter(query)
+                        .filter(q -> q.where("deviceId", deviceId).in("property", propertiesMap.keySet()))
                     ).map(data -> DeviceProperty
                         .of(data, data.getString("property").map(propertiesMap::get).orElse(null))
                         .deviceId(deviceId));
@@ -236,13 +241,13 @@ public class TimeSeriesRowDeviceDataStoreStoragePolicy extends TimeSeriesDeviceD
             //执行查询
             .execute(timeSeriesManager.getService(getTimeSeriesMetric(productId))::aggregation)
             //按时间分组,然后将返回的结果合并起来
-            .groupBy(agg -> agg.getString("time", ""),Integer.MAX_VALUE)
+            .groupBy(agg -> agg.getString("time", ""), Integer.MAX_VALUE)
             .flatMap(group ->
                 {
                     String time = group.key();
                     return group
                         //按属性分组
-                        .groupBy(agg -> agg.getString("property", ""),Integer.MAX_VALUE)
+                        .groupBy(agg -> agg.getString("property", ""), Integer.MAX_VALUE)
                         .flatMap(propsGroup -> {
                             String property = propsGroup.key();
                             return propsGroup

@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * TCP   UDP   MQTT  CoAP
  *
- * @author Jetlinks
+ * @author zhouhao
  */
 @Component
 public class DefaultDeviceGatewayManager implements DeviceGatewayManager, BeanPostProcessor {

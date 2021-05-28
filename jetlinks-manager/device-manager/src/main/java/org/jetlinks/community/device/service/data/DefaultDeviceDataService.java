@@ -25,8 +25,10 @@ import java.util.function.Function;
 
 /**
  * 默认设备数据服务
+ * <p>
+ * 管理设备存储策略、提供数据查询和入库操作
  *
- * @author JetLinks
+ * @author zhouhao
  */
 @Component
 public class DefaultDeviceDataService implements DeviceDataService {
@@ -116,7 +118,7 @@ public class DefaultDeviceDataService implements DeviceDataService {
                                                     @Nonnull String... properties) {
         return this
             .getDeviceStrategy(deviceId)
-            .flatMapMany(strategy -> strategy.queryEachProperties(deviceId, query,properties));
+            .flatMapMany(strategy -> strategy.queryEachProperties(deviceId, query, properties));
     }
 
     @Nonnull

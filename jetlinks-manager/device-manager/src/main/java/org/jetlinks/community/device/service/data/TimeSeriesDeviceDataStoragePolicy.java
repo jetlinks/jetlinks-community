@@ -10,6 +10,14 @@ import reactor.core.publisher.Mono;
 
 import java.util.function.Function;
 
+/**
+ * 抽象时序数据存储策略
+ * <p>
+ * 提供时序数据通用的查询存储逻辑
+ * </p>
+ *
+ * @author zhouhao
+ */
 public abstract class TimeSeriesDeviceDataStoragePolicy extends AbstractDeviceDataStoragePolicy {
 
 

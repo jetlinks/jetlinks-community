@@ -123,7 +123,6 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         createFastBuilder(MessageType.DERIVED_METADATA, "/metadata/derived");
     }
 
-    //设备注册中心
     private final DeviceRegistry registry;
     private final EventBus eventBus;
     private final MessageHandler messageHandler;

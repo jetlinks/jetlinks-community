@@ -8,11 +8,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author Tensai
+ * 设备网关属性外观类
+ * <p>
+ * 转换设备网关属性数据
+ * </p>
+ *
+ * @author zhouhao
  */
 @Getter
 @Setter
-public class DeviceGatewayProperties  implements ValueObject {
+public class DeviceGatewayProperties implements ValueObject {
 
     private String id;
 
@@ -20,7 +25,7 @@ public class DeviceGatewayProperties  implements ValueObject {
 
     private String networkId;
 
-    private Map<String,Object> configuration=new HashMap<>();
+    private Map<String, Object> configuration = new HashMap<>();
 
     @Override
     public Map<String, Object> values() {

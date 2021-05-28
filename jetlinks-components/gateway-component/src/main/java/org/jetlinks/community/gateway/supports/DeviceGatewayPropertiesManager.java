@@ -3,7 +3,9 @@ package org.jetlinks.community.gateway.supports;
 import reactor.core.publisher.Mono;
 
 /**
- * @author Jetlinks
+ * 设备网关属性管理器
+ *
+ * @author zhouhao
  */
 public interface DeviceGatewayPropertiesManager {
 

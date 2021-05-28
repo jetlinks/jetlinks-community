@@ -19,6 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * 默认网络管理器
+ *
+ * @author zhouhao
+ */
 @Component
 @Slf4j
 public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor {
@@ -26,9 +31,9 @@ public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor 
     private final NetworkConfigManager configManager;
 
 
-    private Map<String, Map<String, Network>> store = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Network>> store = new ConcurrentHashMap<>();
 
-    private Map<String, NetworkProvider<Object>> providerSupport = new ConcurrentHashMap<>();
+    private final Map<String, NetworkProvider<Object>> providerSupport = new ConcurrentHashMap<>();
 
     public DefaultNetworkManager(NetworkConfigManager configManager) {
         this.configManager = configManager;

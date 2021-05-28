@@ -23,8 +23,11 @@ import java.util.function.Supplier;
 
 /**
  * 设备网关处理工具
+ * <p>
+ * 封装常用的设备消息处理操作
+ * </p>
  *
- * @author Jetlinks
+ * @author zhouhao
  */
 @AllArgsConstructor
 public class DeviceGatewayHelper {
