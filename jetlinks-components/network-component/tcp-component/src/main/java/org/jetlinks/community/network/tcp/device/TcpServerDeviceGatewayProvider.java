@@ -1,8 +1,5 @@
 package org.jetlinks.community.network.tcp.device;
 
-import org.jetlinks.core.ProtocolSupports;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProperties;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
@@ -10,11 +7,20 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.tcp.server.TcpServer;
+import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Mono;
 
+/**
+ * TCP服务设备网关提供商
+ *
+ * @author zhouhao
+ * @since 1.0
+ */
 @Component
 public class TcpServerDeviceGatewayProvider implements DeviceGatewayProvider {
 
@@ -63,9 +69,9 @@ public class TcpServerDeviceGatewayProvider implements DeviceGatewayProvider {
             .map(mqttServer -> {
                 String protocol = (String) properties.getConfiguration().get("protocol");
 
-                Assert.hasText(protocol,"protocol can not be empty");
+                Assert.hasText(protocol, "protocol can not be empty");
 
-               return new TcpServerDeviceGateway(properties.getId(),
+                return new TcpServerDeviceGateway(properties.getId(),
                     protocol,
                     protocolSupports,
                     registry,
