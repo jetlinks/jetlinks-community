@@ -21,6 +21,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+/**
+ * 设备网关处理工具
+ * <p>
+ * 封装常用的设备消息处理操作
+ * </p>
+ *
+ * @author zhouhao
+ */
 @AllArgsConstructor
 public class DeviceGatewayHelper {
 
@@ -88,13 +96,13 @@ public class DeviceGatewayHelper {
                 return Mono
                     .delay(Duration.ofSeconds(2))
                     .then(registry
-                              .getDevice(children.getDeviceId())
-                              .flatMap(device -> device
-                                  //没有配置状态自管理才自动上线
-                                  .getSelfConfig(DeviceConfigKey.selfManageState)
-                                  .defaultIfEmpty(false)
-                                  .filter(Boolean.FALSE::equals)
-                                  .flatMap(ignore -> registerSession))
+                        .getDevice(children.getDeviceId())
+                        .flatMap(device -> device
+                            //没有配置状态自管理才自动上线
+                            .getSelfConfig(DeviceConfigKey.selfManageState)
+                            .defaultIfEmpty(false)
+                            .filter(Boolean.FALSE::equals)
+                            .flatMap(ignore -> registerSession))
                     );
             }
             return registerSession;
@@ -102,6 +110,15 @@ public class DeviceGatewayHelper {
         return Mono.empty();
     }
 
+    /**
+     * 处理来自设备网关的设备消息
+     *
+     * @param message                设备消息
+     * @param sessionBuilder         设备操作
+     * @param sessionConsumer        设备消费
+     * @param deviceNotFoundListener 异常监听
+     * @return 设备操作
+     */
     public Mono<DeviceOperator> handleDeviceMessage(DeviceMessage message,
                                                     Function<DeviceOperator, DeviceSession> sessionBuilder,
                                                     Consumer<DeviceSession> sessionConsumer,

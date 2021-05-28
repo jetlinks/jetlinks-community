@@ -23,5 +23,6 @@ public interface TcpServer extends Network {
     /**
      * 关闭服务端
      */
+    @Override
     void shutdown();
 }

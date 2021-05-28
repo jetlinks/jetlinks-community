@@ -15,10 +15,16 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @AllArgsConstructor
-public class TimeSeriesMessageWriterConnector{
+public class TimeSeriesMessageWriterConnector {
     private final DeviceDataService dataService;
 
 
+    /**
+     * 订阅设备消息 入库
+     *
+     * @param message 设备消息
+     * @return void
+     */
     @Subscribe(topics = "/device/**", id = "device-message-ts-writer")
     public Mono<Void> writeDeviceMessageToTs(DeviceMessage message) {
         return dataService.saveDeviceMessage(message);
