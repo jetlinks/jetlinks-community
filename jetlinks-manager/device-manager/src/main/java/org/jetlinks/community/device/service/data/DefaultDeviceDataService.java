@@ -2,16 +2,16 @@ package org.jetlinks.community.device.service.data;
 
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.device.entity.DeviceEvent;
+import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
+import org.jetlinks.community.device.entity.DeviceProperty;
+import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.core.Value;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.metadata.DeviceMetadata;
-import org.jetlinks.community.device.entity.DeviceEvent;
-import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
-import org.jetlinks.community.device.entity.DeviceProperty;
-import org.jetlinks.community.timeseries.query.AggregationData;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
@@ -23,6 +23,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+/**
+ * 默认设备数据服务
+ *
+ * @author JetLinks
+ */
 @Component
 public class DefaultDeviceDataService implements DeviceDataService {
 
@@ -55,8 +60,16 @@ public class DefaultDeviceDataService implements DeviceDataService {
             .then();
     }
 
+    /**
+     * 通过产品ID 获取存储策略
+     *
+     * @param productId 产品ID
+     * @return 存储策略
+     */
     Mono<DeviceDataStoragePolicy> getStoreStrategy(String productId) {
-
+        // 从注册中心获取产品操作接口
+        // 从配置中获取产品的存储策略
+        // 巧妙的双层switchIfEmpty 外层判断空配置 内层判断空策略
         return deviceRegistry
             .getProduct(productId)
             .flatMap(product -> product
@@ -69,7 +82,16 @@ public class DefaultDeviceDataService implements DeviceDataService {
                 .flatMap(Function.identity()));
     }
 
+    /**
+     * 通过设备ID 获取存储策略
+     *
+     * @param deviceId 设备ID
+     * @return 存储策略
+     */
     Mono<DeviceDataStoragePolicy> getDeviceStrategy(String deviceId) {
+        // 从注册中心获取设备操作接口
+        // 转换成产品操作接口
+        // 继而通过转换的产品ID获取存储策略
         return deviceRegistry.getDevice(deviceId)
             .flatMap(DeviceOperator::getProduct)
             .map(DeviceProductOperator::getId)
@@ -144,7 +166,15 @@ public class DefaultDeviceDataService implements DeviceDataService {
             .defaultIfEmpty(PagerResult.empty());
     }
 
-
+    /**
+     * 保存单个设备消息,为了提升性能,存储策略会对保存请求进行缓冲,达到一定条件后
+     * 再进行批量写出,具体由不同对存储策略实现。
+     * <p>
+     * 如果保存失败,在这里不会得到错误信息.
+     *
+     * @param message 设备消息
+     * @return void
+     */
     @Nonnull
     @Override
     public Mono<Void> saveDeviceMessage(@Nonnull DeviceMessage message) {

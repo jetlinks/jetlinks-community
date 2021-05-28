@@ -2,7 +2,14 @@ package org.jetlinks.community.device.service.data;
 
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.community.timeseries.query.*;
+import org.jetlinks.community.device.entity.DeviceProperty;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesData;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.jetlinks.community.timeseries.query.Group;
+import org.jetlinks.community.timeseries.query.TimeGroup;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
@@ -10,10 +17,6 @@ import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.community.device.entity.DeviceProperty;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesData;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.springframework.stereotype.Component;
@@ -28,7 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetric;
-import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetricId;
 
 @Component
 public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDataStoragePolicy implements DeviceDataStoragePolicy {
@@ -247,11 +249,22 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
             .doOnNext(agg -> agg.values().remove("_time"));
     }
 
+    /**
+     * 设备消息转换 二元组{deviceId, tsData}
+     *
+     * @param productId  产品ID
+     * @param message    设备属性消息
+     * @param properties 物模型属性
+     * @return 数据集合
+     * @see this#convertPropertiesForColumnPolicy(String, DeviceMessage, Map)
+     * @see this#convertPropertiesForRowPolicy(String, DeviceMessage, Map)
+     */
     @Override
     protected Flux<Tuple2<String, TimeSeriesData>> convertProperties(String productId, DeviceMessage message, Map<String, Object> properties) {
         return convertPropertiesForColumnPolicy(productId, message, properties);
     }
 
+    @Override
     protected Object convertPropertyValue(Object value, PropertyMetadata metadata) {
         if (value == null || metadata == null) {
             return value;

@@ -7,6 +7,9 @@ import org.jetlinks.community.ValueObject;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * @author Tensai
+ */
 @Getter
 @Setter
 public class DeviceGatewayProperties  implements ValueObject {

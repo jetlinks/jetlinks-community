@@ -2,18 +2,18 @@ package org.jetlinks.community.device.service.data;
 
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DeviceMetadata;
-import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.query.*;
+import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -288,6 +288,16 @@ public class TimeSeriesRowDeviceDataStoreStoragePolicy extends TimeSeriesDeviceD
             .doOnNext(agg -> agg.values().remove("_time"));
     }
 
+    /**
+     * 设备消息转换 二元组{deviceId, tsData}
+     *
+     * @param productId  产品ID
+     * @param message    设备属性消息
+     * @param properties 物模型属性
+     * @return 数据集合
+     * @see this#convertPropertiesForColumnPolicy(String, DeviceMessage, Map)
+     * @see this#convertPropertiesForRowPolicy(String, DeviceMessage, Map)
+     */
     @Override
     protected Flux<Tuple2<String, TimeSeriesData>> convertProperties(String productId, DeviceMessage message, Map<String, Object> properties) {
         return convertPropertiesForRowPolicy(productId, message, properties);

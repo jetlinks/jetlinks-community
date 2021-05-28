@@ -4,6 +4,11 @@ import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.network.NetworkType;
 import reactor.core.publisher.Mono;
 
+/**
+ * 设备网关服务提供者
+ *
+ * @author Jetlinks
+ */
 public interface DeviceGatewayProvider {
 
     String getId();

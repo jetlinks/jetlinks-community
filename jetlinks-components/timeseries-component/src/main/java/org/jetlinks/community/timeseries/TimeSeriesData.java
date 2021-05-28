@@ -31,6 +31,7 @@ public interface TimeSeriesData extends ValueObject {
         return new SimpleTimeSeriesData(timestamp, data);
     }
 
+    @Override
     default <T> T as(Class<T> type) {
         return FastBeanCopier.copy(getData(), type);
     }
