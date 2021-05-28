@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.commons.collections4.CollectionUtils;
+import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
@@ -12,13 +13,17 @@ import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.system.authorization.api.entity.DimensionEntity;
+import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntity;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionService;
+import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RequestMapping("/organization")
@@ -29,6 +34,10 @@ public class OrganizationController {
     static String orgDimensionTypeId = "org";
     @Autowired
     private DefaultDimensionService dimensionService;
+
+    @Autowired
+    private DefaultDimensionUserService dimensionUserService;
+
 
     public OrganizationController(DefaultDimensionService dimensionService) {
         this.dimensionService = dimensionService;
@@ -132,6 +141,44 @@ public class OrganizationController {
         return dimensionService
             .deleteById(Mono.just(id))
             .then();
+    }
+
+    @PostMapping("/{id}/users/_bind")
+    @ResourceAction(id = "bind-user", name = "绑定用户")
+    @Operation(summary = "绑定用户到机构")
+    public Mono<Integer> bindUser(@Parameter(description = "机构ID") @PathVariable String id,
+                                  @Parameter(description = "用户ID")
+                                  @RequestBody Mono<List<String>> userId) {
+
+        return userId
+            .flatMapIterable(Function.identity())
+            .map(uId -> {
+                DimensionUserEntity userEntity = new DimensionUserEntity();
+                userEntity.setUserId(uId);
+                userEntity.setUserName(uId);
+                userEntity.setDimensionId(id);
+                userEntity.setDimensionTypeId(orgDimensionTypeId);
+                userEntity.setDimensionName(orgDimensionTypeId);
+                return userEntity;
+            })
+            .as(dimensionUserService::save)
+            .map(SaveResult::getTotal);
+
+    }
+
+    @PostMapping("/{id}/users/_unbind")
+    @ResourceAction(id = "unbind-user", name = "解绑用户")
+    @Operation(summary = "从机构解绑用户")
+    public Mono<Integer> unbindUser(@Parameter(description = "机构ID") @PathVariable String id,
+                                    @Parameter(description = "用户ID")
+                                    @RequestBody Mono<List<String>> userId) {
+        return userId
+            .flatMap(newUserIdList -> dimensionUserService
+                .createDelete()
+                .where(DimensionUserEntity::getDimensionTypeId, orgDimensionTypeId)
+                .in(DimensionUserEntity::getUserId, newUserIdList)
+                .and(DimensionUserEntity::getDimensionId, id)
+                .execute());
     }
 
 
