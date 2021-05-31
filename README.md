@@ -1,7 +1,7 @@
 # JetLinks 物联网基础平台
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
-![Version](https://img.shields.io/badge/version-1.8--RELEASE-brightgreen)
+![Version](https://img.shields.io/badge/version-1.9--RELEASE-brightgreen)
 [![QQ①群2021514](https://img.shields.io/badge/QQ①群-2021514-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=LGf0OPQqvLGdJIZST3VTcypdVWhdfAOG&jump_from=webapi)
 [![QQ②群324606263](https://img.shields.io/badge/QQ②群-324606263-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=IMas2cH-TNsYxUcY8lRbsXqPnA2sGHYQ&jump_from=webapi)
 ![jetlinks](https://visitor-badge.glitch.me/badge?page_id=jetlinks)
