@@ -3,7 +3,6 @@ package org.jetlinks.community.gateway.monitor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.AllArgsConstructor;
 
 import java.util.concurrent.atomic.AtomicReference;
 

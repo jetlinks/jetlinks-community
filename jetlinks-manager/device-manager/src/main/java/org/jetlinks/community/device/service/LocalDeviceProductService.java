@@ -5,20 +5,16 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
-import org.jetlinks.core.device.DeviceConfigKey;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.device.ProductInfo;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.enums.DeviceProductState;
 import org.jetlinks.community.device.events.DeviceProductDeployEvent;
+import org.jetlinks.core.device.DeviceRegistry;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import static org.jetlinks.community.device.enums.DeviceType.gateway;
 
 @Service
 @Slf4j

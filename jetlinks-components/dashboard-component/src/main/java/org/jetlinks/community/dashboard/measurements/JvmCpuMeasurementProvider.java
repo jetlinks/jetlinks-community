@@ -1,13 +1,13 @@
 package org.jetlinks.community.dashboard.measurements;
 
 import org.hswebframework.utils.time.DateFormatter;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.types.DoubleType;
 import org.jetlinks.core.metadata.unit.UnifyUnit;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 

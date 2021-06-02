@@ -5,8 +5,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
 
-import java.util.List;
-
 @Getter
 @Setter
 @NoArgsConstructor

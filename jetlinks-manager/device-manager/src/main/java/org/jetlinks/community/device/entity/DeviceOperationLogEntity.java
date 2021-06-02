@@ -1,7 +1,6 @@
 package org.jetlinks.community.device.entity;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.annotation.JSONField;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -10,7 +9,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jetlinks.community.device.enums.DeviceLogType;
 
-import java.util.Date;
 import java.util.Map;
 
 /**

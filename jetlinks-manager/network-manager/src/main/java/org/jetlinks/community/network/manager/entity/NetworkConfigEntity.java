@@ -8,7 +8,6 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
-import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkProperties;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;

@@ -9,10 +9,10 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.Sort;
 import org.hswebframework.ezorm.core.param.Term;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.community.elastic.search.parser.DefaultLinkTypeParser;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.PropertyMetadata;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;

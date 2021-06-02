@@ -1,25 +1,17 @@
 package org.jetlinks.community.device.events.handler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.event.Subscription;
-import org.jetlinks.core.metadata.DeviceMetadata;
-import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.jetlinks.community.device.events.DeviceProductDeployEvent;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
-
-import javax.annotation.PreDestroy;
 
 /**
  * 处理设备产品发布事件

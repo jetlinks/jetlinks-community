@@ -1,10 +1,10 @@
 package org.jetlinks.community.network.manager.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.DeviceGatewayManager;
 import org.jetlinks.community.network.manager.entity.DeviceGatewayEntity;
+import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;

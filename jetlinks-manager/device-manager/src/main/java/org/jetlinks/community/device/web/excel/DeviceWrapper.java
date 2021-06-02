@@ -4,7 +4,6 @@ import org.hswebframework.reactor.excel.Cell;
 import org.hswebframework.reactor.excel.converter.RowWrapper;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.HashMap;

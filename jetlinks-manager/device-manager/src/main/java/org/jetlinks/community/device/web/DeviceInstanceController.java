@@ -37,7 +37,6 @@ import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.community.io.utils.FileUtils;
 import org.jetlinks.community.timeseries.query.AggregationData;
-import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.device.manager.DeviceBindHolder;

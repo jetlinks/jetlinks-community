@@ -3,7 +3,6 @@ package org.jetlinks.community;
 import org.jetlinks.core.config.ConfigKey;
 import org.jetlinks.core.message.HeaderKey;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 

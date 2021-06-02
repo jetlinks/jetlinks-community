@@ -4,7 +4,6 @@ import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.Permission;
 import org.hswebframework.web.authorization.events.AuthorizationSuccessEvent;
-import org.hswebframework.web.authorization.exception.AccessDenyException;
 import org.jetlinks.community.auth.service.UserDetailService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

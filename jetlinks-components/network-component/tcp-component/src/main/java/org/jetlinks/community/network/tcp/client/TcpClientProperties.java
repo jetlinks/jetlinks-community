@@ -7,7 +7,6 @@ import org.jetlinks.community.network.tcp.parser.PayloadParserType;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @Getter
 @Setter

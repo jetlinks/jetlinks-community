@@ -1,8 +1,6 @@
 package org.jetlinks.community.elastic.search.timeseries;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetlinks.core.metadata.SimplePropertyMetadata;
-import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.community.elastic.search.index.DefaultElasticSearchIndexMetadata;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.service.AggregationService;
@@ -11,6 +9,8 @@ import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.TimeSeriesMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.community.timeseries.TimeSeriesService;
+import org.jetlinks.core.metadata.SimplePropertyMetadata;
+import org.jetlinks.core.metadata.types.DateTimeType;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 

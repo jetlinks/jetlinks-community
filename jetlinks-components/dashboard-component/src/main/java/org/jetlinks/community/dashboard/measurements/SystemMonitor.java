@@ -3,7 +3,6 @@ package org.jetlinks.community.dashboard.measurements;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import reactor.core.publisher.Flux;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;

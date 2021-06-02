@@ -10,9 +10,9 @@ import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.device.enums.DeviceFeature;
+import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceInfo;
-import org.jetlinks.community.device.enums.DeviceState;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 

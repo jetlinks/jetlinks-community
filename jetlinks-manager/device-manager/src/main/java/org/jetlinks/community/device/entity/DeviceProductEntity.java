@@ -11,10 +11,10 @@ import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
 import org.hswebframework.web.validator.UpdateGroup;
+import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.ProductInfo;
 import org.jetlinks.core.message.codec.Transport;
-import org.jetlinks.community.device.enums.DeviceType;
 
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;

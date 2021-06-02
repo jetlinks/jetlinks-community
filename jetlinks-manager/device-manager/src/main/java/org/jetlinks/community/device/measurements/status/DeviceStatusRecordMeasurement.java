@@ -1,12 +1,5 @@
 package org.jetlinks.community.device.measurements.status;
 
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.DefaultConfigMetadata;
-import org.jetlinks.core.metadata.types.DateTimeType;
-import org.jetlinks.core.metadata.types.EnumType;
-import org.jetlinks.core.metadata.types.IntType;
-import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
@@ -16,6 +9,13 @@ import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.DefaultConfigMetadata;
+import org.jetlinks.core.metadata.types.DateTimeType;
+import org.jetlinks.core.metadata.types.EnumType;
+import org.jetlinks.core.metadata.types.IntType;
+import org.jetlinks.core.metadata.types.StringType;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;

@@ -1,15 +1,14 @@
 package org.jetlinks.community.device.service;
 
 import lombok.AllArgsConstructor;
+import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.ProtocolSupports;
-import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.message.codec.Transports;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceConfigScope;
-import org.jetlinks.community.device.entity.DeviceInstanceEntity;
-import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -17,7 +16,6 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
 import java.util.function.Function;
 
 @Component

@@ -2,7 +2,6 @@ package org.jetlinks.community.gateway;
 
 import io.netty.buffer.ByteBuf;
 import lombok.Getter;
-import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.rule.engine.executor.PayloadType;
 
 import javax.annotation.Nonnull;

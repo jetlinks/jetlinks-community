@@ -9,12 +9,12 @@ import lombok.Setter;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.ResourceAction;
 import org.hswebframework.web.exception.NotFoundException;
-import org.jetlinks.core.Values;
 import org.jetlinks.community.notify.DefaultNotifyType;
 import org.jetlinks.community.notify.NotifierManager;
 import org.jetlinks.community.notify.NotifyType;
 import org.jetlinks.community.notify.manager.entity.NotifyTemplateEntity;
 import org.jetlinks.community.notify.template.TemplateManager;
+import org.jetlinks.core.Values;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 

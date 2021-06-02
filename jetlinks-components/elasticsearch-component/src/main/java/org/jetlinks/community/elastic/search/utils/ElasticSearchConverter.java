@@ -2,13 +2,13 @@ package org.jetlinks.community.elastic.search.utils;
 
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.hswebframework.ezorm.core.param.QueryParam;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.GeoPoint;
 import org.jetlinks.core.metadata.types.GeoType;
-import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 
 import java.util.Date;
 import java.util.HashMap;

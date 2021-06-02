@@ -2,8 +2,8 @@ package org.jetlinks.community.dashboard.web.response;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.community.dashboard.Measurement;
+import org.jetlinks.core.metadata.DataType;
 import reactor.core.publisher.Mono;
 
 import java.util.List;

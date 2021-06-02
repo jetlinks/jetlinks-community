@@ -1,13 +1,13 @@
 package org.jetlinks.community.device.timeseries;
 
+import org.jetlinks.community.timeseries.TimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.DoubleType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.timeseries.TimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 
 import java.util.ArrayList;
 import java.util.List;
