@@ -40,4 +40,15 @@ public class DeviceMessageUtils {
         return Optional.empty();
     }
 
+    public static Optional<Map<String, Long>> tryGetPropertySourceTimes(DeviceMessage message) {
+        if (message instanceof ReportPropertyMessage) {
+            return Optional.ofNullable(((ReportPropertyMessage) message).getPropertySourceTimes());
+        }
+
+        if (message instanceof ReadPropertyMessageReply) {
+            return Optional.ofNullable(((ReadPropertyMessageReply) message).getPropertySourceTimes());
+        }
+        return Optional.empty();
+    }
+
 }
