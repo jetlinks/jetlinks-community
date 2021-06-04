@@ -137,6 +137,8 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
         if (started.getAndSet(true) || disposable != null) {
             return;
         }
+        // 从TCPServer中获取连接的client
+        // client实例化为TcpConnection之后处理消息
         disposable = tcpServer
             .handleConnection()
             .publishOn(Schedulers.parallel())

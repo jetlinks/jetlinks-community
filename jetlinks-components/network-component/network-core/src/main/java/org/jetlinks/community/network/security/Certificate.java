@@ -6,6 +6,11 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import java.security.cert.X509Certificate;
 
+/**
+ * 证书接口
+ *
+ * @author zhouhao
+ */
 public interface Certificate {
 
     String getId();

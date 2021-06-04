@@ -5,6 +5,11 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+/**
+ * 时间工具类
+ *
+ * @author zhouhao
+ */
 public class TimeUtils {
 
 
