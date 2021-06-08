@@ -23,7 +23,7 @@ public class DeviceExcelInfo {
     @NotBlank(message = "设备名称不能为空")
     private String name;
 
-    private String orgId;
+    private String orgName;
 
     private String productName;
 
@@ -124,7 +124,7 @@ public class DeviceExcelInfo {
         mapping.put("设备名称", "name");
         mapping.put("名称", "name");
 
-        mapping.put("所属机构", "orgId");
+        mapping.put("所属机构", "orgName");
         mapping.put("父设备ID", "parentId");
 
         return mapping;
