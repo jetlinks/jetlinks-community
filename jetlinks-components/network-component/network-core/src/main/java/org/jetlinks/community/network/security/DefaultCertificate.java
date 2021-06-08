@@ -13,13 +13,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * 默认证书
+ *
+ * @author zhouhao
+ */
 public class DefaultCertificate implements Certificate {
 
     @Getter
-    private String id;
+    private final String id;
 
     @Getter
-    private String name;
+    private final String name;
 
     private KeyStoreHelper keyHelper;
 
@@ -131,12 +136,12 @@ public class DefaultCertificate implements Certificate {
             return EMPTY;
         }
         return Arrays.stream(trustHelper
-                .getTrustMgrs())
-                .filter(X509TrustManager.class::isInstance)
-                .map(X509TrustManager.class::cast)
-                .map(X509TrustManager::getAcceptedIssuers)
-                .flatMap(Stream::of)
-                .toArray(X509Certificate[]::new);
+            .getTrustMgrs())
+            .filter(X509TrustManager.class::isInstance)
+            .map(X509TrustManager.class::cast)
+            .map(X509TrustManager::getAcceptedIssuers)
+            .flatMap(Stream::of)
+            .toArray(X509Certificate[]::new);
     }
 
     @Override

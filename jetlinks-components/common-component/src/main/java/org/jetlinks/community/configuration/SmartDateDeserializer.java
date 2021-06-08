@@ -9,6 +9,11 @@ import org.jetlinks.community.utils.TimeUtils;
 
 import java.util.Date;
 
+/**
+ * 时间反序列化配置
+ *
+ * @author zhouhao
+ */
 public class SmartDateDeserializer extends JsonDeserializer<Date> {
     @Override
     @SneakyThrows

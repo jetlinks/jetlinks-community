@@ -19,6 +19,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * TCP服务提供商
+ *
+ * @author zhouhao
+ */
 @Component
 @Slf4j
 public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
@@ -51,16 +56,26 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
         return tcpServer;
     }
 
+    /**
+     * TCP服务初始化
+     *
+     * @param tcpServer  TCP服务
+     * @param properties TCP配置
+     */
     private void initTcpServer(VertxTcpServer tcpServer, TcpServerProperties properties) {
         int instance = Math.max(2, properties.getInstance());
         List<NetServer> instances = new ArrayList<>(instance);
         for (int i = 0; i < instance; i++) {
             instances.add(vertx.createNetServer(properties.getOptions()));
         }
+        // 根据解析类型配置数据解析器
         payloadParserBuilder.build(properties.getParserType(), properties);
         tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(), properties));
         tcpServer.setServer(instances);
         tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout", Duration.ofMinutes(10).toMillis()));
+        // 针对JVM做的多路复用优化
+        // 多个server listen同一个端口，每个client连接的时候vertx会分配
+        // 一个connection只能在一个server中处理
         for (NetServer netServer : instances) {
             netServer.listen(properties.createSocketAddress(), result -> {
                 if (result.succeeded()) {
