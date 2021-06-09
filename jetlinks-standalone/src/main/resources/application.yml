@@ -139,6 +139,7 @@ logging:
     #    org.elasticsearch: error
     org.jetlinks.pro.influx: trace
     org.elasticsearch: error
+    org.elasticsearch.deprecation.search.aggregations.bucket.histogram: error
   config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds
