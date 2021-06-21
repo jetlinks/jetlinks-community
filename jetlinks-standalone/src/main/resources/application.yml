@@ -30,6 +30,7 @@ spring:
     password: jetlinks
     pool:
       max-size: 32
+      max-idle-time: 2m # 值不能大于mysql server的wait_timeout配置
   reactor:
     debug-agent:
       enabled: false
