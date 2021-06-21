@@ -2,53 +2,97 @@ package org.jetlinks.community.gateway;
 
 import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import org.jetlinks.core.event.TopicPayload;
+import org.jetlinks.core.message.CommonDeviceMessage;
+import org.jetlinks.core.message.CommonDeviceMessageReply;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.MessageType;
-import org.jetlinks.core.message.property.ReadPropertyMessageReply;
-import org.jetlinks.core.message.property.ReportPropertyMessage;
-import org.jetlinks.core.message.property.WritePropertyMessageReply;
+import org.jetlinks.core.message.property.*;
+import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public class DeviceMessageUtils {
 
+    @SuppressWarnings("all")
     public static Optional<DeviceMessage> convert(TopicPayload message) {
         return Optional.of(message.decode(DeviceMessage.class));
     }
 
     public static Optional<DeviceMessage> convert(ByteBuf payload) {
+        try {
+            return MessageType.convertMessage(JSON.parseObject(payload.toString(StandardCharsets.UTF_8)));
+        } finally {
+            ReferenceCountUtil.safeRelease(payload);
+        }
+    }
 
-        return MessageType.convertMessage(JSON.parseObject(payload.toString(StandardCharsets.UTF_8)));
-
+    public static void trySetProperties(DeviceMessage message, Map<String, Object> properties) {
+        if (message instanceof ReportPropertyMessage) {
+            ((ReportPropertyMessage) message).setProperties(properties);
+        } else if (message instanceof ReadPropertyMessageReply) {
+            ((ReadPropertyMessageReply) message).setProperties(properties);
+        } else if (message instanceof WritePropertyMessageReply) {
+            ((WritePropertyMessageReply) message).setProperties(properties);
+        }
     }
 
     public static Optional<Map<String, Object>> tryGetProperties(DeviceMessage message) {
 
-        if (message instanceof ReportPropertyMessage) {
-            return Optional.ofNullable(((ReportPropertyMessage) message).getProperties());
+        if (message instanceof PropertyMessage) {
+            return Optional.ofNullable(((PropertyMessage) message).getProperties());
         }
 
-        if (message instanceof ReadPropertyMessageReply) {
-            return Optional.ofNullable(((ReadPropertyMessageReply) message).getProperties());
-        }
-        if (message instanceof WritePropertyMessageReply) {
-            return Optional.ofNullable(((WritePropertyMessageReply) message).getProperties());
-        }
         return Optional.empty();
     }
 
     public static Optional<Map<String, Long>> tryGetPropertySourceTimes(DeviceMessage message) {
-        if (message instanceof ReportPropertyMessage) {
-            return Optional.ofNullable(((ReportPropertyMessage) message).getPropertySourceTimes());
-        }
-
-        if (message instanceof ReadPropertyMessageReply) {
-            return Optional.ofNullable(((ReadPropertyMessageReply) message).getPropertySourceTimes());
+        if (message instanceof PropertyMessage) {
+            return Optional.ofNullable(((PropertyMessage) message).getPropertySourceTimes());
         }
         return Optional.empty();
+    }
+
+    public static Optional<Map<String, String>> tryGetPropertyStates(DeviceMessage message) {
+        if (message instanceof PropertyMessage) {
+            return Optional.ofNullable(((PropertyMessage) message).getPropertyStates());
+        }
+        return Optional.empty();
+    }
+
+    public static List<Property> tryGetCompleteProperties(DeviceMessage message) {
+
+        if (message instanceof PropertyMessage) {
+            return ((PropertyMessage) message).getCompleteProperties();
+        }
+
+        return Collections.emptyList();
+    }
+
+    public static void trySetDeviceId(DeviceMessage message, String deviceId) {
+        if (message instanceof CommonDeviceMessage) {
+            ((CommonDeviceMessage) message).setDeviceId(deviceId);
+        } else if (message instanceof CommonDeviceMessageReply) {
+            ((CommonDeviceMessageReply<?>) message).setDeviceId(deviceId);
+        }
+    }
+
+    public static void trySetMessageId(DeviceMessage message, Supplier<String> messageId) {
+        if (StringUtils.hasText(message.getMessageId())) {
+            return;
+        }
+
+        if (message instanceof CommonDeviceMessage) {
+            ((CommonDeviceMessage) message).setMessageId(messageId.get());
+        } else if (message instanceof CommonDeviceMessageReply) {
+            ((CommonDeviceMessageReply<?>) message).setMessageId(messageId.get());
+        }
     }
 
 }
