@@ -16,8 +16,4 @@ public class ErrorUtils {
     public static <T> Mono<T> notFound(String message) {
         return Mono.error(() -> new NotFoundException(message));
     }
-
-    public static <T> Mono<T> accessDeny(String message) {
-        return Mono.error(() -> new AccessDenyException(message));
-    }
 }
