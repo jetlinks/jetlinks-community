@@ -64,6 +64,7 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
 
                 String protocol = (String) properties.getConfiguration().get("protocol");
                 String topics = (String) properties.getConfiguration().get("topics");
+                int qos = properties.getInt("topics").orElse(0);
                 Objects.requireNonNull(topics, "topics");
 
                 return new MqttClientDeviceGateway(properties.getId(),
@@ -73,7 +74,8 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
                                                    protocol,
                                                    sessionManager,
                                                    clientMessageHandler,
-                                                   Arrays.asList(topics.split("[,;\n]"))
+                                                   Arrays.asList(topics.split("[,;\n]")),
+                                                   qos
                 );
 
             });

@@ -51,6 +51,8 @@ public class MqttClientDeviceGateway implements DeviceGateway {
 
     private final String protocol;
 
+    private final int qos;
+
     private final ProtocolSupports protocolSupport;
 
     private final EmitterProcessor<Message> processor = EmitterProcessor.create(false);
@@ -72,7 +74,8 @@ public class MqttClientDeviceGateway implements DeviceGateway {
                                    String protocol,
                                    DeviceSessionManager sessionManager,
                                    DecodedClientMessageHandler clientMessageHandler,
-                                   List<String> topics) {
+                                   List<String> topics,
+                                   int qos) {
         this.gatewayMonitor = GatewayMonitors.getDeviceGatewayMonitor(id);
 
         this.id = Objects.requireNonNull(id, "id");
@@ -82,6 +85,7 @@ public class MqttClientDeviceGateway implements DeviceGateway {
         this.protocol = Objects.requireNonNull(protocol, "protocol");
         this.topics = Objects.requireNonNull(topics, "topics");
         this.helper = new DeviceGatewayHelper(registry, sessionManager, clientMessageHandler);
+        this.qos = qos;
     }
 
 
@@ -95,7 +99,7 @@ public class MqttClientDeviceGateway implements DeviceGateway {
         }
         disposable
             .add(mqttClient
-                     .subscribe(topics)
+                     .subscribe(topics,qos)
                      .filter((msg) -> started.get())
                      .flatMap(mqttMessage -> {
                          AtomicReference<Duration> timeoutRef = new AtomicReference<>();
