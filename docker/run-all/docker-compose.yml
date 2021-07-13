@@ -69,7 +69,7 @@ services:
       - "jetlinks-volume:/application/static/upload"  # 持久化上传的文件
       - "jetlinks-protocol-volume:/application/data/protocols"
     environment:
-     # - "JAVA_OPTS=-Xms4g -Xmx18g -XX:+UseG1GC"
+      - "JAVA_OPTS=-Duser.language=zh -XX:+UseG1GC"
       - "TZ=Asia/Shanghai"
       - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
       - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
