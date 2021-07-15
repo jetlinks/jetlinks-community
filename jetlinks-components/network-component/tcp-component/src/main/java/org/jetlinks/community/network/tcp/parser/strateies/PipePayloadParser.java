@@ -44,6 +44,10 @@ public class PipePayloadParser implements PayloadParser {
 
     private final AtomicInteger currentPipe = new AtomicInteger();
 
+    public Buffer newBuffer() {
+        return Buffer.buffer();
+    }
+
     public PipePayloadParser result(String buffer) {
         return result(Buffer.buffer(buffer));
     }
