@@ -7,7 +7,7 @@ services:
     #      - "6379:6379"
     volumes:
       - "redis-volume:/data"
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass "JetLinks@redis"
     environment:
       - TZ=Asia/Shanghai
   elasticsearch:
@@ -75,10 +75,13 @@ services:
       - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
       - "spring.r2dbc.username=postgres"
       - "spring.r2dbc.password=jetlinks"
-      - "elasticsearch.client.host=elasticsearch"
-      - "elasticsearch.client.post=9200"
+      - "spring.data.elasticsearch.client.reactive.endpoints=elasticsearch:9200"
+#        - "spring.data.elasticsearch.client.reactive.username=admin"
+#        - "spring.data.elasticsearch.client.reactive.password=admin"
+#        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
       - "spring.redis.host=redis"
       - "spring.redis.port=6379"
+      - "spring.redis.password=JetLinks@redis"
       - "logging.level.io.r2dbc=warn"
       - "logging.level.org.springframework.data=warn"
       - "logging.level.org.springframework=warn"
