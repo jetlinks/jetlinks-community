@@ -127,10 +127,13 @@ public class DeviceMessageBusinessHandler {
     @Subscribe("/device/*/*/message/children/*/register")
     @Transactional(propagation = Propagation.NEVER)
     public Mono<Void> autoBindChildrenDevice(ChildDeviceMessage message) {
-        String childId = message.getChildDeviceId();
         Message childMessage = message.getChildDeviceMessage();
         if (childMessage instanceof DeviceRegisterMessage) {
-
+            String childId = ((DeviceRegisterMessage) childMessage).getDeviceId();
+            if (message.getDeviceId().equals(childId)) {
+                log.warn("子设备注册消息循环依赖:{}", message);
+                return Mono.empty();
+            }
             return registry
                 .getDevice(childId)
                 .switchIfEmpty(Mono.defer(() -> doAutoRegister(((DeviceRegisterMessage) childMessage))))
@@ -157,10 +160,9 @@ public class DeviceMessageBusinessHandler {
      */
     @Subscribe("/device/*/*/message/children/*/unregister")
     public Mono<Void> autoUnbindChildrenDevice(ChildDeviceMessage message) {
-        String childId = message.getChildDeviceId();
         Message childMessage = message.getChildDeviceMessage();
         if (childMessage instanceof DeviceUnRegisterMessage) {
-
+            String childId = ((DeviceUnRegisterMessage) childMessage).getDeviceId();
             return registry
                 .getDevice(childId)
                 .flatMap(dev -> dev
