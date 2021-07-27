@@ -132,6 +132,7 @@ logging:
     org.jetlinks.supports.event: warn
     org.springframework: warn
     org.jetlinks.community.device.message.writer: warn
+    org.jetlinks.community.timeseries.micrometer: warn
     org.jetlinks.community.elastic.search.service: trace
     org.jetlinks.community.elastic.search.service.reactive: trace
     org.jetlinks.community.network: warn
