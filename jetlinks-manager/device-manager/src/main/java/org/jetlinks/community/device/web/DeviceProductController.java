@@ -19,6 +19,7 @@ import org.jetlinks.community.device.service.data.DeviceDataStoragePolicy;
 import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DeviceConfigScope;
 import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
@@ -80,7 +81,7 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
                                                          @PathVariable @Parameter(description = "物模型类型") DeviceMetadataType metadataType,
                                                          @PathVariable @Parameter(description = "物模型ID") String metadataId,
                                                          @PathVariable @Parameter(description = "类型ID") String typeId) {
-        return configMetadataManager.getMetadataExpandsConfig(id, metadataType, metadataId, typeId);
+        return configMetadataManager.getMetadataExpandsConfig(id, metadataType, metadataId, typeId, DeviceConfigScope.product);
     }
 
     @GetMapping("/metadata/codecs")

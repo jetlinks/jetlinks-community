@@ -22,6 +22,7 @@ spring:
         max-active: 1024
     timeout: 20s
     serializer: jdk # 设置fst时,redis key使用string序列化,value使用 fst序列化.
+#    database: 3
   #        max-wait: 10s
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/jetlinks
@@ -29,6 +30,7 @@ spring:
     password: jetlinks
     pool:
       max-size: 32
+      max-idle-time: 2m # 值不能大于mysql server的wait_timeout配置
   reactor:
     debug-agent:
       enabled: false
@@ -98,6 +100,11 @@ hsweb:
   #        name: 超级管理员
   authorize:
     auto-parse: true
+  permission:
+    filter:
+      enabled: true # 设置为true开启权限过滤,赋权时,不能赋予比自己多的权限.
+      exclude-username: admin # admin用户不受上述限制
+      un-auth-strategy: ignore # error表示:发生越权时,抛出403错误. ignore表示会忽略越权的赋权.
   cache:
     type: redis
     redis:
@@ -125,6 +132,7 @@ logging:
     org.jetlinks.supports.event: warn
     org.springframework: warn
     org.jetlinks.community.device.message.writer: warn
+    org.jetlinks.community.timeseries.micrometer: warn
     org.jetlinks.community.elastic.search.service: trace
     org.jetlinks.community.elastic.search.service.reactive: trace
     org.jetlinks.community.network: warn
@@ -132,6 +140,8 @@ logging:
     #    org.springframework.data.elasticsearch.client: trace
     #    org.elasticsearch: error
     org.jetlinks.pro.influx: trace
+    org.elasticsearch: error
+    org.elasticsearch.deprecation.search.aggregations.bucket.histogram: error
   config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds

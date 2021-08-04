@@ -1,7 +1,7 @@
 package org.jetlinks.community.device.timeseries;
 
-import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesMetadata;
+import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 
 import java.util.List;

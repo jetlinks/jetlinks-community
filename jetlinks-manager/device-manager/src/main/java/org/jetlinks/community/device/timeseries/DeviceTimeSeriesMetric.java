@@ -1,8 +1,8 @@
 package org.jetlinks.community.device.timeseries;
 
+import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.metadata.EventMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 
 /**
  * 设备时序数据度量标识
@@ -26,6 +26,13 @@ public interface DeviceTimeSeriesMetric {
         return TimeSeriesMetric.of(deviceEventMetricId(productId, eventId));
     }
 
+    /**
+     * 构建事件指标ID
+     *
+     * @param productId 产品ID
+     * @param eventId   事件ID
+     * @return 事件指标ID
+     */
     static String deviceEventMetricId(String productId, String eventId) {
         return "event_".concat(productId).concat("_").concat(eventId);
     }

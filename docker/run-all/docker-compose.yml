@@ -7,7 +7,7 @@ services:
     #      - "6379:6379"
     volumes:
       - "redis-volume:/data"
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass "JetLinks@redis"
     environment:
       - TZ=Asia/Shanghai
   elasticsearch:
@@ -48,7 +48,7 @@ services:
       POSTGRES_DB: jetlinks
       TZ: Asia/Shanghai
   ui:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd:1.9.0
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-antd:1.10.0
     container_name: jetlinks-ce-ui
     ports:
       - 9000:80
@@ -59,26 +59,29 @@ services:
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.9.0-SNAPSHOT
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.10.0
     container_name: jetlinks-ce
     ports:
-      - 8848:8848 # API端口
-      - 1883-1890:1883-1890 # 预留
-      - 8000-8010:8000-8010 # 预留
+      - "8848:8848" # API端口
+      - "1883-1890:1883-1890" # 预留
+      - "8000-8010:8000-8010" # 预留
     volumes:
       - "jetlinks-volume:/application/static/upload"  # 持久化上传的文件
       - "jetlinks-protocol-volume:/application/data/protocols"
     environment:
-     # - "JAVA_OPTS=-Xms4g -Xmx18g -XX:+UseG1GC"
+      - "JAVA_OPTS=-Duser.language=zh -XX:+UseG1GC"
       - "TZ=Asia/Shanghai"
       - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
       - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
       - "spring.r2dbc.username=postgres"
       - "spring.r2dbc.password=jetlinks"
-      - "elasticsearch.client.host=elasticsearch"
-      - "elasticsearch.client.post=9200"
+      - "spring.data.elasticsearch.client.reactive.endpoints=elasticsearch:9200"
+#        - "spring.data.elasticsearch.client.reactive.username=admin"
+#        - "spring.data.elasticsearch.client.reactive.password=admin"
+#        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
       - "spring.redis.host=redis"
       - "spring.redis.port=6379"
+      - "spring.redis.password=JetLinks@redis"
       - "logging.level.io.r2dbc=warn"
       - "logging.level.org.springframework.data=warn"
       - "logging.level.org.springframework=warn"

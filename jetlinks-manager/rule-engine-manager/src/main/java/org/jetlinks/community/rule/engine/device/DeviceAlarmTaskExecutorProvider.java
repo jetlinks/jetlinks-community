@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.ValueObject;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
@@ -249,6 +250,8 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                     if (!map.containsKey("productName")) {
                         map.putIfAbsent("productName", map.get("productId"));
                     }
+                    //生成告警记录时生成ID，方便下游做处理。
+                    map.putIfAbsent("id", IDGenerator.MD5.generate());
                     if (log.isDebugEnabled()) {
                         log.debug("发生设备告警:{}", map);
                     }

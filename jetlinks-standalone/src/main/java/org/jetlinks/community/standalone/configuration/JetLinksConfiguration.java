@@ -2,7 +2,6 @@ package org.jetlinks.community.standalone.configuration;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.guava.CaffeinatedGuava;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +11,8 @@ import org.hswebframework.web.authorization.token.redis.RedisUserTokenManager;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.service.AutoDiscoverDeviceRegistry;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
+import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.core.config.ConfigStorageManager;
@@ -145,8 +146,10 @@ public class JetLinksConfiguration {
     }
 
     @Bean
-    public GatewayServerMonitor gatewayServerMonitor(JetLinksProperties properties, MeterRegistry registry) {
-        GatewayServerMetrics metrics = new MicrometerGatewayServerMetrics(properties.getServerId(), registry);
+    public GatewayServerMonitor gatewayServerMonitor(JetLinksProperties properties, MeterRegistryManager registry) {
+        GatewayServerMetrics metrics = new MicrometerGatewayServerMetrics(properties.getServerId(),
+                                                                          registry.getMeterRegister(DeviceTimeSeriesMetric
+                                                                                                        .deviceMetrics().getId()));
 
         return new GatewayServerMonitor() {
             @Override

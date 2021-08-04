@@ -5,15 +5,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.metadata.DeviceMetadata;
-import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.device.entity.DeviceEvent;
 import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
 import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.EventMetadata;
 import org.joda.time.DateTime;
 import org.reactivestreams.Publisher;
 import org.springframework.util.StringUtils;
@@ -98,7 +98,8 @@ public interface DeviceDataService {
      */
     @Nonnull
     Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                             @Nonnull QueryParamEntity query);
+                                             @Nonnull QueryParamEntity query,
+                                             @Nonnull String... properties);
 
     /**
      * 查询指定的设备属性列表

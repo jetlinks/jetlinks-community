@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.supports.protocol.StaticProtocolSupports;
-import org.jetlinks.supports.protocol.management.ManagementProtocolSupports;
 import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportManager;

@@ -3,7 +3,6 @@ package org.jetlinks.community.device.web.request;
 import com.alibaba.fastjson.JSON;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.codec.binary.Hex;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.DeviceOperator;

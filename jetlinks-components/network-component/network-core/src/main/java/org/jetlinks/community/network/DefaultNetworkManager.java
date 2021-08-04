@@ -19,6 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * 默认网络管理器
+ *
+ * @author zhouhao
+ */
 @Component
 @Slf4j
 public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor {
@@ -26,9 +31,9 @@ public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor 
     private final NetworkConfigManager configManager;
 
 
-    private Map<String, Map<String, Network>> store = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Network>> store = new ConcurrentHashMap<>();
 
-    private Map<String, NetworkProvider<Object>> providerSupport = new ConcurrentHashMap<>();
+    private final Map<String, NetworkProvider<Object>> providerSupport = new ConcurrentHashMap<>();
 
     public DefaultNetworkManager(NetworkConfigManager configManager) {
         this.configManager = configManager;
@@ -49,7 +54,12 @@ public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor 
             .subscribe(t -> this.checkNetwork());
     }
 
+    /**
+     * 检查网络 把需要加载的网络组件启动起来
+     */
     protected void checkNetwork() {
+        // 获取并过滤所有停止的网络组件
+        // 重新加载启动状态的网络组件
         Flux.fromIterable(store.values())
             .flatMapIterable(Map::values)
             .filter(i -> !i.isAlive())
@@ -84,6 +94,14 @@ public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor 
             .map(n -> (T) n);
     }
 
+    /**
+     * 如果store中不存在网络组件就创建，存在就重新加载
+     *
+     * @param provider   网络组件支持提供商
+     * @param id         网络组件唯一标识
+     * @param properties 网络组件配置
+     * @return 网络组件
+     */
     public Network doCreate(NetworkProvider<Object> provider, String id, Object properties) {
         return getNetworkStore(provider.getType()).compute(id, (s, network) -> {
             if (network == null) {

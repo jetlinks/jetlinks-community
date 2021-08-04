@@ -2,13 +2,13 @@ package org.jetlinks.community.device.service.data;
 
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.community.device.entity.DeviceEvent;
 import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
 import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DeviceMetadata;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -23,10 +23,19 @@ import javax.annotation.Nonnull;
  */
 public interface DeviceDataStoragePolicy {
 
+    /**
+     * @return 策略唯一标识
+     */
     String getId();
 
+    /**
+     * @return 策略名称
+     */
     String getName();
 
+    /**
+     * @return 说明
+     */
     String getDescription();
 
     /**
@@ -118,7 +127,8 @@ public interface DeviceDataStoragePolicy {
      */
     @Nonnull
     Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                             @Nonnull QueryParamEntity query);
+                                             @Nonnull QueryParamEntity query,
+                                             @Nonnull String... property);
 
     /**
      * 查询指定的设备属性列表

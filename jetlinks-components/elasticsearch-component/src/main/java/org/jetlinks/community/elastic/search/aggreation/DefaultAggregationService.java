@@ -7,7 +7,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.search.aggregations.bucket.histogram.ExtendedBounds;
+import org.elasticsearch.search.aggregations.bucket.histogram.LongBounds;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.TermType;
@@ -27,7 +27,6 @@ import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
 import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
@@ -240,8 +239,8 @@ public class DefaultAggregationService implements AggregationService {
         return structure;
     }
 
-    protected static ExtendedBounds getExtendedBounds(AggregationQueryParam param) {
-        return new ExtendedBounds(calculateStartWithTime(param), param.getEndWithTime());
+    protected static LongBounds getExtendedBounds(AggregationQueryParam param) {
+        return new LongBounds(calculateStartWithTime(param), param.getEndWithTime());
     }
 
     private static long calculateStartWithTime(AggregationQueryParam param) {

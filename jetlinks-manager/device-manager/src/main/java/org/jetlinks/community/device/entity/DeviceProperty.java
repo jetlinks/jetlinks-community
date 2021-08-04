@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
@@ -56,6 +57,14 @@ public class DeviceProperty implements Serializable {
 
     @Schema(description = "格式化后的时间,在聚合查询时此字段有值")
     private String formatTime;
+
+    /**
+     * 设备状态值,如果是查询的数据库,此字段可能为{@link null}
+     *
+     * @see ReportPropertyMessage#getPropertyStates()
+     */
+    @Schema(description = "状态值")
+    private String state;
 
     public DeviceProperty deviceId(String deviceId) {
         this.deviceId = deviceId;

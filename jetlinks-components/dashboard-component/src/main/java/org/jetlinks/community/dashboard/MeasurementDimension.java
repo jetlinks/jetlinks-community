@@ -3,7 +3,6 @@ package org.jetlinks.community.dashboard;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 
 /**
  * 指标维度,如: 每小时,服务器1

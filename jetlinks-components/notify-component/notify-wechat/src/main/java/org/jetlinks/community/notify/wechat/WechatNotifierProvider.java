@@ -1,17 +1,16 @@
 package org.jetlinks.community.notify.wechat;
 
 import com.alibaba.fastjson.JSON;
-import lombok.Getter;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DefaultConfigMetadata;
-import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.ConfigMetadataConstants;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.template.TemplateManager;
 import org.jetlinks.community.notify.template.TemplateProperties;
 import org.jetlinks.community.notify.template.TemplateProvider;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DefaultConfigMetadata;
+import org.jetlinks.core.metadata.types.StringType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;

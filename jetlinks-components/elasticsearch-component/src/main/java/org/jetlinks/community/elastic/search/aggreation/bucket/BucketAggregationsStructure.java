@@ -1,7 +1,7 @@
 package org.jetlinks.community.elastic.search.aggreation.bucket;
 
 import lombok.*;
-import org.elasticsearch.search.aggregations.bucket.histogram.ExtendedBounds;
+import org.elasticsearch.search.aggregations.bucket.histogram.LongBounds;
 import org.hswebframework.utils.StringUtils;
 import org.jetlinks.community.elastic.search.aggreation.enums.BucketType;
 import org.jetlinks.community.elastic.search.aggreation.metrics.MetricsAggregationStructure;
@@ -37,7 +37,7 @@ public class BucketAggregationsStructure {
 
     private List<Ranges> ranges;
 
-    private ExtendedBounds extendedBounds;
+    private LongBounds extendedBounds;
 
     /**
      * 时间格式

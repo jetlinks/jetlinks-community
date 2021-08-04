@@ -12,6 +12,11 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * ES数据库业务操作类
+ *
+ * @author zhouhao
+ */
 public interface ElasticSearchService {
 
     default <T> Mono<PagerResult<T>> queryPager(String index, QueryParam queryParam, Function<Map<String, Object>, T> mapper) {

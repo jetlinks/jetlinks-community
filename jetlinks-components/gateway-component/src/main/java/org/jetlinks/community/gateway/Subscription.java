@@ -1,6 +1,8 @@
 package org.jetlinks.community.gateway;
 
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Collection;
 import java.util.stream.Collectors;

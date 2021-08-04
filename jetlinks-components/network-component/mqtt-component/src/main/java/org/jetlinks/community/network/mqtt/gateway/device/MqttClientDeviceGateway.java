@@ -2,6 +2,15 @@ package org.jetlinks.community.network.mqtt.gateway.device;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.gateway.DeviceGateway;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
+import org.jetlinks.community.gateway.monitor.GatewayMonitors;
+import org.jetlinks.community.network.DefaultNetworkType;
+import org.jetlinks.community.network.NetworkType;
+import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.community.network.mqtt.gateway.device.session.MqttClientSession;
+import org.jetlinks.community.network.mqtt.gateway.device.session.UnknownDeviceMqttClientSession;
+import org.jetlinks.community.network.utils.DeviceGatewayHelper;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceOperator;
@@ -13,15 +22,6 @@ import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSessionManager;
-import org.jetlinks.community.gateway.DeviceGateway;
-import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.gateway.monitor.GatewayMonitors;
-import org.jetlinks.community.network.DefaultNetworkType;
-import org.jetlinks.community.network.NetworkType;
-import org.jetlinks.community.network.mqtt.client.MqttClient;
-import org.jetlinks.community.network.mqtt.gateway.device.session.MqttClientSession;
-import org.jetlinks.community.network.mqtt.gateway.device.session.UnknownDeviceMqttClientSession;
-import org.jetlinks.community.network.utils.DeviceGatewayHelper;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import reactor.core.Disposable;
 import reactor.core.publisher.EmitterProcessor;
@@ -51,6 +51,8 @@ public class MqttClientDeviceGateway implements DeviceGateway {
 
     private final String protocol;
 
+    private final int qos;
+
     private final ProtocolSupports protocolSupport;
 
     private final EmitterProcessor<Message> processor = EmitterProcessor.create(false);
@@ -72,7 +74,8 @@ public class MqttClientDeviceGateway implements DeviceGateway {
                                    String protocol,
                                    DeviceSessionManager sessionManager,
                                    DecodedClientMessageHandler clientMessageHandler,
-                                   List<String> topics) {
+                                   List<String> topics,
+                                   int qos) {
         this.gatewayMonitor = GatewayMonitors.getDeviceGatewayMonitor(id);
 
         this.id = Objects.requireNonNull(id, "id");
@@ -82,6 +85,7 @@ public class MqttClientDeviceGateway implements DeviceGateway {
         this.protocol = Objects.requireNonNull(protocol, "protocol");
         this.topics = Objects.requireNonNull(topics, "topics");
         this.helper = new DeviceGatewayHelper(registry, sessionManager, clientMessageHandler);
+        this.qos = qos;
     }
 
 
@@ -95,7 +99,7 @@ public class MqttClientDeviceGateway implements DeviceGateway {
         }
         disposable
             .add(mqttClient
-                     .subscribe(topics)
+                     .subscribe(topics,qos)
                      .filter((msg) -> started.get())
                      .flatMap(mqttMessage -> {
                          AtomicReference<Duration> timeoutRef = new AtomicReference<>();

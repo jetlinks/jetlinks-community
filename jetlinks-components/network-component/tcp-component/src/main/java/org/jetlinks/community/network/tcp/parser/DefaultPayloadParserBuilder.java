@@ -1,7 +1,6 @@
 package org.jetlinks.community.network.tcp.parser;
 
 import org.jetlinks.community.ValueObject;
-import org.jetlinks.core.Values;
 import org.jetlinks.community.network.tcp.parser.strateies.DelimitedPayloadParserBuilder;
 import org.jetlinks.community.network.tcp.parser.strateies.DirectPayloadParserBuilder;
 import org.jetlinks.community.network.tcp.parser.strateies.FixLengthPayloadParserBuilder;

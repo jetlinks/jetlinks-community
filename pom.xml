@@ -6,7 +6,7 @@
 
     <groupId>org.jetlinks.community</groupId>
     <artifactId>jetlinks-community</artifactId>
-    <version>1.9.0-SNAPSHOT</version>
+    <version>1.10.0</version>
     <modules>
         <module>jetlinks-components</module>
         <module>jetlinks-manager</module>
@@ -16,19 +16,19 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.3.8.RELEASE</spring.boot.version>
+        <spring.boot.version>2.3.11.RELEASE</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.10-SNAPSHOT</hsweb.framework.version>
-        <easyorm.version>4.0.10-SNAPSHOT</easyorm.version>
+        <hsweb.framework.version>4.0.11</hsweb.framework.version>
+        <easyorm.version>4.0.11</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.1.6-SNAPSHOT</jetlinks.version>
-        <r2dbc.version>Arabba-SR7</r2dbc.version>
+        <jetlinks.version>1.1.7</jetlinks.version>
+        <r2dbc.version>Arabba-SR10</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.51.Final</netty.version>
-        <elasticsearch.version>7.9.2</elasticsearch.version>
+        <elasticsearch.version>7.11.2</elasticsearch.version>
         <reactor.excel.version>1.0.0</reactor.excel.version>
-        <reactor.ql.version>1.0.9</reactor.ql.version>
+        <reactor.ql.version>1.0.12</reactor.ql.version>
         <fastjson.version>1.2.70</fastjson.version>
     </properties>
 
@@ -260,12 +260,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>28.0-jre</version>
-            </dependency>
-
-            <dependency>
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-core</artifactId>
                 <version>${vertx.version}</version>
@@ -389,6 +383,11 @@
             <optional>true</optional>
         </dependency>
 
+        <dependency>
+            <groupId>org.hswebframework</groupId>
+            <artifactId>hsweb-utils</artifactId>
+            <version>3.0.3</version>
+        </dependency>
 
     </dependencies>
 
@@ -396,13 +395,13 @@
         <repository>
             <id>aliyun-nexus</id>
             <name>aliyun</name>
-            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+            <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
         </repository>
 
         <repository>
             <id>hsweb-nexus</id>
             <name>Nexus Release Repository</name>
-            <url>http://nexus.hsweb.me/content/groups/public/</url>
+            <url>https://nexus.hsweb.me/content/groups/public/</url>
             <snapshots>
                 <enabled>true</enabled>
                 <updatePolicy>always</updatePolicy>
@@ -415,12 +414,12 @@
         <repository>
             <id>releases</id>
             <name>Nexus Release Repository</name>
-            <url>http://nexus.hsweb.me/content/repositories/releases/</url>
+            <url>https://nexus.hsweb.me/content/repositories/releases/</url>
         </repository>
         <snapshotRepository>
             <id>snapshots</id>
             <name>Nexus Snapshot Repository</name>
-            <url>http://nexus.hsweb.me/content/repositories/snapshots/</url>
+            <url>https://nexus.hsweb.me/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
@@ -428,7 +427,7 @@
         <pluginRepository>
             <id>aliyun-nexus</id>
             <name>aliyun</name>
-            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+            <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
         </pluginRepository>
     </pluginRepositories>
 </project>

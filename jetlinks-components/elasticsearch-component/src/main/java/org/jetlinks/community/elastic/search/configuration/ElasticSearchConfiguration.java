@@ -16,7 +16,6 @@ import org.jetlinks.community.elastic.search.embedded.EmbeddedElasticSearch;
 import org.jetlinks.community.elastic.search.embedded.EmbeddedElasticSearchProperties;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.jetlinks.community.elastic.search.service.reactive.DefaultReactiveElasticsearchClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -2,7 +2,14 @@ package org.jetlinks.community.device.service.data;
 
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.community.timeseries.query.*;
+import org.jetlinks.community.device.entity.DeviceProperty;
+import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesData;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
+import org.jetlinks.community.timeseries.query.Group;
+import org.jetlinks.community.timeseries.query.TimeGroup;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
@@ -10,10 +17,6 @@ import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.community.device.entity.DeviceProperty;
-import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesData;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.springframework.stereotype.Component;
@@ -28,8 +31,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetric;
-import static org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric.devicePropertyMetricId;
 
+/**
+ * 时序数据列存储策略
+ *
+ * @author zhouhao
+ */
 @Component
 public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDataStoragePolicy implements DeviceDataStoragePolicy {
 
@@ -65,10 +72,10 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
     public Mono<Void> registerMetadata(@Nonnull String productId, @Nonnull DeviceMetadata metadata) {
         return Flux
             .concat(Flux
-                        .fromIterable(metadata.getEvents())
-                        .flatMap(event -> timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.event(productId, event))),
-                    timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.properties(productId, metadata.getProperties())),
-                    timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.log(productId)))
+                    .fromIterable(metadata.getEvents())
+                    .flatMap(event -> timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.event(productId, event))),
+                timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.properties(productId, metadata.getProperties())),
+                timeSeriesManager.registerMetadata(DeviceTimeSeriesMetadata.log(productId)))
             .then();
     }
 
@@ -77,8 +84,6 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
                                                          String deviceId,
                                                          Map<String, PropertyMetadata> property,
                                                          QueryParamEntity param) {
-
-
         //查询多个属性,分组聚合获取第一条数据
         return param
             .toQuery()
@@ -119,20 +124,20 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
             .getDevice(deviceId)
             .flatMap(device -> Mono.zip(device.getProduct(), device.getMetadata()))
             .flatMap(tp2 -> {
-                         PropertyMetadata prop = tp2.getT2().getPropertyOrNull(property);
+                    PropertyMetadata prop = tp2.getT2().getPropertyOrNull(property);
 
-                         return param
-                             .toQuery()
-                             .includes(property)
-                             .where("deviceId", deviceId)
-                             .execute(query -> timeSeriesManager
-                                 .getService(devicePropertyMetric(tp2.getT1().getId()))
-                                 .queryPager(query,
-                                             data -> DeviceProperty
-                                                 .of(data, data.get(property).orElse(0), prop)
-                                                 .property(property)
-                                 ));
-                     }
+                    return param
+                        .toQuery()
+                        .includes(property)
+                        .where("deviceId", deviceId)
+                        .execute(query -> timeSeriesManager
+                            .getService(devicePropertyMetric(tp2.getT1().getId()))
+                            .queryPager(query,
+                                data -> DeviceProperty
+                                    .of(data, data.get(property).orElse(0), prop)
+                                    .property(property)
+                            ));
+                }
             );
     }
 
@@ -174,23 +179,19 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
     @Nonnull
     @Override
     public Flux<DeviceProperty> queryEachProperties(@Nonnull String deviceId,
-                                                    @Nonnull QueryParamEntity query) {
+                                                    @Nonnull QueryParamEntity query,
+                                                    @Nonnull String... property) {
 
-        return deviceRegistry
-            .getDevice(deviceId)
-            .flatMapMany(device -> Mono
-                .zip(device.getProduct(), device.getMetadata())
-                .flatMapMany(tp2 -> {
+        return this
+            .getProductAndMetadataByDevice(deviceId)
+            .flatMapMany(tp2 -> {
 
-                    Map<String, PropertyMetadata> propertiesMap = tp2
-                        .getT2()
-                        .getProperties()
-                        .stream()
-                        .collect(Collectors.toMap(PropertyMetadata::getId, Function
-                            .identity(), (a, b) -> a));
+                Map<String, PropertyMetadata> propertiesMap = getPropertyMetadata(tp2.getT2(), property)
+                    .stream()
+                    .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity(), (a, b) -> a));
 
-                    return queryEachDeviceProperty(tp2.getT1().getId(), deviceId, propertiesMap, query);
-                }));
+                return queryEachDeviceProperty(tp2.getT1().getId(), deviceId, propertiesMap, query);
+            });
     }
 
 
@@ -247,11 +248,22 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
             .doOnNext(agg -> agg.values().remove("_time"));
     }
 
+    /**
+     * 设备消息转换 二元组{deviceId, tsData}
+     *
+     * @param productId  产品ID
+     * @param message    设备属性消息
+     * @param properties 物模型属性
+     * @return 数据集合
+     * @see this#convertPropertiesForColumnPolicy(String, DeviceMessage, Map)
+     * @see this#convertPropertiesForRowPolicy(String, DeviceMessage, Map)
+     */
     @Override
     protected Flux<Tuple2<String, TimeSeriesData>> convertProperties(String productId, DeviceMessage message, Map<String, Object> properties) {
         return convertPropertiesForColumnPolicy(productId, message, properties);
     }
 
+    @Override
     protected Object convertPropertyValue(Object value, PropertyMetadata metadata) {
         if (value == null || metadata == null) {
             return value;

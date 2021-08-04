@@ -7,6 +7,11 @@ import org.jetlinks.community.gateway.supports.DeviceGatewayPropertiesManager;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+/**
+ * 设备网关配置服务
+ *
+ * @author zhouhao
+ */
 @Service
 public class DeviceGatewayConfigService implements DeviceGatewayPropertiesManager {
 

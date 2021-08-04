@@ -1,8 +1,8 @@
 package org.jetlinks.community.notify.template;
 
-import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.community.notify.NotifyType;
 import org.jetlinks.community.notify.Provider;
+import org.jetlinks.core.metadata.ConfigMetadata;
 import reactor.core.publisher.Mono;
 
 public interface TemplateProvider {

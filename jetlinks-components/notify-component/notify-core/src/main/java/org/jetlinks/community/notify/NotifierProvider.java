@@ -1,7 +1,7 @@
 package org.jetlinks.community.notify;
 
-import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.community.notify.template.Template;
+import org.jetlinks.core.metadata.ConfigMetadata;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;

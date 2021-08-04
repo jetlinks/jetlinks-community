@@ -13,7 +13,6 @@ import org.jetlinks.community.network.manager.enums.CertificateType;
 import javax.persistence.Column;
 import javax.persistence.Table;
 import java.sql.JDBCType;
-import java.util.Map;
 
 /**
  * @author wangzheng

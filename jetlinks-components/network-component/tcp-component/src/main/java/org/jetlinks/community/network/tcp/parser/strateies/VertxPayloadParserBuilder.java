@@ -3,7 +3,6 @@ package org.jetlinks.community.network.tcp.parser.strateies;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
 import org.jetlinks.community.ValueObject;
-import org.jetlinks.core.Values;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilderStrategy;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;

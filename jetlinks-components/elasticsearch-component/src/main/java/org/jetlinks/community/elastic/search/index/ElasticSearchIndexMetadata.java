@@ -1,7 +1,7 @@
 package org.jetlinks.community.elastic.search.index;
 
-import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
+import org.jetlinks.core.metadata.PropertyMetadata;
 
 import java.util.List;
 import java.util.Map;

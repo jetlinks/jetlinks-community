@@ -2,8 +2,6 @@ package org.jetlinks.community.network.tcp.parser.strateies;
 
 import io.vertx.core.parsetools.RecordParser;
 import org.jetlinks.community.ValueObject;
-import org.jetlinks.core.Value;
-import org.jetlinks.core.Values;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
 
 public class FixLengthPayloadParserBuilder extends VertxPayloadParserBuilder {

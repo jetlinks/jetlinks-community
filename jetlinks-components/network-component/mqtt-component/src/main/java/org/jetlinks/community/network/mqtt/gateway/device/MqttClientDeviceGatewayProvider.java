@@ -1,8 +1,5 @@
 package org.jetlinks.community.network.mqtt.gateway.device;
 
-import org.jetlinks.core.ProtocolSupports;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProperties;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
@@ -10,6 +7,9 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.server.session.DeviceSessionManager;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -64,6 +64,7 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
 
                 String protocol = (String) properties.getConfiguration().get("protocol");
                 String topics = (String) properties.getConfiguration().get("topics");
+                int qos = properties.getInt("qos").orElse(0);
                 Objects.requireNonNull(topics, "topics");
 
                 return new MqttClientDeviceGateway(properties.getId(),
@@ -73,7 +74,8 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
                                                    protocol,
                                                    sessionManager,
                                                    clientMessageHandler,
-                                                   Arrays.asList(topics.split("[,;\n]"))
+                                                   Arrays.asList(topics.split("[,;\n]")),
+                                                   qos
                 );
 
             });

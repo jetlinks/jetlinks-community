@@ -2,6 +2,7 @@ package org.jetlinks.community.device.service;
 
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.ConfigScope;
 import org.jetlinks.core.metadata.DeviceConfigScope;
 import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -54,10 +55,14 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
     public Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
                                                          DeviceMetadataType metadataType,
                                                          String metadataId,
-                                                         String typeId) {
+                                                         String typeId,
+                                                         ConfigScope... scopes) {
         return Flux.fromIterable(suppliers)
                    .flatMap(supplier -> supplier.getMetadataExpandsConfig(productId, metadataType, metadataId, typeId))
-                   .sort(Comparator.comparing(ConfigMetadata::getName));
+                   .sort(Comparator.comparing(ConfigMetadata::getName))
+                   .filter(metadata -> metadata.hasAnyScope(scopes))
+                   .map(metadata -> metadata.copy(scopes))
+                   .filter(meta -> org.apache.commons.collections4.CollectionUtils.isNotEmpty(meta.getProperties()));
     }
 
     @Override

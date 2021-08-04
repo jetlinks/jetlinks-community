@@ -2,12 +2,12 @@ package org.jetlinks.community.timeseries.micrometer;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.jetlinks.community.timeseries.TimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.DoubleType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.timeseries.TimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 
 import java.util.ArrayList;
 import java.util.List;

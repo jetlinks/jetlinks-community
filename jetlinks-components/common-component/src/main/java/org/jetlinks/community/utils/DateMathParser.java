@@ -21,7 +21,6 @@ package org.jetlinks.community.utils;
 
 
 import lombok.SneakyThrows;
-import org.hswebframework.utils.time.DateFormatter;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.springframework.util.StringUtils;
 
@@ -30,6 +29,11 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.function.LongSupplier;
 
 
+/**
+ * 时间转换工具
+ *
+ * @author zhouhao
+ */
 public class DateMathParser {
 
 

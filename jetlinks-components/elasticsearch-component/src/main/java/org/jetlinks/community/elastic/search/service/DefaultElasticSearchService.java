@@ -37,7 +37,6 @@ import org.jetlinks.community.elastic.search.utils.ReactorActionListener;
 import org.jetlinks.core.utils.FluxUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
@@ -119,12 +118,14 @@ public class DefaultElasticSearchService implements ElasticSearchService {
             });
     }
 
+    @Override
     public <T> Flux<T> query(String index, QueryParam queryParam, Function<Map<String, Object>, T> mapper) {
         return this
             .doQuery(new String[]{index}, queryParam)
             .flatMapMany(tp2 -> convertQueryResult(tp2.getT1(), tp2.getT2(), mapper));
     }
 
+    @Override
     public <T> Flux<T> query(String[] index, QueryParam queryParam, Function<Map<String, Object>, T> mapper) {
         return this
             .doQuery(index, queryParam)
@@ -373,7 +374,7 @@ public class DefaultElasticSearchService implements ElasticSearchService {
 
     private Mono<SearchResponse> doSearch(SearchRequest request) {
         return this
-            .<SearchRequest, SearchResponse>execute(request, restClient.getQueryClient()::searchAsync)
+            .execute(request, restClient.getQueryClient()::searchAsync)
             .onErrorResume(err -> {
                 log.error("query elastic error", err);
                 return Mono.empty();

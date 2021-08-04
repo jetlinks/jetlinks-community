@@ -10,12 +10,15 @@ import lombok.Setter;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
-import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.community.notify.NotifierProvider;
 import org.jetlinks.community.notify.NotifyType;
 import org.jetlinks.community.notify.manager.entity.NotifyConfigEntity;
 import org.jetlinks.community.notify.manager.service.NotifyConfigService;
-import org.springframework.web.bind.annotation.*;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

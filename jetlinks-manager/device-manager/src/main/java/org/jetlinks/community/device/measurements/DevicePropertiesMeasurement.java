@@ -2,23 +2,22 @@ package org.jetlinks.community.device.measurements;
 
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.gateway.DeviceMessageUtils;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.community.gateway.DeviceMessageUtils;
+import org.jetlinks.reactor.ql.utils.CastUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 class DevicePropertiesMeasurement extends StaticMeasurement {
@@ -45,16 +44,20 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
     }
 
-    Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
-        return history <= 0 ? Flux.empty() : QueryParamEntity.newQuery()
+    Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history, Set<String> properties) {
+        return history <= 0
+            ? Flux.empty()
+            : QueryParamEntity
+            .newQuery()
             .doPaging(0, history)
-            .execute(q -> dataService.queryEachProperties(deviceId, q))
+            .execute(q -> dataService.queryEachProperties(deviceId, q, properties.toArray(new String[0])))
             .map(data -> SimpleMeasurementValue.of(data, data.getTimestamp()))
             .sort(MeasurementValue.sort());
     }
 
     Map<String, Object> createValue(String property, Object value) {
-        return metadata.getProperty(property)
+        return metadata
+            .getProperty(property)
             .map(meta -> {
                 Map<String, Object> values = new HashMap<>();
                 DataType type = meta.getValueType();
@@ -74,7 +77,7 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
             });
     }
 
-    Flux<MeasurementValue> fromRealTime(String deviceId) {
+    Flux<MeasurementValue> fromRealTime(String deviceId, Set<String> properties) {
 
         Subscription subscription = Subscription.of(
             "realtime-device-properties-measurement",
@@ -88,7 +91,9 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
         Map<String, Integer> index = new HashMap<>();
         int idx = 0;
         for (PropertyMetadata prop : props) {
-            index.put(prop.getId(), idx++);
+            if (properties.isEmpty() || properties.contains(prop.getId())) {
+                index.put(prop.getId(), idx++);
+            }
         }
         return
             eventBus
@@ -105,6 +110,16 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
     static ConfigMetadata configMetadata = new DefaultConfigMetadata()
         .add("deviceId", "设备", "指定设备", new StringType().expand("selector", "device-selector"));
+
+    static Set<String> getPropertiesFromParameter(MeasurementParameter parameter) {
+        return parameter
+            .get("properties")
+            .map(CastUtils::castArray)
+            .orElse(Collections.emptyList())
+            .stream()
+            .map(String::valueOf)
+            .collect(Collectors.toSet());
+    }
 
     /**
      * 历史
@@ -136,11 +151,12 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
-            return Mono.justOrEmpty(parameter.getString("deviceId"))
+            return Mono
+                .justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(1);
-                    //合并历史数据和实时数据
-                    return fromHistory(deviceId, history);
+
+                    return fromHistory(deviceId, history, getPropertiesFromParameter(parameter));
                 });
         }
     }
@@ -175,16 +191,17 @@ class DevicePropertiesMeasurement extends StaticMeasurement {
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
-            return Mono.justOrEmpty(parameter.getString("deviceId"))
+            return Mono
+                .justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(0);
                     //合并历史数据和实时数据
                     return  Flux.concat(
                         //查询历史数据
-                        fromHistory(deviceId, history)
+                        fromHistory(deviceId, history, getPropertiesFromParameter(parameter))
                         ,
                         //从消息网关订阅实时事件消息
-                        fromRealTime(deviceId)
+                        fromRealTime(deviceId, getPropertiesFromParameter(parameter))
                     );
                 });
         }

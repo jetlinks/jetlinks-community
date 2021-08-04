@@ -1,8 +1,8 @@
 package org.jetlinks.community.gateway;
 
+import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.Transport;
-import org.jetlinks.community.network.NetworkType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

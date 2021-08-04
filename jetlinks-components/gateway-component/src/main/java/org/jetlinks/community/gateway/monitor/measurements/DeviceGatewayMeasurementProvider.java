@@ -1,12 +1,11 @@
 package org.jetlinks.community.gateway.monitor.measurements;
 
-import org.jetlinks.community.dashboard.MeasurementDefinition;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.springframework.stereotype.Component;
 
-import static org.jetlinks.community.dashboard.MeasurementDefinition.*;
+import static org.jetlinks.community.dashboard.MeasurementDefinition.of;
 
 @Component
 public class DeviceGatewayMeasurementProvider extends StaticMeasurementProvider {

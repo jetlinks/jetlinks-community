@@ -3,10 +3,10 @@ package org.jetlinks.community.rule.engine.model;
 import com.alibaba.fastjson.JSON;
 import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
-import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
-import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
+import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.rule.engine.api.model.RuleLink;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
@@ -57,7 +57,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 timer.setExecutor("timer");
                 timer.setConfiguration(Collections.singletonMap("cron", timerTrigger.getCron()));
 
-                DeviceMessageSendTaskExecutorProvider.Config senderConfig = new DeviceMessageSendTaskExecutorProvider.Config();
+                DeviceMessageSendTaskExecutorProvider.DeviceMessageSendConfig senderConfig = new DeviceMessageSendTaskExecutorProvider.DeviceMessageSendConfig();
                 senderConfig.setAsync(true);
                 senderConfig.setDeviceId(alarmRule.getDeviceId());
                 senderConfig.setProductId(alarmRule.getProductId());
@@ -67,7 +67,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 messageSender.setId("message-sender:" + (++index));
                 messageSender.setName("定时发送设备消息");
                 messageSender.setExecutor("device-message-sender");
-                messageSender.setConfiguration(FastBeanCopier.copy(senderConfig, new HashMap<>()));
+                messageSender.setConfiguration(senderConfig.toMap());
 
                 RuleLink link = new RuleLink();
                 link.setId(timer.getId().concat(":").concat(messageSender.getId()));

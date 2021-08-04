@@ -12,6 +12,7 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
+import org.jetlinks.core.message.codec.EncodedMessage;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -28,27 +29,23 @@ import java.util.function.Function;
 @Slf4j
 public class VertxTcpClient implements TcpClient {
 
-    public volatile NetClient client;
-
-    public NetSocket socket;
-
-    volatile PayloadParser payloadParser;
-
     @Getter
     private final String id;
-
+    private final List<Runnable> disconnectListener = new CopyOnWriteArrayList<>();
+    private final EmitterProcessor<TcpMessage> processor = EmitterProcessor.create(false);
+    private final FluxSink<TcpMessage> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
+    private final boolean serverClient;
+    public volatile NetClient client;
+    public NetSocket socket;
+    volatile PayloadParser payloadParser;
     @Setter
     private long keepAliveTimeoutMs = Duration.ofMinutes(10).toMillis();
-
     private volatile long lastKeepAliveTime = System.currentTimeMillis();
 
-    private final List<Runnable> disconnectListener = new CopyOnWriteArrayList<>();
-
-    private final EmitterProcessor<TcpMessage> processor = EmitterProcessor.create(false);
-
-    private final FluxSink<TcpMessage> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
-
-    private final boolean serverClient;
+    public VertxTcpClient(String id, boolean serverClient) {
+        this.id = id;
+        this.serverClient = serverClient;
+    }
 
     @Override
     public void keepAlive() {
@@ -68,6 +65,43 @@ public class VertxTcpClient implements TcpClient {
     }
 
     @Override
+    public InetSocketAddress address() {
+        return getRemoteAddress();
+    }
+
+    @Override
+    public Mono<Void> sendMessage(EncodedMessage message) {
+        return Mono
+            .create((sink) -> {
+                if (socket == null) {
+                    sink.error(new SocketException("socket closed"));
+                    return;
+                }
+                Buffer buffer = Buffer.buffer(message.getPayload());
+                socket.write(buffer, r -> {
+                    keepAlive();
+                    if (r.succeeded()) {
+                        sink.success();
+                    } else {
+                        sink.error(r.cause());
+                    }
+                });
+            });
+    }
+
+    @Override
+    public Flux<EncodedMessage> receiveMessage() {
+        return this
+            .subscribe()
+            .cast(EncodedMessage.class);
+    }
+
+    @Override
+    public void disconnect() {
+        shutdown();
+    }
+
+    @Override
     public boolean isAlive() {
         return socket != null && (keepAliveTimeoutMs < 0 || System.currentTimeMillis() - lastKeepAliveTime < keepAliveTimeoutMs);
     }
@@ -77,11 +111,11 @@ public class VertxTcpClient implements TcpClient {
         return true;
     }
 
-    public VertxTcpClient(String id,boolean serverClient) {
-        this.id = id;
-        this.serverClient=serverClient;
-    }
-
+    /**
+     * 接收TCP消息
+     *
+     * @param message TCP消息
+     */
     protected void received(TcpMessage message) {
         if (processor.getPending() > processor.getBufferSize() / 2) {
             log.warn("tcp [{}] message pending {} ,drop message:{}", processor.getPending(), getRemoteAddress(), message.toString());
@@ -139,7 +173,7 @@ public class VertxTcpClient implements TcpClient {
             execute(runnable);
         }
         disconnectListener.clear();
-        if(serverClient){
+        if (serverClient) {
             processor.onComplete();
         }
     }
@@ -152,6 +186,11 @@ public class VertxTcpClient implements TcpClient {
         this.client = client;
     }
 
+    /**
+     * 设置客户端消息解析器
+     *
+     * @param payloadParser 消息解析器
+     */
     public void setRecordParser(PayloadParser payloadParser) {
         synchronized (this) {
             if (null != this.payloadParser && this.payloadParser != payloadParser) {
@@ -167,6 +206,11 @@ public class VertxTcpClient implements TcpClient {
         }
     }
 
+    /**
+     * socket处理
+     *
+     * @param socket socket
+     */
     public void setSocket(NetSocket socket) {
         synchronized (this) {
             Objects.requireNonNull(payloadParser);
@@ -193,21 +237,8 @@ public class VertxTcpClient implements TcpClient {
 
     @Override
     public Mono<Boolean> send(TcpMessage message) {
-        return Mono.<Boolean>create((sink) -> {
-            if (socket == null) {
-                sink.error(new SocketException("socket closed"));
-                return;
-            }
-            Buffer buffer = Buffer.buffer(message.getPayload());
-            socket.write(buffer, r -> {
-                keepAlive();
-                if (r.succeeded()) {
-                    sink.success(true);
-                } else {
-                    sink.error(r.cause());
-                }
-            });
-        });
+        return sendMessage(message)
+            .thenReturn(true);
     }
 
     @Override
