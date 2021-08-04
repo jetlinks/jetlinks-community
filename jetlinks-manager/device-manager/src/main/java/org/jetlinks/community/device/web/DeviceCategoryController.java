@@ -70,6 +70,13 @@ public class DeviceCategoryController {
         return Flux.fromIterable(statics);
     }
 
+    @GetMapping("/_query/no-paging")
+    @Operation(summary = "获取全部分类目录")
+    public Flux<DeviceCategory> getAllCategory2() {
+        return Flux.fromIterable(statics);
+    }
+
+
     @GetMapping("/_tree")
     @Operation(summary = "获取全部分类目录(树结构)")
     public Flux<DeviceCategory> getAllCategoryTree() {
