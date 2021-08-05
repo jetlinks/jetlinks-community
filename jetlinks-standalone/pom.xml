@@ -55,6 +55,12 @@
     <dependencies>
 
         <dependency>
+            <groupId>org.hswebframework.web</groupId>
+            <artifactId>hsweb-system-dictionary</artifactId>
+            <version>${hsweb.framework.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
