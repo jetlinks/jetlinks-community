@@ -1,5 +1,7 @@
 package org.jetlinks.community;
 
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.HeaderKey;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 
@@ -12,11 +14,24 @@ public interface PropertyMetadataConstants {
         //数据来源
         String id = "source";
 
+        HeaderKey<String> headerKey = HeaderKey.of(id, null);
+
         //手动写值
         String manual = "manual";
 
         //规则,虚拟属性
         String rule = "rule";
+
+        static boolean isManual(DeviceMessage message) {
+            return message
+                .getHeader(PropertyMetadataConstants.Source.headerKey)
+                .map(PropertyMetadataConstants.Source.manual::equals)
+                .orElse(false);
+        }
+
+        static void setManual(DeviceMessage message) {
+            message.addHeader(headerKey, manual);
+        }
 
         /**
          * 判断属性是否手动赋值
