@@ -60,7 +60,7 @@ public class DeviceCategoryController {
 
         } catch (Exception e) {
             statics = new ArrayList<>();
-            log.error(e.getMessage(), e);
+            DeviceCategoryController.log.error(e.getMessage(), e);
         }
     }
 
