@@ -3,6 +3,7 @@ package org.jetlinks.community.device.service;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.core.device.*;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -32,6 +33,7 @@ public class AutoDiscoverDeviceRegistry implements DeviceRegistry {
             .getDevice(deviceId)
             .switchIfEmpty(Mono.defer(() -> deviceRepository
                 .findById(deviceId)
+                .filter(instance -> instance.getState() != DeviceState.notActive)
                 .flatMap(instance -> parent.register(instance.toDeviceInfo())))
             )
         );
@@ -46,6 +48,7 @@ public class AutoDiscoverDeviceRegistry implements DeviceRegistry {
             .getProduct(productId)
             .switchIfEmpty(Mono.defer(() -> productRepository
                 .findById(productId)
+                .filter(product -> product.getState() == 1)
                 .flatMap(product -> parent.register(product.toProductInfo()))));
     }
 
