@@ -962,7 +962,10 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
     }
 
     Request convertGetIndexTemplateRequest(GetIndexTemplatesRequest getIndexTemplatesRequest) {
-        return new Request(HttpGet.METHOD_NAME, "/_template/" + String.join(",", getIndexTemplatesRequest.names()));
+        Request request= new Request(HttpGet.METHOD_NAME, "/_template/" + String.join(",", getIndexTemplatesRequest.names()));
+        Params params = new Params(request);
+        params.putParam("include_type_name", "true");
+        return request;
     }
 
     @Override
