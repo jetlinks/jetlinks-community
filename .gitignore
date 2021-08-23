@@ -20,7 +20,7 @@ hs_err_pid*
 **/transaction-logs/
 !/.mvn/wrapper/maven-wrapper.jar
 *.db
-./data/
+/data/
 /static/
 /upload
 /ui/upload/
