@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 @Component
@@ -40,9 +41,17 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
         DeviceAlarmRule alarmRule = rule.getAlarmRule();
         alarmRule.validate();
 
+        RuleNodeModel conditionNode = new RuleNodeModel();
+        conditionNode.setId("conditions");
+        conditionNode.setName("预警条件");
+        conditionNode.setExecutor("device_alarm");
+        conditionNode.setConfiguration(Collections.singletonMap("rule", rule.getAlarmRule()));
+
         //处理定时触发
         {
-            List<DeviceAlarmRule.Trigger> timerTriggers = alarmRule.getTriggers().stream()
+            List<DeviceAlarmRule.Trigger> timerTriggers = alarmRule
+                .getTriggers()
+                .stream()
                 .filter(trigger -> trigger.getTrigger() == DeviceAlarmRule.TriggerType.timer)
                 .collect(Collectors.toList());
             int index = 0;
@@ -51,24 +60,27 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 if (msg == null) {
                     throw new UnsupportedOperationException("不支持定时条件类型:" + timerTrigger.getType());
                 }
+                //定时节点
                 RuleNodeModel timer = new RuleNodeModel();
                 timer.setId("timer:" + (++index));
                 timer.setName("定时发送设备消息");
                 timer.setExecutor("timer");
                 timer.setConfiguration(Collections.singletonMap("cron", timerTrigger.getCron()));
 
-                DeviceMessageSendTaskExecutorProvider.DeviceMessageSendConfig senderConfig = new DeviceMessageSendTaskExecutorProvider.DeviceMessageSendConfig();
-                senderConfig.setAsync(true);
-                senderConfig.setDeviceId(alarmRule.getDeviceId());
-                senderConfig.setProductId(alarmRule.getProductId());
-                senderConfig.setMessage(msg.toJson());
+                //发送指令节点
+                DeviceMessageSendTaskExecutorProvider.DeviceMessageSendConfig senderDeviceMessageSendConfig = new DeviceMessageSendTaskExecutorProvider.DeviceMessageSendConfig();
+                //同步等待回复
+                senderDeviceMessageSendConfig.setAsync(false);
+                senderDeviceMessageSendConfig.setStateOperator("direct");
+                senderDeviceMessageSendConfig.setDeviceId(alarmRule.getDeviceId());
+                senderDeviceMessageSendConfig.setProductId(alarmRule.getProductId());
+                senderDeviceMessageSendConfig.setMessage(msg.toJson());
 
                 RuleNodeModel messageSender = new RuleNodeModel();
                 messageSender.setId("message-sender:" + (++index));
                 messageSender.setName("定时发送设备消息");
                 messageSender.setExecutor("device-message-sender");
-                messageSender.setConfiguration(senderConfig.toMap());
-
+                messageSender.setConfiguration(senderDeviceMessageSendConfig.toMap());
                 RuleLink link = new RuleLink();
                 link.setId(timer.getId().concat(":").concat(messageSender.getId()));
                 link.setName("执行动作:" + index);
@@ -78,14 +90,18 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 messageSender.getInputs().add(link);
                 model.getNodes().add(timer);
                 model.getNodes().add(messageSender);
+
+                //将输出传递到告警节点
+                RuleLink toAlarm = new RuleLink();
+                toAlarm.setId(messageSender.getId().concat(":").concat(conditionNode.getId()));
+                toAlarm.setName("定时触发告警:" + index);
+                toAlarm.setSource(messageSender);
+                toAlarm.setTarget(conditionNode);
+                messageSender.getOutputs().add(toAlarm);
+                conditionNode.getInputs().add(toAlarm);
             }
         }
 
-        RuleNodeModel conditionNode = new RuleNodeModel();
-        conditionNode.setId("conditions");
-        conditionNode.setName("预警条件");
-        conditionNode.setExecutor("device_alarm");
-        conditionNode.setConfiguration(Collections.singletonMap("rule", rule.getAlarmRule()));
         model.getNodes().add(conditionNode);
         if (CollectionUtils.isNotEmpty(rule.getAlarmRule().getActions())) {
             int index = 0;
