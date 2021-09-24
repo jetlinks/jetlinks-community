@@ -31,6 +31,8 @@ spring:
     pool:
       max-size: 32
       max-idle-time: 2m # 值不能大于mysql server的wait_timeout配置
+      max-life-time: 10m
+      acquire-retry: 3
   reactor:
     debug-agent:
       enabled: false
@@ -38,10 +40,10 @@ spring:
     elasticsearch:
       client:
         reactive:
-          endpoints: ${elasticsearch.client.host}:${elasticsearch.client.port}
+          endpoints: localhost:9200
           max-in-memory-size: 100MB
-          socket-timeout: ${elasticsearch.client.socket-timeout}
-          connection-timeout: ${elasticsearch.client.socket-timeout}
+          socket-timeout: 5000
+          connection-timeout: 8000
 easyorm:
   default-schema: public # 数据库默认的schema
   dialect: postgres #数据库方言
@@ -51,13 +53,6 @@ elasticsearch:
     data-path: ./data/elasticsearch
     port: 9200
     host: 0.0.0.0
-  client:
-    host: localhost
-    port: 9200
-    max-conn-total: 128
-    connect-timeout: 5000
-    socket-timeout: 5000
-    connection-request-timeout: 8000
   index:
     default-strategy: time-by-month #默认es的索引按月进行分表, direct则为直接操作索引.
     settings:

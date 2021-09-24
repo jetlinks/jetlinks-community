@@ -246,6 +246,11 @@
             <version>2.0.8</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>configure-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 
