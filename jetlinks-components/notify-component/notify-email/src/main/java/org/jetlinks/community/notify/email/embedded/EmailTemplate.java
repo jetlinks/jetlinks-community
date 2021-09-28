@@ -1,7 +1,6 @@
 package org.jetlinks.community.notify.email.embedded;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.jetlinks.community.notify.template.Template;
 
 import java.util.List;
@@ -20,6 +19,9 @@ public class EmailTemplate implements Template {
 
     @Getter
     @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @EqualsAndHashCode(of = "name")
     public static class Attachment {
 
         private String name;
