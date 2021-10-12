@@ -117,6 +117,7 @@ import java.util.function.Supplier;
 import static org.springframework.data.elasticsearch.client.util.RequestConverters.createContentType;
 
 @Slf4j
+@Generated
 public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearchClient {
     private final HostProvider<?> hostProvider;
     private final RequestCreator requestCreator;
@@ -292,9 +293,9 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
     @Override
     public Flux<SearchHit> search(HttpHeaders headers, SearchRequest searchRequest) {
 
-        return sendRequest(searchRequest, requestCreator.search(), SearchResponse.class, headers) //
-                                                                                                  .map(SearchResponse::getHits) //
-                                                                                                  .flatMap(Flux::fromIterable);
+        return sendRequest(searchRequest, this::buildSearchRequest, SearchResponse.class, headers) //
+                                                                                                   .map(SearchResponse::getHits) //
+                                                                                                   .flatMap(Flux::fromIterable);
     }
 
     /*
@@ -310,9 +311,9 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
         searchRequest.source().size(0);
         searchRequest.source().trackTotalHits(false);
 
-        return sendRequest(searchRequest, requestCreator.search(), SearchResponse.class, headers) //
-                                                                                                  .map(SearchResponse::getAggregations) //
-                                                                                                  .flatMap(Flux::fromIterable);
+        return sendRequest(searchRequest, this::buildSearchRequest, SearchResponse.class, headers) //
+                                                                                                   .map(SearchResponse::getAggregations) //
+                                                                                                   .flatMap(Flux::fromIterable);
     }
 
     /*
@@ -1006,7 +1007,6 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
 
     @Override
     public Mono<SearchResponse> searchForPage(SearchRequest request) {
-        long startTime = System.currentTimeMillis();
         // if (version.after(Version.V_7_0_0)) {
         request.source().trackTotalHits(true);
         // }
@@ -1014,7 +1014,7 @@ public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearch
             .sendRequest(request, this::buildSearchRequest, SearchResponse.class, HttpHeaders.EMPTY)
             .singleOrEmpty()
             .doOnSuccess(res -> log
-                .trace("execute search {} {}ms : {}", request.indices(), System.currentTimeMillis() - startTime, request.source()))
+                .trace("execute search {} {} : {}", request.indices(),res.getTook(), request.source()))
             .doOnError(err -> log.warn("execute search {} error : {}", request.indices(), request.source(), err));
     }
 
