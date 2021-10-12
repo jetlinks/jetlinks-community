@@ -1,5 +1,7 @@
 package org.jetlinks.community.auth.web.request;
 
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.web.authorization.Dimension;
@@ -25,28 +27,52 @@ public class AuthorizationSettingDetail {
      * 设置目标类型(维度)标识,如: org, role
      */
     @NotBlank
+    @Schema(description = "权限类型,如: org,openApi")
     private String targetType;
 
     /**
      * 设置目标.
      */
     @NotBlank
+    @Schema(description = "权限类型对应的数据ID")
     private String targetId;
 
     /**
      * 冲突时是否合并
      */
+    @Schema(description = "冲突时是否合并")
     private boolean merge = true;
 
     /**
      * 冲突时优先级
      */
+    @Schema(description = "冲突时合并优先级")
     private int priority = 10;
 
     /**
      * 权限列表
      */
+    @Schema(description = "权限列表")
     private List<PermissionInfo> permissionList;
+
+    public boolean hasPermission(String id, Collection<String> actions) {
+        if (CollectionUtils.isEmpty(permissionList)) {
+            return false;
+        }
+        for (PermissionInfo info : permissionList) {
+            if (Objects.equals(info.getId(), id)) {
+                if (CollectionUtils.isEmpty(actions)) {
+                    return true;
+                }
+                if (CollectionUtils.isNotEmpty(info.getActions())) {
+                    if (info.getActions().containsAll(actions)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * 授权信息
@@ -54,27 +80,32 @@ public class AuthorizationSettingDetail {
     @Getter
     @Setter
     @EqualsAndHashCode(of = "id")
+    @Generated
     public static class PermissionInfo {
 
         /**
          * 权限ID
          */
         @NotBlank
+        @Schema(description = "权限ID")
         private String id;
 
         /**
          * 授权操作
          */
+        @Schema(description = "允许执行的操作")
         private Set<String> actions;
 
         /**
          * 字段权限
          */
+        @Hidden
         private List<FieldAccess> fieldAccess;
 
         /**
          * 数据权限
          */
+        @Hidden
         private List<DataAccess> dataAccess;
 
         private PermissionInfo unwrap(AuthorizationSettingEntity entity) {
@@ -94,8 +125,8 @@ public class AuthorizationSettingDetail {
                     //字段权限
                     if (DataAccessConfig.DefaultType.DENY_FIELDS.equalsIgnoreCase(access.getType())) {
                         Set<String> fields = Optional.ofNullable(access.getConfig())
-                            .<Set<String>>map(conf -> new HashSet<>((Collection<String>) conf.get("fields")))
-                            .orElseGet(HashSet::new);
+                                                     .<Set<String>>map(conf -> new HashSet<>((Collection<String>) conf.get("fields")))
+                                                     .orElseGet(HashSet::new);
 
                         for (String field : fields) {
                             filedAccessMap
@@ -130,7 +161,7 @@ public class AuthorizationSettingDetail {
                 for (FieldAccess access : fieldAccess) {
                     for (String action : access.getAction()) {
                         group.computeIfAbsent(action, r -> new HashSet<>())
-                            .add(access.name);
+                             .add(access.name);
                     }
                 }
                 for (Map.Entry<String, Set<String>> entry : group.entrySet()) {
@@ -150,6 +181,12 @@ public class AuthorizationSettingDetail {
             entity.setDataAccesses(entities);
         }
 
+        public static PermissionInfo of(String id, Collection<String> actions) {
+            PermissionInfo info = new PermissionInfo();
+            info.setId(id);
+            info.setActions(new HashSet<>(actions));
+            return info;
+        }
     }
 
 
@@ -184,7 +221,7 @@ public class AuthorizationSettingDetail {
         }
 
         public List<DataAccessEntity> toEntity() {
-            if(CollectionUtils.isEmpty(actions)){
+            if (CollectionUtils.isEmpty(actions)) {
                 return Collections.emptyList();
             }
             return actions
