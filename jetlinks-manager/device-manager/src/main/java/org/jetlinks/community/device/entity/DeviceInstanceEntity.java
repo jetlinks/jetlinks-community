@@ -173,6 +173,6 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         if (this.features == null) {
             return false;
         }
-        return EnumDict.in(feature, DeviceFeature.values());
+        return EnumDict.in(feature, this.features);
     }
 }
