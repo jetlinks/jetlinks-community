@@ -30,6 +30,7 @@ import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.core.utils.CyclicDependencyChecker;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -457,5 +458,18 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .flatMap(mapReply(FunctionInvokeMessageReply::getOutput));
     }
 
+    private final CyclicDependencyChecker<DeviceInstanceEntity, Void> checker = CyclicDependencyChecker
+        .of(DeviceInstanceEntity::getId, DeviceInstanceEntity::getParentId, this::findById);
+
+    public Mono<Void> checkCyclicDependency(DeviceInstanceEntity device) {
+        return checker.check(device);
+    }
+
+    public Mono<Void> checkCyclicDependency(String id, String parentId) {
+        DeviceInstanceEntity instance = new DeviceInstanceEntity();
+        instance.setId(id);
+        instance.setParentId(parentId);
+        return checker.check(instance);
+    }
 
 }
