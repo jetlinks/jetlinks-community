@@ -26,7 +26,7 @@
         <r2dbc.version>Arabba-SR10</r2dbc.version>
         <vertx.version>3.8.5</vertx.version>
         <netty.version>4.1.51.Final</netty.version>
-        <elasticsearch.version>7.11.2</elasticsearch.version>
+        <elasticsearch.version>7.14.0</elasticsearch.version>
         <reactor.excel.version>1.0.1</reactor.excel.version>
         <reactor.ql.version>1.0.13</reactor.ql.version>
         <fastjson.version>1.2.70</fastjson.version>
