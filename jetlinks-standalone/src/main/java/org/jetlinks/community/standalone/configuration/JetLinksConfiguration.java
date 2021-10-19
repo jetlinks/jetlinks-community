@@ -84,7 +84,7 @@ public class JetLinksConfiguration {
         return new BrokerEventBus();
     }
 
-    @Bean
+    @Bean(initMethod = "start", destroyMethod = "dispose")
     public EventBusDeviceOperationBroker eventBusDeviceOperationBroker(ClusterManager clusterManager,EventBus eventBus) {
         return new EventBusDeviceOperationBroker(clusterManager.getCurrentServerId(),eventBus);
     }
