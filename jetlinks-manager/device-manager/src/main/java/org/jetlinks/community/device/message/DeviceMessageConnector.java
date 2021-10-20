@@ -281,7 +281,11 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
     public Mono<Boolean> handleMessage(DeviceOperator device, @Nonnull Message message) {
         Mono<Boolean> then;
         if (message instanceof ChildDeviceMessageReply) {
-            then = handleChildrenDeviceMessageReply(((ChildDeviceMessageReply) message));
+            then = this
+                .doReply(((ChildDeviceMessageReply) message))
+                .then(
+                    handleChildrenDeviceMessageReply(((ChildDeviceMessageReply) message))
+                );
         } else if (message instanceof ChildDeviceMessage) {
             then = handleChildrenDeviceMessageReply(((ChildDeviceMessage) message));
         } else if (message instanceof DeviceMessageReply) {
