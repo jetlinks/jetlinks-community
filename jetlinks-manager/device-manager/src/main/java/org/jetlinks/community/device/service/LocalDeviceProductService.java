@@ -16,18 +16,32 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+
 @Service
 @Slf4j
 public class LocalDeviceProductService extends GenericReactiveCrudService<DeviceProductEntity, String> {
 
-    @Autowired
-    private DeviceRegistry registry;
+//    @Autowired
+//    private DeviceRegistry registry;
+//
+//    @Autowired
+//    private ApplicationEventPublisher eventPublisher;
+//
+//    @Autowired
+//    private ReactiveRepository<DeviceInstanceEntity, String> instanceRepository;
 
-    @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private final DeviceRegistry registry;
 
-    @Autowired
-    private ReactiveRepository<DeviceInstanceEntity, String> instanceRepository;
+
+    private final ApplicationEventPublisher eventPublisher;
+
+    private final ReactiveRepository<DeviceInstanceEntity, String> instanceRepository;
+
+    public LocalDeviceProductService(DeviceRegistry registry,ApplicationEventPublisher eventPublisher,ReactiveRepository<DeviceInstanceEntity, String> instanceRepository){
+        this.registry=registry;
+        this.eventPublisher=eventPublisher;
+        this.instanceRepository=instanceRepository;
+    }
 
     public Mono<Integer> deploy(String id) {
         return findById(Mono.just(id))
