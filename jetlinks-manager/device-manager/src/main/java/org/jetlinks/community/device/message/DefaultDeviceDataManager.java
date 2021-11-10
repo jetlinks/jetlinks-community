@@ -94,7 +94,7 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
     }
 
     @Override
-    public Mono<PropertyValue> getFistProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
+    public Mono<PropertyValue> getFirstProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
         return localCache
             .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
             .getFirstProperty(propertyId);
