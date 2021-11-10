@@ -33,6 +33,7 @@ import org.jetlinks.supports.cluster.EventBusDeviceOperationBroker;
 import org.jetlinks.supports.cluster.redis.RedisClusterManager;
 import org.jetlinks.supports.config.EventBusStorageManager;
 import org.jetlinks.supports.event.BrokerEventBus;
+import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.jetlinks.supports.protocol.ServiceLoaderProtocolSupports;
 import org.jetlinks.supports.protocol.management.ClusterProtocolSupportManager;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
@@ -59,6 +60,11 @@ import java.util.Optional;
 @EnableConfigurationProperties(JetLinksProperties.class)
 @Slf4j
 public class JetLinksConfiguration {
+
+    @Bean
+    public JetLinksDeviceMetadataCodec jetLinksDeviceMetadataCodec(){
+        return JetLinksDeviceMetadataCodec.getInstance();
+    }
 
     @Bean
     public WebServerFactoryCustomizer<NettyReactiveWebServerFactory> webServerFactoryWebServerFactoryCustomizer() {

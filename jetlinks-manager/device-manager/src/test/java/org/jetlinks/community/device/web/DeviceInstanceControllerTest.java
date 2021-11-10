@@ -224,6 +224,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(7)
     void deviceDeploy() {
+        add();
         DeviceDeployResult responseBody = client.post()
             .uri(BASE_URL + "/" + DEVICE_ID + "/deploy")
             .exchange()

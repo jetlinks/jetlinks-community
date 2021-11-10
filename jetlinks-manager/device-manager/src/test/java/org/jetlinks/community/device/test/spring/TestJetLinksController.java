@@ -75,7 +75,7 @@ import java.util.Optional;
     "org.jetlinks.community.elastic",
 },basePackageClasses={
     DefaultImportExportService.class,
-    DefaultDeviceDataService.class,
+
     MeterRegistryManager.class,
     TimeSeriesMeterRegistrySupplier.class
 //    ElasticSearchTimeSeriesManager.class,

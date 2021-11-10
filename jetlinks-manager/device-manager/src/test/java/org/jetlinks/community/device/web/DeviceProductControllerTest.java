@@ -7,9 +7,12 @@ import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.test.spring.TestJetLinksController;
 import org.jetlinks.community.device.web.request.AggRequest;
+import org.jetlinks.core.device.DeviceProductOperator;
+import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
 
@@ -19,7 +22,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-@WebFluxTest({DeviceProductController.class,ProtocolSupportController.class})
+@WebFluxTest({DeviceProductController.class, ProtocolSupportController.class})
 class DeviceProductControllerTest extends TestJetLinksController {
 
     public static final String BASE_URL = "/device/product";
@@ -27,17 +30,22 @@ class DeviceProductControllerTest extends TestJetLinksController {
 
     public static final String BASE_URL11 = "/protocol";
     public static final String ID_1 = "demo-v1";
+
+    @Autowired
+    private DeviceRegistry deviceRegistry;
+
+
     @Test
-    void add1(){
+    void add1() {
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
         protocolSupportEntity.setId(ID_1);
         protocolSupportEntity.setName("演示协议v1");
-        protocolSupportEntity.setState((byte)1);
+        protocolSupportEntity.setState((byte) 1);
         protocolSupportEntity.setType("jar");
         Map<String, Object> map = new HashMap<>();
         //{"provider":"org.jetlinks.demo.protocol.DemoProtocolSupportProvider","location":"http://localhost:8848/upload/20211008/1446352693262381056.jar"}
-        map.put("provider","org.jetlinks.demo.protocol.DemoProtocolSupportProvider");
-        map.put("location","http://localhost:8848/upload/20211008/1446352693262381056.jar");
+        map.put("provider", "org.jetlinks.demo.protocol.DemoProtocolSupportProvider");
+        map.put("location", "http://localhost:8848/upload/20211008/1446352693262381056.jar");
         protocolSupportEntity.setConfiguration(map);
         client.patch()
             .uri(BASE_URL11)
@@ -133,7 +141,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals(0,responseBody.size());
+        assertEquals(0, responseBody.size());
 
     }
 
@@ -149,37 +157,75 @@ class DeviceProductControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals(0,responseBody.size());
+        assertEquals(0, responseBody.size());
     }
 
     @Test
     void convertMetadataTo() {
-        add();
-        String responseBody = client.post()
-            .uri(BASE_URL + "/metadata/convert-to/" + PRODUCT_ID)
-            .bodyValue("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}")
+        client.post()
+            .uri("/device/product/metadata/convert-to/{id}", "jetlinks")
+            .bodyValue("{\"properties\":[]}")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(String.class)
-            .returnResult()
-            .getResponseBody();
-        assertNull(responseBody);
+            .is2xxSuccessful();
+//        String responseBody = client.post()
+//            .uri(BASE_URL + "/metadata/convert-to/" + PRODUCT_ID)
+//            .bodyValue("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}")
+//            .exchange()
+//            .expectStatus()
+//            .is2xxSuccessful()
+//            .expectBody(String.class)
+//            .returnResult()
+//            .getResponseBody();
+//        assertNull(responseBody);
     }
 
     @Test
     void convertMetadataFrom() {
-        add();
-        String responseBody = client.post()
-            .uri(BASE_URL + "/metadata/convert-from/" + PRODUCT_ID)
-            .bodyValue("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}")
+
+//        client.post()
+//            .uri("/device/product/metadata/convert-to/{id}", "jetlinks")
+//            .bodyValue("{\"properties\":[]}")
+//            .exchange()
+//            .expectStatus()
+//            .is2xxSuccessful();
+
+        client.post()
+            .uri("/device/product/metadata/convert-from/{id}", "jetlinks")
+            .bodyValue("{\"properties\":[]}")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(String.class)
-            .returnResult()
-            .getResponseBody();
-        assertNull(responseBody);
+            .is2xxSuccessful();
+//        add();
+//        String alyMetadata = "{\n" +
+//            "  \"services\": [],\n" +
+//            "  \"properties\": [\n" +
+//            "    {\n" +
+//            "      \"identifier\": \"test001\",\n" +
+//            "      \"dataType\": {\n" +
+//            "        \"specs\": {\n" +
+//            "          \"unit\": \"micron\",\n" +
+//            "          \"unitName\": \"微米\"\n" +
+//            "        },\n" +
+//            "        \"type\": \"int\"\n" +
+//            "      },\n" +
+//            "      \"name\": \"test0012\",\n" +
+//            "      \"accessMode\": \"r\",\n" +
+//            "      \"required\": false\n" +
+//            "    }\n" +
+//            "  ],\n" +
+//            "  \"events\": []\n" +
+//            "}";
+//        String responseBody = client.post()
+//            .uri(BASE_URL + "/metadata/convert-from/" + "jetlinks")
+//            .bodyValue(alyMetadata)
+//            .exchange()
+//            .expectStatus()
+//            .is2xxSuccessful()
+//            .expectBody(String.class)
+//            .returnResult()
+//            .getResponseBody();
+//        assertNull(responseBody);
     }
 
     @Test
@@ -193,7 +239,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
             .expectBody(Integer.class)
             .returnResult()
             .getResponseBody();
-        assertEquals(1,responseBody);
+        assertEquals(1, responseBody);
     }
 
     @Test
@@ -207,7 +253,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
             .expectBody(Integer.class)
             .returnResult()
             .getResponseBody();
-        assertEquals(1,responseBody);
+        assertEquals(1, responseBody);
     }
 
     @Test
@@ -221,20 +267,12 @@ class DeviceProductControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals(3,responseBody.size());
+        assertEquals(3, responseBody.size());
     }
 
     @Test
     void aggDeviceProperty() {
-
-//        DeviceDataService.DevicePropertyAggregation devicePropertyAggregation = new DeviceDataService.DevicePropertyAggregation();
-//        devicePropertyAggregation.setProperty("property");
-//        devicePropertyAggregation.setAlias("property");
-//        List<DeviceDataService.DevicePropertyAggregation> list = new ArrayList<>();
-//        DeviceDataService.AggregationRequest aggregationRequest = new DeviceDataService.AggregationRequest();
-//        AggRequest aggRequest = new AggRequest();
-//        aggRequest.setColumns(list);
-//        aggRequest.setQuery(aggregationRequest);
+        deviceDeploy();
         String s = "{\n" +
             "  \"columns\": [\n" +
             "    {\n" +
