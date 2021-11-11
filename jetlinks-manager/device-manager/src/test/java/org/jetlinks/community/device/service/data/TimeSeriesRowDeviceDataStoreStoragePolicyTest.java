@@ -4,6 +4,7 @@ package org.jetlinks.community.device.service.data;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.DeviceProperty;
@@ -19,6 +20,8 @@ import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.message.Headers;
+import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
 import org.junit.jupiter.api.Test;
@@ -27,11 +30,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import org.reactivestreams.Publisher;
+import reactor.util.function.Tuple2;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -171,8 +176,6 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry1 = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry1.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator1 = inMemoryDeviceRegistry1.register(deviceInstanceEntity.toDeviceInfo()).block();
-
-
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator1));
         Map<String, Object> map1 = new HashMap<>();
@@ -186,19 +189,19 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .verifyComplete();
 
         //TODO 为空
-        deviceInstanceEntity.setDeriveMetadata("");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
+        );
         InMemoryDeviceRegistry inMemoryDeviceRegistry2 = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry2.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator2 = inMemoryDeviceRegistry2.register(deviceInstanceEntity.toDeviceInfo()).block();
 
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator2));
-        storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity())
-            .switchIfEmpty(s->Mono.just("返回值为空"))
-            .map(DeviceProperty::getPropertyName)
-            .as(StepVerifier::create)
-            .expectNext("返回值为空")
-            .verifyComplete();
+        storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity(),"").subscribe();
+        storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity()).subscribe();
+
+
     }
 
     @Test
@@ -332,7 +335,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         Map<String, Object> map = new HashMap<>();
         map.put("tcp_auth_key", "admin");
         deviceProductEntity.setConfiguration(map);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
+//        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
@@ -354,19 +357,14 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
 
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
-//        storagePolicy.queryEachProperties(DEVICE_ID, new QueryParamEntity())
-//            .map(DeviceProperty::getPropertyName)
-//            .switchIfEmpty(s->Mono.just("返回值为空"))
-//            .as(StepVerifier::create)
-//            .expectNext("返回值为空")
-//            .verifyComplete();
 
         storagePolicy.queryEachProperties(DEVICE_ID,new QueryParamEntity(), "temperature")
             .map(DeviceProperty::getPropertyName)
             .as(StepVerifier::create)
             .expectNext("温度")
             .verifyComplete();
-        //TODO 为空
+
+        storagePolicy.queryEachProperties(DEVICE_ID, new QueryParamEntity(),"aa").subscribe();
 
 
     }
@@ -459,5 +457,95 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .as(StepVerifier::create)
             .expectNext("1234444")
             .verifyComplete();
+    }
+
+    @Test
+    void convertProperties(){
+        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
+        TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId(DEVICE_ID);
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
+        );
+
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map2 = new HashMap<>();
+        map2.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map2);
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+
+        ElasticSearchTimeSeriesService elasticSearchTimeSeriesService = Mockito.mock(ElasticSearchTimeSeriesService.class);
+        Mockito.when(timeSeriesManager.getService(Mockito.anyString()))
+            .thenReturn(elasticSearchTimeSeriesService);
+
+        Map<String, Object> map1=new HashMap<>();
+        map1.put("time","1234444");
+        Mockito.when(elasticSearchTimeSeriesService.aggregation(Mockito.any(AggregationQueryParam.class)))
+            .thenReturn(Flux.just(AggregationData.of(map1)));
+
+        TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+
+        Map<String, Long> map=new HashMap<>();
+        map.put("time",111111111L);
+        ReportPropertyMessage message = ReportPropertyMessage.create();
+        message.setPropertySourceTimes(map);
+        message.setDeviceId(DEVICE_ID);
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("temperature","36");
+        message.setTimestamp(1111111111111111L);
+        storagePolicy.convertProperties(PRODUCT_ID,message,properties)
+            .map(Tuple2::getT1)
+            .as(StepVerifier::create)
+            .expectNext("properties_"+PRODUCT_ID)
+            .verifyComplete();
+
+        Map<String, Object> properties1 = new HashMap<>();
+        properties1.put("test","36");
+        storagePolicy.convertProperties(PRODUCT_ID,message,properties1)
+            .as(StepVerifier::create)
+            .expectSubscription()
+            .verifyComplete();
+
+        Map<String, Object> properties2 = new HashMap<>();
+        properties2.put("temperature","test");
+        storagePolicy.convertProperties(PRODUCT_ID,message,properties2)
+            .as(StepVerifier::create)
+            .expectError(UnsupportedOperationException.class)
+            .verify();
+
+        Map<String, Object> properties3 = new HashMap<>();
+        properties3.put("temperature",null);
+        storagePolicy.convertProperties(PRODUCT_ID,message,properties3)
+            .map(Tuple2::getT1)
+            .as(StepVerifier::create)
+            .expectNext("properties_"+PRODUCT_ID)
+            .verifyComplete();
+
+        message.addHeader(Headers.useTimestampAsId.getKey(),true);
+        storagePolicy.convertProperties(PRODUCT_ID,message,properties)
+            .map(Tuple2::getT1)
+            .as(StepVerifier::create)
+            .expectNext("properties_"+PRODUCT_ID)
+            .verifyComplete();
+        storagePolicy.convertProperties(PRODUCT_ID,message,new HashMap<>()).subscribe();
+
+        //TODO 其他类型AbstractDeviceDataStoragePolicy
     }
 }
