@@ -6,6 +6,7 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveQuery;
 import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.defaults.CompositeProtocolSupport;
 import org.jetlinks.core.defaults.ExpandsConfigMetadataSupplier;
@@ -15,6 +16,7 @@ import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.StringType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -217,4 +219,8 @@ class DefaultDeviceConfigMetadataSupplierTest {
           .expectNext("test3")
           .verifyComplete();
   }
+
+
+
+
 }

@@ -6,9 +6,11 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveUpdate;
 import org.hswebframework.ezorm.rdb.mapping.defaults.DefaultReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
+import org.hswebframework.ezorm.rdb.mapping.defaults.record.RecordReactiveRepository;
 import org.hswebframework.ezorm.rdb.metadata.RDBDatabaseMetadata;
 import org.hswebframework.ezorm.rdb.metadata.RDBTableMetadata;
 import org.hswebframework.ezorm.rdb.operator.DatabaseOperator;
+import org.hswebframework.ezorm.rdb.operator.dml.upsert.SaveResultOperator;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.DeviceStateInfo;
@@ -28,6 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 
@@ -277,7 +280,7 @@ class DeviceMessageBusinessHandlerTest {
 
 
     @Test
-    void updateDeviceTag() {
+    void updateDeviceTag() throws Exception {
         LocalDeviceInstanceService deviceService = Mockito.mock(LocalDeviceInstanceService.class);
         LocalDeviceProductService productService = Mockito.mock(LocalDeviceProductService.class);
 
@@ -310,22 +313,20 @@ class DeviceMessageBusinessHandlerTest {
         deviceProductEntity.setMetadata("{'pr':'pro'}");
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
-        deviceProductOperator.setConfig(DeviceConfigKey.protocol,"test").subscribe();
+        deviceProductOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
 
         inMemoryDeviceRegistry.register(instance.toDeviceInfo().addConfig("state", DeviceState.online)).subscribe();
         DefaultDeviceOperator defaultDeviceOperator = new DefaultDeviceOperator(DEVICE_ID, new MockProtocolSupport(), inMemoryConfigStorageManager, new StandaloneDeviceMessageBroker(), inMemoryDeviceRegistry);
         defaultDeviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
 
 
-
         Mockito.when(registry.getDevice(Mockito.any(String.class)))
             .thenReturn(Mono.just(defaultDeviceOperator));
         defaultDeviceOperator.getMetadata()
-            .map(e->e.getTag("test"))
-            .map(e->e.get())
-            .map(e->e.getValueType())
+            .map(e -> e.getTag("test"))
+            .map(e -> e.get())
+            .map(e -> e.getValueType())
             .subscribe(System.out::println);
-
 
 
         DatabaseOperator databaseOperator = Mockito.mock(DatabaseOperator.class);
@@ -334,23 +335,27 @@ class DeviceMessageBusinessHandlerTest {
         Mockito.when(rdbDatabaseMetadata.getTable(Mockito.anyString()))
             .thenReturn(Optional.of(new RDBTableMetadata()));
 
-        //需要从新save方法 订阅save方法 才能使流继续执行
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =new DefaultReactiveRepository(databaseOperator,"test",String.class,null){
-            @Override
-            public Mono<SaveResult> save(Publisher data) {
-                return Mono.just(data)
-                    .map(i-> SaveResult.of(0,1));
-            }
-        };
+        DefaultReactiveRepository<DeviceTagEntity,String> tagRepository = Mockito.mock(DefaultReactiveRepository.class);
+        SaveResultOperator resultOperator = Mockito.mock(SaveResultOperator.class);
+        Class<? extends DefaultReactiveRepository> aClass = tagRepository.getClass();
+        Method doSave = aClass.getDeclaredMethod("doSave", Collection.class);
+        doSave.setAccessible(true);
+
+        Mockito.when(doSave.invoke(tagRepository,Mockito.any(Collection.class)))
+            .thenReturn(resultOperator);
+        Mockito.when(resultOperator.reactive())
+            .thenReturn(Mono.just(SaveResult.of(1,0)));
+        Mockito.when(tagRepository.save(Mockito.any(Publisher.class)))
+            .thenCallRealMethod()
+            .thenReturn(Mono.just(1));
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, registry, tagRepository, new BrokerEventBus());
 
         Map<String, Object> map = new HashMap<>();
         map.put("test", "test");
-        map.put("test1","ccc");
+        map.put("test1", "ccc");
         UpdateTagMessage updateTagMessage = new UpdateTagMessage();
         updateTagMessage.setDeviceId(DEVICE_ID);
         updateTagMessage.setTags(map);
-
 
 
         service.updateDeviceTag(updateTagMessage)
@@ -446,7 +451,7 @@ class DeviceMessageBusinessHandlerTest {
         DeviceStateInfo deviceStateInfo = DeviceStateInfo.of(DEVICE_ID, org.jetlinks.community.device.enums.DeviceState.online);
         List<DeviceStateInfo> list = new ArrayList<>();
         list.add(deviceStateInfo);
-        Mockito.when(deviceService.syncStateBatch(Mockito.any(Flux.class),Mockito.anyBoolean()))
+        Mockito.when(deviceService.syncStateBatch(Mockito.any(Flux.class), Mockito.anyBoolean()))
             .thenReturn(Flux.just(list));
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, registry, tagRepository, brokerEventBus);
         service.init();

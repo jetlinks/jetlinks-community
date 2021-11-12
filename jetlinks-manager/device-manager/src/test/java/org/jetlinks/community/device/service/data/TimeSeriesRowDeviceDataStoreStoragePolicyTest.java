@@ -23,6 +23,7 @@ import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.Headers;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -490,6 +491,8 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        Mockito.when(registry.getDevice(Mockito.anyString()))
+            .thenReturn(Mono.just(deviceOperator));
 
         ElasticSearchTimeSeriesService elasticSearchTimeSeriesService = Mockito.mock(ElasticSearchTimeSeriesService.class);
         Mockito.when(timeSeriesManager.getService(Mockito.anyString()))
@@ -547,5 +550,63 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         storagePolicy.convertProperties(PRODUCT_ID,message,new HashMap<>()).subscribe();
 
         //TODO 其他类型AbstractDeviceDataStoragePolicy
+    }
+
+    @Test
+    void convertPropertyValue() {
+        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
+        TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId(DEVICE_ID);
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
+        );
+
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map2 = new HashMap<>();
+        map2.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map2);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+
+        Mockito.when(registry.getDevice(Mockito.anyString()))
+            .thenReturn(Mono.just(deviceOperator));
+        PropertyMetadata propertyMetadata = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+//        propertyMetadata.getValueType();
+        Map<String, Object> expands = new HashMap<>();
+        expands.put("storageType", "json-string");
+        propertyMetadata.setExpands(expands);
+        TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+
+        Object o = storagePolicy.convertPropertyValue(null, null);
+        assertNull(o);
+
+        Object test = storagePolicy.convertPropertyValue("test", propertyMetadata);
+        assertEquals("test", test);
+        expands.put("storageType", "aa");
+        System.out.println(propertyMetadata.getValueType());
+        Object value = storagePolicy.convertPropertyValue("test", propertyMetadata);
+        assertNull(value);
+
+        deviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"unknown\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}").subscribe();
+        PropertyMetadata propertyMetadata1 = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+
+        Object value1 = storagePolicy.convertPropertyValue("test", propertyMetadata1);
+        assertEquals("test", value1);
     }
 }
