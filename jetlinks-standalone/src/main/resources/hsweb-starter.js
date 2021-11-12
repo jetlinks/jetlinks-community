@@ -84,7 +84,7 @@ var autzSettings = [{
     "dimensionTargetName": "1199596756811550720",
     "state": 1,
     "actions": java.util.Arrays.asList("stop", "query", "save", "start", "delete", "execute"),
-    "dataAccesses": [],
+    "dataAccesses": new java.util.ArrayList(),
     "priority": 10,
     "merge": true
 }, {
@@ -129,7 +129,7 @@ var autzSettings = [{
     "dimensionTargetName": "1199596756811550720",
     "state": 1,
     "actions": java.util.Arrays.asList("query", "save"),
-    "dataAccesses": [],
+    "dataAccesses": new java.util.ArrayList(),
     "priority": 10,
     "merge": true
 }, {
@@ -152,7 +152,7 @@ var autzSettings = [{
     "dimensionTargetName": "1199596756811550720",
     "state": 1,
     "actions": java.util.Arrays.asList("query", "save", "delete"),
-    "dataAccesses": [],
+    "dataAccesses": new java.util.ArrayList(),
     "priority": 10,
     "merge": true
 }, {
@@ -164,7 +164,7 @@ var autzSettings = [{
     "dimensionTargetName": "1199596756811550720",
     "state": 1,
     "actions": java.util.Arrays.asList("query", "save", "delete"),
-    "dataAccesses": [],
+    "dataAccesses": new java.util.ArrayList(),
     "priority": 10,
     "merge": true
 }, {
