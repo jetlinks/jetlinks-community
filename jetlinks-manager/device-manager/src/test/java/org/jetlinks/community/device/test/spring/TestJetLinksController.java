@@ -75,25 +75,13 @@ import java.util.Optional;
     "org.jetlinks.community.elastic",
 },basePackageClasses={
     DefaultImportExportService.class,
-
     MeterRegistryManager.class,
     TimeSeriesMeterRegistrySupplier.class
 //    ElasticSearchTimeSeriesManager.class,
 //    ElasticSearchTimeSeriesService.class,
 //    DefaultElasticSearchIndexManager.class,
 //    ElasticSearchConfiguration.class
-},
-    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-        classes = {
-            DeviceDynamicDashboard.class,
-            DefaultDeviceDataManager.class,
-//            DefaultDeviceConfigMetadataSupplier.class,
-            //DeviceManagerConfiguration.class,
-//            DeviceDynamicDashboard.class,
-//            DefaultDeviceDataManager.class,
-            DeviceMessageMeasurementProvider.class,
-            DeviceStatusMeasurementProvider.class,
-    }))
+})
 
 public class TestJetLinksController {
 

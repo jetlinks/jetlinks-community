@@ -74,10 +74,14 @@ public class DeviceMessageSendSubscriptionProvider implements SubscriptionProvid
         message.put("messageId", IDGenerator.SNOW_FLAKE_STRING.generate());
         message.put("deviceId", deviceId);
 
+//        RepayableDeviceMessage<?> msg = MessageType.convertMessage(message)
+//            .filter(RepayableDeviceMessage.class::isInstance)
+//            .map(RepayableDeviceMessage.class::cast)
+//            .orElseThrow(() -> new UnsupportedOperationException("不支持的消息格式"));
         RepayableDeviceMessage<?> msg = MessageType.convertMessage(message)
             .filter(RepayableDeviceMessage.class::isInstance)
             .map(RepayableDeviceMessage.class::cast)
-            .orElseThrow(() -> new UnsupportedOperationException("不支持的消息格式"));
+            .get();
         return registry
             .getDevice(deviceId)
             .switchIfEmpty(Mono.error(() -> new DeviceOperationException(ErrorCode.CLIENT_OFFLINE)))
