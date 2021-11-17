@@ -71,6 +71,11 @@ public class DeviceGatewayHelper {
             }
         }
         ChildrenDeviceSession deviceSession = sessionManager.getSession(deviceId, children.getDeviceId());
+        if (deviceSession != null) {
+            deviceSession.keepAlive();
+            applySessionKeepaliveTimeout(children, () -> null)
+                .accept(deviceSession);
+        }
         //子设备离线或者注销
         if (children instanceof DeviceOfflineMessage || children instanceof DeviceUnRegisterMessage) {
             //注销会话,这里子设备可能会收到多次离线消息
@@ -96,13 +101,13 @@ public class DeviceGatewayHelper {
                 return Mono
                     .delay(Duration.ofSeconds(2))
                     .then(registry
-                        .getDevice(children.getDeviceId())
-                        .flatMap(device -> device
-                            //没有配置状态自管理才自动上线
-                            .getSelfConfig(DeviceConfigKey.selfManageState)
-                            .defaultIfEmpty(false)
-                            .filter(Boolean.FALSE::equals)
-                            .flatMap(ignore -> registerSession))
+                              .getDevice(children.getDeviceId())
+                              .flatMap(device -> device
+                                  //没有配置状态自管理才自动上线
+                                  .getSelfConfig(DeviceConfigKey.selfManageState)
+                                  .defaultIfEmpty(false)
+                                  .filter(Boolean.FALSE::equals)
+                                  .flatMap(ignore -> registerSession))
                     );
             }
             return registerSession;
