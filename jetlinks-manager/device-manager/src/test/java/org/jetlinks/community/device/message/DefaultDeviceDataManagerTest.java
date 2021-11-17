@@ -135,6 +135,8 @@ class DefaultDeviceDataManagerTest {
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
+
+        devicePropertyRef.getLastProperty(DEVICE_ID,1).subscribe();
     }
 
     @Test

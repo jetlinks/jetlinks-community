@@ -68,6 +68,9 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController{
             .expectNext("不存储")
             .verifyComplete();
 
+        Mockito.when(properties.getDefaultPolicy())
+            .thenReturn("AA");
+        new DefaultDeviceDataService(registry, properties, policies);
 
     }
 
@@ -119,7 +122,78 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController{
 
     }
 
+    @Test
+    void queryEachOneProperties(){
+        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
+        DeviceDataStorageProperties properties = Mockito.mock(DeviceDataStorageProperties.class);
+        DefaultDeviceDataService defaultDeviceDataService = new DefaultDeviceDataService(registry, properties, policies);
 
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId(DEVICE_ID);
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
+        );
+
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map2 = new HashMap<>();
+        map2.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map2);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        Mockito.when(registry.getDevice(Mockito.anyString()))
+            .thenReturn(Mono.just(deviceOperator));
+        DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        deviceProductOperator.setConfig("storePolicy","none").subscribe();
+        Mockito.when(registry.getProduct(Mockito.anyString()))
+            .thenReturn(Mono.just(deviceProductOperator));
+        defaultDeviceDataService.queryEachOneProperties(DEVICE_ID,new QueryParamEntity())
+            .as(StepVerifier::create)
+            .expectSubscription()
+            .verifyComplete();
+
+        defaultDeviceDataService.queryEachProperties(DEVICE_ID,new QueryParamEntity())
+            .as(StepVerifier::create)
+            .expectSubscription()
+            .verifyComplete();
+
+        defaultDeviceDataService.aggregationPropertiesByDevice(DEVICE_ID,new DeviceDataService.AggregationRequest())
+            .as(StepVerifier::create)
+            .expectSubscription()
+            .verifyComplete();
+
+        defaultDeviceDataService.queryPropertyPage(DEVICE_ID,"test",new QueryParamEntity())
+            .map(PagerResult::getTotal)
+            .as(StepVerifier::create)
+            .expectNext(0)
+            .verifyComplete();
+
+        defaultDeviceDataService.queryDeviceMessageLog(DEVICE_ID,new QueryParamEntity())
+            .map(PagerResult::getTotal)
+            .as(StepVerifier::create)
+            .expectNext(0)
+            .verifyComplete();
+
+    }
+
+    @Test
+    void queryEachProperties(){
+
+    }
 
     @Test
     void saveDeviceMessage() {

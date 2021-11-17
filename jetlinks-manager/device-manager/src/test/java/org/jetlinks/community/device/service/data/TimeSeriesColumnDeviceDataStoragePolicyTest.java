@@ -7,10 +7,7 @@ import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.elastic.search.timeseries.ElasticSearchTimeSeriesService;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.TimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
-import org.jetlinks.community.timeseries.TimeSeriesService;
+import org.jetlinks.community.timeseries.*;
 import org.jetlinks.community.timeseries.micrometer.MeterTimeSeriesData;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
@@ -35,6 +32,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.util.function.Tuple2;
+import org.reactivestreams.Publisher;
 
 import java.util.*;
 import java.util.function.Function;
@@ -446,6 +444,8 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .verifyComplete();
 
         storagePolicy.convertProperties(PRODUCT_ID, message, new HashMap<>()).subscribe();
+
+
     }
 
 
@@ -494,8 +494,8 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
         MeterTimeSeriesData meterTimeSeriesData = new MeterTimeSeriesData();
         meterTimeSeriesData.getData().put("temperature", "temperature");
-        Mockito.when(elasticSearchTimeSeriesService.query(Mockito.any(QueryParam.class)))
-            .thenReturn(Flux.just(meterTimeSeriesData));
+        Mockito.when(elasticSearchTimeSeriesService.commit(Mockito.any(TimeSeriesData.class)))
+            .thenReturn(Mono.just(1).then());
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 
@@ -578,8 +578,8 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
         MeterTimeSeriesData meterTimeSeriesData = new MeterTimeSeriesData();
         meterTimeSeriesData.getData().put("temperature", "temperature");
-        Mockito.when(elasticSearchTimeSeriesService.query(Mockito.any(QueryParam.class)))
-            .thenReturn(Flux.just(meterTimeSeriesData));
+        Mockito.when(elasticSearchTimeSeriesService.save(Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1).then());
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 

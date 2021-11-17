@@ -92,5 +92,11 @@ class DeviceCurrentStateSubscriptionProviderTest {
             .as(StepVerifier::create)
             .expectComplete()
             .verify();
+
+        parameter.put("deviceId", new ArrayList<>());
+        provider.subscribe(request)
+            .as(StepVerifier::create)
+            .expectComplete()
+            .verify();
     }
 }

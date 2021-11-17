@@ -1,28 +1,43 @@
 package org.jetlinks.community.device.message;
 
+import org.hswebframework.ezorm.core.StaticMethodReferenceColumn;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveQuery;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.test.spring.TestJetLinksController;
+import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
+import org.jetlinks.core.defaults.DefaultDeviceOperator;
+import org.jetlinks.core.device.CompositeDeviceMessageSenderInterceptor;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.StandaloneDeviceMessageBroker;
+import org.jetlinks.core.exception.DeviceOperationException;
 import org.jetlinks.core.message.MessageType;
+import org.jetlinks.core.message.property.ReadPropertyMessage;
+import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
+import org.jetlinks.supports.config.InMemoryConfigStorageManager;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
+import org.jetlinks.supports.test.MockProtocolSupport;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.reactivestreams.Publisher;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.jetlinks.core.device.DeviceConfigKey.connectionServerId;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -93,6 +108,9 @@ class DeviceMessageSendSubscriptionProviderTest{
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        deviceOperator.setConfig(connectionServerId.getKey(),"test").subscribe();
+
+
 
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
@@ -101,26 +119,79 @@ class DeviceMessageSendSubscriptionProviderTest{
         request.setId("test");
         request.setTopic("/device-message-sender/"+PRODUCT_ID+"/"+DEVICE_ID);
         Map<String, Object> parameter = new HashMap<>();
-//        List<String> list = new ArrayList<>();
-//        list.add(DEVICE_ID);
-//        parameter.put("deviceId", list);
-//        MessageType.WRITE_PROPERTY_REPLY.convert()
-//        parameter.put("messageType", );
+
+        parameter.put("messageType", MessageType.WRITE_PROPERTY_REPLY);
         request.setParameter(parameter);
 
-        System.out.println(MessageType.WRITE_PROPERTY_REPLY instanceof MessageType);
 
         provider.subscribe(request)
             .as(StepVerifier::create)
-            .expectSubscription()
+            .expectError(UnsupportedOperationException.class)
+            .verify();
+        ReadPropertyMessage readPropertyMessage = new ReadPropertyMessage();
+//        System.out.println(readPropertyMessage instanceof MessageType);
+        parameter.put("messageType", MessageType.READ_PROPERTY);
+        provider.subscribe(request)
+            .map(Message::getRequestId)
+            .as(StepVerifier::create)
+            .expectNext("test")
             .verifyComplete();
-//        provider.subscribe(request)
-//            .as(StepVerifier::create)
-//            .expectError(UnsupportedOperationException.class)
-//            .verify();
-    }
 
-    @Test
-    void doSend() {
+        Map<String, Object> hashMap = new HashMap<>();
+        hashMap.put("temperature", 45);
+        ReadPropertyMessageReply readPropertyMessageReply = ReadPropertyMessageReply.create();
+        readPropertyMessageReply.setProperties(hashMap);
+        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1));
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.just(readPropertyMessageReply));
+        DefaultDeviceOperator defaultDeviceOperator =
+            new DefaultDeviceOperator(DEVICE_ID, new MockProtocolSupport(), new InMemoryConfigStorageManager()
+                , standaloneDeviceMessageBroker, inMemoryDeviceRegistry
+                , new CompositeDeviceMessageSenderInterceptor());
+        defaultDeviceOperator.setConfig(connectionServerId.getKey(),"test").subscribe();
+        Mockito.when(registry.getDevice(Mockito.anyString()))
+            .thenReturn(Mono.just(defaultDeviceOperator));
+        provider.subscribe(request)
+            .map(Message::getRequestId)
+            .as(StepVerifier::create)
+            .expectNext("test")
+            .verifyComplete();
+
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.error(new IllegalArgumentException()));
+        provider.subscribe(request)
+            .map(Message::getRequestId)
+            .as(StepVerifier::create)
+            .expectNext("test")
+            .verifyComplete();
+
+
+        request.setTopic("/device-message-sender/"+PRODUCT_ID+"/*");
+        ReactiveQuery<DeviceInstanceEntity> query = Mockito.mock(ReactiveQuery.class);
+        Mockito.when(instanceService.createQuery())
+            .thenReturn(query);
+        Mockito.when(query.select(Mockito.any(StaticMethodReferenceColumn.class)))
+            .thenReturn(query);
+        Mockito.when(query.where(Mockito.any(StaticMethodReferenceColumn.class),Mockito.any(Object.class)))
+            .thenReturn(query);
+        Mockito.when(query.fetch())
+            .thenReturn(Flux.just(deviceInstanceEntity));
+
+        provider.subscribe(request)
+            .map(Message::getRequestId)
+            .as(StepVerifier::create)
+            .expectNext("test")
+            .verifyComplete();
+
+        Mockito.when(registry.getDevice(Mockito.anyString()))
+            .thenReturn(Mono.empty());
+        provider.subscribe(request)
+            .map(Message::getRequestId)
+            .as(StepVerifier::create)
+            .expectNext("test")
+            .verifyComplete();
     }
 }

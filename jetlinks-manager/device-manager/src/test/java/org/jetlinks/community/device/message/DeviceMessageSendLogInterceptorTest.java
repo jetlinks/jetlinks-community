@@ -16,6 +16,7 @@ import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.WritePropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
+import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.supports.event.BrokerEventBus;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
 import org.junit.jupiter.api.Test;
@@ -183,6 +184,17 @@ class DeviceMessageSendLogInterceptorTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        Map<String, Object> map1 = new HashMap<>();
+        map1.put("source","manual");
+        deviceOperator.getMetadata().map(s->{
+            s.setExpands(map1);
+            return Mono.just(1);
+        }).subscribe();
+
+        //deviceOperator.getMetadata().map(s->s.getExpand("source")).subscribe(System.out::println);
+
+
+
         WritePropertyMessage writePropertyMessage = new WritePropertyMessage();
         writePropertyMessage.addHeader(PropertyMetadataConstants.Source.headerKey, "manual");
         Map<String, Object> properties = new LinkedHashMap<>();
