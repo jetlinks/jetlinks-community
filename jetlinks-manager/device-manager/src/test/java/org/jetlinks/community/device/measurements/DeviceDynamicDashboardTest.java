@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.ezorm.rdb.mapping.ReactiveQuery;
+import org.jetlinks.community.dashboard.DashboardDefinition;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.enums.DeviceState;
@@ -67,6 +68,20 @@ class DeviceDynamicDashboardTest {
         Mockito.when(productService.findById(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductEntity));
         dashboard.getObject(PRODUCT_ID).subscribe();
+    }
+
+    @Test
+    void getDefinition(){
+        LocalDeviceProductService productService = Mockito.mock(LocalDeviceProductService.class);
+        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
+        DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
+
+        DeviceDashboard dashboard = new DeviceDynamicDashboard(productService, registry, dataService, new BrokerEventBus());
+        DashboardDefinition definition = dashboard.getDefinition();
+        String id = definition.getId();
+        assertNotNull(id);
+        String name = definition.getName();
+        assertNotNull(name);
     }
 
 

@@ -80,6 +80,13 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
     }
 
     @Override
+    public Mono<PropertyValue> getFirstProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
+        return localCache
+            .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
+            .getFirstProperty(propertyId);
+    }
+
+    @Override
     public Mono<Long> getLastPropertyTime(@Nonnull String deviceId, long baseTime) {
         return localCache
             .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
@@ -93,12 +100,12 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
             .flatMap(device -> device.getSelfConfig(DeviceConfigKey.firstPropertyTime));
     }
 
-    @Override
-    public Mono<PropertyValue> getFistProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
-        return localCache
-            .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
-            .getFirstProperty(propertyId);
-    }
+//    @Override
+//    public Mono<PropertyValue> getFistProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
+//        return localCache
+//            .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
+//            .getFirstProperty(propertyId);
+//    }
 
     @Override
     public Flux<TagValue> getTags(@Nonnull String deviceId, String... tagIdList) {

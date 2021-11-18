@@ -60,7 +60,6 @@ class DeviceCurrentStateSubscriptionProviderTest {
         parameter.put("deviceId", list);
         request.setParameter(parameter);
 
-
         ReactiveQuery<DeviceInstanceEntity> query = Mockito.mock(ReactiveQuery.class);
         Mockito.when(instanceService.createQuery())
             .thenReturn(query);
@@ -98,5 +97,7 @@ class DeviceCurrentStateSubscriptionProviderTest {
             .as(StepVerifier::create)
             .expectComplete()
             .verify();
+
+
     }
 }

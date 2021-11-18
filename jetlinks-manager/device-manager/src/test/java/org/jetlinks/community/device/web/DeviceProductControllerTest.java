@@ -148,16 +148,11 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     void getMetadataCodec() {
         add();
-        List<DeviceMetadataCodec> responseBody = client.get()
+        client.get()
             .uri(BASE_URL + "/metadata/codecs")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBodyList(DeviceMetadataCodec.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(0, responseBody.size());
+            .is2xxSuccessful();
     }
 
     @Test

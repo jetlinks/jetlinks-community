@@ -295,13 +295,13 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setState("100");
         Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
-        manager.getFistProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
 
-        manager.getFistProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -325,13 +325,13 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setState("100");
         Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
-        manager.getFistProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext(DefaultDeviceDataManager.NULL)
             .verifyComplete();
 
-        manager.getFistProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
@@ -349,7 +349,7 @@ class DefaultDeviceDataManagerTest {
         Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.empty());
 
-        manager.getFistProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();

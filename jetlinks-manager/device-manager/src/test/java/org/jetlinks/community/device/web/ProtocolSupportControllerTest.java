@@ -105,8 +105,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals(1,responseBody.size());
-        assertEquals("演示协议v1",responseBody.get(0).getName());
+        assertEquals(2,responseBody.size());
 
     }
 
@@ -122,6 +121,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
             .jsonPath("$.name").isEqualTo("TCP认证配置")
             .jsonPath("$.properties[0].property").isEqualTo("tcp_auth_key");
     }
+
     @Test
     void getDefaultMetadata() {
         deploy();
@@ -215,6 +215,16 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertEquals ("[]",responseBody);
+
+
+        map.put("location","http://localhost:8848/upload/20211008/144635269326238105.jar");
+        client.post()
+            .uri(BASE_URL + "/decode")
+            .bodyValue(protocolDecodeRequest)
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful();
+
     }
 
     @Test

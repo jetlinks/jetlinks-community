@@ -10,6 +10,7 @@ import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.exception.DeviceOperationException;
 import org.jetlinks.core.message.*;
+import org.jetlinks.core.message.firmware.RequestFirmwareMessageReply;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
@@ -86,7 +87,7 @@ class DeviceMessageSendLogInterceptorTest {
             .expectSubscription()
             .verifyComplete();
 
-        ThingPropertyMessage thingPropertyMessage = new ThingPropertyMessage();
+        RequestFirmwareMessageReply thingPropertyMessage = new RequestFirmwareMessageReply();
         interceptor.doPublish(thingPropertyMessage)
             .as(StepVerifier::create)
             .expectSubscription()
