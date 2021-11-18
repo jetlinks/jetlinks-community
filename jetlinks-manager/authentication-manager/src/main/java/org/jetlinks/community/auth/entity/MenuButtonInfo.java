@@ -10,7 +10,8 @@ import java.util.function.BiPredicate;
 
 @Getter
 @Setter
-public class MenuButtonInfo {
+public class MenuButtonInfo implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "按钮ID")
     private String id;
