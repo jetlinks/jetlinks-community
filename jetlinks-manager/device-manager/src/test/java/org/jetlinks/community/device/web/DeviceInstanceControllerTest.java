@@ -1,8 +1,11 @@
 package org.jetlinks.community.device.web;
 
 
+import com.google.common.cache.Cache;
+import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.DeviceDeployResult;
@@ -11,17 +14,31 @@ import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.test.spring.TestJetLinksController;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.StandaloneDeviceMessageBroker;
 import org.jetlinks.core.device.manager.DeviceBindProvider;
+import org.jetlinks.core.enums.ErrorCode;
+import org.jetlinks.core.exception.DeviceOperationException;
+import org.jetlinks.core.message.DisconnectDeviceMessageReply;
+import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
+import org.jetlinks.core.message.property.ReadPropertyMessageReply;
+import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.supports.cluster.ClusterDeviceRegistry;
 import org.jetlinks.supports.cluster.EventBusDeviceOperationBroker;
 import org.jetlinks.supports.config.EventBusStorageManager;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
+import org.jetlinks.supports.test.MockProtocolSupport;
 import org.junit.jupiter.api.*;
+import org.mockito.Mockito;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +61,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
 
     @Autowired
     private LocalDeviceInstanceService service;
+
+    @Autowired
+    private DeviceRegistry registry;
 
     //先添加协议
     void addProtocol() {
@@ -155,6 +175,39 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
 
     @Test
     @Order(2)
+    void deviceDeploy() {
+        DeviceDeployResult responseBody = client.post()
+            .uri(BASE_URL + "/" + DEVICE_ID + "/deploy")
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful()
+            .expectBody(DeviceDeployResult.class)
+            .returnResult()
+            .getResponseBody();
+        assertNotNull(responseBody);
+        assertEquals(1, responseBody.getTotal());
+
+    }
+
+    @Test
+    @Order(4)
+    void deployAll() {
+        List<DeviceDeployResult> responseBody = client.get()
+            .uri(BASE_URL + "/deploy")
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful()
+            .expectBodyList(DeviceDeployResult.class)
+            .returnResult()
+            .getResponseBody();
+        assertNotNull(responseBody);
+        assertEquals(1, responseBody.size());
+        assertEquals(2, responseBody.get(0).getTotal());
+    }
+
+
+    @Test
+    @Order(3)
     void getDeviceDetailInfo() {
         client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/detail")
@@ -163,7 +216,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .is2xxSuccessful()
             .expectBody()
             .jsonPath("$.id").isEqualTo(DEVICE_ID)
-            .jsonPath("$.state.text").isEqualTo("未激活");
+            .jsonPath("$.state.text").isEqualTo("离线");
     }
 
     @Test
@@ -179,7 +232,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     }
 
     @Test
-    @Order(4)
+    @Order(3)
     void getExpandsConfigMetadata() {
         List<ConfigMetadata> responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/config-metadata/property/temperature/float")
@@ -194,7 +247,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     }
 
     @Test
-    @Order(5)
+    @Order(3)
     void getBindProviders() {
         List<DeviceBindProvider> responseBody = client.get()
             .uri(BASE_URL + "/bind-providers")
@@ -209,7 +262,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     }
 
     @Test
-    @Order(6)
+    @Order(3)
     void getDeviceState() {
         client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/state")
@@ -217,29 +270,12 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .expectStatus()
             .is2xxSuccessful()
             .expectBody()
-            .jsonPath("$.text").isEqualTo("未激活")
-            .jsonPath("$.value").isEqualTo("notActive");
+            .jsonPath("$.text").isEqualTo("离线")
+            .jsonPath("$.value").isEqualTo("offline");
     }
 
     @Test
-    @Order(7)
-    void deviceDeploy() {
-        add();
-        DeviceDeployResult responseBody = client.post()
-            .uri(BASE_URL + "/" + DEVICE_ID + "/deploy")
-            .exchange()
-            .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(DeviceDeployResult.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(1, responseBody.getTotal());
-
-    }
-
-    @Test
-    @Order(8)
+    @Order(4)
     void resetConfiguration() {
         client.put()
             .uri(BASE_URL + "/" + DEVICE_ID + "/configuration/_reset")
@@ -248,54 +284,75 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .is5xxServerError();
     }
 
-    @Test
-    @Order(9)
-    void deployAll() {
-        List<DeviceDeployResult> responseBody = client.get()
-            .uri(BASE_URL + "/deploy")
-            .exchange()
-            .expectStatus()
-            .is2xxSuccessful()
-            .expectBodyList(DeviceDeployResult.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(1, responseBody.size());
-        assertEquals(1, responseBody.get(0).getTotal());
-    }
-
-    //放在最后
-    @Test
-    @Order(10)
-    void unDeploy() {
-        DeviceDeployResult responseBody = client.post()
-            .uri(BASE_URL + "/" + DEVICE_ID + "/undeploy")
-            .exchange()
-            .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(DeviceDeployResult.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(1, responseBody.getTotal());
-
-    }
 
     @Autowired
-    private DeviceRegistry registry;
+    private ClusterDeviceRegistry clusterDeviceRegistry;
+
     @Test
+    @Order(4)
     void disconnect() {
-        deviceDeploy();
-        syncDeviceState();
-        eventBusStorageManager.getStorage("device:" + DEVICE_ID)
-            .switchIfEmpty(Mono.error(new NullPointerException()))
-            .map(s->s.setConfig(connectionServerId.getKey(),"test"))
-            .subscribe(System.out::println);
-//        eventBusDeviceOperationBroker.handleSendToDeviceMessage();
-        //InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
-        registry.getDevice(DEVICE_ID).flatMap(s->s.online("test","test")).subscribe(System.out::println);
+        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
+        Field operatorCache = null;
+        try {
+            operatorCache = aClass.getDeclaredField("operatorCache");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        operatorCache.setAccessible(true);
+        Cache<String, Mono<DeviceOperator>> cache = null;
+        try {
+            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId("test");
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map = new HashMap<>();
+        map.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+
+        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1));
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.just(new DisconnectDeviceMessageReply()));
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+
+        deviceOperator.updateMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
+                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
+                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
+                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
+
+
+        cache.put("test", Mono.just(deviceOperator));
+
         Boolean responseBody = client.post()
-            .uri(BASE_URL + "/" + DEVICE_ID + "/disconnect")
+            .uri(BASE_URL + "/test/disconnect")
             .exchange()
             .expectStatus()
             .is2xxSuccessful()
@@ -311,7 +368,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
 
 
     @Test
-    @Order(11)
+    @Order(5)
     void syncDeviceState() {
         List<Integer> responseBody = client.get()
             .uri(BASE_URL + "/state/_sync")
@@ -328,7 +385,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     }
 
     @Test
-    @Order(12)
+    @Order(3)
     void getDeviceLatestProperties() {
         List<DeviceProperty> responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/properties/latest")
@@ -339,11 +396,11 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals(0,responseBody.size());
+        assertEquals(0, responseBody.size());
     }
 
     @Test
-    @Order(13)
+    @Order(3)
     void testGetDeviceLatestProperties() {
         List<DeviceProperty> responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/properties")
@@ -354,12 +411,12 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals(0,responseBody.size());
+        assertEquals(0, responseBody.size());
 
     }
 
     @Test
-    @Order(14)
+    @Order(3)
     void getDeviceLatestProperty() {
         DeviceProperty responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/property/temperature")
@@ -374,18 +431,22 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     }
 
     @Test
-    @Order(15)
+    @Order(3)
     void queryDeviceProperties() {
         client.get()
-            .uri(BASE_URL + "/" + DEVICE_ID + "/properties/_query")
-            .accept(MediaType.APPLICATION_JSON)
+            .uri(uri -> uri.path(BASE_URL + "/" + DEVICE_ID + "/properties/_query")
+                .queryParam("terms[0].column", "property")
+                .queryParam("terms[0].value", "test")
+                .build()
+            )
             .exchange()
             .expectStatus()
-            .is4xxClientError();
+            .is2xxSuccessful();
     }
 
+    // ---------
     @Test
-    @Order(16)
+    @Order(3)
     void testQueryDeviceProperties() {
         PagerResult<?> responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/property/temperature/_query")
@@ -400,93 +461,29 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     }
 
     @Test
-    @Order(17)
+    @Order(3)
     void queryPagerByDeviceEvent() {
-        PagerResult<?> responseBody = client.get()
+        client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/event/fire_alarm")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(PagerResult.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(0,responseBody.getTotal());
+            .is2xxSuccessful();
     }
 
     @Test
-    @Order(18)
+    @Order(3)
     void queryDeviceLog() {
-        PagerResult<?> responseBody = client.get()
+        client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/logs")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(PagerResult.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        //System.out.println(responseBody.getData());
+            .is2xxSuccessful();
     }
 
-    //删除放在最后
-    @Test
-    @Order(19)
-    void deleteBatch() {
-        List<String> list = new ArrayList<>();
-        list.add(DEVICE_ID);
-        Integer responseBody = client.put()
-            .uri(BASE_URL + "/batch/_delete")
-            .bodyValue(list)
-            .exchange()
-            .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Integer.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(1,responseBody);
-    }
-
-    @Test
-    @Order(20)
-    void unDeployBatch() {
-        List<String> list = new ArrayList<>();
-        list.add(DEVICE_ID);
-        Integer responseBody = client.put()
-            .uri(BASE_URL + "/batch/_unDeploy")
-            .bodyValue(list)
-            .exchange()
-            .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Integer.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(1,responseBody);
-    }
-
-    @Test
-    @Order(21)
-    void deployBatch() {
-        List<String> list = new ArrayList<>();
-        list.add(DEVICE_ID);
-        Integer responseBody = client.put()
-            .uri(BASE_URL + "/batch/_deploy")
-            .bodyValue(list)
-            .exchange()
-            .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Integer.class)
-            .returnResult()
-            .getResponseBody();
-        assertNotNull(responseBody);
-        assertEquals(1,responseBody);
-    }
 
     //标签相关测试
     @Test
-    @Order(22)
+    @Order(6)
     List<DeviceTagEntity> getDeviceTags() {
         List<DeviceTagEntity> responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/tags")
@@ -497,14 +494,14 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals("1000",responseBody.get(0).getDeviceId());
-        assertEquals("string",responseBody.get(0).getType());
-        assertEquals("v",responseBody.get(0).getValue());
+        assertEquals("1000", responseBody.get(0).getDeviceId());
+        assertEquals("string", responseBody.get(0).getType());
+        assertEquals("v", responseBody.get(0).getValue());
         return responseBody;
     }
 
     @Test
-    @Order(23)
+    @Order(5)
     void saveDeviceTag() {
         DeviceTagEntity deviceTagEntity = new DeviceTagEntity();
         deviceTagEntity.setDeviceId(DEVICE_ID);
@@ -523,16 +520,16 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals("1000",responseBody.get(0).getDeviceId());
-        assertEquals("string",responseBody.get(0).getType());
+        assertEquals("1000", responseBody.get(0).getDeviceId());
+        assertEquals("string", responseBody.get(0).getType());
     }
 
     @Test
-    @Order(24)
+    @Order(7)
     void deleteDeviceTag() {
         List<DeviceTagEntity> deviceTags = getDeviceTags();
         client.delete()
-            .uri(BASE_URL + "/" + DEVICE_ID + "/tag/"+deviceTags.get(0).getId())
+            .uri(BASE_URL + "/" + DEVICE_ID + "/tag/" + deviceTags.get(0).getId())
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
@@ -540,9 +537,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
 
     //导入导出数据
     @Test
-    @Order(25)
+    @Order(2)
     void doBatchImportByProduct() {
-        String fileUrl=this.getClass().getClassLoader().getResource("6F04AE20.xlsx").getPath();
+        String fileUrl = this.getClass().getClassLoader().getResource("6F04AE20.xlsx").getPath();
         System.out.println(fileUrl);
         List<ImportDeviceInstanceResult> responseBody = client.get()
             .uri(uriBuilder ->
@@ -556,44 +553,44 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals(1,responseBody.get(0).getResult().getTotal());
+        assertEquals(1, responseBody.get(0).getResult().getTotal());
     }
 
     @Test
-    @Order(26)
+    @Order(2)
     void downloadExportTemplate() {
         String format = "xlsx";
         client.get()
-            .uri(BASE_URL+"/"+PRODUCT_ID+"/template."+format)
+            .uri(BASE_URL + "/" + PRODUCT_ID + "/template." + format)
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
     }
 
     @Test
-    @Order(27)
+    @Order(2)
     void export() {
         String format = "xlsx";
         client.get()
-            .uri(BASE_URL+"/"+PRODUCT_ID+"/export."+format)
+            .uri(BASE_URL + "/" + PRODUCT_ID + "/export." + format)
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
     }
 
     @Test
-    @Order(28)
+    @Order(2)
     void testExport() {
         String format = "xlsx";
         client.get()
-            .uri(BASE_URL+"/export."+format)
+            .uri(BASE_URL + "/export." + format)
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
     }
 
     @Test
-    @Order(29)
+    @Order(7)
     void setDeviceShadow() {
         String shadow = "test";
         String responseBody = client.put()
@@ -607,11 +604,11 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals("test",responseBody);
+        assertEquals("test", responseBody);
     }
 
     @Test
-    @Order(30)
+    @Order(8)
     void getDeviceShadow() {
         String responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/shadow")
@@ -622,62 +619,170 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .returnResult()
             .getResponseBody();
         assertNotNull(responseBody);
-        assertEquals("test",responseBody);
+        assertEquals("test", responseBody);
 
     }
 
-    @Autowired
-    private EventBusStorageManager eventBusStorageManager;
+
     @Test
-    @Order(31)
+    @Order(7)
     void writeProperties() {
-        syncDeviceState();
-        eventBusStorageManager.getStorage("device:" + DEVICE_ID)
-            .switchIfEmpty(Mono.error(new NullPointerException()))
-            .map(s->s.setConfig(connectionServerId.getKey(),"test"))
-            .subscribe(System.out::println);
-//        ConfigStorage block = eventBusStorageManager.getStorage("device:" + DEVICE_ID).block();
-//        eventBusStorageManager.getStorage("device:" + DEVICE_ID)
-//            .map(s->s.setConfig(connectionServerId.getKey(),"test"))
-//            .subscribe(System.out::println);
-//        block.getConfig(connectionServerId.getKey()).subscribe(System.out::println);
-        Map<String,Object> map = new HashMap<>();
-        map.put("temperature",36.5);
-        Map<?,?> responseBody = client.put()
-            .uri(BASE_URL + "/" + DEVICE_ID + "/property")
+
+        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
+        Field operatorCache = null;
+        try {
+            operatorCache = aClass.getDeclaredField("operatorCache");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        operatorCache.setAccessible(true);
+        Cache<String, Mono<DeviceOperator>> cache = null;
+        try {
+            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId("test1");
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map = new HashMap<>();
+        map.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+
+        Map<String, Object> hashMap = new HashMap<>();
+        hashMap.put("temperature", 45);
+        WritePropertyMessageReply writePropertyMessageReply = WritePropertyMessageReply.create();
+        writePropertyMessageReply.setProperties(hashMap);
+
+        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1));
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.just(writePropertyMessageReply));
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+
+        deviceOperator.updateMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
+                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
+                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
+                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
+
+
+        cache.put("test1", Mono.just(deviceOperator));
+
+
+        Map<String, Object> map1 = new HashMap<>();
+        map1.put("temperature", 36.5);
+        client.put()
+            .uri(BASE_URL + "/test1/property")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(map)
+            .bodyValue(map1)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Map.class)
-            .returnResult()
-            .getResponseBody();
-        System.out.println(responseBody);
+            .is2xxSuccessful();
     }
 
     @Test
-    @Order(32)
+    @Order(7)
     void invokedFunction() {
-        syncDeviceState();
-        String functionId = "f";
-        Map<String,Object> map = new HashMap<>();
+        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
+        Field operatorCache = null;
+        try {
+            operatorCache = aClass.getDeclaredField("operatorCache");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        operatorCache.setAccessible(true);
+        Cache<String, Mono<DeviceOperator>> cache = null;
+        try {
+            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId("test2");
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map = new HashMap<>();
+        map.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+        FunctionInvokeMessageReply functionInvokeMessageReply = FunctionInvokeMessageReply.create();
+        functionInvokeMessageReply.setOutput("test");
+
+        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1));
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.just(functionInvokeMessageReply));
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+
+        deviceOperator.updateMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
+                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
+                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
+                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
+
+
+        cache.put("test2", Mono.just(deviceOperator));
+        String functionId = "AuditCommandFunction";
+        Map<String, Object> map1 = new HashMap<>();
         //map.put("temperature",36.5);
-        Map<?,?> responseBody = client.post()
-            .uri(BASE_URL + "/" + DEVICE_ID + "/function/"+functionId)
+         client.post()
+            .uri(BASE_URL + "/test2/function/" + functionId)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(map)
+            .bodyValue(map1)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Map.class)
-            .returnResult()
-            .getResponseBody();
-        System.out.println(responseBody);
+            .is2xxSuccessful();
     }
 
     @Test
-    @Order(33)
+    @Order(7)
     void aggDeviceProperty() {
         String s = "{\n" +
             "  \"columns\": [\n" +
@@ -717,62 +822,371 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             "    }\n" +
             "  }\n" +
             "}";
-        Map<?,?> responseBody = client.post()
+        client.post()
             .uri(BASE_URL + "/" + DEVICE_ID + "/agg/_query")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(s)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Map.class)
-            .returnResult()
-            .getResponseBody();
-        System.out.println(responseBody);
+            .is2xxSuccessful();
 
     }
 
     @Test
-    @Order(34)
+    @Order(8)
     void sendMessage() {
-        Map<String,Object> map = new HashMap<>();
-        //map.put("temperature",36.5);
-        Map<?,?> responseBody = client.post()
-            .uri(BASE_URL +"/"+DEVICE_ID+ "/messages")
+
+        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
+        Field operatorCache = null;
+        try {
+            operatorCache = aClass.getDeclaredField("operatorCache");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        operatorCache.setAccessible(true);
+        Cache<String, Mono<DeviceOperator>> cache = null;
+        try {
+            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId("test3");
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+        service.save(deviceInstanceEntity).subscribe();
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map1 = new HashMap<>();
+        map1.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map1);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+        FunctionInvokeMessageReply functionInvokeMessageReply = FunctionInvokeMessageReply.create();
+        functionInvokeMessageReply.setOutput("test");
+
+        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1));
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.just(functionInvokeMessageReply));
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+
+        deviceOperator.updateMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
+                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
+                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
+                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
+
+        cache.put("test3", Mono.just(deviceOperator));
+
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("event","event");
+
+       client.post()
+            .uri(BASE_URL + "/test3/message")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(map)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Map.class)
-            .returnResult()
-            .getResponseBody();
-        System.out.println(responseBody);
+            .is2xxSuccessful();
     }
 
     @Test
-    @Order(35)
+    @Order(8)
+    void sendMessage1() {
+
+        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
+        Field operatorCache = null;
+        try {
+            operatorCache = aClass.getDeclaredField("operatorCache");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        operatorCache.setAccessible(true);
+        Cache<String, Mono<DeviceOperator>> cache = null;
+        try {
+            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId("test5");
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+        service.save(deviceInstanceEntity).subscribe();
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map1 = new HashMap<>();
+        map1.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map1);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+        FunctionInvokeMessageReply functionInvokeMessageReply = FunctionInvokeMessageReply.create();
+        functionInvokeMessageReply.setOutput("test");
+
+        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1));
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.error(new DeviceOperationException(ErrorCode.REQUEST_HANDLING)));
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+
+        deviceOperator.updateMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
+                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
+                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
+                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
+
+        cache.put("test5", Mono.just(deviceOperator));
+
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("functionId","AuditCommandFunction");
+        map.put("inputs",10);
+
+        client.post()
+            .uri(BASE_URL + "/test5/message")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(map)
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful();
+
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.error(new IllegalArgumentException()));
+
+        client.post()
+            .uri(BASE_URL + "/test5/message")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(map)
+            .exchange()
+            .expectStatus()
+            .is5xxServerError();
+    }
+
+    @Test
+    @Order(9)
     void testSendMessage() {
-        Map<String,Object> map = new HashMap<>();
-        //map.put("temperature",36.5);
-        Map<?,?> responseBody = client.post()
-            .uri(BASE_URL + "/messages")
+//        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
+//        Field operatorCache = null;
+//        try {
+//            operatorCache = aClass.getDeclaredField("operatorCache");
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        operatorCache.setAccessible(true);
+//        Cache<String, Mono<DeviceOperator>> cache = null;
+//        try {
+//            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+//        deviceInstanceEntity.setId("test3");
+//        deviceInstanceEntity.setState(DeviceState.online);
+//        deviceInstanceEntity.setCreatorName("超级管理员");
+//        deviceInstanceEntity.setName("TCP-setvice");
+//        deviceInstanceEntity.setProductId(PRODUCT_ID);
+//        deviceInstanceEntity.setProductName("TCP测试");
+//        deviceInstanceEntity.setDeriveMetadata(
+//            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+//        service.save(deviceInstanceEntity).subscribe();
+//        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+//        deviceProductEntity.setId(PRODUCT_ID);
+//        deviceProductEntity.setTransportProtocol("TCP");
+//        deviceProductEntity.setProtocolName("演示协议v1");
+//        deviceProductEntity.setState((byte) 1);
+//        deviceProductEntity.setCreatorId("1199596756811550720");
+//        deviceProductEntity.setMessageProtocol("demo-v1");
+//        deviceProductEntity.setName("TCP测试");
+//        Map<String, Object> map1 = new HashMap<>();
+//        map1.put("tcp_auth_key", "admin");
+//        deviceProductEntity.setConfiguration(map1);
+//        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+//
+//        FunctionInvokeMessageReply functionInvokeMessageReply = FunctionInvokeMessageReply.create();
+//        functionInvokeMessageReply.setOutput("test");
+//
+//        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+//        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+//            .thenReturn(Mono.just(1));
+//        Mockito.when(standaloneDeviceMessageBroker
+//            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+//            .thenReturn(Flux.just(functionInvokeMessageReply));
+//
+//        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
+//        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+//        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+//        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+//
+//        deviceOperator.updateMetadata(
+//            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
+//                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
+//                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
+//                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
+//
+//        cache.put("test3", Mono.just(deviceOperator));
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("event","event");
+        List<Map> list = new ArrayList<>();
+        list.add(map);
+        client.post()
+            .uri(uriBuilder ->
+                uriBuilder.path(BASE_URL + "/messages")
+                .queryParam("where","id=test3")
+                .build()
+            )
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(map)
+            .bodyValue(list)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful()
-            .expectBody(Map.class)
-            .returnResult()
-            .getResponseBody();
-        System.out.println(responseBody);
+            .is2xxSuccessful();
     }
 
     @Test
-    @Order(36)
+    @Order(9)
+    void testSendMessage1() {
+
+        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
+        Field operatorCache = null;
+        try {
+            operatorCache = aClass.getDeclaredField("operatorCache");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        operatorCache.setAccessible(true);
+        Cache<String, Mono<DeviceOperator>> cache = null;
+        try {
+            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        deviceInstanceEntity.setId("test4");
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+        service.save(deviceInstanceEntity).subscribe();
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map1 = new HashMap<>();
+        map1.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map1);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+
+        FunctionInvokeMessageReply functionInvokeMessageReply = FunctionInvokeMessageReply.create();
+        functionInvokeMessageReply.setOutput("test");
+
+        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
+        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
+            .thenReturn(Mono.just(1));
+        Mockito.when(standaloneDeviceMessageBroker
+            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
+            .thenReturn(Flux.error(new IllegalArgumentException()));
+
+        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
+        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+
+        deviceOperator.updateMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
+                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
+                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
+                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
+
+        cache.put("test4", Mono.just(deviceOperator));
+
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("functionId","AuditCommandFunction");
+        map.put("inputs",10);
+        Map<String, Object> map2 = new HashMap<>();
+        map2.put("event","event");
+        List<Map> list = new ArrayList<>();
+        list.add(map);
+        list.add(map2);
+        client.post()
+            .uri(uriBuilder ->
+                uriBuilder.path(BASE_URL + "/messages")
+                    .queryParam("where","id=test4")
+                    .build()
+            )
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(list)
+            .exchange()
+            .expectStatus()
+            .is5xxServerError();
+
+//        client.post()
+//            .uri(uriBuilder ->
+//                uriBuilder.path(BASE_URL + "/messages")
+//                    .queryParam("where","id=test4")
+//                    .build()
+//            )
+//            .contentType(MediaType.APPLICATION_JSON)
+//            .bodyValue(list)
+//            .exchange()
+//            .expectStatus()
+//            .is2xxSuccessful();
+    }
+
+    @Test
+    @Order(5)
     void updateMetadata() {
         String metadata = "test";
         client.put()
-            .uri(BASE_URL+"/"+DEVICE_ID+"/metadata")
+            .uri(BASE_URL + "/" + DEVICE_ID + "/metadata")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(metadata)
             .exchange()
@@ -781,12 +1195,81 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     }
 
     @Test
-    @Order(37)
+    @Order(6)
     void resetMetadata() {
         client.delete()
-            .uri(BASE_URL+"/"+DEVICE_ID+"/metadata")
+            .uri(BASE_URL + "/" + DEVICE_ID + "/metadata")
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
+    }
+
+
+    //注销
+    @Test
+    @Order(10)
+    void unDeploy() {
+        client.post()
+            .uri(BASE_URL + "/" + DEVICE_ID + "/undeploy")
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful();
+
+    }
+
+
+    @Test
+    @Order(11)
+    void deployBatch() {
+        List<String> list = new ArrayList<>();
+        list.add(DEVICE_ID);
+        Integer responseBody = client.put()
+            .uri(BASE_URL + "/batch/_deploy")
+            .bodyValue(list)
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful()
+            .expectBody(Integer.class)
+            .returnResult()
+            .getResponseBody();
+        assertNotNull(responseBody);
+        assertEquals(1, responseBody);
+    }
+
+    @Test
+    @Order(12)
+    void unDeployBatch() {
+        List<String> list = new ArrayList<>();
+        list.add(DEVICE_ID);
+        Integer responseBody = client.put()
+            .uri(BASE_URL + "/batch/_unDeploy")
+            .bodyValue(list)
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful()
+            .expectBody(Integer.class)
+            .returnResult()
+            .getResponseBody();
+        assertNotNull(responseBody);
+        assertEquals(1, responseBody);
+    }
+
+    //删除放在最后
+    @Test
+    @Order(13)
+    void deleteBatch() {
+        List<String> list = new ArrayList<>();
+        list.add(DEVICE_ID);
+        Integer responseBody = client.put()
+            .uri(BASE_URL + "/batch/_delete")
+            .bodyValue(list)
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful()
+            .expectBody(Integer.class)
+            .returnResult()
+            .getResponseBody();
+        assertNotNull(responseBody);
+        assertEquals(1, responseBody);
     }
 }

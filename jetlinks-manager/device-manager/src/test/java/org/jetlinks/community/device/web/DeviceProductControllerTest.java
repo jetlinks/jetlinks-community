@@ -1,17 +1,15 @@
 package org.jetlinks.community.device.web;
 
-import com.alibaba.fastjson.JSONObject;
+
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.ProtocolSupportEntity;
-import org.jetlinks.community.device.enums.DeviceType;
-import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.test.spring.TestJetLinksController;
-import org.jetlinks.community.device.web.request.AggRequest;
-import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DeviceMetadataCodec;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
@@ -23,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 @WebFluxTest({DeviceProductController.class, ProtocolSupportController.class})
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DeviceProductControllerTest extends TestJetLinksController {
 
     public static final String BASE_URL = "/device/product";
@@ -35,7 +34,6 @@ class DeviceProductControllerTest extends TestJetLinksController {
     private DeviceRegistry deviceRegistry;
 
 
-    @Test
     void add1() {
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
         protocolSupportEntity.setId(ID_1);
@@ -55,7 +53,6 @@ class DeviceProductControllerTest extends TestJetLinksController {
             .is2xxSuccessful();
     }
 
-    @Test
     void deploy() {
         add1();
         Boolean responseBody = client.post()
@@ -71,6 +68,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(0)
     void add() {
         deploy();
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
@@ -81,20 +79,6 @@ class DeviceProductControllerTest extends TestJetLinksController {
         deviceProductEntity.setCreatorId("1199596756811550720");
         deviceProductEntity.setMessageProtocol("demo-v1");
         deviceProductEntity.setName("TCP测试");
-        //deviceProductEntity.setDeviceType(DeviceType.valueOf("device"));
-//        deviceProductEntity.setClassifiedId("|41|");
-//        deviceProductEntity.setCreateTime(new Date().getTime());
-//        deviceProductEntity.setClassifiedName("智能生活");
-//        deviceProductEntity.setOrgId("");
-//        deviceProductEntity.setDescribe("");
-//        deviceProductEntity.setPhotoUrl("");
-//        deviceProductEntity.setProjectId("");
-//        deviceProductEntity.setProjectName("");
-//        deviceProductEntity.setNetworkWay("");
-//        deviceProductEntity.setStorePolicy("");
-//        Map<String, Object> map1 = new HashMap<>();
-//        deviceProductEntity.setStorePolicyConfiguration(map1);
-//        //{"tcp_auth_key":"admin"}
         Map<String, Object> map = new HashMap<>();
         map.put("tcp_auth_key", "admin");
         deviceProductEntity.setConfiguration(map);
@@ -111,13 +95,8 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
-    void getService() {
-//        add();
-    }
-
-    @Test
+    @Order(1)
     void getDeviceConfigMetadata() {
-        add();
         client.get()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/config-metadata")
             .exchange()
@@ -130,8 +109,8 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void getExpandsConfigMetadata() {
-        add();
         List<ConfigMetadata> responseBody = client.get()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/config-metadata/property/temperature/float")
             .exchange()
@@ -146,8 +125,8 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void getMetadataCodec() {
-        add();
         client.get()
             .uri(BASE_URL + "/metadata/codecs")
             .exchange()
@@ -156,6 +135,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void convertMetadataTo() {
         client.post()
             .uri("/device/product/metadata/convert-to/{id}", "jetlinks")
@@ -163,69 +143,23 @@ class DeviceProductControllerTest extends TestJetLinksController {
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
-//        String responseBody = client.post()
-//            .uri(BASE_URL + "/metadata/convert-to/" + PRODUCT_ID)
-//            .bodyValue("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}")
-//            .exchange()
-//            .expectStatus()
-//            .is2xxSuccessful()
-//            .expectBody(String.class)
-//            .returnResult()
-//            .getResponseBody();
-//        assertNull(responseBody);
+
     }
 
     @Test
+    @Order(1)
     void convertMetadataFrom() {
-
-//        client.post()
-//            .uri("/device/product/metadata/convert-to/{id}", "jetlinks")
-//            .bodyValue("{\"properties\":[]}")
-//            .exchange()
-//            .expectStatus()
-//            .is2xxSuccessful();
-
         client.post()
             .uri("/device/product/metadata/convert-from/{id}", "jetlinks")
             .bodyValue("{\"properties\":[]}")
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
-//        add();
-//        String alyMetadata = "{\n" +
-//            "  \"services\": [],\n" +
-//            "  \"properties\": [\n" +
-//            "    {\n" +
-//            "      \"identifier\": \"test001\",\n" +
-//            "      \"dataType\": {\n" +
-//            "        \"specs\": {\n" +
-//            "          \"unit\": \"micron\",\n" +
-//            "          \"unitName\": \"微米\"\n" +
-//            "        },\n" +
-//            "        \"type\": \"int\"\n" +
-//            "      },\n" +
-//            "      \"name\": \"test0012\",\n" +
-//            "      \"accessMode\": \"r\",\n" +
-//            "      \"required\": false\n" +
-//            "    }\n" +
-//            "  ],\n" +
-//            "  \"events\": []\n" +
-//            "}";
-//        String responseBody = client.post()
-//            .uri(BASE_URL + "/metadata/convert-from/" + "jetlinks")
-//            .bodyValue(alyMetadata)
-//            .exchange()
-//            .expectStatus()
-//            .is2xxSuccessful()
-//            .expectBody(String.class)
-//            .returnResult()
-//            .getResponseBody();
-//        assertNull(responseBody);
     }
 
     @Test
+    @Order(1)
     void deviceDeploy() {
-        add();
         Integer responseBody = client.post()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/deploy")
             .exchange()
@@ -238,8 +172,8 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(3)
     void cancelDeploy() {
-        deviceDeploy();
         Integer responseBody = client.post()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/undeploy")
             .exchange()
@@ -252,6 +186,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void storePolicy() {
         List<DeviceProductController.DeviceDataStorePolicyInfo> responseBody = client.get()
             .uri(BASE_URL + "/storage/policies")
@@ -266,6 +201,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void aggDeviceProperty() {
         deviceDeploy();
         String s = "{\n" +

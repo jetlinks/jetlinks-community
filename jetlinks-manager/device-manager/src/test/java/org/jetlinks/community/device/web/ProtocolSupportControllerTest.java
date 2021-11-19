@@ -12,6 +12,7 @@ import org.jetlinks.community.device.web.request.ProtocolEncodeRequest;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.rule.engine.executor.PayloadType;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -23,11 +24,12 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(ProtocolSupportController.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ProtocolSupportControllerTest extends TestJetLinksController {
     public static final String BASE_URL = "/protocol";
     public static final String ID_1 = "demo-v1";
 
-    @Test
+
     void add(){
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
         protocolSupportEntity.setId(ID_1);
@@ -48,6 +50,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(0)
     void deploy() {
         add();
         Boolean responseBody = client.post()
@@ -63,6 +66,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(3)
     void unDeploy() {
         deploy();
         Boolean responseBody = client.post()
@@ -78,8 +82,8 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void getProviders() {
-        add();
         List<String> responseBody = client.get()
             .uri(BASE_URL + "/providers")
             .exchange()
@@ -94,8 +98,8 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void allProtocols() {
-        deploy();
         List<ProtocolInfo> responseBody=client.get()
             .uri(BASE_URL + "/supports")
             .exchange()
@@ -110,8 +114,8 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(2)
     void getTransportConfiguration() {
-        deploy();
         client.get()
             .uri(BASE_URL + "/" + ID_1 + "/TCP/configuration")
             .exchange()
@@ -123,8 +127,8 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void getDefaultMetadata() {
-        deploy();
         String responseBody = client.get()
             .uri(BASE_URL + "/" + ID_1 + "/TCP/metadata")
             .exchange()
@@ -138,8 +142,8 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void getAllTransport() {
-        deploy();
         List<TransportInfo> responseBody = client.get()
             .uri(BASE_URL + "/" + ID_1 + "/transports")
             .exchange()
@@ -156,6 +160,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void convertToDetail() {
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
         protocolSupportEntity.setId(ID_1);
@@ -184,6 +189,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void decode() {
         convertToDetail();
         ProtocolDecodeRequest protocolDecodeRequest = new ProtocolDecodeRequest();
@@ -228,6 +234,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void encode() {
 
         ProtocolEncodeRequest protocolEncodeRequest = new ProtocolEncodeRequest();
@@ -262,6 +269,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void allUnits() {
         client.get()
             .uri(BASE_URL + "/units")
