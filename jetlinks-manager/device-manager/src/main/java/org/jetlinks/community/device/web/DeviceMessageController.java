@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.web;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Generated;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.annotation.Authorize;
