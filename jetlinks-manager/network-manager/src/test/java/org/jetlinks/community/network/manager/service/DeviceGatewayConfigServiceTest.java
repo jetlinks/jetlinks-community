@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.manager.service;
 
+import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProperties;
 import org.jetlinks.community.network.manager.entity.DeviceGatewayEntity;
 import org.junit.jupiter.api.Test;
@@ -29,5 +30,13 @@ class DeviceGatewayConfigServiceTest {
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
+
+        Mockito.when(gatewayService.findById(Mockito.anyString()))
+            .thenReturn(Mono.empty());
+        service.getProperties("test")
+            .map(DeviceGatewayProperties::getNetworkId)
+            .as(StepVerifier::create)
+            .expectError(NotFoundException.class)
+            .verify();
     }
 }

@@ -3,6 +3,13 @@ package org.jetlinks.community.network.manager.web;
 import org.jetlinks.community.network.manager.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.BodyInserters;
+
+import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,7 +20,7 @@ class CertificateControllerTest extends TestJetLinksController {
 
     @Test
     void getService() {
-
+        new CertificateController().getService();
     }
 
     @Test
@@ -27,5 +34,33 @@ class CertificateControllerTest extends TestJetLinksController {
 
     @Test
     void upload() {
+        String filePath = this.getClass().getClassLoader().getResource("blog.jks").getPath();
+        // 封装请求参数
+        FileSystemResource resource = new FileSystemResource(new File(filePath));
+        MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
+        param.add("file", resource);  //服务端MultipartFile uploadFile
+
+        client.post()
+            .uri(BASE_URL+"/upload")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .body(BodyInserters.fromMultipartData(param))
+            //.body("C:\\web\\blog\\blog-parent\\blog-user-oauth\\src\\main\\resources\\blog.jks")
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful();
+    }
+
+    @Test
+    void upload1(){
+        MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
+        param.add("file","aa");
+        client.post()
+            .uri(BASE_URL+"/upload")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .body(BodyInserters.fromMultipartData(param))
+            //.body("C:\\web\\blog\\blog-parent\\blog-user-oauth\\src\\main\\resources\\blog.jks")
+            .exchange()
+            .expectStatus()
+            .is5xxServerError();
     }
 }

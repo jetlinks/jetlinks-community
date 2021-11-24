@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.manager.web;
 
+import org.jetlinks.community.gateway.DeviceGatewayManager;
 import org.jetlinks.community.network.manager.entity.DeviceGatewayEntity;
 import org.jetlinks.community.network.manager.entity.NetworkConfigEntity;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
@@ -8,8 +9,11 @@ import org.jetlinks.community.network.manager.service.NetworkConfigService;
 import org.jetlinks.community.network.manager.test.spring.TestJetLinksController;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.http.MediaType;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +29,12 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     private DeviceGatewayService deviceGatewayService;
     @Autowired
     private NetworkConfigService networkConfigService;
+
+    @Test
+    void getService() {
+        new DeviceGatewayController(Mockito.mock(DeviceGatewayManager.class),deviceGatewayService).getService();
+    }
+
     void add(){
 
         DeviceGatewayEntity entity = new DeviceGatewayEntity();
@@ -82,9 +92,21 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
 
     @Test
     void getMessages() {
+        add();
+        client.get()
+            .uri(BASE_URL+"/"+ID+"/messages")
+            .exchange()
+            .expectStatus()
+            .isOk();
     }
 
     @Test
     void getProviders() {
+        add();
+        client.get()
+            .uri(BASE_URL+"/providers")
+            .exchange()
+            .expectStatus()
+            .is2xxSuccessful();
     }
 }

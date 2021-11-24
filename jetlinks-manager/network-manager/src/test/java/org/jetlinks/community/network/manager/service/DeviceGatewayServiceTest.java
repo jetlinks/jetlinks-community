@@ -120,14 +120,48 @@ class DeviceGatewayServiceTest {
 
     @Test
     void insert() {
-        ReactiveRepository<DeviceGatewayEntity, String> repository = Mockito.mock(ReactiveRepository.class);
-        Mockito.when(repository.insert(Mockito.any(Publisher.class)))
-            .thenReturn(Mono.just(1));
+        class TestDefaultReactiveRepository extends DefaultReactiveRepository<DeviceGatewayEntity, String>{
+
+            public TestDefaultReactiveRepository(DatabaseOperator operator, String table, Class<DeviceGatewayEntity> type, ResultWrapper<DeviceGatewayEntity, ?> wrapper) {
+                super(operator, table, type, wrapper);
+            }
+
+            @Override
+            public Mono<Integer> insert(Publisher<DeviceGatewayEntity> data) {
+                data.subscribe(new Subscriber<DeviceGatewayEntity>() {
+                    @Override
+                    public void onSubscribe(Subscription subscription) {
+                        subscription.request(1);
+                    }
+
+                    @Override
+                    public void onNext(DeviceGatewayEntity deviceGatewayEntity) {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+                return Mono.just(1);
+            }
+        }
+        DatabaseOperator operator = Mockito.mock(DatabaseOperator.class);
+        ResultWrapper<DeviceGatewayEntity, ?> resultWrapper = Mockito.mock(ResultWrapper.class);
+
+        TestDefaultReactiveRepository testDefaultReactiveRepository = new TestDefaultReactiveRepository(operator,"",DeviceGatewayEntity.class,resultWrapper);
+
 
         DeviceGatewayService service = new DeviceGatewayService() {
             @Override
             public ReactiveRepository<DeviceGatewayEntity, String> getRepository() {
-                return repository;
+                return testDefaultReactiveRepository;
             }
         };
         DeviceGatewayEntity entity = new DeviceGatewayEntity();

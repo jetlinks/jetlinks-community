@@ -16,6 +16,7 @@ import org.jetlinks.supports.event.BrokerEventBus;
 import org.jetlinks.supports.server.monitor.MicrometerGatewayServerMetrics;
 import org.jetlinks.supports.server.session.DefaultDeviceSessionManager;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
+import org.jetlinks.supports.test.MockProtocolSupport;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -85,6 +86,11 @@ public class NetworkConfiguration {
     @Bean(initMethod = "startup")
     public RedisClusterManager clusterManager(JetLinksProperties properties, ReactiveRedisTemplate<Object, Object> template) {
         return new RedisClusterManager(properties.getClusterName(), properties.getServerId(), template);
+    }
+
+    @Bean
+    public MockProtocolSupport mockProtocolSupport(){
+       return new MockProtocolSupport();
     }
 
     //

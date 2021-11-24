@@ -69,7 +69,6 @@ public class JetLinksConfiguration {
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "vertx")
     public VertxOptions vertxOptions() {
         return new VertxOptions();
     }

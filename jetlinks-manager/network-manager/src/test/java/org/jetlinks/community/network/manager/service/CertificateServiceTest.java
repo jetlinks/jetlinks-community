@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.manager.service;
 
+
 import org.hswebframework.ezorm.core.StaticMethodReferenceColumn;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveQuery;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
@@ -11,12 +12,14 @@ import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class CertificateServiceTest {
 
   @Test
   void getCertificate() {
+
       ReactiveRepository<CertificateEntity, String> repository = Mockito.mock(ReactiveRepository.class);
       ReactiveQuery<CertificateEntity> query = Mockito.mock(ReactiveQuery.class);
       CertificateService service = new CertificateService(){
@@ -31,8 +34,8 @@ class CertificateServiceTest {
       CertificateEntity.CertificateConfig certificateConfig = new CertificateEntity.CertificateConfig();
       certificateConfig.setKeystoreBase64("abc");
       certificateConfig.setKeystorePwd("ab");
-      certificateConfig.setTrustKeyStoreBase64("aaa");
-      certificateConfig.setTrustKeyStorePwd("bbb");
+      certificateConfig.setTrustKeyStoreBase64("abc");
+      certificateConfig.setTrustKeyStorePwd("ab");
       certificateEntity.setConfigs(certificateConfig);
       certificateEntity.setInstance(CertificateType.JKS);
       Mockito.when(repository.createQuery())
