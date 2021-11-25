@@ -19,6 +19,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import reactor.test.StepVerifier;
+import reactor.test.publisher.TestPublisher;
 
 import javax.annotation.Resource;
 import java.time.Duration;
@@ -87,7 +88,7 @@ class MqttClientDebugSubscriptionProviderTest extends TestJetLinksController{
         configEntity.setId("MQTT_CLIENT");
         Map<String, Object> map1=  new HashMap<>();
         map1.put("parserType", PayloadParserType.DIRECT);
-        map1.put("port",8001);
+        map1.put("port",1884);
         map1.put("host","127.0.0.1");
         configEntity.setConfiguration(map1);
         configEntity.setState(NetworkConfigState.enabled);
@@ -104,13 +105,9 @@ class MqttClientDebugSubscriptionProviderTest extends TestJetLinksController{
         request.setTopic("/network/mqtt/client/MQTT_CLIENT/_subscribe/STRING");
         Map<String, Object> parameter = new HashMap<>();
         request.setParameter(parameter);
-        provider.subscribe(request)
-            .map(s->((Message)s).getRequestId())
-            .as(StepVerifier::create)
-            .thenAwait(Duration.ofDays(5))
-            .expectNext("MQTT_CLIENT")
-            .expectComplete()
-            .verify();
+        //provider.subscribe(request).as(StepVerifier::create).expectComplete().verify(Duration.ofSeconds(5));
+        provider.subscribe(request).blockFirst(Duration.ofSeconds(5));
+//        TestPublisher.create();
     }
 
     @Test
