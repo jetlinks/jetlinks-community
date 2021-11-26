@@ -55,7 +55,7 @@ import reactor.core.publisher.Mono;
 
 }
 )
-public class TestJetLinksController {
+public class TestJetLinksController1 {
 
     static {
 
@@ -108,6 +108,6 @@ public class TestJetLinksController {
     protected void initAuth(TestAuthentication authentication) {
         authentication.addPermission("test","test");
         authentication.addDimension("test","test");
-//        authentication.addDimension("org","org");
+        authentication.addDimension("org","org");
     }
 }
