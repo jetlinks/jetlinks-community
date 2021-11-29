@@ -73,6 +73,7 @@ public class TestJetLinksController {
 
     @BeforeAll
     static void initAll() {
+        redis.start();
         System.setProperty("spring.redis.port", String.valueOf(redis.getMappedPort(6379)));
         System.setProperty("spring.redis.host", "127.0.0.1");
 
