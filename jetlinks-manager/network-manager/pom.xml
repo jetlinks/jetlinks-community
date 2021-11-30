@@ -45,6 +45,7 @@
             <version>1.1.1</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-starter</artifactId>

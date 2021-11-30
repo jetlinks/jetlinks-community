@@ -16,12 +16,19 @@ import reactor.core.publisher.Mono;
 @Service
 public class RuleModelService extends GenericReactiveCrudService<RuleModelEntity, String> {
 
-    @Autowired
-    private RuleInstanceService instanceService;
+//    @Autowired
+//    private RuleInstanceService instanceService;
+//
+//    @Autowired
+//    private RuleEngineModelParser modelParser;
 
-    @Autowired
-    private RuleEngineModelParser modelParser;
+    private final RuleInstanceService instanceService;
+    private final RuleEngineModelParser modelParser;
 
+    public RuleModelService(RuleInstanceService instanceService, RuleEngineModelParser modelParser){
+        this.instanceService=instanceService;
+        this.modelParser=modelParser;
+    }
 
     public Mono<Boolean> deploy(String id) {
         return findById(Mono.just(id))
