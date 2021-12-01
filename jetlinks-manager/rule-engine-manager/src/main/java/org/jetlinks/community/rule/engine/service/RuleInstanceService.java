@@ -45,9 +45,9 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
         return this.ruleEngine
             .shutdown(id)
             .then(createUpdate()
-                      .set(RuleInstanceEntity::getState, RuleInstanceState.stopped)
-                      .where(RuleInstanceEntity::getId, id)
-                      .execute())
+                .set(RuleInstanceEntity::getState, RuleInstanceState.stopped)
+                .where(RuleInstanceEntity::getId, id)
+                .execute())
             .then();
     }
 
@@ -62,17 +62,17 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
             return ruleEngine
                 .startRule(entity.getId(), model)
                 .then(createUpdate()
-                          .set(RuleInstanceEntity::getState, RuleInstanceState.started)
-                          .where(entity::getId)
-                          .execute()).then();
+                    .set(RuleInstanceEntity::getState, RuleInstanceState.started)
+                    .where(entity::getId)
+                    .execute()).then();
         });
     }
 
     @Override
     public Mono<Integer> deleteById(Publisher<String> idPublisher) {
         return Flux.from(idPublisher)
-                   .flatMap(id -> this.stop(id).thenReturn(id))
-                   .as(super::deleteById);
+            .flatMap(id -> this.stop(id).thenReturn(id))
+            .as(super::deleteById);
     }
 
     @Override
