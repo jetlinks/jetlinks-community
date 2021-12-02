@@ -70,7 +70,6 @@ class DeviceAlarmRuleTest {
         trigger.setFilters(filters);
         trigger.createExpression();
     }
-
     @Test
     void validateTrigger(){
         DeviceAlarmRule.Trigger trigger = new DeviceAlarmRule.Trigger();
@@ -119,7 +118,7 @@ class DeviceAlarmRuleTest {
         assertNotNull(DeviceAlarmRule.TriggerType.device.getSupportMessageTypes());
     }
 
-/**   TriggerType  **/
+/**   MessageType  **/
     @Test
     void on(){
         String topicOnline = DeviceAlarmRule.MessageType.online.getTopic("productId", "deviceId", "key");
@@ -143,6 +142,8 @@ class DeviceAlarmRuleTest {
         trigger.setParameters(new ArrayList<>());
         DeviceMessage message = DeviceAlarmRule.MessageType.function.createMessage(trigger).get();
         assertNotNull(message);
+        DeviceAlarmRule.MessageType.online.createMessage(trigger);
+
     }
 /**   ConditionFilter  **/
     @Test
@@ -168,5 +169,18 @@ class DeviceAlarmRuleTest {
         assertNotNull(filter.getKey());
         assertNotNull(filter.getValue());
         assertNotNull(filter.getOperator());
+    }
+
+/**   Property  **/
+    @Test
+    void property(){
+        DeviceAlarmRule.Property property = new DeviceAlarmRule.Property();
+        property.setAlias("alias");
+        property.setProperty("property");
+        assertNotNull(property.getAlias());
+        assertNotNull(property.getProperty());
+        property.toString();
+        String symbol = DeviceAlarmRule.Operator.eq.getSymbol();
+        assertNotNull(symbol);
     }
 }
