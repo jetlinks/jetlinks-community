@@ -32,7 +32,6 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
 
     private final DeviceRegistry registry;
 
-
     private final ApplicationEventPublisher eventPublisher;
 
     private final ReactiveRepository<DeviceInstanceEntity, String> instanceRepository;

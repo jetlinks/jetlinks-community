@@ -20,10 +20,12 @@ import org.jetlinks.community.network.tcp.parser.DefaultPayloadParserBuilder;
 import org.jetlinks.community.network.tcp.parser.DirectRecordParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mockito;
 import org.springframework.mock.env.MockEnvironment;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -120,24 +122,16 @@ class TcpClientDebugSubscriptionProviderTest {
 
     }
 
-//    @Test
-//    void send() {
-//        NetworkManager networkManager = Mockito.mock(NetworkManager.class);
-//        TcpClientDebugSubscriptionProvider provider
-//            = new TcpClientDebugSubscriptionProvider(networkManager);
-//        Mockito.when(networkManager.getNetwork(Mockito.any(NetworkType.class),Mockito.anyString()))
-//            .thenReturn(Mono.just(new VertxTcpClient("TCP_CLIENT",true)));
-//
-//        SubscribeRequest request = new SubscribeRequest();
-//        TestAuthentication authentication = new TestAuthentication("test");
-//        authentication.addPermission("network-config", "save");
-//        request.setAuthentication(authentication);
-//        request.setId("test");
-//        request.setTopic("/network/tcp/client/TCP_CLIENT/_send");
-//        Map<String, Object> parameter = new HashMap<>();
-//        parameter.put("request","aa");
-//        request.setParameter(parameter);
-//        provider.subscribe(request).blockFirst(Duration.ofSeconds(5));
-//    }
+    @Test
+    void send() {
+        NetworkManager networkManager = Mockito.mock(NetworkManager.class);
+        TcpClientDebugSubscriptionProvider provider
+            = new TcpClientDebugSubscriptionProvider(networkManager);
+        SubscribeRequest request = new SubscribeRequest();
+        request.setId("test");
+        request.setTopic("/network/tcp/client/TCP_CLIENT/_subscribe");
+        Executable executable = ()-> provider.send("test",request);
+        assertThrows(IllegalArgumentException.class,executable);
+    }
 
 }

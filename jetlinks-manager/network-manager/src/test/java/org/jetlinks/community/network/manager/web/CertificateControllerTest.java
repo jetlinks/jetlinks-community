@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
+import reactor.core.publisher.Flux;
 
 import java.io.File;
 
@@ -34,20 +35,24 @@ class CertificateControllerTest extends TestJetLinksController {
 
     @Test
     void upload() {
-        String filePath = this.getClass().getClassLoader().getResource("blog.jks").getPath();
+        String filePath = this.getClass().getClassLoader().getResource("changgou.pem").getPath();
         // 封装请求参数
         FileSystemResource resource = new FileSystemResource(new File(filePath));
         MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
         param.add("file", resource);  //服务端MultipartFile uploadFile
 
-        client.post()
-            .uri(BASE_URL+"/upload")
+        String body = client.post()
+            .uri(BASE_URL + "/upload")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .body(BodyInserters.fromMultipartData(param))
             //.body("C:\\web\\blog\\blog-parent\\blog-user-oauth\\src\\main\\resources\\blog.jks")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is2xxSuccessful()
+            .expectBody(String.class)
+            .returnResult()
+            .getResponseBody();
+        System.out.println(body);
     }
 
     @Test
