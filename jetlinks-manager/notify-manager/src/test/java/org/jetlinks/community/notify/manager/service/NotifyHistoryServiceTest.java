@@ -38,7 +38,7 @@ class NotifyHistoryServiceTest {
         service.handleNotify(serializableNotifierEvent)
             .onErrorResume(s-> Mono.error(new RuntimeException()))
             .as(StepVerifier::create)
-            .expectError(UnsupportedOperationException.class)
+            .expectComplete()
             .verify();
     }
 

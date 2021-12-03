@@ -8,6 +8,7 @@ import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.types.*;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -59,6 +60,11 @@ class ValueTypeTranslatorTest {
         map1.put("temperature","temperature");
         Object obj = ValueTypeTranslator.translator(map1, objectType);
         assertNotNull(obj);
+
+
+        Object o = ValueTypeTranslator.translator("sss", DateTimeType.GLOBAL);
+        assertNotNull(o);
+
 
     }
 }

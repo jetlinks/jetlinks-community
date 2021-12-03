@@ -10,7 +10,10 @@ import org.jetlinks.community.notify.manager.entity.NotifyTemplateEntity;
 import org.jetlinks.supports.event.BrokerEventBus;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class NotifierCacheManagerTest {
 
   @Test
-  void handleTemplateSave() {
+  void handleTemplateSave() throws Exception {
       NotifierManager notifierManager = Mockito.mock(NotifierManager.class);
       NotifierCacheManager service = new NotifierCacheManager(new DefaultTemplateManager(), notifierManager);
 
@@ -31,6 +34,15 @@ class NotifierCacheManagerTest {
       notifyTemplateEntity.setType("test");
       EntitySavedEvent<NotifyTemplateEntity> event = new EntitySavedEvent(list,NotifyTemplateEntity.class);
       service.handleTemplateSave(event);
+
+      Class<? extends NotifierCacheManager> serviceClass = service.getClass();
+      Method reloadTemplate = serviceClass.getDeclaredMethod("reloadTemplate", List.class);
+      reloadTemplate.setAccessible(true);
+      Mono<Void> invoke = (Mono<Void>) reloadTemplate.invoke(service, event.getEntity());
+      invoke.as(StepVerifier::create)
+          .expectComplete()
+          .verify();
+
   }
 
   @Test

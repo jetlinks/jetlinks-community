@@ -11,13 +11,17 @@ import org.hswebframework.ezorm.rdb.metadata.RDBDatabaseMetadata;
 import org.hswebframework.ezorm.rdb.metadata.RDBTableMetadata;
 import org.hswebframework.ezorm.rdb.operator.DatabaseOperator;
 import org.hswebframework.ezorm.rdb.operator.dml.upsert.SaveResultOperator;
+import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.DeviceStateInfo;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.core.defaults.DefaultDeviceOperator;
 import org.jetlinks.core.device.*;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.*;
+import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.supports.config.InMemoryConfigStorage;
 import org.jetlinks.supports.config.InMemoryConfigStorageManager;
 import org.jetlinks.supports.event.BrokerEventBus;
@@ -447,13 +451,20 @@ class DeviceMessageBusinessHandlerTest {
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
 
-        BrokerEventBus brokerEventBus = new BrokerEventBus();
+//        BrokerEventBus brokerEventBus = new BrokerEventBus();
+        EventBus eventBus = Mockito.mock(EventBus.class);
         DeviceStateInfo deviceStateInfo = DeviceStateInfo.of(DEVICE_ID, org.jetlinks.community.device.enums.DeviceState.online);
         List<DeviceStateInfo> list = new ArrayList<>();
         list.add(deviceStateInfo);
         Mockito.when(deviceService.syncStateBatch(Mockito.any(Flux.class), Mockito.anyBoolean()))
             .thenReturn(Flux.just(list));
-        DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, registry, tagRepository, brokerEventBus);
+        ReadPropertyMessage message = new ReadPropertyMessage();
+        message.setDeviceId("tes");
+        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class),Mockito.any(Class.class)))
+            .thenReturn(Flux.just(message));
+        DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, registry, tagRepository, eventBus);
         service.init();
+
+
     }
 }

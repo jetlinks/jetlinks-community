@@ -1,9 +1,6 @@
 package org.jetlinks.community.notify.manager.service;
 
-import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.notify.DefaultNotifyType;
-import org.jetlinks.community.notify.email.embedded.DefaultEmailNotifierProvider;
-import org.jetlinks.community.notify.manager.entity.NotifyConfigEntity;
 import org.jetlinks.community.notify.manager.entity.NotifyTemplateEntity;
 import org.jetlinks.community.notify.sms.TestSmsProvider;
 import org.jetlinks.community.notify.template.TemplateManager;

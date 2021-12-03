@@ -3,9 +3,14 @@ package org.jetlinks.community.device.message;
 import org.jetlinks.community.device.test.web.TestAuthentication;
 import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
+import org.jetlinks.core.Payload;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.event.TopicPayload;
 import org.jetlinks.supports.event.BrokerEventBus;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,8 +49,11 @@ class DeviceMessageSubscriptionProviderTest {
         request.setTopic("/device/*/*/**");
         request.setId("test");
         request.setAuthentication(new TestAuthentication("test"));
-        DeviceMessageSubscriptionProvider provider = new DeviceMessageSubscriptionProvider(new BrokerEventBus());
+        EventBus eventBus = Mockito.mock(EventBus.class);
+        DeviceMessageSubscriptionProvider provider = new DeviceMessageSubscriptionProvider(eventBus);
 
+        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class)))
+            .thenReturn(Flux.just(TopicPayload.of("topic", Payload.of("{'s':'s'}"))));
         provider.subscribe(request).subscribe(Message::getRequestId);
     }
 }

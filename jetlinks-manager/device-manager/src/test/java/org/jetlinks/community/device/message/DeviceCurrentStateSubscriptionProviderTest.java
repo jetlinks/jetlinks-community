@@ -7,6 +7,7 @@ import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -92,11 +93,11 @@ class DeviceCurrentStateSubscriptionProviderTest {
             .expectComplete()
             .verify();
 
-        parameter.put("deviceId", new ArrayList<>());
-        provider.subscribe(request)
-            .as(StepVerifier::create)
-            .expectComplete()
-            .verify();
+        SubscribeRequest request1 = new SubscribeRequest();
+//        parameter.put("deviceId", null);
+        Executable executable = ()->provider.subscribe(request1);
+        assertThrows(IllegalArgumentException.class,executable);
+
 
 
     }

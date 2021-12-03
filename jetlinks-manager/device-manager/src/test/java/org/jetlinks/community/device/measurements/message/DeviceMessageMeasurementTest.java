@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.measurements.message;
 
+import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.dashboard.MeasurementParameter;
 import org.jetlinks.community.dashboard.MeasurementValue;
 import org.jetlinks.community.dashboard.SimpleMeasurementValue;
@@ -184,6 +185,13 @@ class DeviceMessageMeasurementTest {
         invoke.map(t->t.length)
             .as(StepVerifier::create)
             .expectNext(2)
+            .verifyComplete();
+
+        Mockito.when(registry.getProduct(Mockito.anyString()))
+            .thenReturn(Mono.error(()->new NotFoundException()));
+        invoke.map(t->t.length)
+            .as(StepVerifier::create)
+            .expectNext(1)
             .verifyComplete();
     }
 

@@ -1,17 +1,18 @@
 package org.jetlinks.community.device.measurements;
 
-import org.jetlinks.community.device.entity.DeviceInstanceEntity;
+
+import org.jetlinks.community.dashboard.Measurement;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
-import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.core.device.DeviceConfigKey;
-import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.supports.event.BrokerEventBus;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import reactor.core.publisher.Mono;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+import reactor.test.StepVerifier;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -80,7 +81,7 @@ class DeviceDashboardObjectTest {
         Map<String, Object> map = new HashMap<>();
         map.put("tcp_auth_key", "admin");
         deviceProductEntity.setConfiguration(map);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}},{\"id\":\"fire_alarm\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
@@ -89,6 +90,10 @@ class DeviceDashboardObjectTest {
 
         of.getMeasurement("properties").subscribe();
         of.getMeasurement("events").subscribe();
-        of.getMeasurement("fire_alarm").subscribe();
+        of.getMeasurement("fire_alarm")
+            .map(s->s.getDefinition().getId())
+            .as(StepVerifier::create)
+            .expectNext("fire_alarm")
+            .verifyComplete();
     }
 }

@@ -12,6 +12,9 @@ import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DeviceMetadata;
@@ -92,7 +95,8 @@ class DeviceEventsMeasurementTest {
     void fromRealTime() throws Exception {
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
         DeviceMetadata deviceMetadata = Mockito.mock(DeviceMetadata.class);
-        DeviceEventsMeasurement measurement = new DeviceEventsMeasurement(DEVICE_ID, new BrokerEventBus(), deviceMetadata, dataService);
+        EventBus eventBus = Mockito.mock(EventBus.class);
+        DeviceEventsMeasurement measurement = new DeviceEventsMeasurement(DEVICE_ID, eventBus, deviceMetadata, dataService);
 
         Class<? extends DeviceEventsMeasurement> measurementClass = measurement.getClass();
         Class<?>[] classes = measurementClass.getDeclaredClasses();
@@ -120,6 +124,15 @@ class DeviceEventsMeasurementTest {
 //          .as(StepVerifier::create)
 //          .expectNext(0L)
 //          .verifyComplete();
-        value.subscribe();
+        EventMessage eventMessage = new EventMessage();
+        eventMessage.setEvent("event");
+        eventMessage.setData("data");
+        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class),Mockito.any(Class.class)))
+            .thenReturn(Flux.just(eventMessage));
+        value.map(MeasurementValue::getValue)
+            .map(map->((Map<String, Object>)map).get("data"))
+            .as(StepVerifier::create)
+            .expectNext("data")
+            .verifyComplete();
     }
 }

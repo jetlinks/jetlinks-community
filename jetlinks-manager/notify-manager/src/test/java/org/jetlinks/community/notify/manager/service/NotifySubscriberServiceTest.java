@@ -11,6 +11,8 @@ import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
+import org.hswebframework.web.exception.NotFoundException;
+import org.jetlinks.community.notify.manager.entity.Notification;
 import org.jetlinks.community.notify.manager.entity.NotifySubscriberEntity;
 import org.jetlinks.community.notify.manager.enums.SubscribeState;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
@@ -18,6 +20,8 @@ import org.jetlinks.community.notify.manager.subscriber.providers.DeviceAlarmPro
 import org.jetlinks.community.notify.manager.test.web.TestAuthentication;
 import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.core.cluster.ClusterTopic;
+
+import org.jetlinks.core.event.EventBus;
 import org.reactivestreams.Publisher;
 
 import org.jetlinks.supports.event.BrokerEventBus;
@@ -187,6 +191,12 @@ class NotifySubscriberServiceTest {
             .expectError()
             .verify();
 
+        notifySubscriberEntity.setTopicProvider("aa");
+        service.doSubscribe(notifySubscriberEntity1)
+            .as(StepVerifier::create)
+            .expectError()
+            .verify();
+
     }
 
 
@@ -240,7 +250,10 @@ class NotifySubscriberServiceTest {
             }
         });
 
-        NotifySubscriberService service = new NotifySubscriberService(new BrokerEventBus(), clusterManager, providers){
+        EventBus eventBus = Mockito.mock(EventBus.class);
+        Mockito.when(eventBus.publish(Mockito.anyString(),Mockito.any(Notification.class)))
+            .thenReturn(Mono.just(1L));
+        NotifySubscriberService service = new NotifySubscriberService(eventBus, clusterManager, providers){
             @Override
             public ReactiveRepository<NotifySubscriberEntity, String> getRepository() {
                 return repository;
@@ -249,6 +262,9 @@ class NotifySubscriberServiceTest {
         service.run();
 
         notifySubscriberEntity.setState(SubscribeState.disabled);
+        service.run();
+        Mockito.when(eventBus.publish(Mockito.anyString(),Mockito.any(Notification.class)))
+            .thenReturn(Mono.error(()->new NotFoundException()));
         service.run();
     }
 

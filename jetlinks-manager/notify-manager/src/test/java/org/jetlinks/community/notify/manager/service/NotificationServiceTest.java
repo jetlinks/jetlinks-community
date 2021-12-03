@@ -6,12 +6,15 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveUpdate;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.notify.manager.entity.Notification;
 import org.jetlinks.community.notify.manager.entity.NotificationEntity;
 import org.jetlinks.community.notify.manager.enums.NotificationState;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -24,18 +27,63 @@ class NotificationServiceTest {
 
     @Test
     void init() {
-        ReactiveRepository<NotificationEntity, String> repository = Mockito.mock(ReactiveRepository.class);
-
-        Mockito.when(repository.save(Mockito.any(Publisher.class)))
-            .thenReturn(Mono.just(SaveResult.of(1, 0)));
-
         NotificationService service = new NotificationService() {
             @Override
-            public ReactiveRepository<NotificationEntity, String> getRepository() {
-                return repository;
+            public Mono<SaveResult> save(Publisher<NotificationEntity> entityPublisher) {
+                entityPublisher.subscribe(new Subscriber<NotificationEntity>() {
+                    @Override
+                    public void onSubscribe(Subscription subscription) {
+                        subscription.request(1L);
+                    }
+
+                    @Override
+                    public void onNext(NotificationEntity notificationEntity) {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+                return Mono.just(SaveResult.of(1,0));
             }
         };
         service.init();
+
+        NotificationService service1 = new NotificationService() {
+            @Override
+            public Mono<SaveResult> save(Publisher<NotificationEntity> entityPublisher) {
+                entityPublisher.subscribe(new Subscriber<NotificationEntity>() {
+                    @Override
+                    public void onSubscribe(Subscription subscription) {
+                        subscription.request(1L);
+                    }
+
+                    @Override
+                    public void onNext(NotificationEntity notificationEntity) {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+                return Mono.error(()->new NotFoundException());
+            }
+        };
+        service1.init();
     }
 
     @Test
@@ -43,7 +91,7 @@ class NotificationServiceTest {
         NotificationService service = new NotificationService();
         Notification notification = new Notification();
         notification.setId("test");
-        service.subscribeNotifications(notification);
+        service.subscribeNotifications(notification).subscribe();
     }
 
     @Test

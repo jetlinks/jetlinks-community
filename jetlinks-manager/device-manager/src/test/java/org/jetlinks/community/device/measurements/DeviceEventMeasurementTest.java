@@ -2,11 +2,15 @@ package org.jetlinks.community.device.measurements;
 
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.dashboard.MeasurementParameter;
+import org.jetlinks.community.dashboard.MeasurementValue;
 import org.jetlinks.community.dashboard.SimpleMeasurementValue;
 import org.jetlinks.community.device.entity.DeviceEvent;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.core.device.DeviceProductOperator;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.EventMetadata;
@@ -46,7 +50,8 @@ class DeviceEventMeasurementTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
         EventMetadata eventMetadata = deviceProductOperator.getMetadata().map(s -> s.getEvents().get(0)).block();
-        DeviceEventMeasurement measurement = new DeviceEventMeasurement(PRODUCT_ID, new BrokerEventBus(), eventMetadata, dataService);
+        EventBus eventBus = Mockito.mock(EventBus.class);
+        DeviceEventMeasurement measurement = new DeviceEventMeasurement(PRODUCT_ID, eventBus, eventMetadata, dataService);
 
         measurement.fromHistory(DEVICE_ID,0).subscribe();
 
@@ -61,7 +66,16 @@ class DeviceEventMeasurementTest {
             .expectNext(0L)
             .verifyComplete();
 
-        measurement.fromRealTime(DEVICE_ID).subscribe();
+        EventMessage message = new EventMessage();
+        message.setData("test");
+        message.setTimestamp(System.currentTimeMillis());
+        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class),Mockito.any(Class.class)))
+            .thenReturn(Flux.just(message));
+        measurement.fromRealTime(DEVICE_ID)
+            .map(MeasurementValue::getValue)
+            .as(StepVerifier::create)
+            .expectNext("test")
+            .verifyComplete();
 
         DeviceEventMeasurement.RealTimeDeviceEventDimension dimension = measurement.new RealTimeDeviceEventDimension();
         DataType valueType = dimension.getValueType();
@@ -78,6 +92,7 @@ class DeviceEventMeasurementTest {
         params1.put("history",0);
         MeasurementParameter parameter = new MeasurementParameter();
         parameter.setParams(params1);
+
         dimension.getValue(parameter).subscribe();
     }
 

@@ -1,11 +1,13 @@
 package org.jetlinks.community.auth.captcha;
 
 import org.hswebframework.web.authorization.events.AuthorizationDecodeEvent;
+import org.hswebframework.web.exception.ValidationException;
 import org.jetlinks.community.auth.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -91,6 +93,12 @@ class CaptchaControllerTest extends TestJetLinksController {
         Mockito.when(captchaProperties.isEnabled())
             .thenReturn(true);
         captcha.handleAuthEvent(event);
+        map.put("verifyCode",null);
+        Executable executable = ()->captcha.handleAuthEvent(event);
+        assertThrows(ValidationException.class,executable);
+        map.put("verifyKey",null);
+        Executable executable1 = ()->captcha.handleAuthEvent(event);
+        assertThrows(ValidationException.class,executable1);
 
     }
 }

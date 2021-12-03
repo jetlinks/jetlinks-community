@@ -26,35 +26,38 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceStatusRecordMeasurementTest {
     //AggNumberOfOnlineDeviceDimension类
     @Test
-    void getValueType(){
+    void getValueType() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.AggNumberOfOnlineDeviceDimension dimension = measurement.new AggNumberOfOnlineDeviceDimension();
         DataType valueType = dimension.getValueType();
         assertNotNull(valueType);
     }
+
     @Test
-    void getParams(){
+    void getParams() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.AggNumberOfOnlineDeviceDimension dimension = measurement.new AggNumberOfOnlineDeviceDimension();
         ConfigMetadata params = dimension.getParams();
         assertNotNull(params);
-        assertEquals("设备型号",params.getProperties().get(0).getName());
+        assertEquals("设备型号", params.getProperties().get(0).getName());
     }
+
     @Test
-    void isRealTime(){
+    void isRealTime() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.AggNumberOfOnlineDeviceDimension dimension = measurement.new AggNumberOfOnlineDeviceDimension();
         boolean realTime = dimension.isRealTime();
         assertFalse(realTime);
     }
+
     @Test
-    void getValue(){
+    void getValue() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         TimeSeriesService timeSeriesService = Mockito.mock(TimeSeriesService.class);
@@ -63,44 +66,52 @@ class DeviceStatusRecordMeasurementTest {
             .thenReturn(timeSeriesService);
         Mockito.when(timeSeriesService.aggregation(Mockito.any(AggregationQueryParam.class)))
             .thenReturn(Flux.just(AggregationData.of(new HashMap<>())));
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.AggNumberOfOnlineDeviceDimension dimension = measurement.new AggNumberOfOnlineDeviceDimension();
         Map<String, Object> params = new HashMap<>();
         MeasurementParameter parameter = MeasurementParameter.of(params);
+        dimension.getValue(parameter).subscribe();
+        Map<String, Object> map = new HashMap<>();
+        map.put("time","2010年02月03日");
+        Mockito.when(timeSeriesService.aggregation(Mockito.any(AggregationQueryParam.class)))
+            .thenReturn(Flux.just(AggregationData.of(map)));
         dimension.getValue(parameter).subscribe();
     }
 
     //CurrentNumberOfDeviceDimension类
     @Test
-    void CurrentGetValueType(){
+    void CurrentGetValueType() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.CurrentNumberOfDeviceDimension dimension = measurement.new CurrentNumberOfDeviceDimension();
         DataType valueType = dimension.getValueType();
         assertNotNull(valueType);
     }
+
     @Test
-    void CurrentGetParams(){
+    void CurrentGetParams() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.CurrentNumberOfDeviceDimension dimension = measurement.new CurrentNumberOfDeviceDimension();
         ConfigMetadata params = dimension.getParams();
         assertNotNull(params);
-        assertEquals("设备型号",params.getProperties().get(0).getName());
+        assertEquals("设备型号", params.getProperties().get(0).getName());
     }
+
     @Test
-    void CurrentIsRealTime(){
+    void CurrentIsRealTime() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.CurrentNumberOfDeviceDimension dimension = measurement.new CurrentNumberOfDeviceDimension();
         boolean realTime = dimension.isRealTime();
         assertFalse(realTime);
     }
+
     @Test
-    void CurrentGetValue(){
+    void CurrentGetValue() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         TimeSeriesService timeSeriesService = Mockito.mock(TimeSeriesService.class);
@@ -108,17 +119,17 @@ class DeviceStatusRecordMeasurementTest {
 
         Mockito.when(instanceService.createQuery())
             .thenReturn(query);
-        Mockito.when(query.and(Mockito.any(StaticMethodReferenceColumn.class),Mockito.any(Object.class)))
+        Mockito.when(query.and(Mockito.any(StaticMethodReferenceColumn.class), Mockito.any(Object.class)))
             .thenReturn(query);
-        Mockito.when(query.and(Mockito.any(StaticMethodReferenceColumn.class),Mockito.any(Object.class)))
+        Mockito.when(query.and(Mockito.any(StaticMethodReferenceColumn.class), Mockito.any(Object.class)))
             .thenReturn(query);
         Mockito.when(query.count())
             .thenReturn(Mono.just(1));
 
-        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService,timeSeriesManager);
+        DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
         DeviceStatusRecordMeasurement.CurrentNumberOfDeviceDimension dimension = measurement.new CurrentNumberOfDeviceDimension();
         Map<String, Object> params = new HashMap<>();
-        params.put("productId","productId");
+        params.put("productId", "productId");
         params.put("state", DeviceState.online);
         MeasurementParameter parameter = MeasurementParameter.of(params);
         dimension.getValue(parameter).subscribe();
