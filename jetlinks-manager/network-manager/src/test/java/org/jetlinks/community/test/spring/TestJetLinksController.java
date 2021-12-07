@@ -60,6 +60,7 @@ import reactor.core.publisher.Mono;
     MeterRegistryManager.class,
     TimeSeriesMeterRegistryConfiguration.class,
     ElasticSearchTimeSeriesManager.class,
+
 }, excludeFilters = {
     @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {
 //        MqttClientDeviceGatewayProvider.class,

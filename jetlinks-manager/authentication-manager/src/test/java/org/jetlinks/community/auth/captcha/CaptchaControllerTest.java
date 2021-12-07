@@ -2,7 +2,8 @@ package org.jetlinks.community.auth.captcha;
 
 import org.hswebframework.web.authorization.events.AuthorizationDecodeEvent;
 import org.hswebframework.web.exception.ValidationException;
-import org.jetlinks.community.auth.test.spring.TestJetLinksController;
+
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -11,14 +12,10 @@ import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
-import org.springframework.data.redis.core.ReactiveValueOperations;
-import org.springframework.data.redis.serializer.RedisSerializationContext;
-import reactor.core.publisher.Mono;
 
-import javax.annotation.Resource;
+
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
