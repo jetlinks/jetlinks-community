@@ -6,28 +6,24 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.buffer.impl.BufferImpl;
 import io.vertx.core.net.NetClientOptions;
-import io.vertx.core.net.NetSocket;
 import io.vertx.core.net.impl.NetSocketImpl;
 import io.vertx.mqtt.MqttServer;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
-import org.jetlinks.community.network.manager.test.web.TestAuthentication;
 import org.jetlinks.community.network.tcp.client.TcpClientProperties;
 import org.jetlinks.community.network.tcp.client.VertxTcpClient;
 import org.jetlinks.community.network.tcp.client.VertxTcpClientProvider;
 import org.jetlinks.community.network.tcp.parser.DefaultPayloadParserBuilder;
-import org.jetlinks.community.network.tcp.parser.DirectRecordParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
+import org.jetlinks.community.test.web.TestAuthentication;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mockito;
-import org.springframework.mock.env.MockEnvironment;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
-import java.time.Duration;
+
 import java.util.HashMap;
 import java.util.Map;
 

@@ -6,8 +6,8 @@ import org.jetlinks.community.auth.entity.MenuView;
 import org.jetlinks.community.auth.entity.PermissionInfo;
 import org.jetlinks.community.auth.service.AuthorizationSettingDetailService;
 import org.jetlinks.community.auth.service.DefaultMenuService;
-import org.jetlinks.community.auth.test.spring.TestJetLinksController;
 import org.jetlinks.community.auth.web.request.MenuGrantRequest;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 

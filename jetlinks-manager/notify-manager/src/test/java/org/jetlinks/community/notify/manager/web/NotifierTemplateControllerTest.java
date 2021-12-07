@@ -1,14 +1,13 @@
 package org.jetlinks.community.notify.manager.web;
 
 import org.jetlinks.community.notify.manager.service.NotifyTemplateService;
-import org.jetlinks.community.notify.manager.test.spring.TestJetLinksController;
-import org.jetlinks.core.metadata.ConfigMetadata;
+
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 
 import java.util.ArrayList;
 
-import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(NotifierTemplateController.class)
 class NotifierTemplateControllerTest extends TestJetLinksController {

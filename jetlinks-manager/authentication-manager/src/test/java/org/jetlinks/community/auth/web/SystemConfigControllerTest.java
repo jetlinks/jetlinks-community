@@ -2,7 +2,7 @@ package org.jetlinks.community.auth.web;
 
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.auth.entity.SystemConfigEntity;
-import org.jetlinks.community.auth.test.spring.TestJetLinksController;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;

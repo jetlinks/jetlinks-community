@@ -3,7 +3,7 @@ package org.jetlinks.community.rule.engine.web;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.service.DeviceAlarmService;
-import org.jetlinks.community.rule.engine.test.spring.TestJetLinksController;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 
 import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.*;
+
 @WebFluxTest(DeviceAlarmController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DeviceAlarmControllerTest extends TestJetLinksController {

@@ -6,21 +6,22 @@ import org.jetlinks.community.network.manager.entity.NetworkConfigEntity;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 import org.jetlinks.community.network.manager.service.DeviceGatewayService;
 import org.jetlinks.community.network.manager.service.NetworkConfigService;
-import org.jetlinks.community.network.manager.test.spring.TestJetLinksController;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
+import org.jetlinks.community.test.spring.TestJetLinksController;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.http.MediaType;
-
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(DeviceGatewayController.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DeviceGatewayControllerTest extends TestJetLinksController {
     private static final String BASE_URL = "/gateway/device";
     private static final String ID = "test";
@@ -35,6 +36,8 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
         new DeviceGatewayController(Mockito.mock(DeviceGatewayManager.class),deviceGatewayService).getService();
     }
 
+    @Test
+    @Order(0)
     void add(){
 
         DeviceGatewayEntity entity = new DeviceGatewayEntity();
@@ -61,8 +64,8 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(1)
     void startup() {
-        add();
         client.post()
             .uri(BASE_URL+"/"+ID+"/_startup")
             .exchange()
@@ -71,8 +74,8 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(3)
     void pause() {
-        add();
         client.post()
             .uri(BASE_URL+"/"+ID+"/_pause")
             .exchange()
@@ -81,8 +84,8 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(3)
     void shutdown() {
-        add();
         client.post()
             .uri(BASE_URL+"/"+ID+"/_shutdown")
             .exchange()
@@ -91,18 +94,18 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     }
 
     @Test
+    @Order(2)
     void getMessages() {
-        add();
         client.get()
             .uri(BASE_URL+"/"+ID+"/messages")
             .exchange()
             .expectStatus()
-            .isOk();
+            .is2xxSuccessful();
     }
 
     @Test
+    @Order(2)
     void getProviders() {
-        add();
         client.get()
             .uri(BASE_URL+"/providers")
             .exchange()

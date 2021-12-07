@@ -1,7 +1,7 @@
 package org.jetlinks.community.notify.manager.web;
 
 import org.jetlinks.community.notify.manager.service.NotifyConfigService;
-import org.jetlinks.community.notify.manager.test.spring.TestJetLinksController;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;

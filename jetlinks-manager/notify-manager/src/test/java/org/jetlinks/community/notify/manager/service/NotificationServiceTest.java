@@ -10,7 +10,10 @@ import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.notify.manager.entity.Notification;
 import org.jetlinks.community.notify.manager.entity.NotificationEntity;
 import org.jetlinks.community.notify.manager.enums.NotificationState;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -54,6 +57,9 @@ class NotificationServiceTest {
                 return Mono.just(SaveResult.of(1,0));
             }
         };
+        Notification notification = new Notification();
+        notification.setId("test");
+        service.subscribeNotifications(notification).subscribe();
         service.init();
 
         NotificationService service1 = new NotificationService() {

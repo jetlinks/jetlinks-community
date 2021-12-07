@@ -1,7 +1,7 @@
 package org.jetlinks.community.logging.controller;
 
-import org.jetlinks.community.logging.test.spring.TestJetLinksApplication;
-import org.jetlinks.community.logging.test.spring.TestJetLinksController;
+
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 

@@ -5,7 +5,7 @@ import org.jetlinks.community.rule.engine.entity.RuleModelEntity;
 import org.jetlinks.community.rule.engine.enums.SqlRuleType;
 import org.jetlinks.community.rule.engine.ql.SqlRule;
 import org.jetlinks.community.rule.engine.service.RuleModelService;
-import org.jetlinks.community.rule.engine.test.spring.TestJetLinksController;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 
-import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(RuleModelController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

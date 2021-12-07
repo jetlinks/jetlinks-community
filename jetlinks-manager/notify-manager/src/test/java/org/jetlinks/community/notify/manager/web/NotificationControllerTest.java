@@ -6,7 +6,7 @@ import org.jetlinks.community.notify.manager.enums.NotificationState;
 import org.jetlinks.community.notify.manager.enums.SubscribeState;
 import org.jetlinks.community.notify.manager.service.NotificationService;
 import org.jetlinks.community.notify.manager.service.NotifySubscriberService;
-import org.jetlinks.community.notify.manager.test.spring.TestJetLinksController;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @WebFluxTest(NotifierController.class)
 class NotificationControllerTest extends TestJetLinksController {

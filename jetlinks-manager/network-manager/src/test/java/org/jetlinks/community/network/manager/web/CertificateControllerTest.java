@@ -1,6 +1,7 @@
 package org.jetlinks.community.network.manager.web;
 
-import org.jetlinks.community.network.manager.test.spring.TestJetLinksController;
+
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.core.io.FileSystemResource;

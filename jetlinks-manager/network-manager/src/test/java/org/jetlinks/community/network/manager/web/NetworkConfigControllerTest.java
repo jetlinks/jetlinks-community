@@ -5,8 +5,8 @@ import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.manager.entity.NetworkConfigEntity;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 import org.jetlinks.community.network.manager.service.NetworkConfigService;
-import org.jetlinks.community.network.manager.test.spring.TestJetLinksController;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -14,13 +14,10 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.http.MediaType;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(NetworkConfigController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)

@@ -1,7 +1,8 @@
 package org.jetlinks.community.auth.web;
 
-import org.jetlinks.community.auth.test.spring.TestJetLinksController;
+
 import org.jetlinks.community.auth.web.request.AuthorizationSettingDetail;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 

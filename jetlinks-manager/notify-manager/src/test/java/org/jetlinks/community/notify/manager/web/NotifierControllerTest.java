@@ -1,17 +1,25 @@
 package org.jetlinks.community.notify.manager.web;
 
+
 import com.alibaba.fastjson.JSON;
+import org.jetlinks.community.notify.NotifierManager;
 import org.jetlinks.community.notify.manager.entity.NotifyConfigEntity;
 import org.jetlinks.community.notify.manager.entity.NotifyTemplateEntity;
 import org.jetlinks.community.notify.manager.service.NotifyConfigService;
-import org.jetlinks.community.notify.manager.test.spring.TestJetLinksController;
+import org.jetlinks.community.notify.sms.PlainTextSmsTemplate;
+import org.jetlinks.community.notify.sms.aliyun.AliyunSmsTemplate;
+import org.jetlinks.community.notify.template.TemplateProperties;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.BodyInserters;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 @WebFluxTest(NotifierController.class)
 class NotifierControllerTest extends TestJetLinksController {
@@ -20,39 +28,45 @@ class NotifierControllerTest extends TestJetLinksController {
     @Autowired
     private NotifyConfigService configService;
 
+//    @Autowired
+//    private NotifierManager notifierManager;
+
     @Test
     void sendNotify() {
         NotifierController.SendNotifyRequest sendNotifyRequest = new NotifierController.SendNotifyRequest();
         NotifyTemplateEntity notifyTemplateEntity = new NotifyTemplateEntity();
         notifyTemplateEntity.setId("test");
-        notifyTemplateEntity.setTemplate("weixin");
-        notifyTemplateEntity.setProvider("corpMessage");
-        notifyTemplateEntity.setType("weixin");
+        notifyTemplateEntity.setProvider("test");
+        notifyTemplateEntity.setType("sms");
+        PlainTextSmsTemplate plainTextSmsTemplate = new PlainTextSmsTemplate();
+        plainTextSmsTemplate.setText("sing");
+        List<String> list = new ArrayList<>();
+        list.add("a");
+        plainTextSmsTemplate.setSendTo(list);
+        String s = JSON.toJSONString(plainTextSmsTemplate);
+        notifyTemplateEntity.setTemplate(s);
+
+
         sendNotifyRequest.setTemplate(notifyTemplateEntity);
         sendNotifyRequest.getContext().put("test","test");
 
         NotifyConfigEntity notifyConfigEntity = new NotifyConfigEntity();
         notifyConfigEntity.setId("nid");
-        notifyConfigEntity.setProvider("corpMessage");
+        notifyConfigEntity.setProvider("test");
         notifyConfigEntity.setName("test");
-        notifyConfigEntity.setType("weixin");
+        notifyConfigEntity.setType("sms");
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.put("regionId","regionId");
+        configuration.put("accessKeyId","accessKeyId");
+        configuration.put("secret","secret");
+        notifyConfigEntity.setConfiguration(configuration);
         configService.save(notifyConfigEntity).subscribe();
 
-//        String s = JSON.toJSONString(sendNotifyRequest);
-        String s = "{\n" +
-            "  \"template\": {\n" +
-            "    \"id\": \"test\",\n" +
-            "    \"type\": \"email\",\n" +
-            "    \"provider\": \"corpMessage\",\n" +
-            "    \"name\": \"test\",\n" +
-            "    \"template\": \"test\"\n" +
-            "  },\n" +
-            "  \"context\": {}\n" +
-            "}";
+
         client.post()
             .uri(BASE_URL+"/nid/_send")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(s)
+            .bodyValue(sendNotifyRequest)
             .exchange()
             .expectStatus()
             .is2xxSuccessful();

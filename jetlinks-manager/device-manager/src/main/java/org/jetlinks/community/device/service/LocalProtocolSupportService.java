@@ -13,19 +13,12 @@ import reactor.core.publisher.Mono;
 @Service
 public class LocalProtocolSupportService extends GenericReactiveCrudService<ProtocolSupportEntity, String> {
 
-//    @Autowired
-//    private ProtocolSupportManager supportManager;
-//
-//    @Autowired
-//    private ProtocolSupportLoader loader;
-private final ProtocolSupportManager supportManager;
+    @Autowired
+    private ProtocolSupportManager supportManager;
 
-    private final ProtocolSupportLoader loader;
+    @Autowired
+    private ProtocolSupportLoader loader;
 
-    public LocalProtocolSupportService(ProtocolSupportManager supportManager,ProtocolSupportLoader loader){
-        this.supportManager = supportManager;
-        this.loader =loader;
-    }
 
     public Mono<Boolean> deploy(String id) {
         return findById(Mono.just(id))

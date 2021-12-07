@@ -2,7 +2,7 @@ package org.jetlinks.community.network.manager.debug;
 
 import org.hswebframework.web.authorization.exception.AccessDenyException;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
-import org.jetlinks.community.network.manager.test.web.TestAuthentication;
+import org.jetlinks.community.test.web.TestAuthentication;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 

@@ -1,5 +1,7 @@
 package org.jetlinks.community.notify.manager.configurtion;
 
+import org.jetlinks.community.notify.sms.TestSmsProvider;
+import org.jetlinks.community.notify.template.TemplateManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.supports.cluster.redis.RedisClusterManager;
 import org.jetlinks.supports.event.BrokerEventBus;
@@ -20,5 +22,10 @@ public class ConfigurationTest {
     @Bean
     public EventBus eventBus() {
         return new BrokerEventBus();
+    }
+
+    @Bean
+    public TestSmsProvider testSmsProvider(TemplateManager templateManager){
+        return new TestSmsProvider(templateManager);
     }
 }

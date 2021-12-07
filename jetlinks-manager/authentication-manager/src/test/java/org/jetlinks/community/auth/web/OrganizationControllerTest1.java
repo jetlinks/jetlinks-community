@@ -1,7 +1,7 @@
 package org.jetlinks.community.auth.web;
 
 import org.hswebframework.web.system.authorization.api.entity.DimensionEntity;
-import org.jetlinks.community.auth.test.spring.TestJetLinksController1;
+import org.jetlinks.community.test.spring.TestJetLinksController1;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 

@@ -2,7 +2,7 @@ package org.jetlinks.community.auth.web;
 
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.system.authorization.api.entity.DimensionEntity;
-import org.jetlinks.community.auth.test.spring.TestJetLinksController;
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;

@@ -5,8 +5,8 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
 import org.hswebframework.web.system.authorization.api.service.reactive.ReactiveUserService;
 import org.jetlinks.community.auth.entity.UserDetail;
-import org.jetlinks.community.auth.service.request.SaveUserDetailRequest;
-import org.jetlinks.community.auth.test.spring.TestJetLinksController;
+
+import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
