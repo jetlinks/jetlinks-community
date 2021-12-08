@@ -13,7 +13,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 
-import static org.junit.jupiter.api.Assertions.*;
 
 class CertificateServiceTest {
 

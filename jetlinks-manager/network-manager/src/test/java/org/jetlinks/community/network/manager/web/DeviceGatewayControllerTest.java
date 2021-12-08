@@ -16,12 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -106,12 +104,6 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     @Test
     @Order(2)
     void getMessages() {
-//        add();
-//        client.get()
-//            .uri(BASE_URL+"/"+ID+"/messages")
-//            .exchange()
-//            .expectStatus()
-//            .is2xxSuccessful();
         DeviceGatewayService gatewayService = Mockito.mock(DeviceGatewayService.class);
         DeviceGatewayManager gatewayManager = Mockito.mock(DeviceGatewayManager.class);
         DeviceGateway deviceGateway = Mockito.mock(DeviceGateway.class);

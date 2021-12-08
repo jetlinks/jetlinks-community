@@ -9,11 +9,9 @@ import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
-import reactor.core.publisher.Flux;
 
 import java.io.File;
 
-import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(CertificateController.class)
 class CertificateControllerTest extends TestJetLinksController {
