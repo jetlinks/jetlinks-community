@@ -116,7 +116,6 @@ public class DeviceInstanceController implements
         this.metadataManager = metadataManager;
     }
 
-
     //获取设备详情
     @GetMapping("/{id:.+}/detail")
     @QueryAction

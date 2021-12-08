@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+
 @Service
 @Slf4j
 public class LocalDeviceProductService extends GenericReactiveCrudService<DeviceProductEntity, String> {

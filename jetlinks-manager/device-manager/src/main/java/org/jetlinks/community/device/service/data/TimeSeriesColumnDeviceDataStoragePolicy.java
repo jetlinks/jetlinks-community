@@ -157,8 +157,7 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
                         .getProperties()
                         .stream()
                         .filter(prop -> includes.size() > 0 && includes.contains(prop.getId()))
-                        .collect(Collectors.toMap(PropertyMetadata::getId, Function
-                            .identity(), (a, b) -> a));
+                        .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity(), (a, b) -> a));
 
                     return query
                         .toQuery()
