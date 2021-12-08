@@ -25,7 +25,7 @@ class TcpServerProviderTest {
     static void init() {
         TcpServerProperties properties = TcpServerProperties.builder()
             .id("test")
-            .port(8081)
+            .port(8080)
             .options(new NetServerOptions())
             .parserType(PayloadParserType.FIXED_LENGTH)
             .parserConfiguration(Collections.singletonMap("size", 5))
@@ -41,7 +41,7 @@ class TcpServerProviderTest {
     void test() {
 
         Vertx.vertx().createNetClient()
-            .connect(8081, "localhost", handle -> {
+            .connect(8080, "localhost", handle -> {
                 if (handle.succeeded()) {
                     //模拟粘包，同时发送2个包
                     handle.result().write("hellohello", r -> {
