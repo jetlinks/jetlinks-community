@@ -45,5 +45,16 @@ class ShakeLimitTest {
             .expectNext("test")
             .verifyComplete();
 
+        shakeLimit.setEnabled(false);
+        shakeLimit.setAlarmFirst(true);
+        shakeLimit.setTime(0);
+        shakeLimit.setThreshold(0);
+        shakeLimit.transfer(Flux.just(map),(duration, flux)->flux.window(duration, Schedulers.parallel()),(alarm, total) -> alarm.put("totalAlarms", total))
+            .map(s->s.get("test"))
+            .as(StepVerifier::create)
+            .expectNext("test")
+            .verifyComplete();
+
+
     }
 }

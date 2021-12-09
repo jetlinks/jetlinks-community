@@ -179,6 +179,13 @@ class DeviceAlarmTaskExecutorProviderTest {
         taskExecutor.start();
         taskExecutor.reload();
         taskExecutor.validate();
+        Mockito.when(context.fireEvent(Mockito.anyString(),Mockito.any(RuleData.class)))
+            .thenReturn(Mono.error(new IllegalArgumentException()));
+        Mockito.when(context.onError(Mockito.any(Throwable.class),Mockito.any(RuleData.class)))
+            .thenReturn(Mono.just(1));
+        Executable exec = ()->taskExecutor.reload();
+        assertThrows(Exception.class,exec);
+
 //        List<DeviceAlarmRule.Property> properties = new ArrayList<>();
         DeviceAlarmRule.Property property = new DeviceAlarmRule.Property();
         property.setProperty("[aa]");
@@ -187,6 +194,14 @@ class DeviceAlarmTaskExecutorProviderTest {
         rule.setProperties(properties);
         Executable executable = ()->taskExecutor.validate();
         assertThrows(IllegalArgumentException.class,executable);
+        configuration.put("rule",null);
+        scheduleJob.setConfiguration(configuration);
+        Mockito.when(context.getJob())
+            .thenReturn(scheduleJob);
+        Executable executable1 = ()->taskExecutor.validate();
+        assertThrows(IllegalArgumentException.class,executable1);
+
+
     }
 
     @Test
