@@ -19,7 +19,6 @@ public class LocalProtocolSupportService extends GenericReactiveCrudService<Prot
     @Autowired
     private ProtocolSupportLoader loader;
 
-
     public Mono<Boolean> deploy(String id) {
         return findById(Mono.just(id))
                 .switchIfEmpty(Mono.error(NotFoundException::new))

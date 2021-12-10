@@ -11,10 +11,7 @@ import org.jetlinks.community.timeseries.*;
 import org.jetlinks.community.timeseries.micrometer.MeterTimeSeriesData;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
-import org.jetlinks.core.device.DeviceConfigKey;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceProductOperator;
-import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.*;
 import org.jetlinks.core.message.DeviceLogMessage;
 import org.jetlinks.core.message.Headers;
 import org.jetlinks.core.message.event.EventMessage;
@@ -37,6 +34,7 @@ import org.reactivestreams.Publisher;
 import java.util.*;
 import java.util.function.Function;
 
+import static org.jetlinks.core.device.DeviceConfigKey.productId;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TimeSeriesColumnDeviceDataStoragePolicyTest {
@@ -89,8 +87,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setConfiguration(map);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
 
 
         Mockito.when(registry.getDevice(Mockito.anyString()))
@@ -104,7 +109,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         meterTimeSeriesData.getData().put("temperature", "temperature");
         Mockito.when(elasticSearchTimeSeriesService.query(Mockito.any(QueryParam.class)))
             .thenReturn(Flux.just(meterTimeSeriesData));
-//        System.out.println(meterTimeSeriesData.getString("temperature").get());
 
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
@@ -113,7 +117,13 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .as(StepVerifier::create)
             .expectNext("温度")
             .verifyComplete();
-        storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity()).subscribe();
+
+        storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity())
+            .map(DeviceProperty::getPropertyName)
+            .as(StepVerifier::create)
+            .expectNext("温度")
+            .verifyComplete();
+
     }
 
     @Test
@@ -145,9 +155,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -208,9 +224,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -261,9 +283,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -296,16 +324,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
     void aggregationPropertiesByDevice() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
         deviceProductEntity.setId(PRODUCT_ID);
@@ -321,11 +339,16 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.addConfig(DeviceConfigKey.productId.getKey(),"productId")
+            .addConfig(DeviceConfigKey.productVersion.getKey(),"0.1");
 
+        Mono<DeviceProductOperator> deviceProductOperatorMono = inMemoryDeviceRegistry.register(productInfo);
+        DeviceOperator operator = Mockito.mock(DeviceOperator.class);
         Mockito.when(registry.getDevice(Mockito.anyString()))
-            .thenReturn(Mono.just(deviceOperator));
+            .thenReturn(Mono.just(operator));
+        Mockito.when(operator.getProduct())
+            .thenReturn(deviceProductOperatorMono);
 
 
         ElasticSearchTimeSeriesService elasticSearchTimeSeriesService = Mockito.mock(ElasticSearchTimeSeriesService.class);
@@ -394,9 +417,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setConfiguration(map2);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -809,9 +838,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -862,9 +897,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -927,8 +968,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
 
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
@@ -978,9 +1026,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -1085,8 +1139,15 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+        productInfo.setVersion("1.1.9");
+        inMemoryDeviceRegistry.register(productInfo).subscribe();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
 
         DeviceMetadata deviceMetadata = deviceOperator.getMetadata().block();
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());

@@ -6,10 +6,7 @@ import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationData;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
-import org.jetlinks.community.timeseries.query.Group;
-import org.jetlinks.community.timeseries.query.TimeGroup;
+import org.jetlinks.community.timeseries.query.*;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
@@ -157,7 +154,8 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
                         .getProperties()
                         .stream()
                         .filter(prop -> includes.size() > 0 && includes.contains(prop.getId()))
-                        .collect(Collectors.toMap(PropertyMetadata::getId, Function.identity(), (a, b) -> a));
+                        .collect(Collectors.toMap(PropertyMetadata::getId, Function
+                            .identity(), (a, b) -> a));
 
                     return query
                         .toQuery()

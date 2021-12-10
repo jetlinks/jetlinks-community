@@ -753,13 +753,15 @@ class LocalDeviceInstanceServiceTest {
         //设置协议的key值 用来查找到MockProtocolSupport
         // 底层加载物理模型时会调用协议实例的 getMetadataCodec方法，加载物模型编解码器
         block.setConfig(DeviceConfigKey.protocol.getKey(), "test").subscribe(System.out::println);
-
-        inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo().addConfig("state", org.jetlinks.core.device.DeviceState.online)).subscribe();
+        inMemoryDeviceRegistry.register( deviceInstanceEntity.toDeviceInfo()).subscribe();
 
         DefaultDeviceOperator defaultDeviceOperator =
             new DefaultDeviceOperator(ID_1, new MockProtocolSupport(), inMemoryConfigStorageManager
                 , standaloneDeviceMessageBroker, inMemoryDeviceRegistry
                 , new CompositeDeviceMessageSenderInterceptor(), stateChecker);
+        defaultDeviceOperator.setConfig(DeviceConfigKey.productId.getKey(),"test").subscribe();
+        defaultDeviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        defaultDeviceOperator.setConfig("lst_metadata_time", 1L).subscribe();;
         defaultDeviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe(System.out::println);
 
         defaultDeviceOperator.getMetadata()
@@ -1028,12 +1030,15 @@ class LocalDeviceInstanceServiceTest {
         // 底层加载物理模型时会调用协议实例的 getMetadataCodec方法，加载物模型编解码器
         block.setConfig(DeviceConfigKey.protocol.getKey(), "test").subscribe(System.out::println);
 
-        inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo().addConfig("state", org.jetlinks.core.device.DeviceState.online)).subscribe();
+        inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).subscribe();
 
         DefaultDeviceOperator defaultDeviceOperator =
             new DefaultDeviceOperator(ID_1, new MockProtocolSupport(), inMemoryConfigStorageManager
                 , standaloneDeviceMessageBroker, inMemoryDeviceRegistry
                 , new CompositeDeviceMessageSenderInterceptor(), stateChecker);
+        defaultDeviceOperator.setConfig(DeviceConfigKey.productId.getKey(),"test").subscribe();
+        defaultDeviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        defaultDeviceOperator.setConfig("lst_metadata_time", 1L).subscribe();;
         defaultDeviceOperator.updateMetadata("{\"events\":[],\"properties\":[],\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}],\"tags\":[]}").subscribe(System.out::println);
 
         Mockito.when(registry.getDevice(Mockito.anyString())).thenReturn(Mono.just(defaultDeviceOperator));

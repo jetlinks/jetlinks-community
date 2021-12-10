@@ -12,9 +12,7 @@ import org.jetlinks.community.device.response.DeviceDeployResult;
 import org.jetlinks.community.device.response.ImportDeviceInstanceResult;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.test.spring.TestJetLinksController;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.device.StandaloneDeviceMessageBroker;
+import org.jetlinks.core.device.*;
 import org.jetlinks.core.device.manager.DeviceBindProvider;
 import org.jetlinks.core.enums.ErrorCode;
 import org.jetlinks.core.exception.DeviceOperationException;
@@ -756,10 +754,23 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
             .thenReturn(Flux.just(functionInvokeMessageReply));
 
+//        ProductInfo productInfo = deviceProductEntity.toProductInfo();
+//        productInfo.setVersion("1.1.9");
+//        inMemoryDeviceRegistry.register(productInfo).subscribe();
+//        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+//        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+//            .addConfig(DeviceConfigKey.productId.getKey(), PRODUCT_ID)
+//            .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
+//            .addConfig("lst_metadata_time", 1L);
+//        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
+        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
 
         deviceOperator.updateMetadata(
             "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
@@ -888,6 +899,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
+        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
 
         deviceOperator.updateMetadata(
             "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
@@ -966,6 +980,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
+        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
 
         deviceOperator.updateMetadata(
             "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
@@ -1004,66 +1021,6 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(9)
     void testSendMessage() {
-//        Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
-//        Field operatorCache = null;
-//        try {
-//            operatorCache = aClass.getDeclaredField("operatorCache");
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        operatorCache.setAccessible(true);
-//        Cache<String, Mono<DeviceOperator>> cache = null;
-//        try {
-//            cache = (Cache<String, Mono<DeviceOperator>>) operatorCache.get(clusterDeviceRegistry);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-//        deviceInstanceEntity.setId("test3");
-//        deviceInstanceEntity.setState(DeviceState.online);
-//        deviceInstanceEntity.setCreatorName("超级管理员");
-//        deviceInstanceEntity.setName("TCP-setvice");
-//        deviceInstanceEntity.setProductId(PRODUCT_ID);
-//        deviceInstanceEntity.setProductName("TCP测试");
-//        deviceInstanceEntity.setDeriveMetadata(
-//            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
-//        service.save(deviceInstanceEntity).subscribe();
-//        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-//        deviceProductEntity.setId(PRODUCT_ID);
-//        deviceProductEntity.setTransportProtocol("TCP");
-//        deviceProductEntity.setProtocolName("演示协议v1");
-//        deviceProductEntity.setState((byte) 1);
-//        deviceProductEntity.setCreatorId("1199596756811550720");
-//        deviceProductEntity.setMessageProtocol("demo-v1");
-//        deviceProductEntity.setName("TCP测试");
-//        Map<String, Object> map1 = new HashMap<>();
-//        map1.put("tcp_auth_key", "admin");
-//        deviceProductEntity.setConfiguration(map1);
-//        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
-//
-//        FunctionInvokeMessageReply functionInvokeMessageReply = FunctionInvokeMessageReply.create();
-//        functionInvokeMessageReply.setOutput("test");
-//
-//        StandaloneDeviceMessageBroker standaloneDeviceMessageBroker = Mockito.mock(StandaloneDeviceMessageBroker.class);
-//        Mockito.when(standaloneDeviceMessageBroker.send(Mockito.anyString(), Mockito.any(Publisher.class)))
-//            .thenReturn(Mono.just(1));
-//        Mockito.when(standaloneDeviceMessageBroker
-//            .handleReply(Mockito.anyString(), Mockito.anyString(), Mockito.any(Duration.class)))
-//            .thenReturn(Flux.just(functionInvokeMessageReply));
-//
-//        InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
-//        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-//        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-//        deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
-//
-//        deviceOperator.updateMetadata(
-//            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +
-//                "\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}]," +
-//                "\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}]," +
-//                "\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
-//
-//        cache.put("test3", Mono.just(deviceOperator));
 
         Map<String, Object> map = new HashMap<>();
         map.put("event","event");
@@ -1138,6 +1095,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
+        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
 
         deviceOperator.updateMetadata(
             "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +

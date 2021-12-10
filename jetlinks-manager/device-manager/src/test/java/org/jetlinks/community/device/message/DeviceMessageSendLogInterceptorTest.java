@@ -6,6 +6,7 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.core.device.DeviceConfigKey;
+import org.jetlinks.core.device.DeviceInfo;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.exception.DeviceOperationException;
@@ -28,6 +29,7 @@ import reactor.test.StepVerifier;
 
 import java.util.*;
 
+import static org.jetlinks.core.device.DeviceConfigKey.productId;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DeviceMessageSendLogInterceptorTest {
@@ -184,7 +186,11 @@ class DeviceMessageSendLogInterceptorTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(productId.getKey(), "productId")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
         Map<String, Object> map1 = new HashMap<>();
         map1.put("source","manual");
         deviceOperator.getMetadata().map(s->{

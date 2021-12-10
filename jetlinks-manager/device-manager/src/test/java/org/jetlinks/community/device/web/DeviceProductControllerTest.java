@@ -138,8 +138,8 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Order(1)
     void convertMetadataTo() {
         client.post()
-            .uri("/device/product/metadata/convert-to/{id}", "jetlinks")
-            .bodyValue("{\"properties\":[]}")
+            .uri(BASE_URL + "/metadata/convert-to/jetlinks")
+            .bodyValue("")
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
@@ -150,8 +150,8 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Order(1)
     void convertMetadataFrom() {
         client.post()
-            .uri("/device/product/metadata/convert-from/{id}", "jetlinks")
-            .bodyValue("{\"properties\":[]}")
+            .uri(BASE_URL + "/metadata/convert-from/jetlinks")
+            .bodyValue("")
             .exchange()
             .expectStatus()
             .is2xxSuccessful();

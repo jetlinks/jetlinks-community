@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceAlarmTaskExecutorProviderTest {
     private static final String ID = "test";
 
-    //    private final
     @Test
     void getExecutor() {
         DeviceAlarmTaskExecutorProvider provider = new DeviceAlarmTaskExecutorProvider(new BrokerEventBus(), Schedulers.parallel());

@@ -80,13 +80,6 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
     }
 
     @Override
-    public Mono<PropertyValue> getFirstProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
-        return localCache
-            .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
-            .getFirstProperty(propertyId);
-    }
-
-    @Override
     public Mono<Long> getLastPropertyTime(@Nonnull String deviceId, long baseTime) {
         return localCache
             .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
@@ -100,21 +93,12 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
             .flatMap(device -> device.getSelfConfig(DeviceConfigKey.firstPropertyTime));
     }
 
-<<<<<<< HEAD
     @Override
     public Mono<PropertyValue> getFirstProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
         return localCache
             .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
             .getFirstProperty(propertyId);
     }
-=======
-//    @Override
-//    public Mono<PropertyValue> getFistProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
-//        return localCache
-//            .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
-//            .getFirstProperty(propertyId);
-//    }
->>>>>>> 3a4c2a9c4bc2a58562c528b5df6afc5ed5556d1f
 
     @Override
     public Flux<TagValue> getTags(@Nonnull String deviceId, String... tagIdList) {
@@ -162,8 +146,8 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
                 .getSelfConfig(DeviceConfigKey.firstPropertyTime)
                 //没有首次上报时间就更新,设备注销后,首次上报属性时间也将失效.
                 .switchIfEmpty(device
-                                   .setConfig(DeviceConfigKey.firstPropertyTime, message.getTimestamp())
-                                   .thenReturn(message.getTimestamp())
+                    .setConfig(DeviceConfigKey.firstPropertyTime, message.getTimestamp())
+                    .thenReturn(message.getTimestamp())
                 ))
             .then();
     }
@@ -249,7 +233,7 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
                 .builder()
                 .subscriberId("device_recent_property:" + deviceId)
                 .topics("/device/*/" + deviceId + "/message/property/report",
-                        "/device/*/" + deviceId + "/message/property/read,write/reply")
+                    "/device/*/" + deviceId + "/message/property/read,write/reply")
                 .broker()
                 .local()
                 .build();
@@ -277,8 +261,8 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
                 //只更新有人读取过的属性,节省内存
                 if (null != ref) {
                     ref.setValue(entry.getValue(),
-                                 propertyTime.getOrDefault(entry.getKey(), message.getTimestamp()),
-                                 propertyState.getOrDefault(entry.getKey(), ref.state));
+                        propertyTime.getOrDefault(entry.getKey(), message.getTimestamp()),
+                        propertyState.getOrDefault(entry.getKey(), ref.state));
                 }
             }
             updatePropertyTime(message.getTimestamp());
@@ -303,10 +287,10 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
             return dataService
                 //直接查询设备数据,可能会有延迟?
                 .queryProperty(deviceId,
-                               QueryParamEntity
-                                   .newQuery()
-                                   .orderByAsc("timestamp")
-                                   .getParam()
+                    QueryParamEntity
+                        .newQuery()
+                        .orderByAsc("timestamp")
+                        .getParam()
                 )
                 .take(1)
                 .singleOrEmpty()
@@ -341,11 +325,11 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
                     return val.getTimestamp();
                 })
                 .switchIfEmpty(Mono
-                                   .fromRunnable(() -> {
-                                       if (this.propertyTime == 0) {
-                                           propertyTime = -1;
-                                       }
-                                   }));
+                    .fromRunnable(() -> {
+                        if (this.propertyTime == 0) {
+                            propertyTime = -1;
+                        }
+                    }));
         }
 
         public Mono<PropertyValue> getLastProperty(String key, long baseTime) {

@@ -6,6 +6,7 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.test.spring.TestJetLinksController;
+import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.StandaloneDeviceMessageBroker;
 import org.jetlinks.core.enums.ErrorCode;
@@ -96,6 +97,9 @@ class DeviceMessageControllerTest extends TestJetLinksController {
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         deviceOperator.setConfig(connectionServerId.getKey(),"test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
+        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
 
         deviceOperator.updateMetadata(
             "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\"," +

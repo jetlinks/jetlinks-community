@@ -25,8 +25,6 @@ class ShakeLimitTest {
         String s1 = limit.wrapReactorQl("table", "test");
         assertNotNull(s1);
         assertTrue(limit.isEnabled());
-
-
     }
 
     @Test
@@ -54,7 +52,5 @@ class ShakeLimitTest {
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
-
-
     }
 }

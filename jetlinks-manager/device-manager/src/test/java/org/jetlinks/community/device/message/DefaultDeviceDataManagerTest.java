@@ -10,16 +10,18 @@ import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.core.device.DeviceConfigKey;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.defaults.DefaultDeviceOperator;
+import org.jetlinks.core.defaults.DefaultDeviceProductOperator;
+import org.jetlinks.core.device.*;
 import org.jetlinks.core.message.DeviceDataManager;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
+import org.jetlinks.supports.config.InMemoryConfigStorageManager;
 import org.jetlinks.supports.event.BrokerEventBus;
 import org.jetlinks.supports.test.InMemoryDeviceRegistry;
+import org.jetlinks.supports.test.MockProtocolSupport;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
@@ -33,11 +35,13 @@ import java.util.function.*;
 
 import java.util.Map;
 
+import static org.jetlinks.core.device.DeviceConfigKey.productId;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DefaultDeviceDataManagerTest {
     public static final String DEVICE_ID = "test001";
     public static final String PRODUCT_ID = "test100";
+
     @Test
     void newCache() {
         Map<Object, Object> map = DefaultDeviceDataManager.newCache();
@@ -49,50 +53,51 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
         DeviceProperty deviceProperty = new DeviceProperty();
         deviceProperty.setValue(DefaultDeviceDataManager.NULL);
         deviceProperty.setTimestamp(System.currentTimeMillis());
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class),Mockito.anyString()))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-        manager.getLastProperty(DEVICE_ID,DEVICE_ID)
+        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext(DefaultDeviceDataManager.NULL)
             .verifyComplete();
 
-        manager.getLastProperty(DEVICE_ID,DEVICE_ID)
+        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
     }
+
     @Test
     void getLastProperty1() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
         DeviceProperty deviceProperty = new DeviceProperty();
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(System.currentTimeMillis());
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class),Mockito.anyString()))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-        manager.getLastProperty(DEVICE_ID,DEVICE_ID)
+        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
 
-        manager.getLastProperty(DEVICE_ID,DEVICE_ID)
+        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -100,11 +105,11 @@ class DefaultDeviceDataManagerTest {
 
         DeviceProperty deviceProperty1 = new DeviceProperty();
         deviceProperty1.setValue("test");
-        deviceProperty1.setTimestamp(System.currentTimeMillis()+40000000000L);
+        deviceProperty1.setTimestamp(System.currentTimeMillis() + 40000000000L);
         deviceProperty1.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class),Mockito.anyString()))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty1));
-        manager.getLastProperty(DEVICE_ID,DEVICE_ID)
+        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -113,69 +118,70 @@ class DefaultDeviceDataManagerTest {
 
     // DevicePropertyRef类
     @Test
-    void getLastProperty2(){
+    void getLastProperty2() {
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
         long l = System.currentTimeMillis();
         DeviceProperty deviceProperty = new DeviceProperty();
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class),Mockito.anyString()))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
-        DefaultDeviceDataManager.DevicePropertyRef devicePropertyRef = new DefaultDeviceDataManager.DevicePropertyRef(DEVICE_ID,new BrokerEventBus(),dataService);
+        DefaultDeviceDataManager.DevicePropertyRef devicePropertyRef = new DefaultDeviceDataManager.DevicePropertyRef(DEVICE_ID, new BrokerEventBus(), dataService);
 
-        devicePropertyRef.getLastProperty(DEVICE_ID,l)
+        devicePropertyRef.getLastProperty(DEVICE_ID, l)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
 
-        devicePropertyRef.getLastProperty(DEVICE_ID,-1)
+        devicePropertyRef.getLastProperty(DEVICE_ID, -1)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
 
-        devicePropertyRef.getLastProperty(DEVICE_ID,1).subscribe();
+        devicePropertyRef.getLastProperty(DEVICE_ID, 1).subscribe();
     }
 
     @Test
-    void getLastProperty3(){
+    void getLastProperty3() {
 
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class),Mockito.anyString()))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.empty());
-        DefaultDeviceDataManager.DevicePropertyRef devicePropertyRef = new DefaultDeviceDataManager.DevicePropertyRef(DEVICE_ID,new BrokerEventBus(),dataService);
+        DefaultDeviceDataManager.DevicePropertyRef devicePropertyRef = new DefaultDeviceDataManager.DevicePropertyRef(DEVICE_ID, new BrokerEventBus(), dataService);
 
-        devicePropertyRef.getLastProperty(DEVICE_ID,1L)
+        devicePropertyRef.getLastProperty(DEVICE_ID, 1L)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
 
     }
+
     @Test
     void testGetLastProperty() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         long l = System.currentTimeMillis();
         DeviceProperty deviceProperty = new DeviceProperty();
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class),Mockito.anyString()))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-        manager.getLastProperty(DEVICE_ID,DEVICE_ID,l)
+        manager.getLastProperty(DEVICE_ID, DEVICE_ID, l)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
 
-        manager.getLastProperty(DEVICE_ID,DEVICE_ID,-1)
+        manager.getLastProperty(DEVICE_ID, DEVICE_ID, -1)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -188,7 +194,7 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
 
         long l = System.currentTimeMillis();
@@ -196,15 +202,15 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
 
-        manager.getLastPropertyTime(DEVICE_ID,l)
+        manager.getLastPropertyTime(DEVICE_ID, l)
             .as(StepVerifier::create)
             .expectNext(l)
             .verifyComplete();
 
-        manager.getLastPropertyTime(DEVICE_ID,l+1L)
+        manager.getLastPropertyTime(DEVICE_ID, l + 1L)
             .as(StepVerifier::create)
             .expectNext(l)
             .verifyComplete();
@@ -214,31 +220,31 @@ class DefaultDeviceDataManagerTest {
         deviceProperty1.setValue("test1");
         deviceProperty1.setTimestamp(l1);
         deviceProperty1.setState("1001");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty1));
-        manager.getLastPropertyTime(DEVICE_ID,l-1L)
+        manager.getLastPropertyTime(DEVICE_ID, l - 1L)
             .as(StepVerifier::create)
             .expectNext(l1)
             .verifyComplete();
     }
 
     @Test
-    void getLastPropertyTime1(){
+    void getLastPropertyTime1() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
 
 
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.empty());
-        manager.getLastPropertyTime(DEVICE_ID,-1L)
+        manager.getLastPropertyTime(DEVICE_ID, -1L)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
 
-        manager.getLastPropertyTime(DEVICE_ID,-1L)
+        manager.getLastPropertyTime(DEVICE_ID, -1L)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
@@ -249,7 +255,7 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
         deviceInstanceEntity.setId(DEVICE_ID);
@@ -265,7 +271,7 @@ class DefaultDeviceDataManagerTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-        deviceOperator.setConfig(DeviceConfigKey.firstPropertyTime,100L).subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.firstPropertyTime, 100L).subscribe();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -283,7 +289,7 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
@@ -293,15 +299,15 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
-        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
 
-        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -313,7 +319,7 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
@@ -323,15 +329,15 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue(DefaultDeviceDataManager.NULL);
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
-        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext(DefaultDeviceDataManager.NULL)
             .verifyComplete();
 
-        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
@@ -342,14 +348,14 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.empty());
 
-        manager.getFirstProperty(DEVICE_ID,DEVICE_ID)
+        manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
@@ -361,7 +367,7 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
         deviceInstanceEntity.setId(DEVICE_ID);
@@ -373,23 +379,16 @@ class DefaultDeviceDataManagerTest {
         deviceInstanceEntity.setDeriveMetadata(
             "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
 
-        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map = new HashMap<>();
-        map.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
-
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-        deviceOperator.setConfig(DeviceConfigKey.firstPropertyTime,100L).subscribe();
+
+        DeviceInfo deviceInfo = deviceInstanceEntity.toDeviceInfo();
+        deviceInfo.addConfig(DeviceConfigKey.protocol, "test")
+            .addConfig(DeviceConfigKey.firstPropertyTime, 100L)
+            .addConfig(productId.getKey(), "productId")
+            .addConfig("lst_metadata_time", 1L);
+        DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
+
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -401,12 +400,13 @@ class DefaultDeviceDataManagerTest {
         deviceTagEntity.setDeviceId(DEVICE_ID);
         Mockito.when(tagRepository.createQuery())
             .thenReturn(query);
-        Mockito.when(query.where(Mockito.any(StaticMethodReferenceColumn.class),Mockito.any(Object.class)))
+        Mockito.when(query.where(Mockito.any(StaticMethodReferenceColumn.class), Mockito.any(Object.class)))
             .thenReturn(query);
-        Mockito.when(query.in(Mockito.any(StaticMethodReferenceColumn.class),Mockito.any(Object[].class)))
+        Mockito.when(query.in(Mockito.any(StaticMethodReferenceColumn.class), Mockito.any(Object.class),Mockito.any(Object.class)))
             .thenReturn(query);
-        Mockito.when(query.when(Mockito.any(boolean.class),Mockito.any(Consumer.class)))
-            .thenReturn(query);
+        Mockito.when(query.when(Mockito.any(boolean.class), Mockito.any(Consumer.class)))
+            .thenReturn(query)
+            .thenCallRealMethod();
 
         Mockito.when(query.fetch())
             .thenReturn(Flux.just(deviceTagEntity));
@@ -414,7 +414,7 @@ class DefaultDeviceDataManagerTest {
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
 
-        manager.getTags(DEVICE_ID,"test")
+        manager.getTags(DEVICE_ID, "test","test1")
             .map(DeviceDataManager.TagValue::getTagId)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -422,14 +422,13 @@ class DefaultDeviceDataManagerTest {
 
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry1 = InMemoryDeviceRegistry.create();
-        inMemoryDeviceRegistry1.register(deviceProductEntity.toProductInfo()).subscribe();
-        DeviceOperator deviceOperator1 = inMemoryDeviceRegistry1.register(deviceInstanceEntity.toDeviceInfo()).block();
-        deviceOperator1.setConfig(DeviceConfigKey.firstPropertyTime,100L).subscribe();
+
+        DeviceOperator deviceOperator1 = inMemoryDeviceRegistry1.register(deviceInfo).block();
         deviceOperator1.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[]}").subscribe();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator1));
 
-        manager.getTags(DEVICE_ID,"test")
+        manager.getTags(DEVICE_ID, "test")
             .map(DeviceDataManager.TagValue::getTagId)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -441,7 +440,7 @@ class DefaultDeviceDataManagerTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
 
-        ReactiveRepository<DeviceTagEntity, String> tagRepository =Mockito.mock(ReactiveRepository.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
         deviceInstanceEntity.setId(DEVICE_ID);
         deviceInstanceEntity.setState(DeviceState.online);
@@ -489,13 +488,13 @@ class DefaultDeviceDataManagerTest {
 
         ReadPropertyMessageReply messageReply = new ReadPropertyMessageReply();
         Map<String, Object> properties = new HashMap<>();
-        properties.put("test","test");
+        properties.put("test", "test");
         messageReply.setProperties(properties);
-        Map<String, Long> propertySourceTimes =  new HashMap<>();
-        propertySourceTimes.put("test",100L);
+        Map<String, Long> propertySourceTimes = new HashMap<>();
+        propertySourceTimes.put("test", 100L);
         messageReply.setPropertySourceTimes(propertySourceTimes);
-        Map<String,String> propertyStates = new HashMap<>();
-        propertyStates.put("test","test");
+        Map<String, String> propertyStates = new HashMap<>();
+        propertyStates.put("test", "test");
         messageReply.setPropertyStates(propertyStates);
 
         long l = System.currentTimeMillis();
@@ -503,11 +502,11 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue(DefaultDeviceDataManager.NULL);
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
-        Mockito.when(dataService.queryProperty(Mockito.anyString(),Mockito.any(QueryParamEntity.class)))
+        Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
 
         devicePropertyRef.getFirstProperty("test");
-        upgrade.invoke(devicePropertyRef,messageReply);
+        upgrade.invoke(devicePropertyRef, messageReply);
 
 
     }
