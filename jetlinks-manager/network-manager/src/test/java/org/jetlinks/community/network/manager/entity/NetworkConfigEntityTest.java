@@ -29,5 +29,8 @@ class NetworkConfigEntityTest {
 
         NetworkType networkType = networkConfigEntity.lookupNetworkType();
         assertNotNull(networkType);
+        NetworkType type = networkConfigEntity.lookupNetworkType();
+        assertNotNull(type);
+
     }
 }

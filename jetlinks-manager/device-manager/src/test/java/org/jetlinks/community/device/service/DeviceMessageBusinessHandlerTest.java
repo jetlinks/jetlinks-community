@@ -399,6 +399,10 @@ class DeviceMessageBusinessHandlerTest {
         DeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         inMemoryDeviceRegistry.register(instance.toDeviceInfo().addConfig("state", DeviceState.online)).subscribe();
         DeviceOperator deviceOperator = new DefaultDeviceOperator(DEVICE_ID, new MockProtocolSupport(), inMemoryConfigStorageManager, new StandaloneDeviceMessageBroker(), inMemoryDeviceRegistry);
+        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(),"test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
+        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();;
+//        deviceOperator.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}").subscribe();;
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
         deviceProductEntity.setId(PRODUCT_ID);
         deviceProductEntity.setMessageProtocol("test");
@@ -408,7 +412,77 @@ class DeviceMessageBusinessHandlerTest {
         deviceProductEntity.setMetadata("{'pr':'pro'}");
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
-
+        String s = "{\n" +
+            "  \"id\": \"test\",\n" +
+            "  \"name\": \"测试\",\n" +
+            "  \"properties\": [\n" +
+            "    {\n" +
+            "      \"id\": \"name\",\n" +
+            "      \"name\": \"名称\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"string\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"functions\": [\n" +
+            "    {\n" +
+            "      \"id\": \"playVoice\",\n" +
+            "      \"name\": \"播放声音\",\n" +
+            "      \"inputs\": [\n" +
+            "        {\n" +
+            "          \"id\": \"text\",\n" +
+            "          \"name\": \"文字内容\",\n" +
+            "          \"valueType\": {\n" +
+            "            \"type\": \"string\"\n" +
+            "          }\n" +
+            "        }\n" +
+            "      ],\n" +
+            "      \"output\": {\n" +
+            "        \"type\": \"boolean\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"events\": [\n" +
+            "    {\n" +
+            "      \"id\": \"temp_sensor\",\n" +
+            "      \"name\": \"温度传感器\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"double\"\n" +
+            "      }\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"id\": \"fire_alarm\",\n" +
+            "      \"name\": \"火警\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"object\",\n" +
+            "        \"properties\": [\n" +
+            "          {\n" +
+            "            \"id\": \"location\",\n" +
+            "            \"name\": \"地点\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"string\"\n" +
+            "            }\n" +
+            "          },\n" +
+            "          {\n" +
+            "            \"id\": \"lng\",\n" +
+            "            \"name\": \"经度\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"double\"\n" +
+            "            }\n" +
+            "          },\n" +
+            "          {\n" +
+            "            \"id\": \"lat\",\n" +
+            "            \"name\": \"纬度\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"double\"\n" +
+            "            }\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+        deviceOperator.updateMetadata(s).subscribe();
         Mockito.when(deviceRegistry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -435,13 +509,11 @@ class DeviceMessageBusinessHandlerTest {
         DerivedMetadataMessage derivedMetadataMessage1 = new DerivedMetadataMessage();
         derivedMetadataMessage1.setDeviceId(DEVICE_ID);
         derivedMetadataMessage1.setAll(false);
-        derivedMetadataMessage1.setMetadata("{'test1':'test1'}");
+        derivedMetadataMessage1.setMetadata(s);
         service.updateMetadata(derivedMetadataMessage1)
             .as(StepVerifier::create)
-            .expectSubscription()
-            .verifyComplete();
-        ;
-
+            .expectError()
+            .verify();
     }
 
     @Test

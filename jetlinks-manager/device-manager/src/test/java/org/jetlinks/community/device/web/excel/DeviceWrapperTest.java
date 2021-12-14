@@ -42,6 +42,7 @@ class DeviceWrapperTest {
         DeviceWrapper wrapper = new DeviceWrapper(tags, new ArrayList<>());
         ExcelHeader excelHeader = new ExcelHeader();
         excelHeader.setText("tag");
+        excelHeader.setKey("key");
         Cell headerCell = new HeaderCell(excelHeader, 1, true);
         wrapper.wrap(new DeviceExcelInfo(),headerCell,headerCell);
 

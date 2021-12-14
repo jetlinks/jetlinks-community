@@ -137,24 +137,165 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void convertMetadataTo() {
+        String s = "{\n" +
+            "  \"id\": \"test\",\n" +
+            "  \"name\": \"测试\",\n" +
+            "  \"properties\": [\n" +
+            "    {\n" +
+            "      \"id\": \"name\",\n" +
+            "      \"name\": \"名称\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"string\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"functions\": [\n" +
+            "    {\n" +
+            "      \"id\": \"playVoice\",\n" +
+            "      \"name\": \"播放声音\",\n" +
+            "      \"inputs\": [\n" +
+            "        {\n" +
+            "          \"id\": \"text\",\n" +
+            "          \"name\": \"文字内容\",\n" +
+            "          \"valueType\": {\n" +
+            "            \"type\": \"string\"\n" +
+            "          }\n" +
+            "        }\n" +
+            "      ],\n" +
+            "      \"output\": {\n" +
+            "        \"type\": \"boolean\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"events\": [\n" +
+            "    {\n" +
+            "      \"id\": \"temp_sensor\",\n" +
+            "      \"name\": \"温度传感器\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"double\"\n" +
+            "      }\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"id\": \"fire_alarm\",\n" +
+            "      \"name\": \"火警\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"object\",\n" +
+            "        \"properties\": [\n" +
+            "          {\n" +
+            "            \"id\": \"location\",\n" +
+            "            \"name\": \"地点\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"string\"\n" +
+            "            }\n" +
+            "          },\n" +
+            "          {\n" +
+            "            \"id\": \"lng\",\n" +
+            "            \"name\": \"经度\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"double\"\n" +
+            "            }\n" +
+            "          },\n" +
+            "          {\n" +
+            "            \"id\": \"lat\",\n" +
+            "            \"name\": \"纬度\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"double\"\n" +
+            "            }\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+
         client.post()
             .uri(BASE_URL + "/metadata/convert-to/jetlinks")
-            .bodyValue("")
+            .bodyValue(s)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is5xxServerError();
 
     }
 
     @Test
     @Order(1)
     void convertMetadataFrom() {
+        String s = "{\n" +
+            "  \"id\": \"test\",\n" +
+            "  \"name\": \"测试\",\n" +
+            "  \"properties\": [\n" +
+            "    {\n" +
+            "      \"id\": \"name\",\n" +
+            "      \"name\": \"名称\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"string\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"functions\": [\n" +
+            "    {\n" +
+            "      \"id\": \"playVoice\",\n" +
+            "      \"name\": \"播放声音\",\n" +
+            "      \"inputs\": [\n" +
+            "        {\n" +
+            "          \"id\": \"text\",\n" +
+            "          \"name\": \"文字内容\",\n" +
+            "          \"valueType\": {\n" +
+            "            \"type\": \"string\"\n" +
+            "          }\n" +
+            "        }\n" +
+            "      ],\n" +
+            "      \"output\": {\n" +
+            "        \"type\": \"boolean\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"events\": [\n" +
+            "    {\n" +
+            "      \"id\": \"temp_sensor\",\n" +
+            "      \"name\": \"温度传感器\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"double\"\n" +
+            "      }\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"id\": \"fire_alarm\",\n" +
+            "      \"name\": \"火警\",\n" +
+            "      \"valueType\": {\n" +
+            "        \"type\": \"object\",\n" +
+            "        \"properties\": [\n" +
+            "          {\n" +
+            "            \"id\": \"location\",\n" +
+            "            \"name\": \"地点\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"string\"\n" +
+            "            }\n" +
+            "          },\n" +
+            "          {\n" +
+            "            \"id\": \"lng\",\n" +
+            "            \"name\": \"经度\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"double\"\n" +
+            "            }\n" +
+            "          },\n" +
+            "          {\n" +
+            "            \"id\": \"lat\",\n" +
+            "            \"name\": \"纬度\",\n" +
+            "            \"valueType\": {\n" +
+            "              \"type\": \"double\"\n" +
+            "            }\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
         client.post()
             .uri(BASE_URL + "/metadata/convert-from/jetlinks")
-            .bodyValue("")
+            .bodyValue(s)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is5xxServerError();
     }
 
     @Test

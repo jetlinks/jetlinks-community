@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -60,5 +61,10 @@ class MenuGrantRequestTest {
         menuEntity.setButtons(buttons1);
         menuEntities.add(menuEntity);
         request.toAuthorizationSettingDetail(menuEntities);
+        Set<String> set = new HashSet<>();
+        set.add("aaa");
+        permissionInfo1.setActions(set);
+        request.toAuthorizationSettingDetail(menuEntities);
+
     }
 }

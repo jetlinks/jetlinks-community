@@ -91,13 +91,13 @@ class DefaultDeviceDataManagerTest {
             .thenReturn(Flux.just(deviceProperty));
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
+        manager.getLastProperty("test1", "test1")
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
 
-        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
+        manager.getLastProperty("test1", "test1")
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
@@ -109,7 +109,7 @@ class DefaultDeviceDataManagerTest {
         deviceProperty1.setState("100");
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty1));
-        manager.getLastProperty(DEVICE_ID, DEVICE_ID)
+        manager.getLastProperty("test1", "test1")
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
             .expectNext("test")
