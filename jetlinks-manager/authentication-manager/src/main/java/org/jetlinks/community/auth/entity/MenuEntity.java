@@ -5,12 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
-import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
-import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
-import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
-import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
+import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
-import org.jetlinks.community.auth.web.request.AuthorizationSettingDetail;
+import org.jetlinks.community.auth.enums.MenuScope;
 
 import javax.persistence.Column;
 import javax.persistence.Index;
@@ -34,6 +31,18 @@ import java.util.stream.Collectors;
 })
 public class MenuEntity
     extends GenericTreeSortSupportEntity<String> {
+
+    @Comment("菜单作用域")
+    @Column(name = "scope", length = 16)
+    @EnumCodec
+    @ColumnType(javaType = String.class)
+    @DefaultValue("admin")
+    @Schema(
+        description = "菜单作用域"
+        , accessMode = Schema.AccessMode.READ_ONLY
+        , defaultValue = "admin"
+    )
+    private MenuScope scope;
 
     @Schema(description = "名称")
     @Comment("菜单名称")
@@ -62,32 +71,42 @@ public class MenuEntity
     @Schema(description = "图标")
     private String icon;
 
-    @Comment("状态")
+    @Comment("图标")
+    @Column(length = 256)
+    @Schema(description = "图标")
+    private String iconfont;
+
+    @Comment("状态,0为禁用,1为启用")
     @Column
     @ColumnType(jdbcType = JDBCType.SMALLINT)
     @Schema(description = "状态,0为禁用,1为启用")
     @DefaultValue("1")
     private Byte status;
 
+    @Comment("默认权限信息")
     @Schema(description = "默认权限信息")
     @Column
     @JsonCodec
     @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
     private List<PermissionInfo> permissions;
 
+    @Comment("按钮定义信息")
     @Schema(description = "按钮定义信息")
     @Column
     @JsonCodec
     @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
     private List<MenuButtonInfo> buttons;
 
+    @Comment("其他配置信息")
     @Schema(description = "其他配置信息")
     @Column
     @JsonCodec
     @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
     private Map<String, Object> options;
 
-    //子菜单
+    /**
+     * 子菜单
+     */
     @Schema(description = "子菜单")
     private List<MenuEntity> children;
 

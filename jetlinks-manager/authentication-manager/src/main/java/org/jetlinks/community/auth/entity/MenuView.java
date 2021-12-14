@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +41,7 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
     @Setter
     @AllArgsConstructor(staticName = "of")
     @NoArgsConstructor
-    public static class ButtonView{
+    public static class ButtonView implements Serializable {
 
         @Schema(description = "按钮ID")
         private String id;
