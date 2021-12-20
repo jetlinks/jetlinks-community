@@ -83,9 +83,11 @@ public class MenuGrantService extends GenericReactiveCrudService<MenuGrantEntity
             //遍历分组，组装表达式
             for (Map.Entry<DimensionType, List<Dimension>> entry : map.entrySet()) {
                 final List<String> dimensionIds = entry.getValue().stream().map(Dimension::getId).collect(Collectors.toList());
-                query = query.or()
-                    .and(MenuGrantEntity::getDimensionTypeId, entry.getKey().toString())
-                    .in(MenuGrantEntity::getDimensionId, dimensionIds);
+                query = query
+                    .orNest()
+                    .is(MenuGrantEntity::getDimensionTypeId, entry.getKey().toString())
+                    .in(MenuGrantEntity::getDimensionId,dimensionIds)
+                    .end();
             }
         }
 
