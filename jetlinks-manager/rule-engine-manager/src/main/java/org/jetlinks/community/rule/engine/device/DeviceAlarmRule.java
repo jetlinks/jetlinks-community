@@ -261,6 +261,45 @@ public class DeviceAlarmRule implements Serializable {
             );
         }
 
+        public String toSQL(int index, List<String> defaultColumns, List<DeviceAlarmRule.Property> properties) {
+            List<String> columns = new ArrayList<>(defaultColumns);
+            List<String> wheres = new ArrayList<>();
+
+            // select this.properties.this trigger0
+            columns.add(getType().getPropertyPrefix() + "this trigger" + index);
+            columns.addAll(toColumns());
+            createExpression()
+                .ifPresent(expr -> wheres.add("(" + expr + ")"));
+
+            String sql = "select \n\t\t" + String.join("\n\t\t,", columns) + " \n\tfrom dual ";
+
+            if (!wheres.isEmpty()) {
+                sql += "\n\twhere " + String.join("\n\t\t or ", wheres);
+            }
+
+            if (org.apache.commons.collections.CollectionUtils.isNotEmpty(properties)) {
+                List<String> newColumns = new ArrayList<>(defaultColumns);
+                for (DeviceAlarmRule.Property property : properties) {
+                    if (StringUtils.isEmpty(property.getProperty())) {
+                        continue;
+                    }
+                    String alias = StringUtils.hasText(property.getAlias()) ? property.getAlias() : property.getProperty();
+                    // 'message',func(),this[name]
+                    if ((property.getProperty().startsWith("'") && property.getProperty().endsWith("'"))
+                        ||
+                        property.getProperty().contains("(") || property.getProperty().contains("[")) {
+                        newColumns.add(property.getProperty() + " \"" + alias + "\"");
+                    } else {
+                        newColumns.add("this['" + property.getProperty() + "'] \"" + alias + "\"");
+                    }
+                }
+                if (newColumns.size() > defaultColumns.size()) {
+                    sql = "select \n\t" + String.join("\n\t,", newColumns) + "\n from (\n\t" + sql + "\n) t";
+                }
+            }
+            return sql;
+        }
+
         public void validate() {
             if (type == null) {
                 throw new IllegalArgumentException("类型不能为空");

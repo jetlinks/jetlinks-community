@@ -6,14 +6,17 @@ import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.ValueObject;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.metadata.Jsonable;
+import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQLRecord;
+import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.jetlinks.rule.engine.api.RuleConstants;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
@@ -56,20 +59,32 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
     static class DeviceAlarmTaskExecutor extends AbstractTaskExecutor {
 
-        List<String> default_columns = Arrays.asList(
+        /**
+         * 默认要查询的列
+         */
+        static List<String> default_columns = Arrays.asList(
+            //时间戳
             "this.timestamp timestamp",
+            //设备ID
             "this.deviceId deviceId",
+            //header
             "this.headers headers",
+            //设备名称,通过DeviceMessageConnector自定填充了值
             "this.headers.deviceName deviceName",
+            //消息唯一ID
+            "this.headers._uid _uid",
+            //消息类型,下游可以根据消息类型来做处理,比如:离线时,如果网关设备也不在线则不触发.
             "this.messageType messageType"
         );
         private final EventBus eventBus;
 
         private final Scheduler scheduler;
 
-        private DeviceAlarmRule rule;
-
+        //触发器对应的ReactorQL缓存
         private final Map<DeviceAlarmRule.Trigger, ReactorQL> triggerQL = new ConcurrentHashMap<>();
+
+        //告警规则
+        private DeviceAlarmRule rule;
 
         DeviceAlarmTaskExecutor(ExecutionContext context,
                                 EventBus eventBus,
@@ -139,47 +154,11 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
             }
         }
 
-        private ReactorQL createQL(int index, DeviceAlarmRule.Trigger trigger, DeviceAlarmRule rule) {
-            List<String> columns = new ArrayList<>(default_columns);
-            List<String> wheres = new ArrayList<>();
-
-            // select this.properties.this trigger0
-            columns.add(trigger.getType().getPropertyPrefix() + "this trigger" + index);
-            columns.addAll(trigger.toColumns());
-            trigger.createExpression()
-                   .ifPresent(expr -> wheres.add("(" + expr + ")"));
-
-            String sql = "select \n\t\t" + String.join("\n\t\t,", columns) + " \n\tfrom dual ";
-
-            if (!wheres.isEmpty()) {
-                sql += "\n\twhere " + String.join("\n\t\t or ", wheres);
-            }
-
-            if (CollectionUtils.isNotEmpty(rule.getProperties())) {
-                List<String> newColumns = new ArrayList<>(default_columns);
-                for (DeviceAlarmRule.Property property : rule.getProperties()) {
-                    if (StringUtils.isEmpty(property.getProperty())) {
-                        continue;
-                    }
-                    String alias = StringUtils.hasText(property.getAlias()) ? property.getAlias() : property.getProperty();
-                    // 'message',func(),this[name]
-                    if ((property.getProperty().startsWith("'") && property.getProperty().endsWith("'"))
-                        ||
-                        property.getProperty().contains("(") || property.getProperty().contains("[")) {
-                        newColumns.add(property.getProperty() + " \"" + alias + "\"");
-                    } else {
-                        newColumns.add("this['" + property.getProperty() + "'] \"" + alias + "\"");
-                    }
-                }
-                if (newColumns.size() > default_columns.size()) {
-                    sql = "select \n\t" + String.join("\n\t,", newColumns) + "\n from (\n\t" + sql + "\n) t";
-                }
-            }
+        static ReactorQL createQL(int index, DeviceAlarmRule.Trigger trigger, DeviceAlarmRule rule) {
+            String sql = trigger.toSQL(index, default_columns, rule.getProperties());
             log.debug("create device alarm sql : \n{}", sql);
-
             return ReactorQL.builder().sql(sql).build();
         }
-
 
         private Map<DeviceAlarmRule.Trigger, ReactorQL> createQL(DeviceAlarmRule rule) {
             Map<DeviceAlarmRule.Trigger, ReactorQL> qlMap = new HashMap<>();
@@ -192,22 +171,41 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
         public Flux<Map<String, Object>> doSubscribe(EventBus eventBus) {
 
+            //满足触发条件的输出数据流
+            List<Flux<? extends Map<String, Object>>> triggerOutputs = new ArrayList<>();
 
-            List<Flux<? extends Map<String, Object>>> inputs = new ArrayList<>();
             int index = 0;
-            for (DeviceAlarmRule.Trigger trigger : rule.getTriggers()) {
 
+            //上游节点的输入
+            //定时触发时: 定时节点输出到设备指令节点,设备指令节点输出到当前节点
+            Flux<RuleData> input = context
+                .getInput()
+                .accept()
+                //使用cache,多个定时收到相同的数据
+                //通过header来进行判断具体是哪个触发器触发的,应该还有更好的方式.
+                .cache(0);
+
+            for (DeviceAlarmRule.Trigger trigger : rule.getTriggers()) {
+                //QL不存在,理论上不会发生
                 ReactorQL ql = triggerQL.get(trigger);
                 if (ql == null) {
+                    log.warn("DeviceAlarmRule trigger {} init error", index);
                     continue;
                 }
                 Flux<? extends Map<String, Object>> datasource;
+
+                int currentIndex = index;
                 //since 1.11 定时触发的不从eventBus订阅
                 if (trigger.getTrigger() == DeviceAlarmRule.TriggerType.timer) {
                     //从上游获取输入进行处理(通常是定时触发发送指令后得到的回复)
-                    datasource = context
-                        .getInput()
-                        .accept()
+                    datasource = input
+                        .filter(data -> {
+                            //通过上游输出的header来判断是否为同一个触发规则，还有更好的方式?
+                            return data
+                                .getHeader("triggerIndex")
+                                .map(idx -> CastUtils.castNumber(idx).intValue() == currentIndex)
+                                .orElse(true);
+                        })
                         .flatMap(RuleData::dataToMap);
                 }
                 //从事件总线中订阅数据
@@ -224,28 +222,33 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                     );
                     datasource = eventBus
                         .subscribe(subscription, DeviceMessage.class)
-                        .map(Jsonable::toJson)
-                        .doOnNext(json -> {
-                            if (StringUtils.hasText(rule.getDeviceName())) {
-                                json.putIfAbsent("deviceName", rule.getDeviceName());
-                            }
-                            if (StringUtils.hasText(rule.getProductName())) {
-                                json.putIfAbsent("productName", rule.getProductName());
-                            }
-                            json.put("productId", rule.getProductId());
-                            json.put("alarmId", rule.getId());
-                            json.put("alarmName", rule.getName());
-                        });
+                        .map(Jsonable::toJson);
 
                 }
 
-                ReactorQLContext qlContext = ReactorQLContext.ofDatasource((t) -> datasource);
+                ReactorQLContext qlContext = ReactorQLContext
+                    .ofDatasource((t) -> datasource
+                        .doOnNext(map -> {
+                            if (StringUtils.hasText(rule.getDeviceName())) {
+                                map.putIfAbsent("deviceName", rule.getDeviceName());
+                            }
+                            if (StringUtils.hasText(rule.getProductName())) {
+                                map.putIfAbsent("productName", rule.getProductName());
+                            }
+                            map.put("productId", rule.getProductId());
+                            map.put("alarmId", rule.getId());
+                            map.put("alarmName", rule.getName());
+                        }));
+                //绑定SQL中的预编译变量
                 trigger.toFilterBinds().forEach(qlContext::bind);
-                inputs.add(ql.start(qlContext).map(ReactorQLRecord::asMap));
+
+                //启动ReactorQL进行实时数据处理
+                triggerOutputs.add(ql.start(qlContext).map(ReactorQLRecord::asMap));
             }
 
-            Flux<Map<String, Object>> resultFlux = Flux.merge(inputs);
+            Flux<Map<String, Object>> resultFlux = Flux.merge(triggerOutputs);
 
+            //防抖
             ShakeLimit shakeLimit;
             if ((shakeLimit = rule.getShakeLimit()) != null) {
 
@@ -256,6 +259,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                             //规则已经指定了固定的设备,直接开启时间窗口就行
                             ? flux.window(duration, scheduler)
                             //规则配置在设备产品上,则按设备ID分组后再开窗口
+                            //设备越多,消耗的内存越大
                             : flux
                             .groupBy(map -> String.valueOf(map.get("deviceId")), Integer.MAX_VALUE)
                             .flatMap(group -> group.window(duration, scheduler), Integer.MAX_VALUE),
@@ -264,6 +268,17 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
             }
 
             return resultFlux
+                .as(result -> {
+                    //有多个触发条件时对重复的数据进行去重,
+                    //防止同时满足条件时会产生多个告警记录
+                    if (rule.getTriggers().size() > 1) {
+                        return result
+                            .as(FluxUtils.distinct(
+                                map -> map.getOrDefault(PropertyConstants.uid.getKey(), ""),
+                                Duration.ofSeconds(1)));
+                    }
+                    return result;
+                })
                 .flatMap(map -> {
                     @SuppressWarnings("all")
                     Map<String, Object> headers = (Map<String, Object>) map.remove("headers");
@@ -297,8 +312,6 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
                     //生成告警记录时生成ID，方便下游做处理。
                     map.putIfAbsent("id", IDGenerator.MD5.generate());
-                    // 推送告警信息到消息网关中
-                    // /rule-engine/device/alarm/{productId}/{deviceId}/{ruleId}
                     return eventBus
                         .publish(String.format(
                             "/rule-engine/device/alarm/%s/%s/%s",
@@ -306,6 +319,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                             map.get("deviceId"),
                             rule.getId()), map)
                         .thenReturn(map);
+
                 });
         }
     }
