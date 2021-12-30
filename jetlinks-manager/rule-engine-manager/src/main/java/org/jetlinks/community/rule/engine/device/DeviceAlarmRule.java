@@ -225,16 +225,22 @@ public class DeviceAlarmRule implements Serializable {
         private List<ConditionFilter> filters;
 
         public Set<String> toColumns() {
+            Set<String> columns = new LinkedHashSet<>();
+            columns.add(type.getPropertyPrefix() + "this $this");
 
-            return Stream.concat(
-                             (StringUtils.hasText(modelId)
-                                 ? Collections.singleton(type.getPropertyPrefix() + "this['" + modelId + "'] \"" + modelId + "\"")
-                                 : Collections.<String>emptySet()).stream(),
-                             (CollectionUtils.isEmpty(filters)
-                                 ? Stream.<ConditionFilter>empty()
-                                 : filters.stream())
-                                 .map(filter -> filter.getColumn(type)))
-                         .collect(Collectors.toSet());
+            if (StringUtils.hasText(modelId)) {
+                //this.properties.this['temp'] temp
+                columns.add(
+                    type.getPropertyPrefix() + "this['" + modelId + "'] \"" + modelId + "\""
+                );
+            }
+            if (!CollectionUtils.isEmpty(filters)) {
+                for (ConditionFilter filter : filters) {
+                    columns.add(filter.getColumn(type));
+                }
+            }
+
+            return columns;
         }
 
         public List<Object> toFilterBinds() {
