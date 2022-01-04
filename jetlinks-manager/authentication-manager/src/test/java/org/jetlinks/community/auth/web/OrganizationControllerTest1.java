@@ -17,6 +17,7 @@ class OrganizationControllerTest1 extends TestJetLinksController1 {
 
     @Test
     void getAllOrg() {
+        assertNotNull(client);
         List<DimensionEntity> responseBody = client.get()
             .uri(BASE_URL + "/_all")
             .exchange()

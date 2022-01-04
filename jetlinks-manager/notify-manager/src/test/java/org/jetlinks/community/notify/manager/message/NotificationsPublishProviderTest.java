@@ -45,6 +45,7 @@ class NotificationsPublishProviderTest {
     void subscribe() {
         EventBus eventBus = Mockito.mock(EventBus.class);
         NotificationsPublishProvider provider = new NotificationsPublishProvider(eventBus);
+        assertNotNull(provider);
         TopicPayload payload = TopicPayload.of("topic", Payload.of("{'s':'s'}"));
         Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class)))
             .thenReturn(Flux.just(payload));

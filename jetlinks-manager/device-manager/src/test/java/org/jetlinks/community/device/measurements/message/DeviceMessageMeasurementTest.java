@@ -73,6 +73,7 @@ class DeviceMessageMeasurementTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceMessageMeasurement deviceMessageMeasurement = new DeviceMessageMeasurement(new BrokerEventBus(),registry,timeSeriesManager);
         DeviceMessageMeasurement.RealTimeMessageDimension realTimeMessageDimension = deviceMessageMeasurement.new RealTimeMessageDimension();
+        assertNotNull(realTimeMessageDimension);
         Map<String, Object> params = new HashMap<>();
         params.put("productId",PRODUCT_ID);
         params.put("msgType",IntType.GLOBAL);
@@ -120,7 +121,9 @@ class DeviceMessageMeasurementTest {
         DeviceMessageMeasurement deviceMessageMeasurement = new DeviceMessageMeasurement(new BrokerEventBus(),registry,timeSeriesManager);
         DeviceMessageMeasurement.AggMessageDimension aggMessageDimension = deviceMessageMeasurement.new AggMessageDimension();
 
+        assertNotNull(aggMessageDimension);
         Class<? extends DeviceMessageMeasurement.AggMessageDimension> aggMessageDimensionClass = aggMessageDimension.getClass();
+        assertNotNull(aggMessageDimensionClass);
         Method createQueryParam =
             aggMessageDimensionClass.getDeclaredMethod("createQueryParam", MeasurementParameter.class);
         createQueryParam.setAccessible(true);
@@ -160,8 +163,9 @@ class DeviceMessageMeasurementTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -180,6 +184,7 @@ class DeviceMessageMeasurementTest {
         List<String> list = new ArrayList<>();
         list.add(DEVICE_ID);
         Mono<TimeSeriesMetric[]> invoke = (Mono<TimeSeriesMetric[]>) getProductMetrics.invoke(aggMessageDimension, list);
+        assertNotNull(invoke);
         invoke.map(t->t.length)
             .as(StepVerifier::create)
             .expectNext(2)
@@ -206,8 +211,9 @@ class DeviceMessageMeasurementTest {
             .thenReturn(Flux.just(AggregationData.of(new HashMap<>())));
 
         DeviceMessageMeasurement deviceMessageMeasurement = new DeviceMessageMeasurement(new BrokerEventBus(),registry,timeSeriesManager);
+        assertNotNull(deviceMessageMeasurement);
         DeviceMessageMeasurement.AggMessageDimension aggMessageDimension = deviceMessageMeasurement.new AggMessageDimension();
-
+        assertNotNull(aggMessageDimension);
         Map<String, Object> params = new HashMap<>();
         params.put("productId",PRODUCT_ID);
         params.put("msgType",IntType.GLOBAL);

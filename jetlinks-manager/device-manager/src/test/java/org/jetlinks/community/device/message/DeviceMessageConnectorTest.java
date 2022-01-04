@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
-
+import static org.junit.jupiter.api.Assertions.*;
 
 class DeviceMessageConnectorTest {
     public static final String DEVICE_ID = "test001";
@@ -47,7 +47,7 @@ class DeviceMessageConnectorTest {
         );
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        assertNotNull(deviceOperator);
         LostDeviceSession lostDeviceSession = new LostDeviceSession("test", deviceOperator, DefaultTransport.TCP);
 
         Mockito.when(sessionManager.onRegister())
@@ -104,7 +104,7 @@ class DeviceMessageConnectorTest {
         );
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        assertNotNull(deviceOperator);
         LostDeviceSession lostDeviceSession = new LostDeviceSession("test", deviceOperator, DefaultTransport.TCP);
 
         Mockito.when(sessionManager.onRegister())
@@ -121,6 +121,7 @@ class DeviceMessageConnectorTest {
             .thenReturn(Mono.just(deviceOperator));
         DeviceMessageConnector connector = new DeviceMessageConnector(new BrokerEventBus(), registry, new StandaloneDeviceMessageBroker(), sessionManager);
 
+        assertNotNull(connector);
         EventMessage eventMessage = new EventMessage();
         eventMessage.setDeviceId(DEVICE_ID);
         ChildDeviceMessageReply childDeviceMessageReply = new ChildDeviceMessageReply();
@@ -173,6 +174,7 @@ class DeviceMessageConnectorTest {
         );
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
 
         LostDeviceSession lostDeviceSession = new LostDeviceSession("test", deviceOperator, DefaultTransport.TCP);
 
@@ -198,6 +200,7 @@ class DeviceMessageConnectorTest {
         ReadPropertyMessageReply messageReply = new ReadPropertyMessageReply();
         messageReply.setMessageId("test");
         Mono<Boolean>  booleanMono= (Mono<Boolean>) reply.invoke(deviceMessageConnector,messageReply);
+        assertNotNull(booleanMono);
         booleanMono.as(StepVerifier::create)
             .expectError(IllegalArgumentException.class)
             .verify();

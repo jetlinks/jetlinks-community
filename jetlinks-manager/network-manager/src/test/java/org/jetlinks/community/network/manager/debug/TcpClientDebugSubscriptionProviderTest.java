@@ -63,6 +63,7 @@ class TcpClientDebugSubscriptionProviderTest {
         NetworkManager networkManager = Mockito.mock(NetworkManager.class);
         TcpClientDebugSubscriptionProvider provider
             = new TcpClientDebugSubscriptionProvider(networkManager);
+        assertNotNull(provider);
         Vertx vertx = Vertx.vertx();
         MqttServer server = MqttServer.create(vertx);
 

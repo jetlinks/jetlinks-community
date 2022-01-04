@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceGatewayConfigServiceTest {
 
@@ -16,6 +17,7 @@ class DeviceGatewayConfigServiceTest {
 
 
         DeviceGatewayConfigService service = new DeviceGatewayConfigService(gatewayService);
+        assertNotNull(service);
 
         DeviceGatewayEntity entity = new DeviceGatewayEntity();
         entity.setId("test");

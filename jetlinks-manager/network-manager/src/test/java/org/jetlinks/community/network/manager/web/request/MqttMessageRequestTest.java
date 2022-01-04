@@ -14,6 +14,7 @@ class MqttMessageRequestTest {
     void of() {
         MqttMessageRequest mqttMessageRequest =
             new MqttMessageRequest("test",1,"test",111,true,true,true);
+        assertNotNull(mqttMessageRequest);
         SimpleMqttMessage simpleMqttMessage = new SimpleMqttMessage();
         simpleMqttMessage.setTopic("test");
         simpleMqttMessage.setQosLevel(1);

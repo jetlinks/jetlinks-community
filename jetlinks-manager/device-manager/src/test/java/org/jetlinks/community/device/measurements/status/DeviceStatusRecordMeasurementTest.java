@@ -67,7 +67,9 @@ class DeviceStatusRecordMeasurementTest {
         Mockito.when(timeSeriesService.aggregation(Mockito.any(AggregationQueryParam.class)))
             .thenReturn(Flux.just(AggregationData.of(new HashMap<>())));
         DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
+        assertNotNull(measurement);
         DeviceStatusRecordMeasurement.AggNumberOfOnlineDeviceDimension dimension = measurement.new AggNumberOfOnlineDeviceDimension();
+        assertNotNull(dimension);
         Map<String, Object> params = new HashMap<>();
         MeasurementParameter parameter = MeasurementParameter.of(params);
         dimension.getValue(parameter).subscribe();

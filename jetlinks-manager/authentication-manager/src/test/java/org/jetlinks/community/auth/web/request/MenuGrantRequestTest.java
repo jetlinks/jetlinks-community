@@ -11,13 +11,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 class MenuGrantRequestTest {
     private static final String ID = "test";
     private static final String Buttons_ID = "button";
     @Test
     void toAuthorizationSettingDetail() {
-
-
         List<MenuView> menus = new ArrayList<>();
         MenuView menuView = new MenuView();
         menuView.setId("aa");
@@ -32,7 +32,7 @@ class MenuGrantRequestTest {
         menuView1.setButtons(buttons);
         menus.add(menuView1);
         MenuGrantRequest request = new MenuGrantRequest("targetType","targetId",true,1,menus);
-
+        assertNotNull(request);
         List<MenuEntity> menuEntities = new ArrayList<>();
         MenuEntity menuEntity = new MenuEntity();
         menuEntity.setId(ID);

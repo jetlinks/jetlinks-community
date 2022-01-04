@@ -1,6 +1,7 @@
 package org.jetlinks.community.network.manager.web;
 
 
+import org.jetlinks.community.network.manager.service.CertificateService;
 import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -11,7 +12,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 
 import java.io.File;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(CertificateController.class)
 class CertificateControllerTest extends TestJetLinksController {
@@ -20,11 +21,13 @@ class CertificateControllerTest extends TestJetLinksController {
 
     @Test
     void getService() {
-        new CertificateController().getService();
+        CertificateService service = new CertificateController().getService();
+        assertNotNull(service);
     }
 
     @Test
     void getCertificateInfo() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/"+ID+"/detail")
             .exchange()
@@ -34,6 +37,7 @@ class CertificateControllerTest extends TestJetLinksController {
 
     @Test
     void upload() {
+        assertNotNull(client);
         String filePath = this.getClass().getClassLoader().getResource("changgou.pem").getPath();
         // 封装请求参数
         FileSystemResource resource = new FileSystemResource(new File(filePath));
@@ -56,6 +60,7 @@ class CertificateControllerTest extends TestJetLinksController {
 
     @Test
     void upload1(){
+        assertNotNull(client);
         MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
         param.add("file","aa");
         client.post()

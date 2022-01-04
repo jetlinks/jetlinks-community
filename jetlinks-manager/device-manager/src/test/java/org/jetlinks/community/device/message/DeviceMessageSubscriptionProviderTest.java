@@ -51,7 +51,7 @@ class DeviceMessageSubscriptionProviderTest {
         request.setAuthentication(new TestAuthentication("test"));
         EventBus eventBus = Mockito.mock(EventBus.class);
         DeviceMessageSubscriptionProvider provider = new DeviceMessageSubscriptionProvider(eventBus);
-
+        assertNotNull(provider);
         Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class)))
             .thenReturn(Flux.just(TopicPayload.of("topic", Payload.of("{'s':'s'}"))));
         provider.subscribe(request).subscribe(Message::getRequestId);

@@ -84,6 +84,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             .expectStatus()
             .is2xxSuccessful();
 
+        assertNotNull(loader);
         Mono supportMono1 = Mono.just(new TestMockSupport());
         Mockito.when(loader.load(Mockito.any(ProtocolSupportDefinition.class)))
             .thenReturn(supportMono1);
@@ -120,6 +121,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         deviceProductEntity.setConfiguration(map);
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
+        assertNotNull(client);
         client.patch()
             .uri(BASE_URL2)
             .accept(MediaType.APPLICATION_JSON)
@@ -133,6 +135,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     //发布产品
     void deployProduct() {
         addProduct();
+        assertNotNull(client);
         Integer responseBody = client.post()
             .uri(BASE_URL2 + "/" + PRODUCT_ID + "/deploy")
             .exchange()
@@ -148,6 +151,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Order(1)
     void add() {
         deployProduct();
+        assertNotNull(client);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
         deviceInstanceEntity.setId(DEVICE_ID);
         //deviceInstanceEntity.setState(DeviceState.online);
@@ -213,6 +217,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void getDeviceDetailInfo() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/detail")
             .exchange()
@@ -226,6 +231,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void getDeviceConfigMetadata() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/config-metadata")
             .exchange()
@@ -236,6 +242,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void getExpandsConfigMetadata() {
+        assertNotNull(client);
         List<ConfigMetadata> responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/config-metadata/property/temperature/float")
             .exchange()
@@ -251,6 +258,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void getBindProviders() {
+        assertNotNull(client);
         List<DeviceBindProvider> responseBody = client.get()
             .uri(BASE_URL + "/bind-providers")
             .exchange()
@@ -266,6 +274,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void getDeviceState() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/state")
             .exchange()
@@ -279,6 +288,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(4)
     void resetConfiguration() {
+        assertNotNull(client);
         client.put()
             .uri(BASE_URL + "/" + DEVICE_ID + "/configuration/_reset")
             .exchange()
@@ -293,6 +303,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(4)
     void disconnect() {
+        assertNotNull(clusterDeviceRegistry);
         Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
         Field operatorCache = null;
         try {
@@ -342,6 +353,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
 
         deviceOperator.updateMetadata(
@@ -435,6 +447,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void queryDeviceProperties() {
+        assertNotNull(client);
         client.get()
             .uri(uri -> uri.path(BASE_URL + "/" + DEVICE_ID + "/properties/_query")
                 .queryParam("terms[0].column", "property")
@@ -465,6 +478,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void queryPagerByDeviceEvent() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/event/fire_alarm")
             .exchange()
@@ -475,6 +489,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void queryDeviceLog() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/logs")
             .exchange()
@@ -529,6 +544,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(7)
     void deleteDeviceTag() {
+        assertNotNull(client);
         List<DeviceTagEntity> deviceTags = getDeviceTags();
         client.delete()
             .uri(BASE_URL + "/" + DEVICE_ID + "/tag/" + deviceTags.get(0).getId())
@@ -543,7 +559,8 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     void doBatchImportByProduct() {
         String fileUrl = this.getClass().getClassLoader().getResource("6F04AE20.xlsx").getPath();
         System.out.println(fileUrl);
-       client.get()
+        assertNotNull(client);
+        client.get()
             .uri(uriBuilder ->
                 uriBuilder.path(BASE_URL + "/" + PRODUCT_ID + "/import")
                     .queryParam("fileUrl", fileUrl)
@@ -557,6 +574,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Order(2)
     void downloadExportTemplate() {
         String format = "xlsx";
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/template." + format)
             .exchange()
@@ -568,6 +586,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Order(2)
     void export() {
         String format = "xlsx";
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/export." + format)
             .exchange()
@@ -579,6 +598,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Order(2)
     void testExport() {
         String format = "xlsx";
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/export." + format)
             .exchange()
@@ -590,6 +610,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Order(7)
     void setDeviceShadow() {
         String shadow = "test";
+        assertNotNull(client);
         String responseBody = client.put()
             .uri(BASE_URL + "/" + DEVICE_ID + "/shadow")
             .contentType(MediaType.APPLICATION_JSON)
@@ -607,6 +628,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(8)
     void getDeviceShadow() {
+        assertNotNull(client);
         String responseBody = client.get()
             .uri(BASE_URL + "/" + DEVICE_ID + "/shadow")
             .exchange()
@@ -624,7 +646,8 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(7)
     void writeProperties() {
-
+        assertNotNull(clusterDeviceRegistry);
+        assertNotNull(client);
         Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
         Field operatorCache = null;
         try {
@@ -679,6 +702,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
 
         deviceOperator.updateMetadata(
@@ -705,6 +729,8 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(7)
     void invokedFunction() {
+        assertNotNull(clusterDeviceRegistry);
+        assertNotNull(client);
         Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
         Field operatorCache = null;
         try {
@@ -757,6 +783,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
@@ -773,7 +800,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         String functionId = "AuditCommandFunction";
         Map<String, Object> map1 = new HashMap<>();
         //map.put("temperature",36.5);
-         client.post()
+        client.post()
             .uri(BASE_URL + "/test2/function/" + functionId)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(map1)
@@ -823,6 +850,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
             "    }\n" +
             "  }\n" +
             "}";
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL + "/" + DEVICE_ID + "/agg/_query")
             .contentType(MediaType.APPLICATION_JSON)
@@ -837,6 +865,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Order(8)
     void sendMessage() {
 
+        assertNotNull(clusterDeviceRegistry);
+        assertNotNull(client);
+        assertNotNull(service);
         Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
         Field operatorCache = null;
         try {
@@ -888,6 +919,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
@@ -903,9 +935,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
 
 
         Map<String, Object> map = new HashMap<>();
-        map.put("event","event");
+        map.put("event", "event");
 
-       client.post()
+        client.post()
             .uri(BASE_URL + "/test3/message")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(map)
@@ -918,6 +950,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Order(8)
     void sendMessage1() {
 
+        assertNotNull(clusterDeviceRegistry);
+        assertNotNull(client);
+        assertNotNull(service);
         Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
         Field operatorCache = null;
         try {
@@ -969,6 +1004,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
@@ -984,8 +1020,8 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
 
 
         Map<String, Object> map = new HashMap<>();
-        map.put("functionId","AuditCommandFunction");
-        map.put("inputs",10);
+        map.put("functionId", "AuditCommandFunction");
+        map.put("inputs", 10);
 
         client.post()
             .uri(BASE_URL + "/test5/message")
@@ -1011,16 +1047,16 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(9)
     void testSendMessage() {
-
+        assertNotNull(client);
         Map<String, Object> map = new HashMap<>();
-        map.put("event","event");
+        map.put("event", "event");
         List<Map> list = new ArrayList<>();
         list.add(map);
         client.post()
             .uri(uriBuilder ->
                 uriBuilder.path(BASE_URL + "/messages")
-                .queryParam("where","id=test3")
-                .build()
+                    .queryParam("where", "id=test3")
+                    .build()
             )
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(list)
@@ -1032,7 +1068,9 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(9)
     void testSendMessage1() {
-
+        assertNotNull(client);
+        assertNotNull(clusterDeviceRegistry);
+        assertNotNull(service);
         Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
         Field operatorCache = null;
         try {
@@ -1084,6 +1122,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(), "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
@@ -1099,17 +1138,17 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
 
 
         Map<String, Object> map = new HashMap<>();
-        map.put("functionId","AuditCommandFunction");
-        map.put("inputs",10);
+        map.put("functionId", "AuditCommandFunction");
+        map.put("inputs", 10);
         Map<String, Object> map2 = new HashMap<>();
-        map2.put("event","event");
+        map2.put("event", "event");
         List<Map> list = new ArrayList<>();
         list.add(map);
         list.add(map2);
         client.post()
             .uri(uriBuilder ->
                 uriBuilder.path(BASE_URL + "/messages")
-                    .queryParam("where","id=test4")
+                    .queryParam("where", "id=test4")
                     .build()
             )
             .contentType(MediaType.APPLICATION_JSON)
@@ -1134,6 +1173,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(5)
     void updateMetadata() {
+        assertNotNull(client);
         String metadata = "test";
         client.put()
             .uri(BASE_URL + "/" + DEVICE_ID + "/metadata")
@@ -1147,6 +1187,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(6)
     void resetMetadata() {
+        assertNotNull(client);
         client.delete()
             .uri(BASE_URL + "/" + DEVICE_ID + "/metadata")
             .exchange()
@@ -1159,6 +1200,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(10)
     void unDeploy() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL + "/" + DEVICE_ID + "/undeploy")
             .exchange()
@@ -1171,6 +1213,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(11)
     void deployBatch() {
+        assertNotNull(client);
         List<String> list = new ArrayList<>();
         list.add(DEVICE_ID);
         Integer responseBody = client.put()
@@ -1191,6 +1234,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     void unDeployBatch() {
         List<String> list = new ArrayList<>();
         list.add(DEVICE_ID);
+        assertNotNull(client);
         Integer responseBody = client.put()
             .uri(BASE_URL + "/batch/_unDeploy")
             .bodyValue(list)
@@ -1210,6 +1254,7 @@ class DeviceInstanceControllerTest extends TestJetLinksController {
     void deleteBatch() {
         List<String> list = new ArrayList<>();
         list.add(DEVICE_ID);
+        assertNotNull(client);
         Integer responseBody = client.put()
             .uri(BASE_URL + "/batch/_delete")
             .bodyValue(list)

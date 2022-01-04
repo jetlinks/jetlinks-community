@@ -19,6 +19,7 @@ import reactor.test.StepVerifier;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Collection;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class LocalDeviceProductServiceTest {
     public static final String ID_1 = "test001";
@@ -79,6 +80,7 @@ class LocalDeviceProductServiceTest {
 
 
         LocalDeviceProductService service = getService();
+        assertNotNull(service);
         Mono<Integer> deploy = service.deploy(ID_1);
         StepVerifier.create(deploy)
             .expectNext(1)
@@ -97,6 +99,7 @@ class LocalDeviceProductServiceTest {
         Mockito.when(update.execute()).thenReturn(Mono.just(1));
 
         LocalDeviceProductService service = getService();
+        assertNotNull(service);
         service.cancelDeploy(ID_1)
             .as(StepVerifier::create)
             .expectNext(1)
@@ -118,6 +121,7 @@ class LocalDeviceProductServiceTest {
         Mockito.when(repository.deleteById(Mockito.any(Publisher.class))).thenReturn(Mono.just(1));
 
         LocalDeviceProductService service = getService();
+        assertNotNull(service);
         service.deleteById(Mono.just(ID_1))
             .as(StepVerifier::create)
             .expectNext(1)

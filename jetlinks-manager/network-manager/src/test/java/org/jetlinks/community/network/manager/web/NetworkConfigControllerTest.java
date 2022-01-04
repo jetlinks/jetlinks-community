@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(NetworkConfigController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -29,12 +30,14 @@ class NetworkConfigControllerTest extends TestJetLinksController {
 
     @Test
     void getService() {
-        new NetworkConfigController(configService, Mockito.mock(NetworkManager.class)).getService();
+        NetworkConfigService service = new NetworkConfigController(configService, Mockito.mock(NetworkManager.class)).getService();
+        assertNotNull(service);
     }
 
     @Test
     @Order(0)
     void add(){
+        assertNotNull(configService);
         NetworkConfigEntity entity = new NetworkConfigEntity();
         entity.setId(ID);
         entity.setType("TCP_SERVER");
@@ -47,6 +50,8 @@ class NetworkConfigControllerTest extends TestJetLinksController {
 
     @Test
     void getNetworkInfo() {
+        assertNotNull(client);
+        assertNotNull(configService);
         client.get()
             .uri(BASE_URL+"/TCP_SERVER/_detail")
             .exchange()
@@ -72,6 +77,7 @@ class NetworkConfigControllerTest extends TestJetLinksController {
     private NetworkManager networkManager;
     @Test
     void getNetworkInfoError() {
+        assertNotNull(networkManager);
         networkManager = Mockito.mock(NetworkManager.class);
         Mockito.when(networkManager.getNetwork(Mockito.any(NetworkType.class),Mockito.anyString()))
             .thenReturn(Mono.error(new IllegalArgumentException()));
@@ -85,6 +91,7 @@ class NetworkConfigControllerTest extends TestJetLinksController {
 
     @Test
     void getSupports() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/supports")
             .exchange()
@@ -94,6 +101,7 @@ class NetworkConfigControllerTest extends TestJetLinksController {
 
     @Test
     void start() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+ID+"/_start")
             .exchange()
@@ -109,6 +117,7 @@ class NetworkConfigControllerTest extends TestJetLinksController {
 
     @Test
     void shutdown() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+ID+"/_shutdown")
             .exchange()

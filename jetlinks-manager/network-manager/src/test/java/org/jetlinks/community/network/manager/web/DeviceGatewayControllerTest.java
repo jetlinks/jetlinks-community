@@ -9,6 +9,7 @@ import org.jetlinks.community.network.manager.service.DeviceGatewayService;
 import org.jetlinks.community.network.manager.service.NetworkConfigService;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
 import org.jetlinks.community.test.spring.TestJetLinksController;
+import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -22,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(DeviceGatewayController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -35,7 +36,8 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
 
     @Test
     void getService() {
-        new DeviceGatewayController(Mockito.mock(DeviceGatewayManager.class),Mockito.mock(DeviceGatewayService.class)).getService();
+        DeviceGatewayService service = new DeviceGatewayController(Mockito.mock(DeviceGatewayManager.class), Mockito.mock(DeviceGatewayService.class)).getService();
+        assertNotNull(service);
     }
 
     @Test
@@ -51,7 +53,8 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
         map.put("protocol", "test");
         entity.setConfiguration(map);
             //  deviceGatewayService.save(entity).subscribe(System.out::println);
-
+        assertNotNull(client);
+        assertNotNull(networkConfigService);
         client.patch()
             .uri(BASE_URL)
             .bodyValue(entity)
@@ -74,6 +77,7 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void startup() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+ID+"/_startup")
             .exchange()
@@ -84,6 +88,7 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void pause() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+ID+"/_pause")
             .exchange()
@@ -94,6 +99,7 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void shutdown() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+ID+"/_shutdown")
             .exchange()
@@ -104,6 +110,7 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
     @Test
     @Order(2)
     void getMessages() {
+
         DeviceGatewayService gatewayService = Mockito.mock(DeviceGatewayService.class);
         DeviceGatewayManager gatewayManager = Mockito.mock(DeviceGatewayManager.class);
         DeviceGateway deviceGateway = Mockito.mock(DeviceGateway.class);
@@ -112,13 +119,15 @@ class DeviceGatewayControllerTest extends TestJetLinksController {
         Mockito.when(deviceGateway.onMessage())
             .thenReturn(Flux.just(new ReadPropertyMessage()));
         DeviceGatewayController controller = new DeviceGatewayController(gatewayManager, gatewayService);
-        controller.getMessages(ID);
+        Flux<Message> messages = controller.getMessages(ID);
+        assertNotNull(messages);
 
     }
 
     @Test
     @Order(2)
     void getProviders() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/providers")
             .exchange()

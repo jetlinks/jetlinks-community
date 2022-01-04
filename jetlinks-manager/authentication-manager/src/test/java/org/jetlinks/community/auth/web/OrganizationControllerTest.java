@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,14 +55,17 @@ class OrganizationControllerTest extends TestJetLinksController {
             "    ]\n" +
             "  }\n" +
             "]";
-        client.post()
+        Flux<DimensionEntity> responseBody = client.post()
             .uri(BASE_URL)
             .accept(MediaType.APPLICATION_JSON)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(s)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is2xxSuccessful()
+            .returnResult(DimensionEntity.class)
+            .getResponseBody();
+        assertNotNull(responseBody);
     }
 
 
@@ -151,12 +155,15 @@ class OrganizationControllerTest extends TestJetLinksController {
         DimensionEntity dimensionEntity = new DimensionEntity();
         dimensionEntity.setId("test");
         dimensionEntity.setName("ccc");
-        client.put()
-            .uri(BASE_URL+"/test")
+        Flux<Void> responseBody = client.put()
+            .uri(BASE_URL + "/test")
             .bodyValue(dimensionEntity)
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is2xxSuccessful()
+            .returnResult(Void.class)
+            .getResponseBody();
+        assertNotNull(responseBody);
     }
 
     @Test
@@ -189,6 +196,7 @@ class OrganizationControllerTest extends TestJetLinksController {
             "    ]\n" +
             "  }\n" +
             "]";
+        assertNotNull(client);
         client.patch()
             .uri(BASE_URL)
             .accept(MediaType.APPLICATION_JSON)
@@ -202,6 +210,7 @@ class OrganizationControllerTest extends TestJetLinksController {
     @Test
     @Order(4)
     void deleteOrg() {
+        assertNotNull(client);
         client.delete()
             .uri(BASE_URL+"/xxx")
             .exchange()
@@ -214,6 +223,7 @@ class OrganizationControllerTest extends TestJetLinksController {
     void bindUser() {
         List<String> list = new ArrayList<>();
         list.add("user1");
+        assertNotNull(client);
         Integer responseBody = client.post()
             .uri(BASE_URL + "/test/users/_bind")
             .bodyValue(list)
@@ -232,6 +242,7 @@ class OrganizationControllerTest extends TestJetLinksController {
     void unbindUser() {
         List<String> list = new ArrayList<>();
         list.add("user1");
+        assertNotNull(client);
         Integer responseBody = client.post()
             .uri(BASE_URL + "/test/users/_unbind")
             .bodyValue(list)

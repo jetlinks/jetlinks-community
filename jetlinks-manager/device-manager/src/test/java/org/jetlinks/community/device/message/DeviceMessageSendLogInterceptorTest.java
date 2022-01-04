@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.*;
-
+import static org.junit.jupiter.api.Assertions.*;
 import static org.jetlinks.core.device.DeviceConfigKey.productId;
 
 class DeviceMessageSendLogInterceptorTest {
@@ -38,6 +38,7 @@ class DeviceMessageSendLogInterceptorTest {
     void doPublish() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceMessageSendLogInterceptor interceptor = new DeviceMessageSendLogInterceptor(new BrokerEventBus(), registry);
+        assertNotNull(interceptor);
         ReadPropertyMessageReply readPropertyMessageReply = new ReadPropertyMessageReply();
         readPropertyMessageReply.addHeader(Headers.dispatchToParent, true);
         interceptor.doPublish(readPropertyMessageReply).subscribe();
@@ -75,6 +76,7 @@ class DeviceMessageSendLogInterceptorTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(PropertyConstants.productId.getKey(), PRODUCT_ID).subscribe();
         deviceOperator.setConfig(PropertyConstants.deviceName.getKey(), "TCP-setvice").subscribe();
         deviceOperator.setConfig(PropertyConstants.orgId.getKey(), "test");
@@ -133,7 +135,7 @@ class DeviceMessageSendLogInterceptorTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        assertNotNull(deviceOperator);
         WritePropertyMessage writePropertyMessage = new WritePropertyMessage();
         writePropertyMessage.addHeader(PropertyMetadataConstants.Source.headerKey, "manual");
         Map<String, Object> properties = new LinkedHashMap<>();
@@ -159,6 +161,7 @@ class DeviceMessageSendLogInterceptorTest {
     void preSend() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         DeviceMessageSendLogInterceptor interceptor = new DeviceMessageSendLogInterceptor(new BrokerEventBus(), registry);
+        assertNotNull(interceptor);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
         deviceInstanceEntity.setId(DEVICE_ID);
         deviceInstanceEntity.setState(DeviceState.online);
@@ -189,6 +192,7 @@ class DeviceMessageSendLogInterceptorTest {
             .addConfig(productId.getKey(), "productId")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Map<String, Object> map1 = new HashMap<>();
         map1.put("source","manual");
         deviceOperator.getMetadata().map(s->{

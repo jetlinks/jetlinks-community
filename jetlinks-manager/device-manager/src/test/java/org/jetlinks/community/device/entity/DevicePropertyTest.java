@@ -91,9 +91,5 @@ class DevicePropertyTest {
         assertNotNull(deviceId);
     }
 
-    @Test
-    void deviceTag(){
-
-    }
 
 }

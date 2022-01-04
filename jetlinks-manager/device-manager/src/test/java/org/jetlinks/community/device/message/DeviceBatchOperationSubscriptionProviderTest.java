@@ -94,6 +94,7 @@ class DeviceBatchOperationSubscriptionProviderTest {
         Map<String, Object> parameter1 = new HashMap<>();
         String s = "{\"excludes\":[],\"firstPageIndex\":0,\"forUpdate\":false,\"includes\":[],\"pageIndex\":0,\"pageSize\":25,\"paging\":true,\"parallelPager\":false,\"sorts\":[],\"terms\":[],\"thinkPageIndex\":0}";
         Map<String, Object> map = JSON.parseObject(s, Map.class);
+        assertNotNull(map);
         parameter1.put("query", map);
         request1.setParameter(parameter1);
         DeviceDeployResult deviceDeployResult = new DeviceDeployResult();

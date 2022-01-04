@@ -58,6 +58,7 @@ class DeviceMessageBusinessHandlerTest {
         Mockito.when(deviceService.save(Mockito.any(Publisher.class))).thenReturn(Mono.just(saveResult));
 
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, InMemoryDeviceRegistry.create(), tagRepository, new BrokerEventBus());
+        assertNotNull(service);
         //构造设备注册消息
         DeviceRegisterMessage message = new DeviceRegisterMessage();
         message.setDeviceId("12345");
@@ -108,6 +109,7 @@ class DeviceMessageBusinessHandlerTest {
         Mockito.when(deviceService.save(Mockito.any(Publisher.class))).thenReturn(Mono.just(saveResult));
 
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, InMemoryDeviceRegistry.create(), tagRepository, new BrokerEventBus());
+        assertNotNull(service);
         //构造设备注册消息
         DeviceRegisterMessage message = new DeviceRegisterMessage();
         message.setDeviceId("12345");
@@ -154,7 +156,7 @@ class DeviceMessageBusinessHandlerTest {
             .thenReturn(Mono.just(1));
 
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, InMemoryDeviceRegistry.create(), tagRepository, new BrokerEventBus());
-
+        assertNotNull(service);
         DeviceRegisterMessage deviceRegisterMessage = new DeviceRegisterMessage();
         deviceRegisterMessage.setDeviceId(DEVICE_ID);
         deviceRegisterMessage.setMessageId("10000");
@@ -219,7 +221,7 @@ class DeviceMessageBusinessHandlerTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
 
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, inMemoryDeviceRegistry, tagRepository, new BrokerEventBus());
-
+        assertNotNull(service);
         DeviceRegisterMessage deviceRegisterMessage = new DeviceRegisterMessage();
         deviceRegisterMessage.setDeviceId(DEVICE_ID);
         deviceRegisterMessage.setMessageId("10000");
@@ -316,6 +318,7 @@ class DeviceMessageBusinessHandlerTest {
         deviceProductEntity.setMetadata("{'pr':'pro'}");
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
 
         inMemoryDeviceRegistry.register(instance.toDeviceInfo().addConfig("state", DeviceState.online)).subscribe();
@@ -352,7 +355,7 @@ class DeviceMessageBusinessHandlerTest {
             .thenCallRealMethod()
             .thenReturn(Mono.just(1));
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, registry, tagRepository, new BrokerEventBus());
-
+        assertNotNull(service);
         Map<String, Object> map = new HashMap<>();
         map.put("test", "test");
         map.put("test1", "ccc");
@@ -398,6 +401,7 @@ class DeviceMessageBusinessHandlerTest {
         DeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         inMemoryDeviceRegistry.register(instance.toDeviceInfo().addConfig("state", DeviceState.online)).subscribe();
         DeviceOperator deviceOperator = new DefaultDeviceOperator(DEVICE_ID, new MockProtocolSupport(), inMemoryConfigStorageManager, new StandaloneDeviceMessageBroker(), inMemoryDeviceRegistry);
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(DeviceConfigKey.productId.getKey(),"test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
         deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
@@ -495,7 +499,7 @@ class DeviceMessageBusinessHandlerTest {
             .thenReturn(Mono.just(1));
 
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, deviceRegistry, tagRepository, new BrokerEventBus());
-
+        assertNotNull(service);
         DerivedMetadataMessage derivedMetadataMessage = new DerivedMetadataMessage();
         derivedMetadataMessage.setDeviceId(DEVICE_ID);
         derivedMetadataMessage.setAll(true);
@@ -534,6 +538,7 @@ class DeviceMessageBusinessHandlerTest {
         Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class),Mockito.any(Class.class)))
             .thenReturn(Flux.just(message));
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, registry, tagRepository, eventBus);
+        assertNotNull(service);
         service.init();
 
 

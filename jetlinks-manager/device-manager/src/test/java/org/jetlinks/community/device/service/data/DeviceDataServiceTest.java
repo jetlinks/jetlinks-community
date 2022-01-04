@@ -39,6 +39,7 @@ class DeviceDataServiceTest {
     void properties(){
         DeviceDataStorageProperties properties = new DeviceDataStorageProperties();
         properties.setDefaultPolicy("test");
+        assertNotNull(properties);
     }
 
 

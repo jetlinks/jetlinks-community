@@ -259,6 +259,7 @@ class NotifySubscriberServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         service.run();
 
         notifySubscriberEntity.setState(SubscribeState.disabled);

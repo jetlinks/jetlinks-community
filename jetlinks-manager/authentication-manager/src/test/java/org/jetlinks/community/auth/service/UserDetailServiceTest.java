@@ -11,6 +11,7 @@ import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class UserDetailServiceTest {
 
@@ -34,6 +35,7 @@ class UserDetailServiceTest {
                 return repository;
             }
         };
+        assertNotNull(userDetailService);
         userDetailService.findUserDetail(USER_ID)
             .map(UserDetail::getName)
             .as(StepVerifier::create)
@@ -68,6 +70,7 @@ class UserDetailServiceTest {
                 return repository;
             }
         };
+        assertNotNull(userDetailService);
         SaveUserDetailRequest saveUserDetailRequest = new SaveUserDetailRequest();
         saveUserDetailRequest.setName("tom");
         saveUserDetailRequest.setDescription("sss");

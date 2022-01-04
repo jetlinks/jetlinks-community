@@ -14,7 +14,7 @@ class DeviceOperationLogEntityTest {
         String deviceId = entity.getDeviceId();
         assertNotNull(deviceId);
         new DeviceOperationLogEntity("test", "test", "test", DeviceLogType.child, 10l, "test", "test", 10l, "test");
-        DeviceOperationLogEntity.builder()
+        DeviceOperationLogEntity build = DeviceOperationLogEntity.builder()
             .id("test")
             .deviceId("test")
             .productId("test")
@@ -25,6 +25,7 @@ class DeviceOperationLogEntityTest {
             .timestamp(10l)
             .messageId("test")
             .build();
+        assertNotNull(build);
 
     }
 }

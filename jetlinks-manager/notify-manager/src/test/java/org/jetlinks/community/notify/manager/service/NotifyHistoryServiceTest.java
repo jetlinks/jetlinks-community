@@ -35,6 +35,7 @@ class NotifyHistoryServiceTest {
         serializableNotifierEvent.setNotifyType("test");
         serializableNotifierEvent.setProvider("test");
         serializableNotifierEvent.setContext(new HashMap<>());
+
         service.handleNotify(serializableNotifierEvent)
             .onErrorResume(s-> Mono.error(new RuntimeException()))
             .as(StepVerifier::create)

@@ -103,7 +103,7 @@ class DefaultDeviceConfigMetadataSupplierTest {
           .thenReturn(Mono.just(support));
 
       DefaultDeviceConfigMetadataSupplier sevice = new DefaultDeviceConfigMetadataSupplier(instanceService, productService, protocolSupports);
-
+      assertNotNull(sevice);
       sevice.getDeviceConfigMetadataByProductId(PRODUCT_ID)
           .map(ConfigMetadata::getProperties)
           .map(s->s.get(0))
@@ -145,7 +145,7 @@ class DefaultDeviceConfigMetadataSupplierTest {
           .thenReturn(Mono.just(support));
 
       DefaultDeviceConfigMetadataSupplier sevice = new DefaultDeviceConfigMetadataSupplier(instanceService, productService, protocolSupports);
-
+      assertNotNull(sevice);
       sevice.getProductConfigMetadata(PRODUCT_ID)
           .map(ConfigMetadata::getProperties)
           .map(s->s.get(0))

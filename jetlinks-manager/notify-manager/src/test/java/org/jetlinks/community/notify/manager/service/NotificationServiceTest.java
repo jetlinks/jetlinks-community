@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.Collection;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class NotificationServiceTest {
 
@@ -36,17 +37,17 @@ class NotificationServiceTest {
 
                     @Override
                     public void onNext(NotificationEntity notificationEntity) {
-
+                        System.out.println(notificationEntity);
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        throwable.getMessage();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        System.out.println();
                     }
                 });
                 return Mono.just(SaveResult.of(1,0));
@@ -54,6 +55,7 @@ class NotificationServiceTest {
         };
         Notification notification = new Notification();
         notification.setId("test");
+        assertNotNull(service);
         service.subscribeNotifications(notification).subscribe();
         service.init();
 
@@ -68,22 +70,24 @@ class NotificationServiceTest {
 
                     @Override
                     public void onNext(NotificationEntity notificationEntity) {
-
+                        System.out.println(notificationEntity);
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        throwable.getMessage();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        System.out.println();
                     }
                 });
                 return Mono.error(()->new NotFoundException());
             }
         };
+
+        assertNotNull(service1);
         service1.init();
     }
 

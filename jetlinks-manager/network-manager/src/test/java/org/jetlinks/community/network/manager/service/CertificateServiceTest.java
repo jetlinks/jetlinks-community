@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class CertificateServiceTest {
 
@@ -43,7 +43,7 @@ class CertificateServiceTest {
       Mockito.when(query.fetchOne())
           .thenReturn(Mono.just(certificateEntity));
 
-
+      assertNotNull(service);
       service.getCertificate("test")
           .map(Certificate::getName)
           .as(StepVerifier::create)

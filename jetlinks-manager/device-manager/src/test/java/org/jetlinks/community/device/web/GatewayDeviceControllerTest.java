@@ -37,6 +37,9 @@ class GatewayDeviceControllerTest extends TestJetLinksController {
     @Test
     @Order(0)
     void add(){
+        assertNotNull(productService);
+        assertNotNull(instanceService);
+        assertNotNull(registry);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
         deviceProductEntity.setId(PRODUCT_ID);
         deviceProductEntity.setDeviceType(DeviceType.gateway);
@@ -69,7 +72,7 @@ class GatewayDeviceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void queryGatewayDevice() {
-
+        assertNotNull(client);
         PagerResult<?> responseBody = client.get()
             .uri(BASE_URL + "/_query")
             .exchange()
@@ -85,7 +88,7 @@ class GatewayDeviceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getGatewayInfo() {
-
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + DeviceId)
             .exchange()
@@ -96,6 +99,7 @@ class GatewayDeviceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void bindDevice() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL +"/"+DeviceParentId +"/bind/" + DeviceId)
             .exchange()
@@ -106,6 +110,7 @@ class GatewayDeviceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void testBindDevice() {
+        assertNotNull(client);
         List<String> list = new ArrayList<>();
         list.add(DeviceId);
         client.post()
@@ -119,6 +124,7 @@ class GatewayDeviceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void unBindDevice() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL +"/"+DeviceParentId +"/unbind/" + DeviceId)
             .exchange()

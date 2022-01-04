@@ -13,6 +13,7 @@ import reactor.test.StepVerifier;
 import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DefaultTemplateManagerTest {
 
@@ -26,10 +27,11 @@ class DefaultTemplateManagerTest {
       notifyTemplateEntity.setTemplate("test");
       Mockito.when(repository.findById(Mockito.any(Mono.class)))
           .thenReturn(Mono.just(notifyTemplateEntity));
-
       DefaultTemplateManager defaultTemplateManager = new DefaultTemplateManager();
+      assertNotNull(defaultTemplateManager);
       Class<? extends DefaultTemplateManager> aClass = defaultTemplateManager.getClass();
       Field templateService = aClass.getDeclaredField("templateService");
+      assertNotNull(templateService);
       templateService.setAccessible(true);
       templateService.set(defaultTemplateManager,repository);
       defaultTemplateManager.getProperties(DefaultNotifyType.weixin,"test")

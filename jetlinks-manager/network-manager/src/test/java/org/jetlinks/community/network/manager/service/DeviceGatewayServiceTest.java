@@ -17,6 +17,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceGatewayServiceTest {
     private final static String ID = "test";
@@ -45,6 +46,7 @@ class DeviceGatewayServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         service.updateState(ID, NetworkConfigState.enabled)
             .as(StepVerifier::create)
             .expectNext(1)
@@ -70,17 +72,17 @@ class DeviceGatewayServiceTest {
 
                     @Override
                     public void onNext(DeviceGatewayEntity deviceGatewayEntity) {
-
+                        System.out.println(deviceGatewayEntity);
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        throwable.getMessage();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        Mono.just(1);
                     }
                 });
                 return Mono.just(SaveResult.of(1,0));
@@ -99,6 +101,7 @@ class DeviceGatewayServiceTest {
             }
         };
 
+        assertNotNull(service);
         DeviceGatewayEntity entity = new DeviceGatewayEntity();
         service.save(Mono.just(entity))
             .map(SaveResult::getTotal)
@@ -131,17 +134,17 @@ class DeviceGatewayServiceTest {
 
                     @Override
                     public void onNext(DeviceGatewayEntity deviceGatewayEntity) {
-
+                        System.out.println(deviceGatewayEntity);
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        throwable.getMessage();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        Mono.just(1);
                     }
                 });
                 return Mono.just(1);
@@ -159,6 +162,7 @@ class DeviceGatewayServiceTest {
                 return testDefaultReactiveRepository;
             }
         };
+        assertNotNull(service);
         DeviceGatewayEntity entity = new DeviceGatewayEntity();
         service.insert(Mono.just(entity))
             .as(StepVerifier::create)
@@ -181,6 +185,7 @@ class DeviceGatewayServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         Mockito.when(repository.deleteById(Mockito.any(Publisher.class)))
             .thenReturn(Mono.just(1));
         service.deleteById(Mono.just(ID))

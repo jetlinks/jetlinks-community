@@ -6,6 +6,7 @@ import org.jetlinks.supports.official.JetLinksDeviceMetadata;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class NoneDeviceDataStoragePolicyTest {
 
@@ -13,85 +14,99 @@ class NoneDeviceDataStoragePolicyTest {
     public static final String PRODUCT_ID = "test100";
 
     @Test
-    void saveDeviceMessage(){
-        new NoneDeviceDataStoragePolicy()
-            .saveDeviceMessage(new DeviceOnlineMessage())
+    void saveDeviceMessage() {
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.saveDeviceMessage(new DeviceOnlineMessage())
             .subscribe();
     }
+
     @Test
-    void saveDeviceMessage1(){
-        new NoneDeviceDataStoragePolicy()
-            .saveDeviceMessage(Mono.just(new DeviceOnlineMessage()))
+    void saveDeviceMessage1() {
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.saveDeviceMessage(Mono.just(new DeviceOnlineMessage()))
             .subscribe();
     }
+
     @Test
     void registerMetadata() {
-        new NoneDeviceDataStoragePolicy()
-            .registerMetadata(PRODUCT_ID, new JetLinksDeviceMetadata("test", "test"))
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.registerMetadata(PRODUCT_ID, new JetLinksDeviceMetadata("test", "test"))
             .subscribe();
     }
 
     @Test
     void queryEachOneProperties() {
-        new NoneDeviceDataStoragePolicy()
-            .queryEachOneProperties(DEVICE_ID, new QueryParamEntity(), "test")
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity(), "test")
             .subscribe();
     }
 
     @Test
     void queryEvent() {
-        new NoneDeviceDataStoragePolicy()
-            .queryEvent(DEVICE_ID, "event", new QueryParamEntity(), true)
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.queryEvent(DEVICE_ID, "event", new QueryParamEntity(), true)
             .subscribe();
     }
 
     @Test
     void queryEventPage() {
-        new NoneDeviceDataStoragePolicy()
-            .queryEventPage(DEVICE_ID, "event", new QueryParamEntity(), true)
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.queryEventPage(DEVICE_ID, "event", new QueryParamEntity(), true)
             .subscribe();
 
     }
 
     @Test
     void queryEachProperties() {
-        new NoneDeviceDataStoragePolicy()
-            .queryEachProperties(DEVICE_ID, new QueryParamEntity(), "test")
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.queryEachProperties(DEVICE_ID, new QueryParamEntity(), "test")
             .subscribe();
     }
 
     @Test
     void queryProperty() {
-        new NoneDeviceDataStoragePolicy()
-            .queryProperty(DEVICE_ID, new QueryParamEntity(), "test")
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.queryProperty(DEVICE_ID, new QueryParamEntity(), "test")
             .subscribe();
     }
 
     @Test
     void aggregationPropertiesByProduct() {
-        new NoneDeviceDataStoragePolicy()
-            .aggregationPropertiesByProduct(PRODUCT_ID, new DeviceDataService.AggregationRequest(), new DeviceDataService.DevicePropertyAggregation())
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.aggregationPropertiesByProduct(PRODUCT_ID, new DeviceDataService.AggregationRequest(), new DeviceDataService.DevicePropertyAggregation())
             .subscribe();
     }
 
     @Test
     void aggregationPropertiesByDevice() {
-        new NoneDeviceDataStoragePolicy()
-            .aggregationPropertiesByDevice(DEVICE_ID, new DeviceDataService.AggregationRequest(), new DeviceDataService.DevicePropertyAggregation())
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.aggregationPropertiesByDevice(DEVICE_ID, new DeviceDataService.AggregationRequest(), new DeviceDataService.DevicePropertyAggregation())
             .subscribe();
     }
 
     @Test
     void queryPropertyPage() {
-        new NoneDeviceDataStoragePolicy()
-            .queryPropertyPage(DEVICE_ID, "test", new QueryParamEntity())
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.queryPropertyPage(DEVICE_ID, "test", new QueryParamEntity())
             .subscribe();
     }
 
     @Test
     void queryDeviceMessageLog() {
-        new NoneDeviceDataStoragePolicy()
-            .queryDeviceMessageLog(DEVICE_ID, new QueryParamEntity())
+        NoneDeviceDataStoragePolicy noneDeviceDataStoragePolicy = new NoneDeviceDataStoragePolicy();
+        assertNotNull(noneDeviceDataStoragePolicy);
+        noneDeviceDataStoragePolicy.queryDeviceMessageLog(DEVICE_ID, new QueryParamEntity())
             .subscribe();
     }
 }

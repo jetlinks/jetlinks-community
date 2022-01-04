@@ -154,6 +154,7 @@ class DefaultDeviceDataManagerTest {
             .thenReturn(Flux.empty());
         DefaultDeviceDataManager.DevicePropertyRef devicePropertyRef = new DefaultDeviceDataManager.DevicePropertyRef(DEVICE_ID, new BrokerEventBus(), dataService);
 
+        assertNotNull(devicePropertyRef);
         devicePropertyRef.getLastProperty(DEVICE_ID, 1L)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
@@ -241,7 +242,7 @@ class DefaultDeviceDataManagerTest {
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
 
-
+        assertNotNull(manager);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.empty());
         manager.getLastPropertyTime(DEVICE_ID, -1L)
@@ -276,6 +277,7 @@ class DefaultDeviceDataManagerTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(DeviceConfigKey.firstPropertyTime, 100L).subscribe();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
@@ -298,13 +300,12 @@ class DefaultDeviceDataManagerTest {
 
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-
+        assertNotNull(manager);
         long l = System.currentTimeMillis();
         DeviceProperty deviceProperty = new DeviceProperty();
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
-        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
         manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
@@ -329,7 +330,7 @@ class DefaultDeviceDataManagerTest {
 
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-
+        assertNotNull(manager);
         long l = System.currentTimeMillis();
         DeviceProperty deviceProperty = new DeviceProperty();
         deviceProperty.setValue(DefaultDeviceDataManager.NULL);
@@ -422,6 +423,7 @@ class DefaultDeviceDataManagerTest {
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
 
+        assertNotNull(manager);
         manager.getTags(DEVICE_ID, "test","test1")
             .map(DeviceDataManager.TagValue::getTagId)
             .as(StepVerifier::create)
@@ -461,12 +463,13 @@ class DefaultDeviceDataManagerTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
-
+        assertNotNull(manager);
         EventMessage eventMessage = new EventMessage();
         eventMessage.setDeviceId(DEVICE_ID);
         manager.upgradeDeviceFirstPropertyTime(eventMessage)
@@ -488,9 +491,10 @@ class DefaultDeviceDataManagerTest {
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
         DefaultDeviceDataManager.DevicePropertyRef devicePropertyRef = new DefaultDeviceDataManager.DevicePropertyRef(DEVICE_ID, new BrokerEventBus(), dataService);
         devicePropertyRef.dispose();
-
+        assertNotNull(devicePropertyRef);
         Class<? extends DefaultDeviceDataManager.DevicePropertyRef> aClass = devicePropertyRef.getClass();
         Method upgrade = aClass.getDeclaredMethod("upgrade", DeviceMessage.class);
+        assertNotNull(upgrade);
         upgrade.setAccessible(true);
 
 

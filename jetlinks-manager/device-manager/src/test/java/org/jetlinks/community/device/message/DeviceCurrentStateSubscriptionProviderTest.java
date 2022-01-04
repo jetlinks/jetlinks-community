@@ -51,7 +51,7 @@ class DeviceCurrentStateSubscriptionProviderTest {
     void subscribe() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         DeviceCurrentStateSubscriptionProvider provider = new DeviceCurrentStateSubscriptionProvider(instanceService);
-
+        assertNotNull(provider);
         SubscribeRequest request = new SubscribeRequest();
         request.setId("test");
         request.setTopic("/device-batch/state-sync");

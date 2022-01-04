@@ -16,6 +16,7 @@ import reactor.test.StepVerifier;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class NotifierCacheManagerTest {
 
@@ -35,8 +36,10 @@ class NotifierCacheManagerTest {
 
       Class<? extends NotifierCacheManager> serviceClass = service.getClass();
       Method reloadTemplate = serviceClass.getDeclaredMethod("reloadTemplate", List.class);
+      assertNotNull(reloadTemplate);
       reloadTemplate.setAccessible(true);
       Mono<Void> invoke = (Mono<Void>) reloadTemplate.invoke(service, event.getEntity());
+      assertNotNull(invoke);
       invoke.as(StepVerifier::create)
           .expectComplete()
           .verify();
@@ -53,6 +56,7 @@ class NotifierCacheManagerTest {
       notifyTemplateEntity.setProvider("test");
       notifyTemplateEntity.setTemplate("test");
       notifyTemplateEntity.setType("test");
+      assertNotNull(service);
       EntityModifyEvent<NotifyTemplateEntity> event = new EntityModifyEvent(list,new ArrayList<>(), NotifyTemplateEntity.class);
       service.handleTemplateModify(event);
   }
@@ -67,6 +71,7 @@ class NotifierCacheManagerTest {
       notifyTemplateEntity.setProvider("test");
       notifyTemplateEntity.setTemplate("test");
       notifyTemplateEntity.setType("test");
+      assertNotNull(service);
       EntityDeletedEvent<NotifyTemplateEntity> event = new EntityDeletedEvent(list, NotifyTemplateEntity.class);
       service.handleTemplateDelete(event);
   }
@@ -79,6 +84,7 @@ class NotifierCacheManagerTest {
       NotifyConfigEntity notifyConfigEntity = new NotifyConfigEntity();
       notifyConfigEntity.setId("test");
       notifyConfigEntity.setName("test");
+      assertNotNull(service);
       EntitySavedEvent<NotifyConfigEntity> event = new EntitySavedEvent(list, NotifyConfigEntity.class);
       service.handleConfigSave(event);
   }
@@ -91,6 +97,7 @@ class NotifierCacheManagerTest {
       NotifyConfigEntity notifyConfigEntity = new NotifyConfigEntity();
       notifyConfigEntity.setId("test");
       notifyConfigEntity.setName("test");
+      assertNotNull(service);
       EntityModifyEvent<NotifyConfigEntity> event = new EntityModifyEvent(list,new ArrayList<>(), NotifyConfigEntity.class);
       service.handleConfigModify(event);
   }
@@ -103,6 +110,7 @@ class NotifierCacheManagerTest {
       NotifyConfigEntity notifyConfigEntity = new NotifyConfigEntity();
       notifyConfigEntity.setId("test");
       notifyConfigEntity.setName("test");
+      assertNotNull(service);
       EntityDeletedEvent<NotifyConfigEntity> event = new EntityDeletedEvent(list, NotifyConfigEntity.class);
       service.handleConfigDelete(event);
   }

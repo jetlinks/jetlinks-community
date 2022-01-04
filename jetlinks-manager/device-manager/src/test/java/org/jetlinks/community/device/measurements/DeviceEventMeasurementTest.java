@@ -49,10 +49,12 @@ class DeviceEventMeasurementTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         EventMetadata eventMetadata = deviceProductOperator.getMetadata().map(s -> s.getEvents().get(0)).block();
         EventBus eventBus = Mockito.mock(EventBus.class);
         DeviceEventMeasurement measurement = new DeviceEventMeasurement(PRODUCT_ID, eventBus, eventMetadata, dataService);
 
+        assertNotNull(measurement);
         measurement.fromHistory(DEVICE_ID,0).subscribe();
 
         DeviceEvent deviceEvent = new DeviceEvent();
@@ -96,8 +98,4 @@ class DeviceEventMeasurementTest {
         dimension.getValue(parameter).subscribe();
     }
 
-    @Test
-    void fromRealTime() {
-
-    }
 }

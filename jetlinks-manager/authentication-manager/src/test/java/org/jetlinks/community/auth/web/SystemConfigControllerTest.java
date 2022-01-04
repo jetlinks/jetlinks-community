@@ -41,6 +41,7 @@ class SystemConfigControllerTest extends TestJetLinksController {
 
         Map<String, Object> map = new HashMap<>();
         map.put("name","chuan");
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/front")
             .contentType(MediaType.APPLICATION_JSON)

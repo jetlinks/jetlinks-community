@@ -110,6 +110,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .thenReturn(Mono.just(PagerResult.of(1,new ArrayList<String>())));
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.doQueryPager("service", new QueryParamEntity(),(data)->{return "test";})
             .map(PagerResult::getTotal)
             .as(StepVerifier::create)
@@ -154,7 +155,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
-
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -196,7 +197,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry2 = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry2.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator2 = inMemoryDeviceRegistry2.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        assertNotNull(deviceOperator2);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator2));
         storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity(),"").subscribe();
@@ -244,6 +245,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -365,7 +367,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
-
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -461,6 +463,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -528,7 +531,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
-
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -542,7 +545,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .thenReturn(Flux.just(AggregationData.of(map1)));
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
-
+        assertNotNull(storagePolicy);
         Map<String, Long> map=new HashMap<>();
         map.put("time",111111111L);
         ReportPropertyMessage message = ReportPropertyMessage.create();
@@ -551,7 +554,6 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         Map<String, Object> properties = new HashMap<>();
         properties.put("temperature","36");
         message.setTimestamp(1111111111111111L);
-        assertNotNull(storagePolicy);
         storagePolicy.convertProperties(PRODUCT_ID,message,properties)
             .map(Tuple2::getT1)
             .as(StepVerifier::create)
@@ -629,9 +631,11 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
         PropertyMetadata propertyMetadata = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata);
 //        propertyMetadata.getValueType();
         Map<String, Object> expands = new HashMap<>();
         expands.put("storageType", "json-string");

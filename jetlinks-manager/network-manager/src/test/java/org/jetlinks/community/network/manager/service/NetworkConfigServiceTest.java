@@ -16,6 +16,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class NetworkConfigServiceTest {
     private final static String ID = "test";
@@ -29,7 +30,7 @@ class NetworkConfigServiceTest {
                 return repository;
             }
         };
-
+        assertNotNull(service);
         NetworkConfigEntity entity = new NetworkConfigEntity();
         entity.setId(ID);
         entity.setState(NetworkConfigState.enabled);
@@ -60,17 +61,17 @@ class NetworkConfigServiceTest {
 
                     @Override
                     public void onNext(NetworkConfigEntity networkConfigEntity) {
-
+                        System.out.println(networkConfigEntity);
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        throwable.getMessage();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        Mono.just(1);
                     }
                 });
                 return Mono.just(SaveResult.of(1,0));
@@ -88,7 +89,7 @@ class NetworkConfigServiceTest {
                 return testDefaultReactiveRepository;
             }
         };
-
+        assertNotNull(service);
         NetworkConfigEntity entity = new NetworkConfigEntity();
         service.save(Mono.just(entity))
             .map(SaveResult::getTotal)
@@ -122,17 +123,17 @@ class NetworkConfigServiceTest {
 
                     @Override
                     public void onNext(NetworkConfigEntity networkConfigEntity) {
-
+                        System.out.println(networkConfigEntity);
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        throwable.getMessage();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        System.out.println(1);
                     }
                 });
                 return Mono.just(1);
@@ -151,7 +152,7 @@ class NetworkConfigServiceTest {
                 return testDefaultReactiveRepository;
             }
         };
-
+        assertNotNull(service);
         NetworkConfigEntity entity = new NetworkConfigEntity();
         entity.setId(ID);
         entity.setState(NetworkConfigState.enabled);

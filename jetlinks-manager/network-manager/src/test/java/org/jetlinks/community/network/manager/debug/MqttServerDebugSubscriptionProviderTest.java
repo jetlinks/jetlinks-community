@@ -64,6 +64,7 @@ class MqttServerDebugSubscriptionProviderTest  {
         NetworkManager networkManager = Mockito.mock(NetworkManager.class);
         MqttServerDebugSubscriptionProvider provider = new MqttServerDebugSubscriptionProvider(networkManager);
 
+        assertNotNull(provider);
         MqttServer mqttServer = Mockito.mock(MqttServer.class);
         MqttConnection mqttConnection = Mockito.mock(MqttConnection.class);
         Mockito.when(mqttServer.handleConnection())

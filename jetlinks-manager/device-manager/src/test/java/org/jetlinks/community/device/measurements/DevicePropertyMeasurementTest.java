@@ -62,7 +62,9 @@ class DevicePropertyMeasurementTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         PropertyMetadata propertyMetadata = deviceProductOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata);
         DevicePropertyMeasurement measurement = new DevicePropertyMeasurement(PRODUCT_ID, new BrokerEventBus(), propertyMetadata, dataService);
         Map<String, Object> value = measurement.createValue("34.5");
         assertNotNull(value);

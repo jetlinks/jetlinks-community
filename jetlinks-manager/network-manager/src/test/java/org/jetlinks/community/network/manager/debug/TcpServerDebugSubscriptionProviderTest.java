@@ -38,13 +38,6 @@ class TcpServerDebugSubscriptionProviderTest  {
 
     }
 
-    @Test
-    void name() {
-    }
-
-    @Test
-    void getTopicPattern() {
-    }
 
 
     @Test
@@ -53,6 +46,7 @@ class TcpServerDebugSubscriptionProviderTest  {
         TcpServerDebugSubscriptionProvider provider
             = new TcpServerDebugSubscriptionProvider(networkManager);
 
+        assertNotNull(provider);
 
         TcpServer tcpServer = Mockito.mock(TcpServer.class);
         TcpClient client = Mockito.mock(TcpClient.class);

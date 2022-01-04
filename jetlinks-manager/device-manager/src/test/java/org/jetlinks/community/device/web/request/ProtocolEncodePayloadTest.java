@@ -1,6 +1,5 @@
 package org.jetlinks.community.device.web.request;
 
-import com.alibaba.fastjson.JSON;
 import io.netty.buffer.EmptyByteBuf;
 import io.vertx.core.net.impl.PartialPooledByteBufAllocator;
 import org.jetlinks.core.defaults.CompositeProtocolSupport;
@@ -15,7 +14,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.function.Supplier;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class ProtocolEncodePayloadTest {
 
@@ -43,16 +42,17 @@ class ProtocolEncodePayloadTest {
 
             @Override
             public void onNext(Object encodedMessage) {
+                System.out.println(encodedMessage);
             }
 
             @Override
             public void onError(Throwable throwable) {
-
+                throwable.getMessage();
             }
 
             @Override
             public void onComplete() {
-
+                Mono.just(1);
             }
         };
 
@@ -63,7 +63,7 @@ class ProtocolEncodePayloadTest {
                 return Mono.just(codec1);
             }
         };
-
+        assertNotNull(supplier1);
         support.addMessageCodecSupport(DefaultTransport.MQTT, supplier1);
         payload.doEncode(support, null)
             .subscribe(subscriber);
@@ -75,6 +75,7 @@ class ProtocolEncodePayloadTest {
                 return Mono.just(codec);
             }
         };
+        assertNotNull(supplier);
         support.addMessageCodecSupport(DefaultTransport.MQTT, supplier);
 
         SimpleMqttMessage mqttMessage = new SimpleMqttMessage();
@@ -102,5 +103,6 @@ class ProtocolEncodePayloadTest {
         support.addMessageCodecSupport(DefaultTransport.MQTT, supplier2);
         payload.doEncode(support, null)
             .subscribe(subscriber);
+
     }
 }

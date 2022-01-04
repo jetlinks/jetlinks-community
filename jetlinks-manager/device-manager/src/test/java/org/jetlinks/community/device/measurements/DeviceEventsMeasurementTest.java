@@ -10,7 +10,6 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
@@ -64,10 +63,12 @@ class DeviceEventsMeasurementTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         //DeviceOperator deviceOperator = InMemoryDeviceRegistry.create().register(deviceInstanceEntity.toDeviceInfo()).block();
         DeviceMetadata deviceMetadata = deviceProductOperator.getMetadata().block();
 
         DeviceEventsMeasurement measurement = new DeviceEventsMeasurement(DEVICE_ID, new BrokerEventBus(), deviceMetadata, dataService);
+        assertNotNull(measurement);
         measurement.fromHistory(DEVICE_ID, 0).subscribe();
 
         DeviceEvent deviceEvent = new DeviceEvent();
@@ -93,6 +94,7 @@ class DeviceEventsMeasurementTest {
         EventBus eventBus = Mockito.mock(EventBus.class);
         DeviceEventsMeasurement measurement = new DeviceEventsMeasurement(DEVICE_ID, eventBus, deviceMetadata, dataService);
 
+        assertNotNull(measurement);
         Class<? extends DeviceEventsMeasurement> measurementClass = measurement.getClass();
         Class<?>[] classes = measurementClass.getDeclaredClasses();
         MeasurementDimension dimension = null;
@@ -119,6 +121,7 @@ class DeviceEventsMeasurementTest {
 //          .as(StepVerifier::create)
 //          .expectNext(0L)
 //          .verifyComplete();
+        assertNotNull(value);
         EventMessage eventMessage = new EventMessage();
         eventMessage.setEvent("event");
         eventMessage.setData("data");

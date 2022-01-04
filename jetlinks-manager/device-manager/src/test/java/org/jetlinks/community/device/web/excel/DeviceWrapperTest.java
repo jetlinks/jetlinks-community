@@ -34,6 +34,7 @@ class DeviceWrapperTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         //PropertyMetadata temperature = deviceProductOperator.getMetadata().map(s -> s.getProperty("temperature").get()).block();
         List<PropertyMetadata> tags = deviceProductOperator.getMetadata().map(DeviceMetadata::getTags).block();
 
@@ -43,7 +44,8 @@ class DeviceWrapperTest {
         excelHeader.setKey("key");
         Cell headerCell = new HeaderCell(excelHeader, 1, true);
         assertNotNull(wrapper);
-        wrapper.wrap(new DeviceExcelInfo(),headerCell,headerCell);
+        DeviceExcelInfo wrap = wrapper.wrap(new DeviceExcelInfo(), headerCell, headerCell);
+        assertNotNull(wrap);
 
     }
 

@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.jetlinks.core.device.DeviceConfigKey.connectionServerId;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 
 @WebFluxTest(DeviceMessageController.class)
@@ -47,6 +48,8 @@ class DeviceMessageControllerTest extends TestJetLinksController {
     public static final String PRODUCT_ID = "1236859833832701954";
 
     void add(DeviceMessageReply message) {
+        assertNotNull(client);
+        assertNotNull(clusterDeviceRegistry);
         Class<? extends ClusterDeviceRegistry> aClass = clusterDeviceRegistry.getClass();
         Field operatorCache = null;
         try {
@@ -96,6 +99,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry(new MockProtocolSupport(), standaloneDeviceMessageBroker);
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(),"test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
@@ -115,6 +119,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
 
     @Test
     void getProperty() {
+        assertNotNull(client);
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
         ReadPropertyMessageReply readPropertyMessageReply = ReadPropertyMessageReply.create();
@@ -128,6 +133,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
     }
     @Test
     void getProperty1() {
+        assertNotNull(client);
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
         ReadPropertyMessageReply readPropertyMessageReply = ReadPropertyMessageReply.create();
@@ -144,6 +150,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
 
     @Test
     void getProperty2() {
+        assertNotNull(client);
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
         ReadPropertyMessageReply readPropertyMessageReply = ReadPropertyMessageReply.create();
@@ -159,6 +166,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
     }
     @Test
     void getProperty3() {
+        assertNotNull(client);
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
         ReadPropertyMessageReply readPropertyMessageReply = ReadPropertyMessageReply.create();
@@ -173,6 +181,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
 
     @Test
     void getStandardProperty() {
+        assertNotNull(client);
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
         ReadPropertyMessageReply readPropertyMessageReply = ReadPropertyMessageReply.create();
@@ -187,6 +196,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
 
     @Test
     void settingProperties() {
+        assertNotNull(client);
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
         WritePropertyMessageReply writePropertyMessageReply = WritePropertyMessageReply.create();
@@ -205,6 +215,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
 
     @Test
     void invokedFunction() {
+        assertNotNull(client);
         FunctionInvokeMessageReply functionInvokeMessageReply = new FunctionInvokeMessageReply();
         functionInvokeMessageReply.setOutput("test");
         add(functionInvokeMessageReply);
@@ -221,6 +232,7 @@ class DeviceMessageControllerTest extends TestJetLinksController {
 
     @Test
     void getProperties() {
+        assertNotNull(client);
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
         ReadPropertyMessageReply readPropertyMessageReply = ReadPropertyMessageReply.create();

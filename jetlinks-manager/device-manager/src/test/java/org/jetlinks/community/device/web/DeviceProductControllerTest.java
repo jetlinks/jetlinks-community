@@ -79,6 +79,8 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(0)
     void add() {
+        assertNotNull(client);
+        assertNotNull(loader);
         Mono supportMono = Mono.just(new MockProtocolSupport());
         Mockito.when(loader.load(Mockito.any(ProtocolSupportDefinition.class)))
             .thenReturn(supportMono);
@@ -108,12 +110,14 @@ class DeviceProductControllerTest extends TestJetLinksController {
             Mockito.mock(DeviceDataService.class),Mockito.mock(DeviceConfigMetadataManager.class),
             Mockito.mock(ObjectProvider.class)
         );
-       controller.getService();
+        LocalDeviceProductService service = controller.getService();
+        assertNotNull(service);
     }
 
     @Test
     @Order(1)
     void getDeviceConfigMetadata() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/config-metadata")
             .exchange()
@@ -125,6 +129,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getExpandsConfigMetadata() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/config-metadata/property/temperature/float")
             .exchange()
@@ -136,6 +141,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getMetadataCodec() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/metadata/codecs")
             .exchange()
@@ -146,6 +152,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void convertMetadataTo() {
+        assertNotNull(client);
         String s = "{\n" +
             "  \"id\": \"test\",\n" +
             "  \"name\": \"测试\",\n" +
@@ -229,6 +236,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void convertMetadataFrom() {
+        assertNotNull(client);
         String s = "{\n" +
             "  \"id\": \"test\",\n" +
             "  \"name\": \"测试\",\n" +
@@ -310,6 +318,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void deviceDeploy() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/deploy")
             .exchange()
@@ -321,6 +330,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void cancelDeploy() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL + "/" + PRODUCT_ID + "/undeploy")
             .exchange()
@@ -347,7 +357,7 @@ class DeviceProductControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void aggDeviceProperty() {
-
+        assertNotNull(client);
         String s = "{\n" +
             "  \"columns\": [\n" +
             "    {\n" +

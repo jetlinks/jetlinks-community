@@ -57,6 +57,7 @@ class MqttClientDebugSubscriptionProviderTest{
     private Vertx vertx = Vertx.vertx();
     @Test
     void subscribe() {
+        assertNotNull(vertx);
         NetworkManager networkManager = Mockito.mock(NetworkManager.class);
         MqttClientDebugSubscriptionProvider mqttClientDebugSubscriptionProvider = new MqttClientDebugSubscriptionProvider(networkManager);
         MqttServer server = MqttServer.create(vertx);
@@ -69,6 +70,7 @@ class MqttClientDebugSubscriptionProviderTest{
 
         MqttClientProvider provider = new MqttClientProvider(id -> Mono.empty(), vertx,new MockEnvironment());
 
+        assertNotNull(provider);
         MqttClientProperties properties = new MqttClientProperties();
         properties.setHost("127.0.0.1");
         properties.setPort(11223);
@@ -98,6 +100,7 @@ class MqttClientDebugSubscriptionProviderTest{
     void mqttClientSubscribe() {
         NetworkManager networkManager = Mockito.mock(NetworkManager.class);
         MqttClientDebugSubscriptionProvider provider = new MqttClientDebugSubscriptionProvider(networkManager);
+        assertNotNull(provider);
         SubscribeRequest request = new SubscribeRequest();
         TestAuthentication authentication = new TestAuthentication("test");
         authentication.addPermission("network-config", "save");
@@ -113,6 +116,7 @@ class MqttClientDebugSubscriptionProviderTest{
     void mqttClientPublish() {
         NetworkManager networkManager = Mockito.mock(NetworkManager.class);
         MqttClientDebugSubscriptionProvider provider = new MqttClientDebugSubscriptionProvider(networkManager);
+        assertNotNull(provider);
         SubscribeRequest request = new SubscribeRequest();
         TestAuthentication authentication = new TestAuthentication("test");
         authentication.addPermission("network-config", "save");

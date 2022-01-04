@@ -22,7 +22,4 @@ class MetadataMeasurementDefinitionTest {
         assertNotNull(name);
     }
 
-    @Test
-    void getName() {
-    }
 }

@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.web.excel;
 
+import org.hswebframework.reactor.excel.ExcelHeader;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.metadata.DeviceMetadata;
@@ -49,11 +50,14 @@ class DeviceExcelInfoTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         //PropertyMetadata temperature = deviceProductOperator.getMetadata().map(s -> s.getProperty("temperature").get()).block();
         List<PropertyMetadata> tags = deviceProductOperator.getMetadata().map(DeviceMetadata::getTags).block();
-        DeviceExcelInfo.getTemplateHeaderMapping(tags,new ArrayList<>());
+        List<ExcelHeader> templateHeaderMapping = DeviceExcelInfo.getTemplateHeaderMapping(tags, new ArrayList<>());
+        assertNotNull(templateHeaderMapping);
 
-        DeviceExcelInfo.getExportHeaderMapping(tags,new ArrayList<>());
+        List<ExcelHeader> exportHeaderMapping = DeviceExcelInfo.getExportHeaderMapping(tags, new ArrayList<>());
+        assertNotNull(exportHeaderMapping);
 
 
     }

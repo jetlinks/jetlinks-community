@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.lang.reflect.Field;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DefaultNotifyConfigManagerTest {
 
@@ -25,7 +26,7 @@ class DefaultNotifyConfigManagerTest {
       Field configService = defaultNotifyConfigManager.getClass().getDeclaredField("configService");
       configService.setAccessible(true);
       configService.set(defaultNotifyConfigManager,mock);
-
+      assertNotNull(defaultNotifyConfigManager);
       defaultNotifyConfigManager.getNotifyConfig(DefaultNotifyType.weixin,"test")
           .map(NotifierProperties::getName)
           .as(StepVerifier::create)

@@ -49,6 +49,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .thenReturn(Mono.just(1).then());
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         SimpleDeviceMetadata simpleDeviceMetadata = new SimpleDeviceMetadata();
         simpleDeviceMetadata.addEvent(new JetLinksEventMetadata("test", "test", IntType.GLOBAL));
         storagePolicy.registerMetadata(PRODUCT_ID, simpleDeviceMetadata)
@@ -95,8 +96,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
-
-
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -164,6 +164,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -234,6 +235,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -294,6 +296,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -308,7 +311,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
-
+        assertNotNull(storagePolicy);
         storagePolicy.queryEachProperties(DEVICE_ID, new QueryParamEntity(), "temperature")
             .map(DeviceProperty::getPropertyName)
             .as(StepVerifier::create)
@@ -342,6 +345,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(),"0.1");
 
         Mono<DeviceProductOperator> deviceProductOperatorMono = inMemoryDeviceRegistry.register(productInfo);
+        assertNotNull(deviceProductOperatorMono);
         DeviceOperator operator = Mockito.mock(DeviceOperator.class);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(operator));
@@ -363,6 +367,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .thenReturn(Flux.just(AggregationData.of(map1), AggregationData.of(map2), AggregationData.of(map3)));
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         DeviceDataService.AggregationRequest aggregationRequest = new DeviceDataService.AggregationRequest();
         DeviceDataService.DevicePropertyAggregation aggregation = new DeviceDataService.DevicePropertyAggregation();
         aggregation.setAlias("温度");
@@ -424,6 +429,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -438,6 +444,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 
+        assertNotNull(storagePolicy);
         Map<String, Long> map = new HashMap<>();
         map.put("time", 111111111L);
         ReportPropertyMessage message = ReportPropertyMessage.create();
@@ -513,6 +520,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
 
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -598,7 +606,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
-
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -612,7 +620,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .thenReturn(Mono.just(1).then());
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
-
         assertNotNull(storagePolicy);
         ReportPropertyMessage message = ReportPropertyMessage.create();
         Map<String, Long> map = new HashMap<>();
@@ -642,7 +649,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
-
+        assertNotNull(storagePolicy);
         String deviceLogMetric = storagePolicy.getDeviceLogMetric(PRODUCT_ID);
         assertNotNull(deviceLogMetric);
         assertEquals("device_log_" + PRODUCT_ID, deviceLogMetric);
@@ -655,6 +662,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 
+        assertNotNull(storagePolicy);
         String deviceEventMetric = storagePolicy.getDeviceEventMetric(PRODUCT_ID, "aa");
         assertNotNull(deviceEventMetric);
         assertEquals("event_" + PRODUCT_ID + "_aa", deviceEventMetric);
@@ -702,6 +710,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
 
         deviceProductOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}").subscribe();
 
@@ -711,6 +720,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 
+        assertNotNull(storagePolicy);
         EventMessage eventMessage = new EventMessage();
         eventMessage.setEvent("fire_alarm");
         eventMessage.addHeader(Headers.ignoreStorage.getKey(), false);
@@ -777,6 +787,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         //inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         deviceOperator.setConfig(DeviceConfigKey.productId, PRODUCT_ID).subscribe();
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
@@ -851,6 +862,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -910,6 +922,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -982,12 +995,14 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
 
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
         PropertyMetadata propertyMetadata = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 
+        assertNotNull(storagePolicy);
         Object o = storagePolicy.convertPropertyValue(null, null);
         assertNull(o);
 
@@ -1039,6 +1054,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -1048,16 +1064,19 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         storagePolicy.fillRowPropertyValue(new HashMap<>(), null, "test");
         deviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"date\",\"format\":\"yyyy-MM-dd\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
         PropertyMetadata propertyMetadata = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata);
         storagePolicy.fillRowPropertyValue(new HashMap<>(), propertyMetadata, "2020-02-01");
 
         //对象
         deviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"object\",\"properties\":[]},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
         PropertyMetadata propertyMetadata1 = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata1);
         storagePolicy.fillRowPropertyValue(new HashMap<>(), propertyMetadata1, "{'test':'test'}");
 
         //数组
         deviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"array\",\"elementType\":{\"type\":\"int\"}},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
         PropertyMetadata propertyMetadata2 = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata2);
         ArrayList<Integer> list = new ArrayList<>();
         list.add(100);
         storagePolicy.fillRowPropertyValue(new HashMap<>(), propertyMetadata2, list);
@@ -1065,10 +1084,12 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         //GeoType
         deviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"geoPoint\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
         PropertyMetadata propertyMetadata3 = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata3);
         storagePolicy.fillRowPropertyValue(new HashMap<>(), propertyMetadata3, GeoPoint.of(100.00, 120.00));
 
         deviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"string\",\"expands\":{}},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
         PropertyMetadata propertyMetadata4 = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata4);
         storagePolicy.fillRowPropertyValue(new HashMap<>(), propertyMetadata4, "100");
 
         Map<String, Object> expands = new HashMap<>();
@@ -1077,6 +1098,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         storagePolicy.fillRowPropertyValue(new HashMap<>(), propertyMetadata3, GeoPoint.of(100.00, 120.00));
 
         PropertyMetadata propertyMetadata5 = deviceOperator.getMetadata().map(s -> s.getProperties().get(0)).block();
+        assertNotNull(propertyMetadata5);
         propertyMetadata5.setExpands(expands);
         storagePolicy.fillRowPropertyValue(new HashMap<>(), propertyMetadata5, "100");
     }
@@ -1102,6 +1124,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         //inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         //DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
 
@@ -1153,9 +1176,11 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
-
+        assertNotNull(deviceOperator);
         DeviceMetadata deviceMetadata = deviceOperator.getMetadata().block();
+        assertNotNull(deviceMetadata);
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         String type = storagePolicy.getPropertyMetadata(deviceMetadata, null).get(0).getValueType().getType();
         assertEquals("float",type);
 

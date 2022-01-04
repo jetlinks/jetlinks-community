@@ -60,10 +60,12 @@ class DevicePropertiesMeasurementTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         //DeviceOperator deviceOperator = InMemoryDeviceRegistry.create().register(deviceInstanceEntity.toDeviceInfo()).block();
         DeviceMetadata deviceMetadata = deviceProductOperator.getMetadata().block();
         DevicePropertiesMeasurement measurement = new DevicePropertiesMeasurement(PRODUCT_ID, new BrokerEventBus(), dataService, deviceMetadata);
 
+        assertNotNull(measurement);
         measurement.fromHistory(DEVICE_ID,0,new HashSet<>()).subscribe();
         DeviceProperty deviceProperty = new DeviceProperty();
         deviceProperty.setValue("test");
@@ -100,10 +102,6 @@ class DevicePropertiesMeasurementTest {
 
 
     @Test
-    void fromRealTime() {
-    }
-
-    @Test
     void getPropertiesFromParameter() {
         Map<String, Object> params = new HashMap<>();
         List<String> list = new ArrayList<>();
@@ -119,7 +117,7 @@ class DevicePropertiesMeasurementTest {
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
         DeviceMetadata deviceMetadata = Mockito.mock(DeviceMetadata.class);
         DevicePropertiesMeasurement measurement = new DevicePropertiesMeasurement(PRODUCT_ID, new BrokerEventBus(), dataService, deviceMetadata);
-
+        assertNotNull(measurement);
         Class<? extends DevicePropertiesMeasurement> measurementClass = measurement.getClass();
         Class<?>[] classes = measurementClass.getDeclaredClasses();
         MeasurementDimension dimension = null;

@@ -23,9 +23,6 @@ class DeviceDynamicDashboardTest {
     public static final String DEVICE_ID = "test001";
     public static final String PRODUCT_ID = "test100";
 
-    @Test
-    void init() {
-    }
 
     @Test
     void getObjects() {
@@ -49,7 +46,7 @@ class DeviceDynamicDashboardTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
-
+        assertNotNull(deviceProductOperator);
         Mockito.when(productService.createQuery())
             .thenReturn(query);
         Mockito.when(query.fetch())
@@ -59,6 +56,7 @@ class DeviceDynamicDashboardTest {
             .thenReturn(Mono.just(deviceProductOperator));
 
         DeviceDynamicDashboard dashboard = new DeviceDynamicDashboard(productService, registry, dataService, new BrokerEventBus());
+        assertNotNull(dashboard);
         dashboard.getObjects().subscribe();
 
         Mockito.when(productService.findById(Mockito.anyString()))

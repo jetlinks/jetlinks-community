@@ -11,6 +11,7 @@ import reactor.test.StepVerifier;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import static org.junit.jupiter.api.Assertions.*;
 
 class SystemLoggerServiceTest {
 
@@ -24,6 +25,7 @@ class SystemLoggerServiceTest {
         searchService.set(service,elasticSearchService);
         Mockito.when(elasticSearchService.queryPager(Mockito.any(ElasticIndex.class),Mockito.any(QueryParam.class),Mockito.any(Class.class)))
             .thenReturn(Mono.just(PagerResult.of(1,new ArrayList<>())));
+        assertNotNull(service);
         service.getSystemLogger(new QueryParam())
             .map(PagerResult::getTotal)
             .as(StepVerifier::create)

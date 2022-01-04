@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceDetailTest {
 
@@ -43,6 +43,7 @@ class DeviceDetailTest {
         Map<String, Object> map1 = new HashMap<>();
         map1.put("test","test");
         deviceDetail.setConfiguration(map1);
-        deviceDetail.with(device);
+        DeviceDetail with = deviceDetail.with(device);
+        assertNotNull(with);
     }
 }

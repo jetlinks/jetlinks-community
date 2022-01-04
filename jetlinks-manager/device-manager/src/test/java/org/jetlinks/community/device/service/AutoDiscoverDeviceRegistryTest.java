@@ -31,6 +31,7 @@ class AutoDiscoverDeviceRegistryTest {
 
 
         AutoDiscoverDeviceRegistry service = new AutoDiscoverDeviceRegistry(parent, deviceRepository, productRepository);
+        assertNotNull(service);
         service.getDevice(DEVICE_ID)
             .map(DeviceOperator::getDeviceId)
             .as(StepVerifier::create)
@@ -74,6 +75,7 @@ class AutoDiscoverDeviceRegistryTest {
             .thenReturn(InMemoryDeviceRegistry.create().register(deviceProductEntity.toProductInfo()));
 
         AutoDiscoverDeviceRegistry service = new AutoDiscoverDeviceRegistry(parent, deviceRepository, productRepository);
+        assertNotNull(service);
         service.getProduct(PRODUCT_ID)
             .map(DeviceProductOperator::getId)
             .as(StepVerifier::create)
@@ -133,6 +135,7 @@ class AutoDiscoverDeviceRegistryTest {
             .thenReturn(InMemoryDeviceRegistry.create().register(deviceProductEntity.toProductInfo()));
 
         AutoDiscoverDeviceRegistry service = new AutoDiscoverDeviceRegistry(parent, deviceRepository, productRepository);
+        assertNotNull(service);
         service.register(deviceProductEntity.toProductInfo())
             .map(DeviceProductOperator::getId)
             .as(StepVerifier::create)
@@ -155,6 +158,7 @@ class AutoDiscoverDeviceRegistryTest {
             .thenReturn(inMemoryDeviceRegistry.unregisterDevice(DEVICE_ID));//再注销
 
         AutoDiscoverDeviceRegistry service = new AutoDiscoverDeviceRegistry(parent, deviceRepository, productRepository);
+        assertNotNull(service);
         service.unregisterDevice(DEVICE_ID)
             .as(StepVerifier::create)
             .expectSubscription()
@@ -174,6 +178,7 @@ class AutoDiscoverDeviceRegistryTest {
         Mockito.when(parent.unregisterProduct(Mockito.anyString()))
             .thenReturn(inMemoryDeviceRegistry.unregisterProduct(PRODUCT_ID));//再注销
         AutoDiscoverDeviceRegistry service = new AutoDiscoverDeviceRegistry(parent, deviceRepository, productRepository);
+        assertNotNull(service);
         service.unregisterProduct(PRODUCT_ID)
             .as(StepVerifier::create)
             .expectSubscription()

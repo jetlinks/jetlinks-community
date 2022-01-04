@@ -23,7 +23,8 @@ class DeviceDashboardObjectTest {
     void of() {
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
         DeviceProductOperator deviceProductOperator = Mockito.mock(DeviceProductOperator.class);
-        DeviceDashboardObject.of("test", "test", deviceProductOperator, new BrokerEventBus(), dataService);
+        DeviceDashboardObject of = DeviceDashboardObject.of("test", "test", deviceProductOperator, new BrokerEventBus(), dataService);
+        assertNotNull(of);
     }
 
     @Test
@@ -56,9 +57,9 @@ class DeviceDashboardObjectTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
-
+        assertNotNull(deviceProductOperator);
         DeviceDashboardObject of = DeviceDashboardObject.of("test", "test", deviceProductOperator, new BrokerEventBus(), dataService);
-
+        assertNotNull(of);
         of.getMeasurements().subscribe();
     }
 
@@ -81,9 +82,9 @@ class DeviceDashboardObjectTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
-
+        assertNotNull(deviceProductOperator);
         DeviceDashboardObject of = DeviceDashboardObject.of("test", "test", deviceProductOperator, new BrokerEventBus(), dataService);
-
+        assertNotNull(of);
         of.getMeasurement("properties").subscribe();
         of.getMeasurement("events").subscribe();
         of.getMeasurement("fire_alarm")

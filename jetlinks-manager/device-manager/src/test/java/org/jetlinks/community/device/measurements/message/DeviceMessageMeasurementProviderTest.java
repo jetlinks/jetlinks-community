@@ -10,7 +10,7 @@ import org.jetlinks.supports.event.BrokerEventBus;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.test.StepVerifier;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceMessageMeasurementProviderTest {
 
@@ -35,7 +35,7 @@ class DeviceMessageMeasurementProviderTest {
         ).thenReturn(counter);
 
         DeviceMessageMeasurementProvider provider = new DeviceMessageMeasurementProvider(new BrokerEventBus(),meterRegistryManager,registry,timeSeriesManager);
-
+        assertNotNull(provider);
         provider.incrementMessage(null)
             .as(StepVerifier::create)
             .expectSubscription()

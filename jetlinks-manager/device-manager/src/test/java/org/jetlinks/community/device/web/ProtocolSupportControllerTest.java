@@ -41,6 +41,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
 
 
     void add(){
+        assertNotNull(client);
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
         protocolSupportEntity.setId(ID_1);
         protocolSupportEntity.setName("演示协议v1");
@@ -61,6 +62,8 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(0)
     void deploy() {
+        assertNotNull(client);
+        assertNotNull(loader);
         add();
         Mono supportMono1 = Mono.just(new TestMockSupport());
         Mockito.when(loader.load(Mockito.any(ProtocolSupportDefinition.class)))
@@ -91,6 +94,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Order(3)
     void unDeploy() {
         deploy();
+        assertNotNull(client);
         Boolean responseBody = client.post()
             .uri(BASE_URL + "/" + ID_1 + "/_un-deploy")
             .exchange()
@@ -106,6 +110,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getProviders() {
+        assertNotNull(client);
         List<String> responseBody = client.get()
             .uri(BASE_URL + "/providers")
             .exchange()
@@ -122,6 +127,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void allProtocols() {
+        assertNotNull(client);
         List<ProtocolInfo> responseBody=client.get()
             .uri(BASE_URL + "/supports")
             .exchange()
@@ -138,6 +144,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(2)
     void getTransportConfiguration() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + ID_1 + "/TCP/configuration")
             .exchange()
@@ -148,6 +155,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getDefaultMetadata() {
+        assertNotNull(client);
        client.get()
             .uri(BASE_URL + "/" + ID_1 + "/TCP/metadata")
             .exchange()
@@ -159,6 +167,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getAllTransport() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/" + ID_1 + "/transports")
             .exchange()
@@ -169,6 +178,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void convertToDetail() {
+        assertNotNull(client);
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
         protocolSupportEntity.setId(ID_1);
         protocolSupportEntity.setName("演示协议v1");
@@ -191,6 +201,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void decode() {
+        assertNotNull(client);
         convertToDetail();
         ProtocolDecodeRequest protocolDecodeRequest = new ProtocolDecodeRequest();
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
@@ -236,7 +247,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void encode() {
-
+        assertNotNull(client);
         ProtocolEncodeRequest protocolEncodeRequest = new ProtocolEncodeRequest();
         ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
         protocolSupportEntity.setId(ID_1);
@@ -271,6 +282,7 @@ class ProtocolSupportControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void allUnits() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL + "/units")
             .exchange()

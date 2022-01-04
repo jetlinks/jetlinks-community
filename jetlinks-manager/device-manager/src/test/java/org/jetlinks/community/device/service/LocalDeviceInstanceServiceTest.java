@@ -87,7 +87,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
-
+        assertNotNull(service);
         Map<String, Object> map = new HashMap<>();
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
@@ -132,6 +132,7 @@ class LocalDeviceInstanceServiceTest {
 
 
         DeviceOperator operator = InMemoryDeviceRegistry.create().register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(operator);
         operator.setConfigs(deviceProductEntity.getConfiguration());
 
         Mockito.when(registry.getDevice(Mockito.any(String.class))).thenReturn(Mono.just(operator));
@@ -149,6 +150,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         //返回的设备Configuration为空
         service.resetConfiguration(ID_1)
             .map(Map::size)
@@ -205,6 +207,7 @@ class LocalDeviceInstanceServiceTest {
 
         Mono<DeviceOperator> register = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo().addConfig("state", org.jetlinks.core.device.DeviceState.online));
         DeviceOperator deviceOperator = register.block();
+        assertNotNull(deviceOperator);
 //        deviceOperator.putState(org.jetlinks.core.device.DeviceState.online).subscribe(System.out::println);
 //        deviceOperator.getState().subscribe(System.out::println);
 
@@ -223,6 +226,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
 
         service.deploy(ID_1)
             .switchIfEmpty(Mono.error(NotFoundException::new))
@@ -610,6 +614,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         service.getDeviceState(ID_1)
             .map(DeviceState::getValue)
             .as(StepVerifier::create)
@@ -778,6 +783,7 @@ class LocalDeviceInstanceServiceTest {
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
         //设置协议的key值 用来查找到MockProtocolSupport
         // 底层加载物理模型时会调用协议实例的 getMetadataCodec方法，加载物模型编解码器
+        assertNotNull(block);
         block.setConfig(DeviceConfigKey.protocol.getKey(), "test").subscribe(System.out::println);
         inMemoryDeviceRegistry.register( deviceInstanceEntity.toDeviceInfo()).subscribe();
 
@@ -879,6 +885,7 @@ class LocalDeviceInstanceServiceTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(block);
         //设置协议的key值 用来查找到MockProtocolSupport
         // 底层加载物理模型时会调用协议实例的 getMetadataCodec方法，加载物模型编解码器
         block.setConfig(DeviceConfigKey.protocol.getKey(), "test").subscribe(System.out::println);
@@ -903,6 +910,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
 
         readPropertyMessageReply.setSuccess(false);
         readPropertyMessageReply.setMessage("发送失败");
@@ -964,6 +972,7 @@ class LocalDeviceInstanceServiceTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(block);
         //设置协议的key值 用来查找到MockProtocolSupport
         // 底层加载物理模型时会调用协议实例的 getMetadataCodec方法，加载物模型编解码器
         block.setConfig(DeviceConfigKey.protocol.getKey(), "test").subscribe(System.out::println);
@@ -1054,6 +1063,7 @@ class LocalDeviceInstanceServiceTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(block);
         //设置协议的key值 用来查找到MockProtocolSupport
         // 底层加载物理模型时会调用协议实例的 getMetadataCodec方法，加载物模型编解码器
         block.setConfig(DeviceConfigKey.protocol.getKey(), "test").subscribe(System.out::println);
@@ -1077,6 +1087,7 @@ class LocalDeviceInstanceServiceTest {
             }
         };
 
+        assertNotNull(service);
         Map<String, Object> map1 = new HashMap<>();
         map1.put("test", "test");
         service.invokeFunction(ID_1, "AuditCommandFunction", map1)
@@ -1114,6 +1125,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         service.checkCyclicDependency(deviceInstanceEntity)
             .as(StepVerifier::create)
             .expectSubscription()
@@ -1144,7 +1156,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
-
+        assertNotNull(service);
         service.checkCyclicDependency(ID_1,"test002")
             .as(StepVerifier::create)
             .expectSubscription()

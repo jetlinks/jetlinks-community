@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class SyncDeviceGatewayStateTest {
     private final static String ID = "test";
@@ -19,6 +20,7 @@ class SyncDeviceGatewayStateTest {
         DeviceGatewayManager gatewayManager = Mockito.mock(DeviceGatewayManager.class);
         ReactiveQuery<DeviceGatewayEntity> query = Mockito.mock(ReactiveQuery.class);
         SyncDeviceGatewayState service = new SyncDeviceGatewayState(gatewayService,gatewayManager);
+        assertNotNull(service);
         DeviceGatewayEntity entity = new DeviceGatewayEntity();
         entity.setId(ID);
         Mockito.when(gatewayService.createQuery())
@@ -45,6 +47,7 @@ class SyncDeviceGatewayStateTest {
         DeviceGatewayManager gatewayManager = Mockito.mock(DeviceGatewayManager.class);
         ReactiveQuery<DeviceGatewayEntity> query = Mockito.mock(ReactiveQuery.class);
         SyncDeviceGatewayState service = new SyncDeviceGatewayState(gatewayService,gatewayManager);
+        assertNotNull(service);
         DeviceGatewayEntity entity = new DeviceGatewayEntity();
         entity.setId(ID);
         Mockito.when(gatewayService.createQuery())

@@ -19,6 +19,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class LocalProtocolSupportServiceTest {
 
@@ -96,6 +97,7 @@ class LocalProtocolSupportServiceTest {
 //        };
 
         LocalProtocolSupportService service = getService();
+        assertNotNull(service);
         service.deploy(ID_1)
             .as(StepVerifier::create)
             .expectNext(true)
@@ -153,6 +155,7 @@ class LocalProtocolSupportServiceTest {
 //            }
 //        };
         LocalProtocolSupportService service = getService();
+        assertNotNull(service);
         service.unDeploy(ID_1)
             .as(StepVerifier::create)
             .expectNext(true)

@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceAllInfoResponseTest {
@@ -28,9 +29,9 @@ class DeviceAllInfoResponseTest {
         DeviceState realState = response.getRealState();
         assertNotNull(realState);
         long onlineTime = response.getOnlineTime();
-        assertNotNull(onlineTime);
+        assertEquals(10L,onlineTime);
         long offlineTime = response.getOfflineTime();
-        assertNotNull(offlineTime);
+        assertEquals(10L,offlineTime);
         Map<String, Object> properties = response.getProperties();
         assertNotNull(properties);
         Map<String, Integer> eventCounts = response.getEventCounts();
@@ -43,7 +44,8 @@ class DeviceAllInfoResponseTest {
         deviceRunInfo.setOnlineTime(10l);
         deviceRunInfo.setOfflineTime(10l);
         deviceRunInfo.setState(DeviceState.online);
-        DeviceAllInfoResponse.of(new DeviceInfo(),deviceRunInfo);
+        DeviceAllInfoResponse of = DeviceAllInfoResponse.of(new DeviceInfo(), deviceRunInfo);
+        assertNotNull(of);
     }
 
     @Test
@@ -54,12 +56,14 @@ class DeviceAllInfoResponseTest {
         entity.setProperty("test");
         entity.setFormatValue("test");
         List<DevicePropertiesEntity> properties = new ArrayList<>();
-        response.ofProperties(properties);
+        DeviceAllInfoResponse deviceAllInfoResponse = response.ofProperties(properties);
+        assertNotNull(deviceAllInfoResponse);
     }
     @Test
     void ofEventCounts(){
         DeviceAllInfoResponse response = new DeviceAllInfoResponse();
         Map<String, Integer> eventCounts = new HashMap<>();
-        response.ofEventCounts(eventCounts);
+        DeviceAllInfoResponse deviceAllInfoResponse = response.ofEventCounts(eventCounts);
+        assertNotNull(deviceAllInfoResponse);
     }
 }

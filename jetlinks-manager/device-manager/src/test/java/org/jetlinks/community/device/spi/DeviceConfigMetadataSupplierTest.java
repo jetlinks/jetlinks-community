@@ -5,7 +5,7 @@ import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceConfigMetadataSupplierTest {
 
@@ -29,6 +29,7 @@ class DeviceConfigMetadataSupplierTest {
             }
         }
         DeviceConfigMetadataSupplier testDeviceConfigMetadataSupplier = new TestDeviceConfigMetadataSupplier();
+        assertNotNull(testDeviceConfigMetadataSupplier);
         testDeviceConfigMetadataSupplier.getMetadataExpandsConfig("PRODUCT_ID", DeviceMetadataType.property,"","")
             .map(ConfigMetadata::getName)
             .as(StepVerifier::create)

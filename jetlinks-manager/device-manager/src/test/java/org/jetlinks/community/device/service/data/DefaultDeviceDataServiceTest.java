@@ -50,6 +50,7 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
 
         DeviceProductOperator deviceProductOperator = InMemoryDeviceRegistry.create().register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         deviceProductOperator.getConfig("storePolicy").subscribe();
 
@@ -111,10 +112,12 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
@@ -161,9 +164,11 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
@@ -235,15 +240,18 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
 
         DefaultDeviceDataService defaultDeviceDataService = new DefaultDeviceDataService(registry, properties, policies);
+        assertNotNull(defaultDeviceDataService);
         DeviceLogMessage deviceLogMessage = new DeviceLogMessage();
         deviceLogMessage.setDeviceId(DEVICE_ID);
         defaultDeviceDataService.saveDeviceMessage(deviceLogMessage)
@@ -290,11 +298,12 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
-
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
@@ -347,11 +356,12 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .addConfig(DeviceConfigKey.productVersion.getKey(), "1.1.9")
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
-
+        assertNotNull(deviceOperator);
          Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
@@ -397,10 +407,12 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
@@ -449,10 +461,12 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        assertNotNull(deviceProductOperator);
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));

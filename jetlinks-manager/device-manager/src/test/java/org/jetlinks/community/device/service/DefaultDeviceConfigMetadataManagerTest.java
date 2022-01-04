@@ -20,6 +20,7 @@ class DefaultDeviceConfigMetadataManagerTest {
         DefaultDeviceConfigMetadataSupplier supplier = Mockito.mock(DefaultDeviceConfigMetadataSupplier.class);
 
         DefaultDeviceConfigMetadataManager service = new DefaultDeviceConfigMetadataManager();
+        assertNotNull(service);
         service.register(supplier);
     }
 
@@ -113,6 +114,7 @@ class DefaultDeviceConfigMetadataManagerTest {
             .thenReturn(Flux.just(defaultConfigMetadata,defaultConfigMetadata1,defaultConfigMetadata2,defaultConfigMetadata3,defaultConfigMetadata4));
 
         DefaultDeviceConfigMetadataManager service = new DefaultDeviceConfigMetadataManager();
+        assertNotNull(service);
         service.register(supplier);
         service.getProductConfigMetadata(PRODUCT_ID)
             .map(ConfigMetadata::getProperties)
@@ -147,6 +149,7 @@ class DefaultDeviceConfigMetadataManagerTest {
             .thenReturn(Flux.just(defaultConfigMetadata,defaultConfigMetadata1,defaultConfigMetadata2,defaultConfigMetadata3,defaultConfigMetadata4));
 
         DefaultDeviceConfigMetadataManager service = new DefaultDeviceConfigMetadataManager();
+        assertNotNull(service);
         service.register(supplier);
         service.getMetadataExpandsConfig(PRODUCT_ID, DeviceMetadataType.property,"test","test", DeviceConfigScope.device)
             .map(ConfigMetadata::getProperties)
