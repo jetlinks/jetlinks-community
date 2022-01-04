@@ -1,5 +1,6 @@
 package org.jetlinks.community.auth.service;
 
+import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.junit.jupiter.api.Test;
 
@@ -14,15 +15,19 @@ class DefaultMenuServiceTest {
   @Test
   void getIDGenerator() {
       DefaultMenuService defaultMenuService = new DefaultMenuService();
-      defaultMenuService.getIDGenerator();
+      IDGenerator<String> idGenerator = defaultMenuService.getIDGenerator();
+      assertNotNull(idGenerator);
   }
 
   @Test
   void setChildren() {
       MenuEntity menuEntity = new MenuEntity();
       List<MenuEntity> children = new ArrayList<>();
+      //menuEntity.setChildren(children);
       DefaultMenuService defaultMenuService = new DefaultMenuService();
       defaultMenuService.setChildren(menuEntity,children);
+
+      assertNotNull(defaultMenuService.getChildren(menuEntity));
   }
 
   @Test

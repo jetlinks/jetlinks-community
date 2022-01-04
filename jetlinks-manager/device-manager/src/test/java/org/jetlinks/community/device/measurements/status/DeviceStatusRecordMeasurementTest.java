@@ -114,7 +114,7 @@ class DeviceStatusRecordMeasurementTest {
     void CurrentGetValue() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
-        TimeSeriesService timeSeriesService = Mockito.mock(TimeSeriesService.class);
+       // TimeSeriesService timeSeriesService = Mockito.mock(TimeSeriesService.class);
         ReactiveQuery<DeviceInstanceEntity> query = Mockito.mock(ReactiveQuery.class);
 
         Mockito.when(instanceService.createQuery())
@@ -132,6 +132,7 @@ class DeviceStatusRecordMeasurementTest {
         params.put("productId", "productId");
         params.put("state", DeviceState.online);
         MeasurementParameter parameter = MeasurementParameter.of(params);
+        assertNotNull(parameter);
         dimension.getValue(parameter).subscribe();
     }
 }

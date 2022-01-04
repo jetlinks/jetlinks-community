@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceExcelInfoTest {
 
@@ -27,6 +27,8 @@ class DeviceExcelInfoTest {
         excelInfo.setId("test");
 
         excelInfo.toMap();
+        assertNotNull(excelInfo.getId());
+        assertNotNull(excelInfo.getName());
     }
 
     @Test

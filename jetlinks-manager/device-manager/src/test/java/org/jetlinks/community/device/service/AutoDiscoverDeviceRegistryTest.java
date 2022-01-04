@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class AutoDiscoverDeviceRegistryTest {
     public static final String DEVICE_ID = "test001";
@@ -113,6 +114,7 @@ class AutoDiscoverDeviceRegistryTest {
             .thenReturn(InMemoryDeviceRegistry.create().register(deviceInstanceEntity.toDeviceInfo()));
 
         AutoDiscoverDeviceRegistry service = new AutoDiscoverDeviceRegistry(parent, deviceRepository, productRepository);
+        assertNotNull(service);
         service.register(deviceInstanceEntity.toDeviceInfo())
             .map(DeviceOperator::getDeviceId)
             .as(StepVerifier::create)

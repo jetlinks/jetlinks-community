@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class NotifySubscriberServiceTest {
 
@@ -69,6 +70,7 @@ class NotifySubscriberServiceTest {
         Mockito.when(redisClusterTopic.publish(Mockito.any(Publisher.class)))
             .thenReturn(Mono.just(1));
 
+        assertNotNull(service);
         EntityCreatedEvent<NotifySubscriberEntity> entity = new EntityCreatedEvent<>(list, NotifySubscriberEntity.class);
         service.handleEvent(entity);
     }
@@ -91,7 +93,7 @@ class NotifySubscriberServiceTest {
             .thenReturn(redisClusterTopic);
         Mockito.when(redisClusterTopic.publish(Mockito.any(Publisher.class)))
             .thenReturn(Mono.just(1));
-
+        assertNotNull(service);
         EntitySavedEvent<NotifySubscriberEntity> entity = new EntitySavedEvent<>(list, NotifySubscriberEntity.class);
         service.handleEvent(entity);
     }
@@ -114,7 +116,7 @@ class NotifySubscriberServiceTest {
             .thenReturn(redisClusterTopic);
         Mockito.when(redisClusterTopic.publish(Mockito.any(Publisher.class)))
             .thenReturn(Mono.just(1));
-
+        assertNotNull(service);
         EntityDeletedEvent<NotifySubscriberEntity> entity = new EntityDeletedEvent<>(list, NotifySubscriberEntity.class);
         service.handleEvent(entity);
     }
@@ -137,7 +139,7 @@ class NotifySubscriberServiceTest {
             .thenReturn(redisClusterTopic);
         Mockito.when(redisClusterTopic.publish(Mockito.any(Publisher.class)))
             .thenReturn(Mono.just(1));
-
+        assertNotNull(service);
         EntityModifyEvent<NotifySubscriberEntity> entity = new EntityModifyEvent<>(new ArrayList<>(),list, NotifySubscriberEntity.class);
         service.handleEvent(entity);
     }
@@ -169,6 +171,7 @@ class NotifySubscriberServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         NotifySubscriberEntity notifySubscriberEntity = new NotifySubscriberEntity();
         notifySubscriberEntity.setId("test");
         notifySubscriberEntity.setTopicProvider("device_alarm");

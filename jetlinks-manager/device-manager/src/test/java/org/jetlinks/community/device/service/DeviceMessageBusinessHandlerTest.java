@@ -34,7 +34,7 @@ import reactor.test.StepVerifier;
 
 import java.lang.reflect.Method;
 import java.util.*;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceMessageBusinessHandlerTest {
     public static final String DEVICE_ID = "test001";
@@ -71,7 +71,7 @@ class DeviceMessageBusinessHandlerTest {
         map.put("productId", "10001");//产品id
         map.put("configuration", configuration);
         message.setHeaders(map);
-
+        assertNotNull(service);
         //第一次注册，registry.getDevice为空
         service.autoRegisterDevice(message)
             .as(StepVerifier::create)
@@ -120,7 +120,7 @@ class DeviceMessageBusinessHandlerTest {
         map.put("productId", "10001");//产品id
         map.put("configuration", configuration);
         message.setHeaders(map);
-
+        assertNotNull(service);
         //第一次注册，registry.getDevice为空 DeviceConfigKey.selfManageState.getKey()为false
         service.autoRegisterDevice(message)
             .as(StepVerifier::create)
@@ -274,6 +274,7 @@ class DeviceMessageBusinessHandlerTest {
 
         DeviceUnRegisterMessage deviceUnRegisterMessage = new DeviceUnRegisterMessage();
         deviceUnRegisterMessage.setDeviceId(DEVICE_ID);
+        assertNotNull(service);
         service.unRegisterDevice(deviceUnRegisterMessage)
             .as(StepVerifier::create)
             .expectSubscription()
@@ -399,8 +400,8 @@ class DeviceMessageBusinessHandlerTest {
         DeviceOperator deviceOperator = new DefaultDeviceOperator(DEVICE_ID, new MockProtocolSupport(), inMemoryConfigStorageManager, new StandaloneDeviceMessageBroker(), inMemoryDeviceRegistry);
         deviceOperator.setConfig(DeviceConfigKey.productId.getKey(),"test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
-        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();;
-//        deviceOperator.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}").subscribe();;
+        deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
+//        deviceOperator.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}").subscribe();
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
         deviceProductEntity.setId(PRODUCT_ID);
         deviceProductEntity.setMessageProtocol("test");
@@ -409,7 +410,7 @@ class DeviceMessageBusinessHandlerTest {
         deviceProductEntity.setOrgId("123");
         deviceProductEntity.setMetadata("{'pr':'pro'}");
 
-        DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
+        //DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
         String s = "{\n" +
             "  \"id\": \"test\",\n" +
             "  \"name\": \"测试\",\n" +

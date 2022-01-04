@@ -12,11 +12,13 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
+import reactor.core.publisher.Flux;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -32,43 +34,52 @@ class CaptchaControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void createCaptcha() {
-        client.get()
+        Flux<CaptchaController.CaptchaConfig> responseBody = client.get()
             .uri(BASE_URL + "/config")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is2xxSuccessful()
+            .returnResult(CaptchaController.CaptchaConfig.class)
+            .getResponseBody();
+        assertNotNull(responseBody);
 
     }
 
     @Test
     @Order(0)
     void testCreateCaptcha1() {
-        client.get()
+        Flux<CaptchaController.CaptchaInfo> responseBody = client.get()
             .uri(uriBuilder ->
                 uriBuilder.path(BASE_URL + "/image")
-                    .queryParam("width",130)
-                    .queryParam("height",40)
+                    .queryParam("width", 130)
+                    .queryParam("height", 40)
                     .build()
             )
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is2xxSuccessful()
+            .returnResult(CaptchaController.CaptchaInfo.class)
+            .getResponseBody();
+        assertNotNull(responseBody);
     }
 
     @Test
     @Order(2)
     void testCreateCaptcha() {
         properties.setEnabled(true);
-        client.get()
+        Flux<CaptchaController.CaptchaInfo> responseBody = client.get()
             .uri(uriBuilder ->
                 uriBuilder.path(BASE_URL + "/image")
-                .queryParam("width",130)
-                .queryParam("height",40)
-                .build()
+                    .queryParam("width", 130)
+                    .queryParam("height", 40)
+                    .build()
             )
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is2xxSuccessful()
+            .returnResult(CaptchaController.CaptchaInfo.class)
+            .getResponseBody();
+        assertNotNull(responseBody);
     }
 
     @Test

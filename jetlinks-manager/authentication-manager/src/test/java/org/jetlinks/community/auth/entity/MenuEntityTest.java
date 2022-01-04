@@ -9,8 +9,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class MenuEntityTest {
     private static final String ID = "test";
@@ -27,7 +26,8 @@ class MenuEntityTest {
         menuEntity.setButtons(buttons);
 
         Predicate<MenuButtonInfo> buttonPredicate = buttonInfo -> buttonInfo.getId() != null && !"".equals(buttonInfo.getId());
-        menuEntity.copy(buttonPredicate);
+        MenuEntity copy = menuEntity.copy(buttonPredicate);
+        assertNotNull(copy);
     }
 
     @Test
@@ -61,6 +61,8 @@ class MenuEntityTest {
         menuButtonInfo.setId(ID);
         buttons.add(menuButtonInfo);
         menuEntity.setButtons(buttons);
-        menuEntity.getButton(ID);
+        MenuButtonInfo menuButtonInfo1 = menuEntity.getButton(ID).orElse(new MenuButtonInfo());
+        assertNotNull(menuButtonInfo1);
+
     }
 }

@@ -111,6 +111,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity(), "temperature")
             .map(DeviceProperty::getPropertyName)
             .as(StepVerifier::create)
@@ -185,6 +186,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.queryPropertyPage(DEVICE_ID, "temperature", new QueryParamEntity())
             .map(PagerResult::getTotal)
             .as(StepVerifier::create)
@@ -245,6 +247,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .thenReturn(Flux.just(meterTimeSeriesData));
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.queryProperty(DEVICE_ID, new QueryParamEntity(), "temperature")
             .map(DeviceProperty::getPropertyName)
             .as(StepVerifier::create)
@@ -314,10 +317,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
     }
 
-    @Test
-    void aggregationPropertiesByProduct() {
-
-    }
 
     @Test
     void aggregationPropertiesByDevice() {
@@ -447,6 +446,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         Map<String, Object> properties = new HashMap<>();
         properties.put("temperature", "36");
         message.setTimestamp(1111111111111111L);
+        assertNotNull(storagePolicy);
         storagePolicy.convertProperties(PRODUCT_ID, message, properties)
             .map(Tuple2::getT1)
             .as(StepVerifier::create)
@@ -526,6 +526,8 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .thenReturn(Mono.just(1).then());
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+
+        assertNotNull(storagePolicy);
 
         ReportPropertyMessage message = ReportPropertyMessage.create();
         Map<String, Long> map = new HashMap<>();
@@ -611,6 +613,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 
+        assertNotNull(storagePolicy);
         ReportPropertyMessage message = ReportPropertyMessage.create();
         Map<String, Long> map = new HashMap<>();
         map.put("time", 111111111L);
@@ -664,6 +667,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
 
+        assertNotNull(storagePolicy);
         DeviceLogMessage deviceLogMessage = new DeviceLogMessage();
         deviceLogMessage.setLog("log");
         deviceLogMessage.setDeviceId(DEVICE_ID);
@@ -799,6 +803,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .thenReturn(Mono.just(PagerResult.of(1, list)));
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.queryDeviceMessageLog(DEVICE_ID, new QueryParamEntity())
 //            .map(PagerResult::getTotal)
             .map(PagerResult::getTotal)
@@ -1101,6 +1106,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
             .thenReturn(Mono.just(deviceProductOperator));
 
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.getProductAndMetadataByProduct(PRODUCT_ID)
             .map(s->s.getT2().getProperties().get(0))
             .map(s->s.getValueType().getType())

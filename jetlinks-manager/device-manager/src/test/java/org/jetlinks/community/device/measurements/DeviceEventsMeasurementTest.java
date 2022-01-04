@@ -64,7 +64,7 @@ class DeviceEventsMeasurementTest {
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
-        DeviceOperator deviceOperator = InMemoryDeviceRegistry.create().register(deviceInstanceEntity.toDeviceInfo()).block();
+        //DeviceOperator deviceOperator = InMemoryDeviceRegistry.create().register(deviceInstanceEntity.toDeviceInfo()).block();
         DeviceMetadata deviceMetadata = deviceProductOperator.getMetadata().block();
 
         DeviceEventsMeasurement measurement = new DeviceEventsMeasurement(DEVICE_ID, new BrokerEventBus(), deviceMetadata, dataService);
@@ -84,9 +84,6 @@ class DeviceEventsMeasurementTest {
 
     }
 
-    @Test
-    void createValue() {
-    }
 
     //RealTimeDevicePropertyDimension类
     @Test

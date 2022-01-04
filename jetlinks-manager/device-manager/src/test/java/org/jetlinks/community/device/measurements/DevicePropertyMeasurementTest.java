@@ -88,13 +88,6 @@ class DevicePropertyMeasurementTest {
 
     }
 
-    @Test
-    void fromHistory() {
-    }
-
-    @Test
-    void fromRealTime() {
-    }
 
     //内部类
     @Test

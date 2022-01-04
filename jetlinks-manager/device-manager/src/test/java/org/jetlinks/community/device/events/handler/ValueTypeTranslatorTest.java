@@ -29,7 +29,7 @@ class ValueTypeTranslatorTest {
         Object b = ValueTypeTranslator.translator("true", BooleanType.GLOBAL);
         assertNotNull(b);
         Object i = ValueTypeTranslator.translator("12", IntType.GLOBAL);
-        assertNotNull(b);
+        assertNotNull(i);
         Object date = ValueTypeTranslator.translator(LocalDateTime.now(), DateTimeType.GLOBAL);
         assertNotNull(date);
         Object test = ValueTypeTranslator.translator("test", StringType.GLOBAL);

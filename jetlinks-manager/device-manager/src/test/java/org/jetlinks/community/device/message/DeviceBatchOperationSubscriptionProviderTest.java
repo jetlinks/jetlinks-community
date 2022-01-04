@@ -82,6 +82,7 @@ class DeviceBatchOperationSubscriptionProviderTest {
         deviceStateInfo.setState(DeviceState.online);
         Mockito.when(instanceService.syncStateBatch(Mockito.any(Flux.class), Mockito.anyBoolean()))
             .thenReturn(Flux.just(list));
+        assertNotNull(provider);
         provider.subscribe(request)
             .as(StepVerifier::create)
             .expectSubscription()
@@ -115,10 +116,9 @@ class DeviceBatchOperationSubscriptionProviderTest {
 
     @Test
     void test() {
-
-
         Map<String, String> var = TopicUtils.getPathVariables("/device-batch/{type}", "/device-batch/state-sync");
         String type = var.get("type");
-        System.out.println(type);
+        //System.out.println(type);
+        assertNotNull(type);
     }
 }

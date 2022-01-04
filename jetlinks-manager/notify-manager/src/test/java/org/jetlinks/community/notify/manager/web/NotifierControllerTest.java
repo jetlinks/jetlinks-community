@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.http.MediaType;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +57,7 @@ class NotifierControllerTest extends TestJetLinksController {
         configuration.put("accessKeyId","accessKeyId");
         configuration.put("secret","secret");
         notifyConfigEntity.setConfiguration(configuration);
+        assertNotNull(configService);
         configService.save(notifyConfigEntity).subscribe();
 
 

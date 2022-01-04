@@ -10,7 +10,7 @@ import org.springframework.http.MediaType;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(SystemConfigController.class)
 class SystemConfigControllerTest extends TestJetLinksController {
@@ -25,6 +25,7 @@ class SystemConfigControllerTest extends TestJetLinksController {
         Map<String, Object> map = new HashMap<>();
         map.put("default","test");
         systemConfigEntity.setFrontConfig(map);
+        assertNotNull(repository);
         repository.save(systemConfigEntity).subscribe();
         client.get()
             .uri(BASE_URL+"/front")

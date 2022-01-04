@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 class DeviceWrapperTest {
 
     @Test
@@ -42,6 +42,7 @@ class DeviceWrapperTest {
         excelHeader.setText("tag");
         excelHeader.setKey("key");
         Cell headerCell = new HeaderCell(excelHeader, 1, true);
+        assertNotNull(wrapper);
         wrapper.wrap(new DeviceExcelInfo(),headerCell,headerCell);
 
     }

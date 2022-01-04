@@ -18,8 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class UserDetailControllerTest extends TestJetLinksController {
     public static final String BASE_URL = "/user/detail";
 
-    @Autowired
-    private  ReactiveUserService userService;
 
     @Autowired
     private ReactiveRepository<UserEntity, String> repository;
@@ -33,6 +31,7 @@ class UserDetailControllerTest extends TestJetLinksController {
         userEntity.setUsername("test");
         userEntity.setPassword("test");
         userEntity.setSalt("test");
+        assertNotNull(repository);
         repository.save(userEntity).subscribe();
 //        userService.saveUser(Mono.just(userEntity)).subscribe();
         UserDetail responseBody = client.get()
@@ -63,6 +62,7 @@ class UserDetailControllerTest extends TestJetLinksController {
             "  \"avatar\": \"\",\n" +
             "  \"description\": \"\"\n" +
             "}";
+        assertNotNull(client);
         client.put()
             .uri(BASE_URL)
             .accept(MediaType.APPLICATION_JSON)

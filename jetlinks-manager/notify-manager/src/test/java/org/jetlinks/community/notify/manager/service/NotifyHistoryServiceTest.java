@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.HashMap;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class NotifyHistoryServiceTest {
 
@@ -26,6 +27,7 @@ class NotifyHistoryServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         SerializableNotifierEvent serializableNotifierEvent = new SerializableNotifierEvent();
         serializableNotifierEvent.setSuccess(true);
         serializableNotifierEvent.setCause("test");

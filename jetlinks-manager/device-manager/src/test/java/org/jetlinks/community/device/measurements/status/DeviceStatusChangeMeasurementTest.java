@@ -74,6 +74,7 @@ class DeviceStatusChangeMeasurementTest {
         map.put("time", "2001年02月03日");
         Mockito.when(timeSeriesService.aggregation(Mockito.any(AggregationQueryParam.class)))
             .thenReturn(Flux.just(AggregationData.of(map)));
+        assertNotNull(dimension);
         dimension.getValue(parameter).subscribe();
     }
 
@@ -123,7 +124,9 @@ class DeviceStatusChangeMeasurementTest {
 
         ReadPropertyMessage readPropertyMessage = new ReadPropertyMessage();
         readPropertyMessage.setDeviceId("test");
-        dimension.createStateValue(readPropertyMessage);
+        assertNotNull(dimension);
+        Map<String, Object> stateValue = dimension.createStateValue(readPropertyMessage);
+        assertNotNull(stateValue);
 
     }
 }

@@ -21,6 +21,7 @@ import reactor.test.StepVerifier;
 
 import java.util.ArrayList;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
 
 class AuthorizationSettingDetailServiceTest {
 
@@ -56,6 +57,7 @@ class AuthorizationSettingDetailServiceTest {
         AuthorizationSettingDetail authorizationSettingDetail1 = new AuthorizationSettingDetail();
         authorizationSettingDetail1.setTargetId("test1");
         authorizationSettingDetail1.setTargetType("test1");
+        assertNotNull(authorizationSettingDetailService);
         authorizationSettingDetailService.saveDetail(new SimpleAuthentication(), Flux.just(authorizationSettingDetail,authorizationSettingDetail1))
             .as(StepVerifier::create)
             .expectNext()
@@ -81,7 +83,7 @@ class AuthorizationSettingDetailServiceTest {
             .thenReturn(query);
         Mockito.when(query.fetch())
             .thenReturn(Flux.just(authorizationSettingEntity));
-
+        assertNotNull(authorizationSettingDetailService);
         authorizationSettingDetailService.getSettingDetail("test","test")
             .map(AuthorizationSettingDetail::getTargetType)
             .as(StepVerifier::create)

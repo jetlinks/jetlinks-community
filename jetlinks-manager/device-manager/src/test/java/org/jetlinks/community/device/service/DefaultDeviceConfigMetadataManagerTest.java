@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefaultDeviceConfigMetadataManagerTest {
@@ -42,6 +43,7 @@ class DefaultDeviceConfigMetadataManagerTest {
             .thenReturn(Flux.just(defaultConfigMetadata,defaultConfigMetadata1,defaultConfigMetadata2,defaultConfigMetadata3));
 
         DefaultDeviceConfigMetadataManager service = new DefaultDeviceConfigMetadataManager();
+        assertNotNull(service);
         service.register(supplier);
         service.getDeviceConfigMetadataByProductId(PRODUCT_ID)
             .map(ConfigMetadata::getProperties)
@@ -75,6 +77,7 @@ class DefaultDeviceConfigMetadataManagerTest {
             .thenReturn(Flux.just(defaultConfigMetadata,defaultConfigMetadata1,defaultConfigMetadata2,defaultConfigMetadata3));
 
         DefaultDeviceConfigMetadataManager service = new DefaultDeviceConfigMetadataManager();
+        assertNotNull(service);
         service.register(supplier);
         service.getDeviceConfigMetadata(DEVICE_ID)
             .map(ConfigMetadata::getProperties)

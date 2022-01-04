@@ -34,8 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
     public static final String DEVICE_ID = "test001";
@@ -52,6 +51,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .thenReturn(Mono.empty().then());
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         SimpleTimeSeriesData simpleTimeSeriesData = new SimpleTimeSeriesData(111111L, new HashMap<>());
         storagePolicy.doSaveData("service", simpleTimeSeriesData)
             .as(StepVerifier::create)
@@ -71,6 +71,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .thenReturn(Mono.empty().then());
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         SimpleTimeSeriesData simpleTimeSeriesData = new SimpleTimeSeriesData(111111L, new HashMap<>());
         storagePolicy.doSaveData("service", Flux.just(simpleTimeSeriesData))
             .as(StepVerifier::create)
@@ -90,6 +91,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .thenReturn(Flux.just(new SimpleTimeSeriesData(111111L, new HashMap<>())));
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.doQuery("service", new QueryParamEntity(),(data)->{return "test";})
             .as(StepVerifier::create)
             .expectNext("test")
@@ -167,6 +169,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         System.out.println(meterTimeSeriesData.getString("property").get());
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.queryEachOneProperties(DEVICE_ID, new QueryParamEntity(),"temperature")
             .map(DeviceProperty::getPropertyName)
             .as(StepVerifier::create)
@@ -251,6 +254,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .thenReturn(Mono.just(PagerResult.of(1,new ArrayList<>())));
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.queryPropertyPage(DEVICE_ID, "temperature",new QueryParamEntity())
             .map(PagerResult::getTotal)
             .as(StepVerifier::create)
@@ -298,6 +302,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .addConfig("lst_metadata_time", 1L);
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInfo).block();
 
+        assertNotNull(deviceOperator);
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
 
@@ -311,6 +316,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
             .thenReturn(Flux.just(meterTimeSeriesData));
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
+        assertNotNull(storagePolicy);
         storagePolicy.queryProperty(DEVICE_ID,new QueryParamEntity(), "temperature")
             .map(DeviceProperty::getPropertyName)
             .as(StepVerifier::create)
@@ -375,7 +381,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
 
 
         TimeSeriesRowDeviceDataStoreStoragePolicy storagePolicy = new TimeSeriesRowDeviceDataStoreStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
-
+        assertNotNull(storagePolicy);
         storagePolicy.queryEachProperties(DEVICE_ID,new QueryParamEntity(), "temperature")
             .map(DeviceProperty::getPropertyName)
             .as(StepVerifier::create)
@@ -409,6 +415,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         DeviceDataService.DevicePropertyAggregation aggregation1 = new DeviceDataService.DevicePropertyAggregation();
         aggregation1.setAlias("wendu");
         aggregation1.setProperty("temperature1");
+        assertNotNull(storagePolicy);
         storagePolicy.aggregationPropertiesByProduct(PRODUCT_ID,aggregationRequest,aggregation,aggregation1)
             .map(s->s.getString("time").get())
             .as(StepVerifier::create)
@@ -544,6 +551,7 @@ class TimeSeriesRowDeviceDataStoreStoragePolicyTest {
         Map<String, Object> properties = new HashMap<>();
         properties.put("temperature","36");
         message.setTimestamp(1111111111111111L);
+        assertNotNull(storagePolicy);
         storagePolicy.convertProperties(PRODUCT_ID,message,properties)
             .map(Tuple2::getT1)
             .as(StepVerifier::create)

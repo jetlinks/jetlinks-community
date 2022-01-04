@@ -80,6 +80,7 @@ class DevicePropertyTest {
         DeviceProperty.of("test",temperature);
 
         DeviceTagEntity test = DeviceTagEntity.of(temperature, "test");
+        assertNotNull(test);
 
     }
 

@@ -40,7 +40,7 @@ class DefaultDeviceDataManagerTest {
     @Test
     void newCache() {
         Map<Object, Object> map = DefaultDeviceDataManager.newCache();
-        System.out.println(map);
+        assertNotNull(map);
     }
 
     @Test
@@ -54,10 +54,12 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue(DefaultDeviceDataManager.NULL);
         deviceProperty.setTimestamp(System.currentTimeMillis());
         deviceProperty.setState("100");
+        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
+        assertNotNull(manager);
         manager.getLastProperty(DEVICE_ID, DEVICE_ID)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
@@ -82,10 +84,12 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(System.currentTimeMillis());
         deviceProperty.setState("100");
+        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
 
         DefaultDeviceDataManager manager = new DefaultDeviceDataManager(registry, dataService, new BrokerEventBus(), tagRepository);
+        assertNotNull(manager);
         manager.getLastProperty("test1", "test1")
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
@@ -102,6 +106,7 @@ class DefaultDeviceDataManagerTest {
         deviceProperty1.setValue("test");
         deviceProperty1.setTimestamp(System.currentTimeMillis() + 40000000000L);
         deviceProperty1.setState("100");
+        assertNotNull(deviceProperty1);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty1));
         manager.getLastProperty("test1", "test1")
@@ -120,10 +125,12 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
+        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
         DefaultDeviceDataManager.DevicePropertyRef devicePropertyRef = new DefaultDeviceDataManager.DevicePropertyRef(DEVICE_ID, new BrokerEventBus(), dataService);
 
+        assertNotNull(devicePropertyRef);
         devicePropertyRef.getLastProperty(DEVICE_ID, l)
             .map(DeviceDataManager.PropertyValue::getValue)
             .as(StepVerifier::create)
@@ -166,6 +173,7 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
+        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class), Mockito.anyString()))
             .thenReturn(Flux.just(deviceProperty));
 
@@ -197,9 +205,10 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
+        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
-
+        assertNotNull(manager);
         manager.getLastPropertyTime(DEVICE_ID, l)
             .as(StepVerifier::create)
             .expectNext(l)
@@ -215,6 +224,7 @@ class DefaultDeviceDataManagerTest {
         deviceProperty1.setValue("test1");
         deviceProperty1.setTimestamp(l1);
         deviceProperty1.setState("1001");
+        assertNotNull(deviceProperty1);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty1));
         manager.getLastPropertyTime(DEVICE_ID, l - 1L)
@@ -294,6 +304,7 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue("test");
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
+        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
         manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
@@ -324,6 +335,7 @@ class DefaultDeviceDataManagerTest {
         deviceProperty.setValue(DefaultDeviceDataManager.NULL);
         deviceProperty.setTimestamp(l);
         deviceProperty.setState("100");
+        assertNotNull(deviceProperty);
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.just(deviceProperty));
         manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
@@ -350,6 +362,7 @@ class DefaultDeviceDataManagerTest {
         Mockito.when(dataService.queryProperty(Mockito.anyString(), Mockito.any(QueryParamEntity.class)))
             .thenReturn(Flux.empty());
 
+        assertNotNull(manager);
         manager.getFirstProperty(DEVICE_ID, DEVICE_ID)
             .as(StepVerifier::create)
             .expectSubscription()

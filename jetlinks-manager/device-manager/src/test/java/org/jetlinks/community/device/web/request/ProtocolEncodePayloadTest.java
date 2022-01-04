@@ -27,7 +27,7 @@ class ProtocolEncodePayloadTest {
         ProtocolEncodePayload payload = new ProtocolEncodePayload();
         EventMessage eventMessage = new EventMessage();
         eventMessage.setDeviceId("test");
-        String s = JSON.toJSONString(eventMessage);
+//        String s = JSON.toJSONString(eventMessage);
         payload.setPayload("{'event':'{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}'}");
         payload.toDeviceMessage();
 

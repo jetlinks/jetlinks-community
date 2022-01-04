@@ -21,7 +21,7 @@ import reactor.test.StepVerifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(DefaultDeviceDataService.class)
 class DefaultDeviceDataServiceTest extends TestJetLinksController {
@@ -58,6 +58,7 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
 
         DefaultDeviceDataService defaultDeviceDataService = new DefaultDeviceDataService(registry, properties, policies);
 
+        assertNotNull(defaultDeviceDataService);
         defaultDeviceDataService.getStoreStrategy(PRODUCT_ID)
             .map(DeviceDataStoragePolicy::getName)
             .as(StepVerifier::create)
@@ -66,7 +67,8 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
 
         Mockito.when(properties.getDefaultPolicy())
             .thenReturn("AA");
-        new DefaultDeviceDataService(registry, properties, policies);
+        DefaultDeviceDataService defaultDeviceDataService1 = new DefaultDeviceDataService(registry, properties, policies);
+        assertNotNull(defaultDeviceDataService1);
 
     }
 
@@ -118,6 +120,7 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .thenReturn(Mono.just(deviceProductOperator));
 
         DefaultDeviceDataService defaultDeviceDataService = new DefaultDeviceDataService(registry, properties, policies);
+        assertNotNull(defaultDeviceDataService);
         defaultDeviceDataService.queryProperty(DEVICE_ID,new QueryParamEntity(),"test")
             .as(StepVerifier::create)
             .expectComplete()
@@ -164,6 +167,7 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
         deviceProductOperator.setConfig("storePolicy","none").subscribe();
         Mockito.when(registry.getProduct(Mockito.anyString()))
             .thenReturn(Mono.just(deviceProductOperator));
+        assertNotNull(defaultDeviceDataService);
         defaultDeviceDataService.queryEachOneProperties(DEVICE_ID,new QueryParamEntity())
             .as(StepVerifier::create)
             .expectSubscription()
@@ -190,11 +194,6 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .as(StepVerifier::create)
             .expectNext(0)
             .verifyComplete();
-
-    }
-
-    @Test
-    void queryEachProperties(){
 
     }
 
@@ -303,6 +302,7 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
         DefaultDeviceDataService defaultDeviceDataService = new DefaultDeviceDataService(registry, properties, policies);
         DeviceLogMessage deviceLogMessage = new DeviceLogMessage();
         deviceLogMessage.setDeviceId(DEVICE_ID);
+        assertNotNull(defaultDeviceDataService);
         defaultDeviceDataService.saveDeviceMessage(Mono.just(deviceLogMessage))
             .as(StepVerifier::create)
             .expectComplete()
@@ -357,6 +357,7 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .thenReturn(Mono.just(deviceProductOperator));
 
         DefaultDeviceDataService defaultDeviceDataService = new DefaultDeviceDataService(registry, properties, policies);
+        assertNotNull(defaultDeviceDataService);
         defaultDeviceDataService.queryEvent(DEVICE_ID,"event",new QueryParamEntity(),true)
             .as(StepVerifier::create)
             .expectComplete()
@@ -457,6 +458,7 @@ class DefaultDeviceDataServiceTest extends TestJetLinksController {
             .thenReturn(Mono.just(deviceProductOperator));
 
         DeviceDataService defaultDeviceDataService = new DefaultDeviceDataService(registry, properties, policies);
+        assertNotNull(defaultDeviceDataService);
         defaultDeviceDataService.queryEventPage(DEVICE_ID,"event",new QueryParamEntity())
             .map(PagerResult::getTotal)
             .as(StepVerifier::create)

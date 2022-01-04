@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DefaultDeviceConfigMetadataSupplierTest {
     public static final String DEVICE_ID = "test001";
@@ -60,7 +60,7 @@ class DefaultDeviceConfigMetadataSupplierTest {
 
 
       DefaultDeviceConfigMetadataSupplier sevice = new DefaultDeviceConfigMetadataSupplier(instanceService, productService, protocolSupports);
-
+      assertNotNull(sevice);
       sevice.getDeviceConfigMetadata(DEVICE_ID)
           .map(ConfigMetadata::getProperties)
           .map(s->s.get(0))
@@ -206,6 +206,7 @@ class DefaultDeviceConfigMetadataSupplierTest {
 
 
       DefaultDeviceConfigMetadataSupplier sevice = new DefaultDeviceConfigMetadataSupplier(instanceService, productService, protocolSupports);
+      assertNotNull(sevice);
       sevice.getMetadataExpandsConfig(PRODUCT_ID, DeviceMetadataType.property,"test","test")
           .map(ConfigMetadata::getProperties)
           .map(s->s.get(0))

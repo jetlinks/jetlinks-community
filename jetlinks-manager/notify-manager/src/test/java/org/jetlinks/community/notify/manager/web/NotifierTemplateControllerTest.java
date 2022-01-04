@@ -1,10 +1,12 @@
 package org.jetlinks.community.notify.manager.web;
 
+import org.hswebframework.web.crud.service.ReactiveCrudService;
+import org.jetlinks.community.notify.manager.entity.NotifyTemplateEntity;
 import org.jetlinks.community.notify.manager.service.NotifyTemplateService;
 import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.util.ArrayList;
 
 
@@ -14,7 +16,8 @@ class NotifierTemplateControllerTest extends TestJetLinksController {
 
     @Test
     void getService() {
-        new NotifierTemplateController(new NotifyTemplateService(),new ArrayList<>()).getService();
+        ReactiveCrudService<NotifyTemplateEntity, String> service = new NotifierTemplateController(new NotifyTemplateService(), new ArrayList<>()).getService();
+        assertNotNull(service);
     }
 
     @Test

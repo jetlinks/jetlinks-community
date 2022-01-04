@@ -42,7 +42,7 @@ import reactor.test.StepVerifier;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class LocalDeviceInstanceServiceTest {
     public static final String ID_1 = "test001";
@@ -65,17 +65,17 @@ class LocalDeviceInstanceServiceTest {
 
                     @Override
                     public void onNext(Object o) {
-
+                        System.out.println(o);
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        throwable.getMessage();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        onNext(new Object());
                     }
                 });
                 return Mono.just(SaveResult.of(1,0));
@@ -96,6 +96,7 @@ class LocalDeviceInstanceServiceTest {
         deviceInstanceEntity.setName("test");
         deviceInstanceEntity.setState(DeviceState.online);
 
+        assertNotNull(service);
         service.save(Mono.just(deviceInstanceEntity))
             .map(SaveResult::getTotal)
             .as(StepVerifier::create)
@@ -264,10 +265,6 @@ class LocalDeviceInstanceServiceTest {
 
     }
 
-    @Test
-    void testDeploy() {
-
-    }
 
     @Test
     void cancelDeploy() {
@@ -310,6 +307,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
 
         service.cancelDeploy(ID_1)
             .as(StepVerifier::create)
@@ -325,11 +323,6 @@ class LocalDeviceInstanceServiceTest {
             .as(StepVerifier::create)
             .expectNext(1)
             .verifyComplete();
-    }
-
-    @Test
-    void unregisterDevice() {
-
     }
 
     @Test
@@ -399,6 +392,7 @@ class LocalDeviceInstanceServiceTest {
             }
         };
 
+        assertNotNull(service);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
         deviceProductEntity.setId("test");
         deviceProductEntity.setName("test");
@@ -544,6 +538,7 @@ class LocalDeviceInstanceServiceTest {
             }
         };
 
+        assertNotNull(service);
         service.getDeviceDetail(ID_1)
             .map(DeviceDetail::getState)
             .map(s -> s.getValue())
@@ -708,6 +703,7 @@ class LocalDeviceInstanceServiceTest {
             }
         };
 
+        assertNotNull(service);
         List<String> list = new ArrayList<>();
         list.add(ID_1);
         list.add("test002");
@@ -807,6 +803,7 @@ class LocalDeviceInstanceServiceTest {
             }
         };
 
+        assertNotNull(service);
         service.readAndConvertProperty(ID_1, "temperature")
             .map(DevicePropertiesEntity::getNumberValue)
             .as(StepVerifier::create)
@@ -986,6 +983,7 @@ class LocalDeviceInstanceServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
 
         Map<String, Object> map1 = new HashMap<>();
         map1.put("test", "test");

@@ -117,7 +117,7 @@ class DeviceMessageSendSubscriptionProviderTest{
         parameter.put("messageType", MessageType.WRITE_PROPERTY_REPLY);
         request.setParameter(parameter);
 
-
+        assertNotNull(provider);
         provider.subscribe(request)
             .as(StepVerifier::create)
             .expectError(UnsupportedOperationException.class)

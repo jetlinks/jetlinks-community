@@ -5,18 +5,18 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.supports.event.BrokerEventBus;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DeviceStatusMeasurementProviderTest {
 
   @Test
   void incrementOnline() {
-      DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
+      //DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
       TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
       MeterRegistryManager meterRegistryManager = Mockito.mock(MeterRegistryManager.class);
       LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
@@ -34,6 +34,7 @@ class DeviceStatusMeasurementProviderTest {
 
       EventMessage eventMessage = new EventMessage();
       eventMessage.addHeader("productId","productId");
+      assertNotNull(provider);
       provider.incrementOnline(eventMessage)
           .as(StepVerifier::create)
           .expectSubscription()
@@ -45,8 +46,4 @@ class DeviceStatusMeasurementProviderTest {
           .verifyComplete();
   }
 
-  @Test
-  void incrementOffline() {
-
-  }
 }

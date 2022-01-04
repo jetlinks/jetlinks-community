@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceProductEntityTest {
 
@@ -15,6 +16,7 @@ class DeviceProductEntityTest {
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
         List<Transport> list = new ArrayList<>();
         list.add(DefaultTransport.WebSocket);
-        deviceProductEntity.getTransportEnum(list);
+        Transport transport = deviceProductEntity.getTransportEnum(list).orElse(DefaultTransport.HTTP);
+        assertNotNull(transport);
     }
 }

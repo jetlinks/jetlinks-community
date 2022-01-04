@@ -125,5 +125,6 @@ class DevicePropertiesEntityTest {
         entity.withValue(new GeoType(),GeoPoint.of(1,1));
         entity.withValue(new StringType(),"test");
 
+        assertNotNull(entity.getGeoValue());
     }
 }

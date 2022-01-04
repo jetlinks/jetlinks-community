@@ -60,6 +60,7 @@ class ProtocolDecodePayloadTest {
                 return Mono.just(new TestDeviceMessageCodec());
             }
         };
+        assertNotNull(supplier);
         support.addMessageCodecSupport(DefaultTransport.MQTT,supplier);
 
         Subscriber<? super Message> subscriber = new Subscriber<Message>() {
@@ -70,19 +71,20 @@ class ProtocolDecodePayloadTest {
 
             @Override
             public void onNext(Message message) {
-
+                System.out.println(message);
             }
 
             @Override
             public void onError(Throwable throwable) {
-
+                throwable.getMessage();
             }
 
             @Override
             public void onComplete() {
-
+                Mono.just(1);
             }
         };
+        assertNotNull(subscriber);
         protocolDecodePayload.doDecode(support,null)
             .subscribe(subscriber);
     }

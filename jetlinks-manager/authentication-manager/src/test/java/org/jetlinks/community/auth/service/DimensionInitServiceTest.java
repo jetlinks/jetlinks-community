@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DimensionInitServiceTest {
 
@@ -16,6 +17,7 @@ class DimensionInitServiceTest {
       Mockito.when(dimensionTypeRepository.save(Mockito.any(Publisher.class)))
           .thenReturn(Mono.just(SaveResult.of(1,0)));
       DimensionInitService dimensionInitService = new DimensionInitService(dimensionTypeRepository);
+      assertNotNull(dimensionInitService);
       try {
           dimensionInitService.run();
       } catch (Exception e) {

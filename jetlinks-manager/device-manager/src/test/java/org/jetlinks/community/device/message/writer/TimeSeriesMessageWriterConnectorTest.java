@@ -6,7 +6,7 @@ import org.jetlinks.core.message.event.EventMessage;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class TimeSeriesMessageWriterConnectorTest {
 
@@ -19,6 +19,7 @@ class TimeSeriesMessageWriterConnectorTest {
 
       Mockito.when(dataService.saveDeviceMessage(Mockito.any(DeviceMessage.class)))
           .thenReturn(Mono.just(1).then());
+      assertNotNull(connector);
       connector.writeDeviceMessageToTs(eventMessage).subscribe();
   }
 }

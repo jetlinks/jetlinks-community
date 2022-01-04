@@ -1,5 +1,6 @@
 package org.jetlinks.community.auth.web;
 
+import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.jetlinks.community.auth.entity.MenuButtonInfo;
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.MenuView;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,7 +36,9 @@ class MenuControllerTest extends TestJetLinksController {
 
     @Test
     void getService() {
-        new MenuController(defaultMenuService, Mockito.mock(AuthorizationSettingDetailService.class)).getService();
+        ReactiveCrudService<MenuEntity, String> service =
+            new MenuController(defaultMenuService, Mockito.mock(AuthorizationSettingDetailService.class)).getService();
+        assertNotNull(service);
     }
 
 
@@ -123,14 +127,18 @@ class MenuControllerTest extends TestJetLinksController {
         parent.setButtons(buttons1);
         //设置父菜单
         menuEntity.setParentId("parent");
+        assertNotNull(defaultMenuService);
         defaultMenuService.save(parent).subscribe();
         defaultMenuService.save(menuEntity).subscribe();
 
-        client.get()
-            .uri(BASE_URL+"/user-own/list")
+        Flux<MenuView> responseBody = client.get()
+            .uri(BASE_URL + "/user-own/list")
             .exchange()
             .expectStatus()
-            .is2xxSuccessful();
+            .is2xxSuccessful()
+            .returnResult(MenuView.class)
+            .getResponseBody();
+        assertNotNull(responseBody);
     }
 
     @Test
@@ -148,6 +156,7 @@ class MenuControllerTest extends TestJetLinksController {
         permissionInfo.setPermission("test");
         permissions.add(permissionInfo);
         menuEntity.setPermissions(permissions);
+        assertNotNull(defaultMenuService);
         defaultMenuService.save(menuEntity).subscribe();
         MenuGrantRequest menuGrantRequest = new MenuGrantRequest();
         menuGrantRequest.setTargetId("test");
@@ -164,6 +173,7 @@ class MenuControllerTest extends TestJetLinksController {
             .exchange()
             .expectStatus()
             .is2xxSuccessful();
+
     }
 
     @Test
