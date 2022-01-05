@@ -4,6 +4,7 @@ import org.jetlinks.community.rule.engine.service.DeviceAlarmHistoryService;
 import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(DeviceAlarmHistoryController.class)
 class DeviceAlarmHistoryControllerTest extends TestJetLinksController {
@@ -16,6 +17,7 @@ class DeviceAlarmHistoryControllerTest extends TestJetLinksController {
 
     @Test
     void changeState() {
+        assertNotNull(client);
         client.put()
             .uri(BASE_URL+"/"+ID+"/_newer")
             .bodyValue("test")

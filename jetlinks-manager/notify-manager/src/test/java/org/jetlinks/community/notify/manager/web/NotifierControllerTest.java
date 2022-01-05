@@ -60,7 +60,7 @@ class NotifierControllerTest extends TestJetLinksController {
         assertNotNull(configService);
         configService.save(notifyConfigEntity).subscribe();
 
-
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/nid/_send")
             .contentType(MediaType.APPLICATION_JSON)

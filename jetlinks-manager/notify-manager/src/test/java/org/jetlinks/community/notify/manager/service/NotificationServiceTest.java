@@ -96,6 +96,7 @@ class NotificationServiceTest {
         NotificationService service = new NotificationService();
         Notification notification = new Notification();
         notification.setId("test");
+        assertNotNull(service);
         service.subscribeNotifications(notification).subscribe();
     }
 
@@ -136,6 +137,7 @@ class NotificationServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         QueryParamEntity queryParamEntity = new QueryParamEntity();
         service.findAndMarkRead(queryParamEntity)
             .map(NotificationEntity::getTopicName)

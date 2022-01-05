@@ -42,6 +42,7 @@ class DeviceAlarmTaskExecutorProviderTest {
         ExecutionContext context = Mockito.mock(ExecutionContext.class);
 
         DeviceAlarmTaskExecutorProvider provider = new DeviceAlarmTaskExecutorProvider(new BrokerEventBus(), Schedulers.parallel());
+        assertNotNull(provider);
         ScheduleJob scheduleJob = new ScheduleJob();
         Map<String, Object> map = new HashMap<>();
         DeviceAlarmRule rule = new DeviceAlarmRule();
@@ -82,7 +83,8 @@ class DeviceAlarmTaskExecutorProviderTest {
         scheduleJob.setConfiguration(map);
         Mockito.when(context.getJob())
             .thenReturn(scheduleJob);
-        provider.createTask(context);
+        Mono<TaskExecutor> task = provider.createTask(context);
+        assertNotNull(task.block());
     }
 
     /*  DeviceAlarmTaskExecutor   */
@@ -91,6 +93,7 @@ class DeviceAlarmTaskExecutorProviderTest {
         ExecutionContext context = Mockito.mock(ExecutionContext.class);
         EventBus eventBus = Mockito.mock(EventBus.class);
         DeviceAlarmTaskExecutorProvider provider = new DeviceAlarmTaskExecutorProvider(eventBus, Schedulers.parallel());
+        assertNotNull(provider);
         ScheduleJob scheduleJob = new ScheduleJob();
         Map<String, Object> configuration = new HashMap<>();
         DeviceAlarmRule rule = new DeviceAlarmRule();
@@ -156,7 +159,7 @@ class DeviceAlarmTaskExecutorProviderTest {
         Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class), Mockito.any(Class.class)))
             .thenReturn(Flux.just(message));
 
-        Mockito.when(eventBus.publish(Mockito.anyString(),Mockito.any(Map.class)))
+        Mockito.when(eventBus.publish(Mockito.anyString(), Mockito.any(Map.class)))
             .thenReturn(Mono.just(1L));
 
         RuleData data = new RuleData();
@@ -178,12 +181,12 @@ class DeviceAlarmTaskExecutorProviderTest {
         taskExecutor.start();
         taskExecutor.reload();
         taskExecutor.validate();
-        Mockito.when(context.fireEvent(Mockito.anyString(),Mockito.any(RuleData.class)))
+        Mockito.when(context.fireEvent(Mockito.anyString(), Mockito.any(RuleData.class)))
             .thenReturn(Mono.error(new IllegalArgumentException()));
-        Mockito.when(context.onError(Mockito.any(Throwable.class),Mockito.any(RuleData.class)))
+        Mockito.when(context.onError(Mockito.any(Throwable.class), Mockito.any(RuleData.class)))
             .thenReturn(Mono.just(1));
-        Executable exec = ()->taskExecutor.reload();
-        assertThrows(Exception.class,exec);
+        Executable exec = () -> taskExecutor.reload();
+        assertThrows(Exception.class, exec);
 
 //        List<DeviceAlarmRule.Property> properties = new ArrayList<>();
         DeviceAlarmRule.Property property = new DeviceAlarmRule.Property();
@@ -191,14 +194,14 @@ class DeviceAlarmTaskExecutorProviderTest {
         property.setAlias("[aa]");
         properties.add(property);
         rule.setProperties(properties);
-        Executable executable = ()->taskExecutor.validate();
-        assertThrows(IllegalArgumentException.class,executable);
-        configuration.put("rule",null);
+        Executable executable = () -> taskExecutor.validate();
+        assertThrows(IllegalArgumentException.class, executable);
+        configuration.put("rule", null);
         scheduleJob.setConfiguration(configuration);
         Mockito.when(context.getJob())
             .thenReturn(scheduleJob);
-        Executable executable1 = ()->taskExecutor.validate();
-        assertThrows(IllegalArgumentException.class,executable1);
+        Executable executable1 = () -> taskExecutor.validate();
+        assertThrows(IllegalArgumentException.class, executable1);
 
 
     }
@@ -208,6 +211,7 @@ class DeviceAlarmTaskExecutorProviderTest {
         ExecutionContext context = Mockito.mock(ExecutionContext.class);
         EventBus eventBus = Mockito.mock(EventBus.class);
         DeviceAlarmTaskExecutorProvider provider = new DeviceAlarmTaskExecutorProvider(eventBus, Schedulers.parallel());
+        assertNotNull(provider);
         ScheduleJob scheduleJob = new ScheduleJob();
 
         Map<String, Object> configuration = new HashMap<>();
@@ -249,7 +253,7 @@ class DeviceAlarmTaskExecutorProviderTest {
             .thenReturn(scheduleJob);
 
         DeviceAlarmTaskExecutorProvider.DeviceAlarmTaskExecutor taskExecutor = (DeviceAlarmTaskExecutorProvider.DeviceAlarmTaskExecutor) provider.createTask(context).block();
-
+        assertNotNull(taskExecutor);
         Input input = Mockito.mock(Input.class);
         Mockito.when(context.getInput())
             .thenReturn(input);
@@ -263,10 +267,10 @@ class DeviceAlarmTaskExecutorProviderTest {
             .thenReturn(Flux.just(ruleData));
 
         ReadPropertyMessage message = new ReadPropertyMessage();
-        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class),Mockito.any(Class.class)))
+        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class), Mockito.any(Class.class)))
             .thenReturn(Flux.just(message));
 
-        Mockito.when(eventBus.publish(Mockito.anyString(),Mockito.any(Map.class)))
+        Mockito.when(eventBus.publish(Mockito.anyString(), Mockito.any(Map.class)))
             .thenReturn(Mono.just(1L));
         taskExecutor.doSubscribe(eventBus)
             .map(s -> s.get("productId"))
@@ -274,7 +278,7 @@ class DeviceAlarmTaskExecutorProviderTest {
             .expectNext("ProductId")
             .verifyComplete();
 
-         rule.setProductName("ProductName");
+        rule.setProductName("ProductName");
         rule.setDeviceName("deviceName");
         configuration.put("rule", rule);
         scheduleJob.setConfiguration(configuration);

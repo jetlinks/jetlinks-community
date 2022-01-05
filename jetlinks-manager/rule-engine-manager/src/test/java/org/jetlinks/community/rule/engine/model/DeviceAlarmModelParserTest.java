@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
+import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
@@ -12,14 +13,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DeviceAlarmModelParserTest {
 
-    @Test
-    void getFormat() {
-
-    }
 
     @Test
     void parse() {
@@ -57,7 +55,8 @@ class DeviceAlarmModelParserTest {
         alarmRule.setActions(actions);
 
         String s1 = JSON.toJSONString(entity);
-        parser.parse(s1);
+        RuleModel parse = parser.parse(s1);
+        assertNotNull(parse);
 
     }
 }

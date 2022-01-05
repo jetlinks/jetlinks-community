@@ -10,6 +10,7 @@ import org.hswebframework.ezorm.rdb.metadata.RDBSchemaMetadata;
 import org.hswebframework.ezorm.rdb.metadata.RDBTableMetadata;
 import org.hswebframework.ezorm.rdb.metadata.TableOrViewMetadata;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.PrepareSqlFragments;
+import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.TermFragmentBuilder;
 import org.hswebframework.ezorm.rdb.operator.dml.query.NativeSelectColumn;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DeviceAlarmTermBuilderTest {
@@ -78,6 +80,7 @@ class DeviceAlarmTermBuilderTest {
         TableOrViewMetadata tableOrViewMetadata = Mockito.mock(TableOrViewMetadata.class);
         Term term = new Term();
         term.setValue(NativeSelectColumn.of("select * from table"));
-        DeviceAlarmTermBuilder.builder.createTermFragments(tableOrViewMetadata,term);
+        SqlFragments termFragments = DeviceAlarmTermBuilder.builder.createTermFragments(tableOrViewMetadata, term);
+        assertNotNull(termFragments);
     }
 }

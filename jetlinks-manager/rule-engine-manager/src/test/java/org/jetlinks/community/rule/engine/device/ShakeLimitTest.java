@@ -38,6 +38,7 @@ class ShakeLimitTest {
         shakeLimit.setThreshold(0);
         Map<String, Object> map = new HashMap<>();
         map.put("test","test");
+        assertNotNull(shakeLimit);
         shakeLimit.transfer(Flux.just(map),(duration, flux)->flux.window(duration, Schedulers.parallel()),(alarm, total) -> alarm.put("totalAlarms", total))
             .map(s->s.get("test"))
             .as(StepVerifier::create)

@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @WebFluxTest(NotifierController.class)
@@ -43,13 +44,14 @@ class NotificationControllerTest extends TestJetLinksController {
         entity.setState(SubscribeState.enabled);
         entity.setId(ID);
         entity.setTopicConfig(new HashMap<>());
+        assertNotNull(subscriberService);
         subscriberService.save(entity).subscribe();
     }
 
     @Test
     @Order(1)
     void querySubscription() {
-
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/subscriptions/_query")
             .exchange()
@@ -60,6 +62,7 @@ class NotificationControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void changeSubscribeState() {
+        assertNotNull(client);
         client.put()
             .uri(BASE_URL+"/subscription/"+ID+"/_enabled")
             .exchange()
@@ -70,6 +73,7 @@ class NotificationControllerTest extends TestJetLinksController {
     @Test
     @Order(2)
     void deleteSubscription() {
+        assertNotNull(client);
         client.delete()
             .uri(BASE_URL+"/subscription/"+ID)
             .exchange()
@@ -86,6 +90,7 @@ class NotificationControllerTest extends TestJetLinksController {
         entity.setSubscribeName("test");
         entity.setId(ID);
         entity.setTopicConfig(new HashMap<>());
+        assertNotNull(client);
         client.patch()
             .uri(BASE_URL+"/subscribe")
             .contentType(MediaType.APPLICATION_JSON)
@@ -97,6 +102,7 @@ class NotificationControllerTest extends TestJetLinksController {
 
     @Test
     void getProviders() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/providers")
             .exchange()
@@ -119,6 +125,7 @@ class NotificationControllerTest extends TestJetLinksController {
         entity.setMessage("test");
         entity.setNotifyTime(100L);
         entity.setSubscriberType("user");
+        assertNotNull(notificationService);
         notificationService.save(entity).subscribe();
     }
 
@@ -126,6 +133,7 @@ class NotificationControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void queryMyNotifications() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/_query")
             .exchange()
@@ -136,6 +144,7 @@ class NotificationControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void readNotification() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/"+ID+"/read")
             .exchange()
@@ -147,6 +156,7 @@ class NotificationControllerTest extends TestJetLinksController {
     void testReadNotification() {
         List<String> list = new ArrayList<>();
         list.add(ID);
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/_read")
             .contentType(MediaType.APPLICATION_JSON)

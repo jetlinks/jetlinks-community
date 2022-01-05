@@ -268,6 +268,4 @@ class NotifySubscriberServiceTest {
             .thenReturn(Mono.error(()->new NotFoundException()));
         service.run();
     }
-
-
 }

@@ -35,6 +35,7 @@ class DeviceAlarmProviderTest {
             .thenReturn(Flux.just(TopicPayload.of("topic",Payload.of(
                 "{\"alarmId\":\"test\",\"alarmName\":\"test\",\"deviceName\":\"test\"}"
             ))));
+        assertNotNull(provider);
         provider.createSubscriber("test",new TestAuthentication("test"),new HashMap<>())
             .map(Subscriber::subscribe)
             .map(Flux::blockFirst)

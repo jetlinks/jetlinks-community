@@ -13,6 +13,7 @@ import reactor.test.StepVerifier;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceAlarmHistoryServiceTest {
 
@@ -48,6 +49,7 @@ class DeviceAlarmHistoryServiceTest {
         };
 //        Mockito.when(repository.insertBatch(Mockito.any(Publisher.class)))
 //            .thenReturn(Mono.just(1));
+        assertNotNull(service);
         Map<String, Object> map = new HashMap<>();
         map.put("productId","test");
         map.put("timestamp", System.currentTimeMillis());
@@ -68,6 +70,7 @@ class DeviceAlarmHistoryServiceTest {
         map.put("productId","test");
         map.put("timestamp", System.currentTimeMillis());
 
+        assertNotNull(service);
         service.saveAlarm(map)
             .as(StepVerifier::create)
             .expectSubscription()

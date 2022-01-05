@@ -28,8 +28,4 @@ class SqlRuleTypeTest {
         assertThrows(IllegalArgumentException.class,executable2);
     }
 
-    @Test
-    void validate() {
-
-    }
 }

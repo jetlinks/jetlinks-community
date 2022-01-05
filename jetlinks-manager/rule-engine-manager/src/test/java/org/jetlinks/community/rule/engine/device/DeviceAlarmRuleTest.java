@@ -7,6 +7,7 @@ import org.junit.jupiter.api.function.Executable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,15 +34,17 @@ class DeviceAlarmRuleTest {
     void toColumns(){
         DeviceAlarmRule.Trigger trigger = new DeviceAlarmRule.Trigger();
         trigger.setFilters(new ArrayList());
-        trigger.toColumns();
+        Set<String> strings1 = trigger.toColumns();
+        assertNotNull(strings1);
         trigger.setModelId("test");
         trigger.setType(DeviceAlarmRule.MessageType.online);
-        List<DeviceAlarmRule.ConditionFilter> filters = new ArrayList();
+        List<DeviceAlarmRule.ConditionFilter> filters = new ArrayList<>();
         DeviceAlarmRule.ConditionFilter filter = new DeviceAlarmRule.ConditionFilter();
         filter.setKey("test");
         filters.add(filter);
         trigger.setFilters(filters);
-        trigger.toColumns();
+        Set<String> strings = trigger.toColumns();
+        assertNotNull(strings);
 
 
     }
@@ -49,26 +52,30 @@ class DeviceAlarmRuleTest {
     void toFilterBinds(){
         DeviceAlarmRule.Trigger trigger = new DeviceAlarmRule.Trigger();
         trigger.toFilterBinds();
-        List<DeviceAlarmRule.ConditionFilter> filters = new ArrayList();
+        List<DeviceAlarmRule.ConditionFilter> filters = new ArrayList<>();
         DeviceAlarmRule.ConditionFilter filter = new DeviceAlarmRule.ConditionFilter();
         filter.setKey("test");
         filters.add(filter);
         trigger.setFilters(filters);
-        trigger.toFilterBinds();
+        List<Object> objects = trigger.toFilterBinds();
+        assertNotNull(objects);
     }
     @Test
     void createExpression(){
         DeviceAlarmRule.Trigger trigger = new DeviceAlarmRule.Trigger();
         trigger.setFilters(new ArrayList<>());
-        trigger.createExpression();
+        String s1 = trigger.createExpression().orElse("a");
+        assertNotNull(s1);
 
         trigger.setType(DeviceAlarmRule.MessageType.online);
-        List<DeviceAlarmRule.ConditionFilter> filters = new ArrayList();
+        List<DeviceAlarmRule.ConditionFilter> filters = new ArrayList<>();
         DeviceAlarmRule.ConditionFilter filter = new DeviceAlarmRule.ConditionFilter();
         filter.setKey("(test");
         filters.add(filter);
         trigger.setFilters(filters);
-        trigger.createExpression();
+        String s = trigger.createExpression().orElse("a");
+        assertNotNull(s);
+
     }
     @Test
     void validateTrigger(){

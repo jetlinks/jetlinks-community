@@ -5,6 +5,7 @@ import org.jetlinks.community.visualization.entity.DataVisualizationEntity;
 import org.jetlinks.community.visualization.service.DataVisualizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(DataVisualizationController.class)
 class DataVisualizationControllerTest extends TestJetLinksController {
@@ -13,12 +14,13 @@ class DataVisualizationControllerTest extends TestJetLinksController {
 
     @Test
     void getService() {
-        new DataVisualizationController(new DataVisualizationService()).getService();
+        DataVisualizationService service = new DataVisualizationController(new DataVisualizationService()).getService();
+        assertNotNull(service);
     }
 
     @Test
     void getByTypeAndTarget() {
-
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/type/target")
             .exchange()

@@ -29,7 +29,6 @@ class DeviceExcelInfoTest {
 
         excelInfo.toMap();
         assertNotNull(excelInfo.getId());
-        assertNotNull(excelInfo.getName());
     }
 
     @Test

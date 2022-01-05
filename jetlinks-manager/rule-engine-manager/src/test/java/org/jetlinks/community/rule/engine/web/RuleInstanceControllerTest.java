@@ -1,6 +1,7 @@
 package org.jetlinks.community.rule.engine.web;
 
 import com.alibaba.fastjson.JSON;
+import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.jetlinks.community.rule.engine.entity.RuleInstanceEntity;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
 import org.jetlinks.community.rule.engine.enums.SqlRuleType;
@@ -16,7 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 
 import java.util.ArrayList;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @WebFluxTest(RuleInstanceController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -28,6 +30,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(0)
     void save(){
+        assertNotNull(instanceService);
         RuleInstanceEntity entity = new RuleInstanceEntity();
         entity.setId(InstanceID);
         entity.setModelType("sql_rule");
@@ -58,6 +61,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getTasks() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/"+InstanceID+"/tasks")
             .exchange()
@@ -68,6 +72,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getRuleNodeList() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/"+InstanceID+"/nodes")
             .exchange()
@@ -78,7 +83,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void start() {
-
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+InstanceID+"/_start")
             .exchange()
@@ -90,6 +95,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(2)
     void stop() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+InstanceID+"/_stop")
             .exchange()
@@ -100,6 +106,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void queryLog() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/"+InstanceID+"/logs")
             .exchange()
@@ -110,6 +117,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void queryEvents() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/"+InstanceID+"/events")
             .exchange()
@@ -128,6 +136,7 @@ class RuleInstanceControllerTest extends TestJetLinksController {
 //        entity.setModelMeta("test");
 //        RuleModel model = entity.toRule(modelParser);
 //        ruleEngine.startRule(entity.getId(),model).subscribe();
+        assertNotNull(client);
         RuleData ruleData = new RuleData();
         ruleData.setId("test");
         client.post()
@@ -142,6 +151,8 @@ class RuleInstanceControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getService() {
-        new RuleInstanceController().getService();
+        ReactiveCrudService<RuleInstanceEntity, String> service =
+            new RuleInstanceController().getService();
+        assertNull(service);
     }
 }

@@ -25,6 +25,7 @@ class NotifierConfigControllerTest extends TestJetLinksController {
 
     @Test
     void getAllTypes() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/sms/test/metadata")
             .exchange()
@@ -34,6 +35,7 @@ class NotifierConfigControllerTest extends TestJetLinksController {
 
     @Test
     void testGetAllTypes() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/types")
             .exchange()
@@ -43,6 +45,7 @@ class NotifierConfigControllerTest extends TestJetLinksController {
 
     @Test
     void getTypeProviders() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/type/sms/providers")
             .exchange()

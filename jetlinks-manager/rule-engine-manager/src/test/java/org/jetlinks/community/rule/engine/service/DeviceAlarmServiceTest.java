@@ -17,6 +17,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceAlarmServiceTest {
     private static final String ID = "test";
@@ -59,6 +60,7 @@ class DeviceAlarmServiceTest {
             }
         };
 
+        assertNotNull(service);
         Mockito.when(instanceService.save(Mockito.any(Publisher.class)))
             .thenReturn(Mono.just(SaveResult.of(1,0)));
 
@@ -88,6 +90,7 @@ class DeviceAlarmServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
 
         DeviceAlarmEntity alarmEntity = new DeviceAlarmEntity();
         alarmEntity.setId(ID);
@@ -125,6 +128,7 @@ class DeviceAlarmServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         Mockito.when(instanceService.stop(Mockito.anyString()))
             .thenReturn(Mono.just(1).then());
         ReactiveUpdate<DeviceAlarmEntity> update = Mockito.mock(ReactiveUpdate.class);
@@ -153,6 +157,7 @@ class DeviceAlarmServiceTest {
             }
         };
 
+        assertNotNull(service);
         Mockito.when(instanceService.stop(Mockito.anyString()))
             .thenReturn(Mono.just(1).then());
         Mockito.when(instanceService.deleteById(Mockito.any(Publisher.class)))

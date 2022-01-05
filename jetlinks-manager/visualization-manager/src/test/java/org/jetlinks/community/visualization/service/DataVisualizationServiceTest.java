@@ -13,6 +13,7 @@ import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DataVisualizationServiceTest {
 
@@ -53,6 +54,7 @@ class DataVisualizationServiceTest {
                 return repository;
             }
         };
+        assertNotNull(service);
         DataVisualizationEntity entity = new DataVisualizationEntity();
         entity.setId("test");
         entity.setType("test");

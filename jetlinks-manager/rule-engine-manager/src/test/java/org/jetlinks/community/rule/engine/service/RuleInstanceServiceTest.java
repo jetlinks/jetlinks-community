@@ -29,6 +29,7 @@ import reactor.test.StepVerifier;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class RuleInstanceServiceTest {
     private static final String ID = "test";
@@ -87,7 +88,7 @@ class RuleInstanceServiceTest {
     @Test
     void queryExecuteEvent() {
         RuleInstanceService service = getService();
-
+        assertNotNull(service);
         Mockito.when(elasticSearchService.queryPager(Mockito.any(ElasticIndex.class),Mockito.any(QueryParam.class),Mockito.any(Class.class)))
             .thenReturn(Mono.just(PagerResult.of(1,new ArrayList<>())));
 
@@ -102,7 +103,7 @@ class RuleInstanceServiceTest {
     @Test
     void queryExecuteLog() {
         RuleInstanceService service = getService();
-
+        assertNotNull(service);
         Mockito.when(elasticSearchService.queryPager(Mockito.any(ElasticIndex.class),Mockito.any(QueryParam.class),Mockito.any(Class.class)))
             .thenReturn(Mono.just(PagerResult.of(1,new ArrayList<>())));
 
@@ -117,6 +118,7 @@ class RuleInstanceServiceTest {
     void stop() {
         ReactiveUpdate<RuleInstanceEntity> update = Mockito.mock(ReactiveUpdate.class);
         RuleInstanceService service = getService();
+        assertNotNull(service);
         Mockito.when(ruleEngine.shutdown(Mockito.anyString()))
             .thenReturn(Mono.just(1).then());
         Mockito.when(repository.createUpdate())
@@ -136,6 +138,7 @@ class RuleInstanceServiceTest {
     @Test
     void start() {
         RuleInstanceService service = getService();
+        assertNotNull(service);
         RuleInstanceEntity entity = new RuleInstanceEntity();
         entity.setId(ID);
         entity.setModelId("modelId");
@@ -245,6 +248,7 @@ class RuleInstanceServiceTest {
             }
         }
 
+        assertNotNull(service);
         Mockito.when(ruleEngine.shutdown(Mockito.anyString()))
             .thenReturn(Mono.just(1).then());
         Mockito.when(update.set(Mockito.any(StaticMethodReferenceColumn.class),Mockito.any(Object.class)))
@@ -263,6 +267,7 @@ class RuleInstanceServiceTest {
     @Test
     void run(){
         RuleInstanceService service = getService();
+        assertNotNull(service);
         ReactiveQuery<RuleInstanceEntity> update = Mockito.mock(ReactiveQuery.class);
         Mockito.when(repository.createQuery())
             .thenReturn(update);

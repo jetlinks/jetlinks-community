@@ -12,7 +12,7 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 
 import java.util.Date;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(DeviceAlarmController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -30,6 +30,7 @@ class DeviceAlarmControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void getAlarms() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/"+Target+"/"+TargetId)
             .exchange()
@@ -40,6 +41,7 @@ class DeviceAlarmControllerTest extends TestJetLinksController {
     @Test
 
     void saveAlarm() {
+        assertNotNull(client);
         DeviceAlarmEntity entity = new DeviceAlarmEntity();
         entity.setId(ID);
         entity.setCreateTime(new Date());
@@ -56,6 +58,7 @@ class DeviceAlarmControllerTest extends TestJetLinksController {
     @Test
     @Order(1)
     void startAlarm() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+ID+"/_start")
             .exchange()
@@ -66,6 +69,7 @@ class DeviceAlarmControllerTest extends TestJetLinksController {
     @Test
     @Order(2)
     void stopAlarm() {
+        assertNotNull(client);
         client.post()
             .uri(BASE_URL+"/"+ID+"/_stop")
             .exchange()
@@ -76,6 +80,7 @@ class DeviceAlarmControllerTest extends TestJetLinksController {
     @Test
     @Order(3)
     void deleteAlarm() {
+        assertNotNull(client);
         client.delete()
             .uri(BASE_URL+"/"+ID)
             .exchange()

@@ -12,7 +12,4 @@ class RuleInstanceStateTest {
          assertNotNull(RuleInstanceState.disable.getText());
     }
 
-    @Test
-    void getText() {
-    }
 }

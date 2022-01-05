@@ -3,11 +3,13 @@ package org.jetlinks.community.rule.engine.model;
 import com.alibaba.fastjson.JSON;
 import org.jetlinks.community.rule.engine.enums.SqlRuleType;
 import org.jetlinks.community.rule.engine.ql.SqlRule;
+import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class SqlRuleModelParserTest {
 
@@ -38,6 +40,7 @@ class SqlRuleModelParserTest {
         sqlRule.setActions(actions);
         String s = JSON.toJSONString(sqlRule);
 
-        parser.parse(s);
+        RuleModel parse = parser.parse(s);
+        assertNotNull(parse);
     }
 }

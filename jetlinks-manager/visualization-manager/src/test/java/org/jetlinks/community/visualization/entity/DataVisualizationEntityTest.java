@@ -29,7 +29,4 @@ class DataVisualizationEntityTest {
         DataVisualizationEntity.newEmpty("type","target");
     }
 
-    @Test
-    void newEmpty() {
-    }
 }

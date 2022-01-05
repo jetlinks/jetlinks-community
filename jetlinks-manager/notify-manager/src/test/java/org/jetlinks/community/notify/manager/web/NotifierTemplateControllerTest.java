@@ -22,6 +22,7 @@ class NotifierTemplateControllerTest extends TestJetLinksController {
 
     @Test
     void getAllTypes() {
+        assertNotNull(client);
         client.get()
             .uri(BASE_URL+"/weixin/corpMessage/config/metadata")
             .exchange()

@@ -12,6 +12,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 
 import java.io.File;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @WebFluxTest(CertificateController.class)
@@ -22,7 +23,7 @@ class CertificateControllerTest extends TestJetLinksController {
     @Test
     void getService() {
         CertificateService service = new CertificateController().getService();
-        assertNotNull(service);
+        assertNull(service);
     }
 
     @Test

@@ -21,6 +21,7 @@ import reactor.test.StepVerifier;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class RuleModelServiceTest {
     private static final String ID = "test";
@@ -66,6 +67,7 @@ class RuleModelServiceTest {
     @Test
     void deploy() {
         RuleModelService service = getService();
+        assertNotNull(service);
         RuleModelEntity modelEntity = new RuleModelEntity();
         modelEntity.setId(ID);
         modelEntity.setModelType("test");
@@ -91,6 +93,7 @@ class RuleModelServiceTest {
     @Test
     void updateById() {
         RuleModelService service = getService();
+        assertNotNull(service);
         ReactiveUpdate<RuleModelEntity> update = Mockito.mock(ReactiveUpdate.class);
 
         Mockito.when(repository.createUpdate()).thenReturn(update);
@@ -113,6 +116,7 @@ class RuleModelServiceTest {
     @Test
     void save() {
         RuleModelService service = getService();
+        assertNotNull(service);
         ReactiveUpdate<RuleModelEntity> update = Mockito.mock(ReactiveUpdate.class);
 
         Mockito.when(repository.createUpdate()).thenReturn(update);
@@ -188,6 +192,7 @@ class RuleModelServiceTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        assertNotNull(service);
 
         RuleModelEntity entity = new RuleModelEntity();
         entity.setVersion(null);
@@ -231,6 +236,7 @@ class RuleModelServiceTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        assertNotNull(service);
         service.insert(Mono.just(entity))
             .as(StepVerifier::create)
             .expectError()
