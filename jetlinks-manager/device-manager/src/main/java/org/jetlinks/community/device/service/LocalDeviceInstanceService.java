@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveUpdate;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.ezorm.rdb.operator.dml.Terms;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
@@ -476,5 +477,36 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
         instance.setParentId(parentId);
         return checker.check(instance);
     }
+
+    public Mono<Void> mergeConfiguration(String deviceId,
+                                         Map<String, Object> configuration,
+                                         Function<ReactiveUpdate<DeviceInstanceEntity>,
+                                             ReactiveUpdate<DeviceInstanceEntity>> updateOperation) {
+        if (MapUtils.isEmpty(configuration)) {
+            return Mono.empty();
+        }
+        return this
+            .findById(deviceId)
+            .flatMap(device -> {
+                //合并更新配置
+                device.mergeConfiguration(configuration);
+                return createUpdate()
+                    .set(device::getConfiguration)
+                    .set(device::getFeatures)
+                    .set(device::getDeriveMetadata)
+                    .as(updateOperation)
+                    .where(device::getId)
+                    .execute();
+            })
+            .then(
+                //更新缓存里到信息
+                registry
+                    .getDevice(deviceId)
+                    .flatMap(device -> device.setConfigs(configuration))
+            )
+            .then();
+
+    }
+
 
 }

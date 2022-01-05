@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.community.device.enums.DeviceFeature;
@@ -49,6 +50,14 @@ public class DeviceMessageBusinessHandler {
 
     private final EventBus eventBus;
 
+    /**
+     * 自动注册设备信息
+     * <p>
+     * 设备消息的header需要包含{@code deviceName},{@code productId}才会自动注册.、
+     *
+     * @param message 注册消息
+     * @return 注册后的设备操作接口
+     */
     private Mono<DeviceOperator> doAutoRegister(DeviceRegisterMessage message) {
         //自动注册
         return Mono
@@ -75,15 +84,18 @@ public class DeviceMessageBusinessHandler {
                 instance.setCreateTimeNow();
                 instance.setCreatorId(tps.getT4().getCreatorId());
                 instance.setOrgId(tps.getT4().getOrgId());
+
+                //设备自状态管理
+                //网关注册设备子设备时,设置自状态管理。
+                //在检查子设备状态时,将会发送ChildDeviceMessage<DeviceStateCheckMessage>到网关
+                //网关需要回复ChildDeviceMessageReply<DeviceStateCheckMessageReply>
                 @SuppressWarnings("all")
                 boolean selfManageState = CastUtils
                     .castBoolean(tps.getT5().getOrDefault(DeviceConfigKey.selfManageState.getKey(), false));
 
-                if (selfManageState) {
-                    instance.addFeature(DeviceFeature.selfManageState);
-                }
-
                 instance.setState(selfManageState ? DeviceState.offline : DeviceState.online);
+                //合并配置
+                instance.mergeConfiguration(tps.getT5());
 
                 return deviceService
                     .save(Mono.just(instance))
@@ -96,25 +108,29 @@ public class DeviceMessageBusinessHandler {
             });
     }
 
+
     @Subscribe("/device/*/*/register")
     @Transactional(propagation = Propagation.NEVER)
     public Mono<Void> autoRegisterDevice(DeviceRegisterMessage message) {
         return registry
             .getDevice(message.getDeviceId())
             .flatMap(device -> {
+                //注册消息中修改了配置信息
                 @SuppressWarnings("all")
                 Map<String, Object> config = message.getHeader("configuration").map(Map.class::cast).orElse(null);
                 if (MapUtils.isNotEmpty(config)) {
-                    return device
-                        .setConfigs(config)
+
+                    return deviceService
+                        .mergeConfiguration(device.getDeviceId(), config, update ->
+                            //更新设备名称
+                            update.set(DeviceInstanceEntity::getName,
+                                       message.getHeader(PropertyConstants.deviceName).orElse(null)))
                         .thenReturn(device);
                 }
                 return Mono.just(device);
             })
-            .switchIfEmpty(Mono.defer(() -> {
-                //自动注册
-                return doAutoRegister(message);
-            }))
+            //注册中心中没有此设备则进行自动注册
+            .switchIfEmpty(Mono.defer(() -> doAutoRegister(message)))
             .then();
     }
 

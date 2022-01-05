@@ -13,8 +13,12 @@ import org.jetlinks.community.device.enums.DeviceFeature;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceInfo;
+import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.MergeOption;
+import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Mono;
 
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
@@ -23,7 +27,7 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.sql.JDBCType;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Getter
@@ -157,6 +161,65 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         }
         return info;
     }
+
+    public void mergeConfiguration(Map<String, Object> configuration) {
+        if (this.configuration == null) {
+            this.configuration = new HashMap<>();
+        }
+        Map<String, Object> newConf = new HashMap<>(configuration);
+        //状态自管理，单独设置到feature中
+        Object selfManageState = newConf.remove(DeviceConfigKey.selfManageState.getKey());
+        if (null != selfManageState) {
+            if (Boolean.TRUE.equals(selfManageState)) {
+                addFeature(DeviceFeature.selfManageState);
+            } else {
+                removeFeature(DeviceFeature.selfManageState);
+            }
+        }
+        //物模型单独设置
+        Object metadata = newConf.remove(DeviceConfigKey.metadata.getKey());
+        if (null != metadata) {
+            setDeriveMetadata(String.valueOf(metadata));
+        }
+
+        this.configuration.putAll(newConf);
+    }
+
+    public void removeFeature(DeviceFeature... features) {
+        if (this.features != null) {
+            List<DeviceFeature> featureList = new ArrayList<>(Arrays.asList(this.features));
+            for (DeviceFeature feature : features) {
+                featureList.remove(feature);
+            }
+            this.features = featureList.toArray(new DeviceFeature[0]);
+        }
+    }
+
+    public Mono<String> mergeMetadata(String metadata) {
+        return JetLinksDeviceMetadataCodec
+            .getInstance()
+            .decode(metadata)
+            .flatMap(this::mergeMetadata);
+    }
+
+    public Mono<String> mergeMetadata(DeviceMetadata metadata) {
+        JetLinksDeviceMetadataCodec codec = JetLinksDeviceMetadataCodec.getInstance();
+
+        if (StringUtils.isEmpty(this.getDeriveMetadata())) {
+            return codec.encode(metadata)
+                        .doOnNext(this::setDeriveMetadata);
+        }
+
+        return Mono
+            .zip(
+                codec.decode(getDeriveMetadata()),
+                Mono.just(metadata),
+                (derive, another) -> derive.merge(another, MergeOption.ignoreExists)
+            )
+            .flatMap(codec::encode)
+            .doOnNext(this::setDeriveMetadata);
+    }
+
 
     public void addFeature(DeviceFeature... features) {
         if (this.features == null) {

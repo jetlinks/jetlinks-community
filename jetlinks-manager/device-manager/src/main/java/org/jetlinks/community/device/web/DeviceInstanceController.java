@@ -819,5 +819,29 @@ public class DeviceInstanceController implements
                       .then());
     }
 
+    //合并产品的物模型
+    @PutMapping(value = "/{id}/metadata/merge-product")
+    @SaveAction
+    @Operation(summary = "合并产品的物模型")
+    public Mono<Void> mergeProductMetadata(@PathVariable String id) {
+        return service
+            .findById(id)
+            //只有单独保存过物模型的才合并
+            .filter(deviceInstance -> StringUtils.hasText(deviceInstance.getDeriveMetadata()))
+            .flatMap(deviceInstance -> productService
+                .findById(deviceInstance.getProductId())
+                .flatMap(product -> deviceInstance.mergeMetadata(product.getMetadata()))
+                .then(
+                    Mono.defer(() -> service
+                        .createUpdate()
+                        .set(deviceInstance::getDeriveMetadata)
+                        .where(deviceInstance::getId)
+                        .execute()
+                        .then(registry.getDevice(deviceInstance.getId()))
+                        .flatMap(device -> device.updateMetadata(deviceInstance.getDeriveMetadata()))
+                        .then())
+                ));
+    }
+
 
 }
