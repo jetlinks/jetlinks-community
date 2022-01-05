@@ -174,9 +174,13 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                         connection.onClose(conn -> {
                             counter.decrement();
                             DeviceSession _tmp = sessionManager.getSession(newSession.getId());
-
-                            if (newSession == _tmp || _tmp == null) {
-                                sessionManager.unregister(deviceId);
+                            //只有与创建的会话相同才移除(下线),因为有可能设置了keepOnline,
+                            //或者设备通过其他方式注册了会话,这里断开连接不能影响到以上情况.
+                            if (_tmp != null && _tmp.isWrapFrom(MqttConnectionSession.class)) {
+                                MqttConnectionSession connectionSession = _tmp.unwrap(MqttConnectionSession.class);
+                                if (connectionSession.getConnection() == conn) {
+                                    sessionManager.unregister(deviceId);
+                                }
                             }
                             gatewayMonitor.disconnected();
                             gatewayMonitor.totalConnection(counter.sum());
