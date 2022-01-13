@@ -14,7 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 
 import java.util.Date;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+
 
 @WebFluxTest(DeviceAlarmController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
