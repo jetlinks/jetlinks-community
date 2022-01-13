@@ -26,7 +26,7 @@ class DeviceAlarmControllerTest extends TestJetLinksController {
 
     @Test
     void service() {
-        assertNull(new DeviceAlarmController(Mockito.mock(DeviceAlarmService.class)).getService());
+        assertNotNull(new DeviceAlarmController(Mockito.mock(DeviceAlarmService.class)).getService());
     }
 
     @Test
