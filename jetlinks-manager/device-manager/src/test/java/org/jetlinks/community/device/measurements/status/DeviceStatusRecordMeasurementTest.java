@@ -82,7 +82,7 @@ class DeviceStatusRecordMeasurementTest {
 
     //CurrentNumberOfDeviceDimension类
     @Test
-    void CurrentGetValueType() {
+    void curGetValueType() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
@@ -92,7 +92,7 @@ class DeviceStatusRecordMeasurementTest {
     }
 
     @Test
-    void CurrentGetParams() {
+    void curGetParams() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
@@ -103,7 +103,7 @@ class DeviceStatusRecordMeasurementTest {
     }
 
     @Test
-    void CurrentIsRealTime() {
+    void curIsRealTime() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceStatusRecordMeasurement measurement = new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager);
@@ -113,7 +113,7 @@ class DeviceStatusRecordMeasurementTest {
     }
 
     @Test
-    void CurrentGetValue() {
+    void curGetValue() {
         LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
        // TimeSeriesService timeSeriesService = Mockito.mock(TimeSeriesService.class);

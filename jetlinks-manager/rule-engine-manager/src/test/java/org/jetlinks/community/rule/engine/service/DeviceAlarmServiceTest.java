@@ -37,17 +37,17 @@ class DeviceAlarmServiceTest {
 
                     @Override
                     public void onNext(Object o) {
-
+                        System.out.println();
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        System.out.println();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        System.out.println();
                     }
                 });
                 return Mono.just(SaveResult.of(1,0));

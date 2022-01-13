@@ -12,6 +12,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 
 import java.util.HashMap;
@@ -104,6 +105,5 @@ class CaptchaControllerTest extends TestJetLinksController {
         map.put("verifyKey",null);
         Executable executable1 = ()->captcha.handleAuthEvent(event);
         assertThrows(ValidationException.class,executable1);
-
     }
 }

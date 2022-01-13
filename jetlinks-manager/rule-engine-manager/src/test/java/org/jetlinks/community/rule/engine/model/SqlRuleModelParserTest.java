@@ -12,11 +12,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class SqlRuleModelParserTest {
-
-    @Test
-    void getFormat() {
-    }
-
+    
     @Test
     void parse() {
         SqlRuleModelParser parser = new SqlRuleModelParser();

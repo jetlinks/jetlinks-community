@@ -69,14 +69,7 @@ class DeviceMessageSendSubscriptionProviderTest{
         assertEquals("/device-message-sender/*/*", topicPattern[0]);
     }
 
-    @Test
-    void subscribe() {
-        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
-        LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
-        DeviceMessageSendSubscriptionProvider provider = new DeviceMessageSendSubscriptionProvider(registry, instanceService);
-
-
-        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+    void initEntity(DeviceInstanceEntity deviceInstanceEntity, DeviceProductEntity deviceProductEntity){
         deviceInstanceEntity.setId(DEVICE_ID);
         deviceInstanceEntity.setState(DeviceState.online);
         deviceInstanceEntity.setCreatorName("超级管理员");
@@ -86,7 +79,6 @@ class DeviceMessageSendSubscriptionProviderTest{
         deviceInstanceEntity.setDeriveMetadata(
             "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
 
-        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
         deviceProductEntity.setId(PRODUCT_ID);
         deviceProductEntity.setTransportProtocol("TCP");
         deviceProductEntity.setProtocolName("演示协议v1");
@@ -98,39 +90,27 @@ class DeviceMessageSendSubscriptionProviderTest{
         map.put("tcp_auth_key", "admin");
         deviceProductEntity.setConfiguration(map);
         deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}");
+    }
+
+    @Test
+    void subscribe() {
+        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
+        LocalDeviceInstanceService instanceService = Mockito.mock(LocalDeviceInstanceService.class);
+        DeviceMessageSendSubscriptionProvider provider = new DeviceMessageSendSubscriptionProvider(registry, instanceService);
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+
+        DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
+        initEntity(deviceInstanceEntity,deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
         DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         assertNotNull(deviceOperator);
         deviceOperator.setConfig(connectionServerId.getKey(),"test").subscribe();
-
-
-
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
-
         SubscribeRequest request = new SubscribeRequest();
-        request.setId("test");
-        request.setTopic("/device-message-sender/"+PRODUCT_ID+"/"+DEVICE_ID);
-        Map<String, Object> parameter = new HashMap<>();
-
-        parameter.put("messageType", MessageType.WRITE_PROPERTY_REPLY);
-        request.setParameter(parameter);
-
-        assertNotNull(provider);
-        provider.subscribe(request)
-            .as(StepVerifier::create)
-            .expectError(UnsupportedOperationException.class)
-            .verify();
-        ReadPropertyMessage readPropertyMessage = new ReadPropertyMessage();
-//        System.out.println(readPropertyMessage instanceof MessageType);
-        parameter.put("messageType", MessageType.READ_PROPERTY);
-        provider.subscribe(request)
-            .map(Message::getRequestId)
-            .as(StepVerifier::create)
-            .expectNext("test")
-            .verifyComplete();
+        testExample(request,provider);
 
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("temperature", 45);
@@ -183,6 +163,28 @@ class DeviceMessageSendSubscriptionProviderTest{
 
         Mockito.when(registry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.empty());
+        provider.subscribe(request)
+            .map(Message::getRequestId)
+            .as(StepVerifier::create)
+            .expectNext("test")
+            .verifyComplete();
+    }
+
+    void testExample(SubscribeRequest request, DeviceMessageSendSubscriptionProvider provider){
+
+        request.setId("test");
+        request.setTopic("/device-message-sender/"+PRODUCT_ID+"/"+DEVICE_ID);
+        Map<String, Object> parameter = new HashMap<>();
+
+        parameter.put("messageType", MessageType.WRITE_PROPERTY_REPLY);
+        request.setParameter(parameter);
+
+        assertNotNull(provider);
+        provider.subscribe(request)
+            .as(StepVerifier::create)
+            .expectError(UnsupportedOperationException.class)
+            .verify();
+        parameter.put("messageType", MessageType.READ_PROPERTY);
         provider.subscribe(request)
             .map(Message::getRequestId)
             .as(StepVerifier::create)

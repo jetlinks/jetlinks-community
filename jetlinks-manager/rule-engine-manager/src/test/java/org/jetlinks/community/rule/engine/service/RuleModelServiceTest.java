@@ -61,7 +61,7 @@ class RuleModelServiceTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        assertNotNull(service);
         return service;
     }
     @Test
@@ -161,17 +161,17 @@ class RuleModelServiceTest {
 
                     @Override
                     public void onNext(Object o) {
-
+                        System.out.println();
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        System.out.println();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        System.out.println();
                     }
                 });
                 return Mono.just(1);

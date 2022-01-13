@@ -28,6 +28,8 @@ class NetworkConfigControllerTest extends TestJetLinksController {
     @Autowired
     private NetworkConfigService configService;
 
+    @Autowired
+    private NetworkManager networkManager;
     @Test
     void getService() {
         NetworkConfigService service = new NetworkConfigController(configService, Mockito.mock(NetworkManager.class)).getService();
@@ -73,8 +75,7 @@ class NetworkConfigControllerTest extends TestJetLinksController {
             .is2xxSuccessful();
     }
 
-    @Autowired
-    private NetworkManager networkManager;
+
     @Test
     void getNetworkInfoError() {
         assertNotNull(networkManager);

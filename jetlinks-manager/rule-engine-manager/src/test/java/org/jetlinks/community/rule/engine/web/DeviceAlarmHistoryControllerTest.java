@@ -12,7 +12,8 @@ class DeviceAlarmHistoryControllerTest extends TestJetLinksController {
     private static final String ID="test";
     @Test
     void getService() {
-        new DeviceAlarmHistoryController(new DeviceAlarmHistoryService()).getService();
+        DeviceAlarmHistoryService service = new DeviceAlarmHistoryController(new DeviceAlarmHistoryService()).getService();
+        assertNotNull(service);
     }
 
     @Test

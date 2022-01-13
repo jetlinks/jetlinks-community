@@ -31,47 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class DeviceProductControllerTest extends TestJetLinksController {
 
     public static final String BASE_URL = "/device/product";
-    public static final String PRODUCT_ID = "1236859833832701954";
+    public static final String PRODUCT_ID = "1236859833832701951";
 
     public static final String BASE_URL11 = "/protocol";
     public static final String ID_1 = "test";
-
-//    @Autowired
-//    private DeviceRegistry deviceRegistry;
-
-
-//    void add1() {
-//        ProtocolSupportEntity protocolSupportEntity = new ProtocolSupportEntity();
-//        protocolSupportEntity.setId(ID_1);
-//        protocolSupportEntity.setName("演示协议v1");
-//        protocolSupportEntity.setState((byte) 1);
-//        protocolSupportEntity.setType("jar");
-//        Map<String, Object> map = new HashMap<>();
-//        //{"provider":"org.jetlinks.demo.protocol.DemoProtocolSupportProvider","location":"http://localhost:8848/upload/20211008/1446352693262381056.jar"}
-//        map.put("provider", "org.jetlinks.demo.protocol.DemoProtocolSupportProvider");
-//        map.put("location", "http://localhost:8848/upload/20211008/1446352693262381056.jar");
-//        protocolSupportEntity.setConfiguration(map);
-//        client.patch()
-//            .uri(BASE_URL11)
-//            .bodyValue(protocolSupportEntity)
-//            .exchange()
-//            .expectStatus()
-//            .is2xxSuccessful();
-//    }
-//
-//    void deploy() {
-//        add1();
-//        Boolean responseBody = client.post()
-//            .uri(BASE_URL11 + "/" + ID_1 + "/_deploy")
-//            .exchange()
-//            .expectStatus()
-//            .is2xxSuccessful()
-//            .expectBody(Boolean.class)
-//            .returnResult()
-//            .getResponseBody();
-//        assertNotNull(responseBody);
-//        assertEquals(true, responseBody);
-//    }
 
     @Autowired
     private ProtocolSupportLoader loader;

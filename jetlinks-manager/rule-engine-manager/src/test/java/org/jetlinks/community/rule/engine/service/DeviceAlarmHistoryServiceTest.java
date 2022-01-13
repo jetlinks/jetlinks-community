@@ -19,7 +19,6 @@ class DeviceAlarmHistoryServiceTest {
 
     @Test
     void init() {
-        ReactiveRepository<DeviceAlarmHistoryEntity, String> repository = Mockito.mock(ReactiveRepository.class);
         DeviceAlarmHistoryService service = new DeviceAlarmHistoryService() {
             @Override
             public Mono<Integer> insertBatch(Publisher<? extends Collection<DeviceAlarmHistoryEntity>> entityPublisher) {
@@ -31,17 +30,17 @@ class DeviceAlarmHistoryServiceTest {
 
                     @Override
                     public void onNext(Collection<DeviceAlarmHistoryEntity> deviceAlarmHistoryEntities) {
-
+                        System.out.println();
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
+                        System.out.println();
                     }
 
                     @Override
                     public void onComplete() {
-
+                        System.out.println();
                     }
                 });
                 return Mono.just(1);

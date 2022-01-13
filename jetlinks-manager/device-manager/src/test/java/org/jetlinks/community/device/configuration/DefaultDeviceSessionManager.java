@@ -222,7 +222,7 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
                     .online(session.getServerId().orElse(serverId), session.getId(), session.getClientAddress().map(String::valueOf).orElse(null))
                     .then(deviceOperator.setConfig(DeviceConfigKey.parentGatewayId, deviceId))
                     .thenReturn(new ChildrenDeviceSession(childrenDeviceId, session, deviceOperator)))
-                .doOnNext(s ->{
+                .doOnNext(s -> {
                     registerListener.next(s);
                     children.computeIfAbsent(deviceId, __ -> new ConcurrentHashMap<>()).put(childrenDeviceId, s);
                 });
@@ -251,11 +251,9 @@ public class DefaultDeviceSessionManager implements DeviceSessionManager {
     @Override
     public DeviceSession replace(DeviceSession oldSession, DeviceSession newSession) {
         DeviceSession old = repository.put(oldSession.getDeviceId(), newSession);
-        if (old != null) {
-            //清空sessionId不同
-            if (!old.getId().equals(old.getDeviceId())) {
-                repository.put(oldSession.getId(), newSession);
-            }
+        //清空sessionId不同
+        if (old != null && !old.getId().equals(old.getDeviceId())) {
+            repository.put(oldSession.getId(), newSession);
         }
         return newSession;
     }

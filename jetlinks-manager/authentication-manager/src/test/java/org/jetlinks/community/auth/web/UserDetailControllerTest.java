@@ -3,7 +3,6 @@ package org.jetlinks.community.auth.web;
 
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
-import org.hswebframework.web.system.authorization.api.service.reactive.ReactiveUserService;
 import org.jetlinks.community.auth.entity.UserDetail;
 import org.jetlinks.community.test.spring.TestJetLinksController;
 import org.junit.jupiter.api.Test;

@@ -32,14 +32,35 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeviceMessageBusinessHandlerTest {
     public static final String DEVICE_ID = "test001";
     public static final String MESSAGE_ID = "test002";
     public static final String PRODUCT_ID = "test100";
+
+    void initProductEntity(DeviceProductEntity deviceProductEntity) {
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setMessageProtocol("test");
+        deviceProductEntity.setName("test_p");
+        deviceProductEntity.setCreatorId("12345678");
+        deviceProductEntity.setOrgId("123");
+    }
+
+    void initInstanceEntity(DeviceInstanceEntity instance) {
+        instance.setId(DEVICE_ID);
+        instance.setName("TEST");
+        instance.setProductId(PRODUCT_ID);
+        instance.setProductName("test");
+        instance.setConfiguration(new HashMap<>());
+        instance.setCreateTimeNow();
+        instance.setCreatorId("1234");
+        instance.setOrgId("123");
+    }
 
     @Test
     void autoRegisterDevice() {
@@ -48,11 +69,7 @@ class DeviceMessageBusinessHandlerTest {
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         //模拟方法调用
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setName("test_p");
-        deviceProductEntity.setCreatorId("12345678");
-        deviceProductEntity.setOrgId("123");
+        initProductEntity(deviceProductEntity);
         Mockito.when(productService.findById(Mockito.anyString())).thenReturn(Mono.just(deviceProductEntity));
         SaveResult saveResult = SaveResult.of(1, 0);
         Mockito.when(deviceService.save(Mockito.any(Publisher.class))).thenReturn(Mono.just(saveResult));
@@ -99,11 +116,7 @@ class DeviceMessageBusinessHandlerTest {
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         //模拟方法调用
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setName("test_p");
-        deviceProductEntity.setCreatorId("12345678");
-        deviceProductEntity.setOrgId("123");
+        initProductEntity(deviceProductEntity);
         Mockito.when(productService.findById(Mockito.anyString())).thenReturn(Mono.just(deviceProductEntity));
         SaveResult saveResult = SaveResult.of(1, 0);
         Mockito.when(deviceService.save(Mockito.any(Publisher.class))).thenReturn(Mono.just(saveResult));
@@ -138,11 +151,7 @@ class DeviceMessageBusinessHandlerTest {
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         //模拟方法调用
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setName("test_p");
-        deviceProductEntity.setCreatorId("12345678");
-        deviceProductEntity.setOrgId("123");
+        initProductEntity(deviceProductEntity);
         Mockito.when(productService.findById(Mockito.anyString())).thenReturn(Mono.just(deviceProductEntity));
         SaveResult saveResult = SaveResult.of(1, 0);
         Mockito.when(deviceService.save(Mockito.any(Publisher.class))).thenReturn(Mono.just(saveResult));
@@ -202,11 +211,7 @@ class DeviceMessageBusinessHandlerTest {
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
         //模拟方法调用
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setName("test_p");
-        deviceProductEntity.setCreatorId("12345678");
-        deviceProductEntity.setOrgId("123");
+        initProductEntity(deviceProductEntity);
         Mockito.when(productService.findById(Mockito.anyString())).thenReturn(Mono.just(deviceProductEntity));
         SaveResult saveResult = SaveResult.of(1, 0);
         Mockito.when(deviceService.save(Mockito.any(Publisher.class))).thenReturn(Mono.just(saveResult));
@@ -285,21 +290,14 @@ class DeviceMessageBusinessHandlerTest {
 
 
     @Test
-    void updateDeviceTag() throws Exception {
+    void updateDeviceTag() {
         LocalDeviceInstanceService deviceService = Mockito.mock(LocalDeviceInstanceService.class);
         LocalDeviceProductService productService = Mockito.mock(LocalDeviceProductService.class);
 
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
 
         DeviceInstanceEntity instance = new DeviceInstanceEntity();
-        instance.setId(DEVICE_ID);
-        instance.setName("TEST");
-        instance.setProductId(PRODUCT_ID);
-        instance.setProductName("test");
-        instance.setConfiguration(new HashMap<>());
-        instance.setCreateTimeNow();
-        instance.setCreatorId("1234");
-        instance.setOrgId("123");
+        initInstanceEntity(instance);
         InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
         //inMemoryConfigStorage.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}");//用于加载物理模型时的数据
         inMemoryConfigStorage.setConfig(DeviceConfigKey.protocol.getKey(), "test");
@@ -310,11 +308,7 @@ class DeviceMessageBusinessHandlerTest {
             .thenReturn(Mono.just(inMemoryConfigStorage));
         DeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setName("test_p");
-        deviceProductEntity.setCreatorId("12345678");
-        deviceProductEntity.setOrgId("123");
+        initProductEntity(deviceProductEntity);
         deviceProductEntity.setMetadata("{'pr':'pro'}");
 
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
@@ -325,7 +319,6 @@ class DeviceMessageBusinessHandlerTest {
         DefaultDeviceOperator defaultDeviceOperator = new DefaultDeviceOperator(DEVICE_ID, new MockProtocolSupport(), inMemoryConfigStorageManager, new StandaloneDeviceMessageBroker(), inMemoryDeviceRegistry);
         defaultDeviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe();
 
-
         Mockito.when(registry.getDevice(Mockito.any(String.class)))
             .thenReturn(Mono.just(defaultDeviceOperator));
         defaultDeviceOperator.getMetadata()
@@ -333,7 +326,6 @@ class DeviceMessageBusinessHandlerTest {
             .map(e -> e.get())
             .map(e -> e.getValueType())
             .subscribe(System.out::println);
-
 
         DatabaseOperator databaseOperator = Mockito.mock(DatabaseOperator.class);
         RDBDatabaseMetadata rdbDatabaseMetadata = Mockito.mock(RDBDatabaseMetadata.class);
@@ -344,13 +336,17 @@ class DeviceMessageBusinessHandlerTest {
         DefaultReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(DefaultReactiveRepository.class);
         SaveResultOperator resultOperator = Mockito.mock(SaveResultOperator.class);
         Class<? extends DefaultReactiveRepository> aClass = tagRepository.getClass();
-        Method doSave = aClass.getDeclaredMethod("doSave", Collection.class);
-        doSave.setAccessible(true);
-
-        Mockito.when(doSave.invoke(tagRepository,Mockito.any(Collection.class)))
-            .thenReturn(resultOperator);
+        Method doSave = null;
+        try {
+            doSave = aClass.getDeclaredMethod("doSave", Collection.class);
+            doSave.setAccessible(true);
+            Mockito.when(doSave.invoke(tagRepository, Mockito.any(Collection.class)))
+                .thenReturn(resultOperator);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         Mockito.when(resultOperator.reactive())
-            .thenReturn(Mono.just(SaveResult.of(1,0)));
+            .thenReturn(Mono.just(SaveResult.of(1, 0)));
         Mockito.when(tagRepository.save(Mockito.any(Publisher.class)))
             .thenCallRealMethod()
             .thenReturn(Mono.just(1));
@@ -362,17 +358,11 @@ class DeviceMessageBusinessHandlerTest {
         UpdateTagMessage updateTagMessage = new UpdateTagMessage();
         updateTagMessage.setDeviceId(DEVICE_ID);
         updateTagMessage.setTags(map);
-
-
         service.updateDeviceTag(updateTagMessage)
             .as(StepVerifier::create)
             .expectSubscription()
             .verifyComplete();
-
-
     }
-
-
     @Test
     void updateMetadata() {
         LocalDeviceInstanceService deviceService = Mockito.mock(LocalDeviceInstanceService.class);
@@ -381,14 +371,7 @@ class DeviceMessageBusinessHandlerTest {
         DeviceRegistry deviceRegistry = Mockito.mock(DeviceRegistry.class);
 
         DeviceInstanceEntity instance = new DeviceInstanceEntity();
-        instance.setId(DEVICE_ID);
-        instance.setName("TEST");
-        instance.setProductId(PRODUCT_ID);
-        instance.setProductName("test");
-        instance.setConfiguration(new HashMap<>());
-        instance.setCreateTimeNow();
-        instance.setCreatorId("1234");
-        instance.setOrgId("123");
+        initInstanceEntity(instance);
         InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
         inMemoryConfigStorage.setConfig("test", "test");
         inMemoryConfigStorage.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}");//用于加载物理模型时的数据
@@ -402,89 +385,14 @@ class DeviceMessageBusinessHandlerTest {
         inMemoryDeviceRegistry.register(instance.toDeviceInfo().addConfig("state", DeviceState.online)).subscribe();
         DeviceOperator deviceOperator = new DefaultDeviceOperator(DEVICE_ID, new MockProtocolSupport(), inMemoryConfigStorageManager, new StandaloneDeviceMessageBroker(), inMemoryDeviceRegistry);
         assertNotNull(deviceOperator);
-        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(),"test").subscribe();
+        deviceOperator.setConfig(DeviceConfigKey.productId.getKey(), "test").subscribe();
         deviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
         deviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
 //        deviceOperator.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}").subscribe();
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setName("test_p");
-        deviceProductEntity.setCreatorId("12345678");
-        deviceProductEntity.setOrgId("123");
+        initProductEntity(deviceProductEntity);
         deviceProductEntity.setMetadata("{'pr':'pro'}");
-
-        //DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
-        String s = "{\n" +
-            "  \"id\": \"test\",\n" +
-            "  \"name\": \"测试\",\n" +
-            "  \"properties\": [\n" +
-            "    {\n" +
-            "      \"id\": \"name\",\n" +
-            "      \"name\": \"名称\",\n" +
-            "      \"valueType\": {\n" +
-            "        \"type\": \"string\"\n" +
-            "      }\n" +
-            "    }\n" +
-            "  ],\n" +
-            "  \"functions\": [\n" +
-            "    {\n" +
-            "      \"id\": \"playVoice\",\n" +
-            "      \"name\": \"播放声音\",\n" +
-            "      \"inputs\": [\n" +
-            "        {\n" +
-            "          \"id\": \"text\",\n" +
-            "          \"name\": \"文字内容\",\n" +
-            "          \"valueType\": {\n" +
-            "            \"type\": \"string\"\n" +
-            "          }\n" +
-            "        }\n" +
-            "      ],\n" +
-            "      \"output\": {\n" +
-            "        \"type\": \"boolean\"\n" +
-            "      }\n" +
-            "    }\n" +
-            "  ],\n" +
-            "  \"events\": [\n" +
-            "    {\n" +
-            "      \"id\": \"temp_sensor\",\n" +
-            "      \"name\": \"温度传感器\",\n" +
-            "      \"valueType\": {\n" +
-            "        \"type\": \"double\"\n" +
-            "      }\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"id\": \"fire_alarm\",\n" +
-            "      \"name\": \"火警\",\n" +
-            "      \"valueType\": {\n" +
-            "        \"type\": \"object\",\n" +
-            "        \"properties\": [\n" +
-            "          {\n" +
-            "            \"id\": \"location\",\n" +
-            "            \"name\": \"地点\",\n" +
-            "            \"valueType\": {\n" +
-            "              \"type\": \"string\"\n" +
-            "            }\n" +
-            "          },\n" +
-            "          {\n" +
-            "            \"id\": \"lng\",\n" +
-            "            \"name\": \"经度\",\n" +
-            "            \"valueType\": {\n" +
-            "              \"type\": \"double\"\n" +
-            "            }\n" +
-            "          },\n" +
-            "          {\n" +
-            "            \"id\": \"lat\",\n" +
-            "            \"name\": \"纬度\",\n" +
-            "            \"valueType\": {\n" +
-            "              \"type\": \"double\"\n" +
-            "            }\n" +
-            "          }\n" +
-            "        ]\n" +
-            "      }\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        String s = "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}";
         deviceOperator.updateMetadata(s).subscribe();
         Mockito.when(deviceRegistry.getDevice(Mockito.anyString()))
             .thenReturn(Mono.just(deviceOperator));
@@ -535,12 +443,10 @@ class DeviceMessageBusinessHandlerTest {
             .thenReturn(Flux.just(list));
         ReadPropertyMessage message = new ReadPropertyMessage();
         message.setDeviceId("tes");
-        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class),Mockito.any(Class.class)))
+        Mockito.when(eventBus.subscribe(Mockito.any(Subscription.class), Mockito.any(Class.class)))
             .thenReturn(Flux.just(message));
         DeviceMessageBusinessHandler service = new DeviceMessageBusinessHandler(deviceService, productService, registry, tagRepository, eventBus);
         assertNotNull(service);
         service.init();
-
-
     }
 }

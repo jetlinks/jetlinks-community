@@ -63,9 +63,6 @@ class DeviceTagTermTest {
     @Test
     void createFragments2() {//第三个分支
         DeviceTagTerm deviceTagTerm = new DeviceTagTerm();
-        List<Map<String, String>> list = new ArrayList<>();
-//        DeviceTagEntity deviceTagEntity = new DeviceTagEntity();
-//        deviceTagEntity.setDeviceId();
         String s = "{'tags':'test'}";
         Term term = new Term();
         term.setValue(s);
@@ -111,38 +108,4 @@ class DeviceTagTermTest {
         assertEquals("exists(select 1 from dev_device_tags d where d.device_id = test001 and ( (d.key = ? and exists(select 1 from dev_device_tags d where d.device_id = d.value and ( ) ) ) and (d.key = ? and exists(select 1 from dev_device_tags d where d.device_id = d.value and ( ) ) ) and (d.key = ? and exists(select 1 from dev_device_tags d where d.device_id = d.value and ( ) ) ) ) )"
             ,fragments3.toRequest().getSql());
     }
-
-//    @Test
-//    void test(){
-//        String s ="select 1 from dev_device_tags d where d.device_id = test001";
-////        System.out.println(s.contains(":")&&!s.contains(" "));
-////        String[] split = s.split("[,]");
-////        for (String s1 : split) {
-////            System.out.println(s1);
-////        }
-//        List<Term> tagKeys = TermExpressionParser.parse(s);
-//        for (Term tagKey : tagKeys) {
-//            String column = tagKey.getColumn();
-//            System.out.println(column);
-//        }
-//        System.out.println("======================");
-//        for (Term tagKey : tagKeys) {
-//            String column = tagKey.getTermType();
-//            System.out.println(column);
-//        }
-//
-//        String s2 = "123";
-//        System.out.println(s2.concat(":").concat("aaa"));
-//
-//        FeatureId<TermFragmentBuilder> eq = TermFragmentBuilder.createFeatureId("eq");
-//        System.out.println(eq.getId());
-//
-//        RDBColumnMetadata rdbColumnMetadata = new RDBColumnMetadata();
-//        rdbColumnMetadata.setDataType("varchar(32)");
-//        Map<String, Feature> map = new HashMap<>();
-//        map.put("termType:eq",new DefaultR2dbcExecutor());
-//        rdbColumnMetadata.setFeatures(map);
-//        rdbColumnMetadata.findFeatureNow(eq.getId());
-//
-//    }
 }

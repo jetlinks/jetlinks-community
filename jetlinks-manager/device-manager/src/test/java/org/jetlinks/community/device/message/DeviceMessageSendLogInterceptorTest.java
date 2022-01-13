@@ -200,10 +200,10 @@ class DeviceMessageSendLogInterceptorTest {
             return Mono.just(1);
         }).subscribe();
 
-        //deviceOperator.getMetadata().map(s->s.getExpand("source")).subscribe(System.out::println);
+        testExample(interceptor,deviceOperator);
+    }
 
-
-
+    void testExample(DeviceMessageSendLogInterceptor interceptor, DeviceOperator deviceOperator){
         WritePropertyMessage writePropertyMessage = new WritePropertyMessage();
         writePropertyMessage.addHeader(PropertyMetadataConstants.Source.headerKey, "manual");
         Map<String, Object> properties = new LinkedHashMap<>();

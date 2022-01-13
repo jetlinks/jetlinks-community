@@ -47,6 +47,29 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class LocalDeviceInstanceServiceTest {
     public static final String ID_1 = "test001";
 
+    void initEntity(DeviceInstanceEntity deviceInstanceEntity){
+        Map<String, Object> map = new HashMap<>();
+        map.put("test", "test");
+        deviceInstanceEntity.setId(ID_1);
+        deviceInstanceEntity.setConfiguration(map);
+        deviceInstanceEntity.setProductId("test");
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setDeriveMetadata("" +
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setProductId("1236859833832701954");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setCreatorId("1199596756811550720");
+        deviceInstanceEntity.setCreatorName("超级管理员");
+    }
+    void initProductEntity(DeviceProductEntity deviceProductEntity){
+        deviceProductEntity.setId("test");
+        deviceProductEntity.setName("test");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setMessageProtocol("test");
+        deviceProductEntity.setProtocolName("test");
+        deviceProductEntity.setTransportProtocol("TCP");
+    }
     @Test
     void save() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
@@ -88,14 +111,9 @@ class LocalDeviceInstanceServiceTest {
             }
         };
         assertNotNull(service);
-        Map<String, Object> map = new HashMap<>();
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setName("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-
+        initEntity(deviceInstanceEntity);
         assertNotNull(service);
         service.save(Mono.just(deviceInstanceEntity))
             .map(SaveResult::getTotal)
@@ -113,7 +131,7 @@ class LocalDeviceInstanceServiceTest {
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
-        HashMap<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         map.put("test", "test");
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
         deviceInstanceEntity.setId(ID_1);
@@ -125,11 +143,8 @@ class LocalDeviceInstanceServiceTest {
         deviceProductEntity.setId("test");
         deviceProductEntity.setConfiguration(map1);
 
-
         Mockito.when(repository.findById(Mockito.any(String.class))).thenReturn(Mono.just(deviceInstanceEntity));
-
         Mockito.when(deviceProductService.findById(Mockito.any(String.class))).thenReturn(Mono.just(deviceProductEntity));
-
 
         DeviceOperator operator = InMemoryDeviceRegistry.create().register(deviceInstanceEntity.toDeviceInfo()).block();
         assertNotNull(operator);
@@ -142,7 +157,6 @@ class LocalDeviceInstanceServiceTest {
         Mockito.when(update.set(Mockito.any(MethodReferenceColumn.class))).thenReturn(update);
         Mockito.when(update.where(Mockito.any(MethodReferenceColumn.class))).thenReturn(update);
         Mockito.when(update.execute()).thenReturn(Mono.just(1));
-
 
         LocalDeviceInstanceService service = new LocalDeviceInstanceService(registry, deviceProductService, configMetadataManager, tagRepository) {
             @Override
@@ -175,8 +189,6 @@ class LocalDeviceInstanceServiceTest {
             .as(StepVerifier::create)
             .expectNext("test")
             .verifyComplete();
-
-
     }
 
     @Test
@@ -186,31 +198,14 @@ class LocalDeviceInstanceServiceTest {
         LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
+
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setDeriveMetadata("" +
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("1236859833832701954");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
+        initEntity(deviceInstanceEntity);
         Mockito.when(repository.findById(Mockito.any(String.class))).thenReturn(Mono.just(deviceInstanceEntity));
-
-
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
-
         Mono<DeviceOperator> register = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo().addConfig("state", org.jetlinks.core.device.DeviceState.online));
         DeviceOperator deviceOperator = register.block();
         assertNotNull(deviceOperator);
-//        deviceOperator.putState(org.jetlinks.core.device.DeviceState.online).subscribe(System.out::println);
-//        deviceOperator.getState().subscribe(System.out::println);
-
 
         Mockito.when(registry.register(Mockito.any(DeviceInfo.class))).thenReturn(Mono.just(deviceOperator));
         ReactiveUpdate update = Mockito.mock(ReactiveUpdate.class);
@@ -277,20 +272,9 @@ class LocalDeviceInstanceServiceTest {
         LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
+
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.notActive);
-        deviceInstanceEntity.setDeriveMetadata("" +
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("1236859833832701954");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
+        initEntity(deviceInstanceEntity);
         Mockito.when(repository.findById(Mockito.any(Mono.class))).thenReturn(Mono.just(deviceInstanceEntity));
 
         ReactiveUpdate update = Mockito.mock(ReactiveUpdate.class);
@@ -329,34 +313,12 @@ class LocalDeviceInstanceServiceTest {
             .verifyComplete();
     }
 
-    @Test
-    void createDeviceDetail() {
-        ReactiveRepository<DeviceInstanceEntity, String> repository = Mockito.mock(ReactiveRepository.class);
-        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
-        LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
-        DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
-        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
-        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setDeriveMetadata("" +
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-        deviceInstanceEntity.setProductName("test");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
-//        Mockito.when(registry.getDevice(Mockito.any(String.class))).thenReturn(new InMemoryDeviceRegistry().register(deviceInstanceEntity.toDeviceInfo()));
+    DefaultDeviceOperator createDeviceOperator(CompositeDeviceStateChecker stateChecker){
         InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
         inMemoryConfigStorage.setConfig("test", "test");
         inMemoryConfigStorage.setConfig("state", 1);
 
-        CompositeDeviceStateChecker stateChecker = Mockito.mock(CompositeDeviceStateChecker.class);
         Mockito.when(stateChecker.checkState(Mockito.any(DeviceOperator.class))).thenReturn(Mono.just((byte) 1));
-
 
         InMemoryConfigStorageManager inMemoryConfigStorageManager = Mockito.mock(InMemoryConfigStorageManager.class);
         Mockito.when(inMemoryConfigStorageManager.getStorage(Mockito.anyString()))
@@ -370,6 +332,21 @@ class LocalDeviceInstanceServiceTest {
         defaultDeviceOperator.putState(org.jetlinks.core.device.DeviceState.online).subscribe(System.out::println);
         defaultDeviceOperator.getState().subscribe(System.out::println);
         defaultDeviceOperator.checkState().subscribe(System.out::println);
+        return defaultDeviceOperator;
+    }
+
+    @Test
+    void createDeviceDetail() {
+        ReactiveRepository<DeviceInstanceEntity, String> repository = Mockito.mock(ReactiveRepository.class);
+        DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
+        LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
+        DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
+        ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
+
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        initEntity(deviceInstanceEntity);
+        CompositeDeviceStateChecker stateChecker = Mockito.mock(CompositeDeviceStateChecker.class);
+        DefaultDeviceOperator defaultDeviceOperator = createDeviceOperator(stateChecker);//创建设备
 
         Mockito.when(registry.getDevice(Mockito.any(String.class))).thenReturn(Mono.just(defaultDeviceOperator));
         ReactiveUpdate<DeviceInstanceEntity> update = Mockito.mock(ReactiveUpdate.class);
@@ -398,12 +375,7 @@ class LocalDeviceInstanceServiceTest {
 
         assertNotNull(service);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId("test");
-        deviceProductEntity.setName("test");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setProtocolName("test");
-        deviceProductEntity.setTransportProtocol("TCP");
+        initProductEntity(deviceProductEntity);
         ArrayList<DeviceTagEntity> deviceTagEntities = new ArrayList<>();
         DeviceTagEntity deviceTagEntity = new DeviceTagEntity();
         deviceTagEntity.setId("test");
@@ -460,8 +432,6 @@ class LocalDeviceInstanceServiceTest {
             .as(StepVerifier::create)
             .expectNext(DeviceState.notActive)
             .verifyComplete();
-
-
     }
 
     @Test
@@ -471,36 +441,11 @@ class LocalDeviceInstanceServiceTest {
         LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
         DeviceConfigMetadataManager metadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
+
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setDeriveMetadata("" +
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
-
-        InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
-        inMemoryConfigStorage.setConfig("test", "test");
+        initEntity(deviceInstanceEntity);
         CompositeDeviceStateChecker stateChecker = Mockito.mock(CompositeDeviceStateChecker.class);
-        Mockito.when(stateChecker.checkState(Mockito.any(DeviceOperator.class))).thenReturn(Mono.just((byte) 1));
-        InMemoryConfigStorageManager inMemoryConfigStorageManager = Mockito.mock(InMemoryConfigStorageManager.class);
-        Mockito.when(inMemoryConfigStorageManager.getStorage(Mockito.anyString()))
-            .thenReturn(Mono.just(inMemoryConfigStorage));
-        DefaultDeviceOperator defaultDeviceOperator =
-            new DefaultDeviceOperator(ID_1, new MockProtocolSupport(), inMemoryConfigStorageManager
-                , new StandaloneDeviceMessageBroker(), new InMemoryDeviceRegistry()
-                , new CompositeDeviceMessageSenderInterceptor(), stateChecker);
-
-        defaultDeviceOperator.putState(org.jetlinks.core.device.DeviceState.online).subscribe(System.out::println);
-        defaultDeviceOperator.getState().subscribe(System.out::println);
-        defaultDeviceOperator.checkState().subscribe(System.out::println);
+        DefaultDeviceOperator defaultDeviceOperator = createDeviceOperator(stateChecker);
         Mockito.when(registry.getDevice(Mockito.any(String.class)))
             .thenReturn(Mono.just(defaultDeviceOperator));
 
@@ -569,33 +514,10 @@ class LocalDeviceInstanceServiceTest {
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
 
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.offline);
-        deviceInstanceEntity.setDeriveMetadata("" +
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("test002");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
-
-        InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
-        inMemoryConfigStorage.setConfig("test", "test");
+        initEntity(deviceInstanceEntity);
         CompositeDeviceStateChecker stateChecker = Mockito.mock(CompositeDeviceStateChecker.class);
-        Mockito.when(stateChecker.checkState(Mockito.any(DeviceOperator.class))).thenReturn(Mono.just((byte) 1));
-        InMemoryConfigStorageManager inMemoryConfigStorageManager = Mockito.mock(InMemoryConfigStorageManager.class);
-        Mockito.when(inMemoryConfigStorageManager.getStorage(Mockito.anyString()))
-            .thenReturn(Mono.just(inMemoryConfigStorage));
-        DefaultDeviceOperator defaultDeviceOperator =
-            new DefaultDeviceOperator(ID_1, new MockProtocolSupport(), inMemoryConfigStorageManager
-                , new StandaloneDeviceMessageBroker(), new InMemoryDeviceRegistry()
-                , new CompositeDeviceMessageSenderInterceptor(), stateChecker);
-
+        DefaultDeviceOperator defaultDeviceOperator = createDeviceOperator(stateChecker);
         Mockito.when(registry.getDevice(Mockito.any(String.class))).thenReturn(Mono.just(defaultDeviceOperator));
 
         ReactiveUpdate<DeviceInstanceEntity> update = Mockito.mock(ReactiveUpdate.class);
@@ -627,7 +549,6 @@ class LocalDeviceInstanceServiceTest {
             .as(StepVerifier::create)
             .expectNext("notActive")
             .verifyComplete();
-
     }
 
     @Test
@@ -641,35 +562,16 @@ class LocalDeviceInstanceServiceTest {
         HashMap<String, Object> map = new HashMap<>();
         map.put("test", "test");
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setDeriveMetadata("" +
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("test002");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
+        initEntity(deviceInstanceEntity);
         deviceInstanceEntity.setParentId("test002");
         DeviceInstanceEntity deviceInstanceEntity1 = new DeviceInstanceEntity();
         deviceInstanceEntity1.setId("test002");
         deviceInstanceEntity1.setConfiguration(map);
         deviceInstanceEntity1.setParentId(ID_1);
 
-        InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
-        inMemoryConfigStorage.setConfig("test", "test");
         CompositeDeviceStateChecker stateChecker = Mockito.mock(CompositeDeviceStateChecker.class);
-        Mockito.when(stateChecker.checkState(Mockito.any(DeviceOperator.class))).thenReturn(Mono.just((byte) 1));
-        InMemoryConfigStorageManager inMemoryConfigStorageManager = Mockito.mock(InMemoryConfigStorageManager.class);
-        Mockito.when(inMemoryConfigStorageManager.getStorage(Mockito.anyString()))
-            .thenReturn(Mono.just(inMemoryConfigStorage));
-        DefaultDeviceOperator defaultDeviceOperator =
-            new DefaultDeviceOperator(ID_1, new MockProtocolSupport(), inMemoryConfigStorageManager
-                , new StandaloneDeviceMessageBroker(), new InMemoryDeviceRegistry()
-                , new CompositeDeviceMessageSenderInterceptor(), stateChecker);
 
+        DefaultDeviceOperator defaultDeviceOperator = createDeviceOperator(stateChecker);
         defaultDeviceOperator.setConfig(DeviceConfigKey.isGatewayDevice, true).subscribe(System.out::println);
         //defaultDeviceOperator.getConfig(DeviceConfigKey.isGatewayDevice).subscribe(System.out::println);
 
@@ -698,8 +600,6 @@ class LocalDeviceInstanceServiceTest {
             .thenReturn(reactiveUpdateNestConditional);
 
         Mockito.when(reactiveUpdateNestConditional.end()).thenReturn(update);
-//        Mockito.when(update.execute()).thenReturn(Mono.just(1));
-
 
         LocalDeviceInstanceService service = new LocalDeviceInstanceService(registry, deviceProductService, configMetadataManager, tagRepository) {
             @Override
@@ -738,23 +638,10 @@ class LocalDeviceInstanceServiceTest {
         LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setProductName("test");
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
-
+        initEntity(deviceInstanceEntity);
         InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
         inMemoryConfigStorage.setConfig(DeviceConfigKey.connectionServerId.getKey(), "12345");//连接服务id
-        //inMemoryConfigStorage.setConfig(ConfigKey.of("lst_metadata_time").getKey(), 3L);//给一个时间
-        //inMemoryConfigStorage.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}");//用于加载物理模型时的数据
         inMemoryConfigStorage.setConfig(DeviceConfigKey.productId.getKey(), "test");
         CompositeDeviceStateChecker stateChecker = Mockito.mock(CompositeDeviceStateChecker.class);
         Mockito.when(stateChecker.checkState(Mockito.any(DeviceOperator.class))).thenReturn(Mono.just((byte) 1));
@@ -774,10 +661,7 @@ class LocalDeviceInstanceServiceTest {
             .thenReturn(Flux.just(readPropertyMessageReply));
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId("test");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setTransportProtocol("test");
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
@@ -793,14 +677,13 @@ class LocalDeviceInstanceServiceTest {
                 , new CompositeDeviceMessageSenderInterceptor(), stateChecker);
         defaultDeviceOperator.setConfig(DeviceConfigKey.productId.getKey(),"test").subscribe();
         defaultDeviceOperator.setConfig(DeviceConfigKey.protocol, "test").subscribe();
-        defaultDeviceOperator.setConfig("lst_metadata_time", 1L).subscribe();;
+        defaultDeviceOperator.setConfig("lst_metadata_time", 1L).subscribe();
         defaultDeviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe(System.out::println);
 
         defaultDeviceOperator.getMetadata()
             .map(e->e.getProperty("temperature").map(s1->s1.getValueType()))
             .map(s->s.get()).subscribe(System.out::println);
         Mockito.when(registry.getDevice(Mockito.anyString())).thenReturn(Mono.just(defaultDeviceOperator));
-
 
         LocalDeviceInstanceService service = new LocalDeviceInstanceService(registry, deviceProductService, configMetadataManager, tagRepository) {
             @Override
@@ -842,23 +725,11 @@ class LocalDeviceInstanceServiceTest {
         LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setProductName("test");
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
+        initEntity(deviceInstanceEntity);
 
         InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
         inMemoryConfigStorage.setConfig(DeviceConfigKey.connectionServerId.getKey(), "12345");//连接服务id
-        //inMemoryConfigStorage.setConfig(ConfigKey.of("lst_metadata_time").getKey(), 3L);//给一个时间
-        //inMemoryConfigStorage.setConfig(DeviceConfigKey.metadata.getKey(), "{'test':'test'}");//用于加载物理模型时的数据
         inMemoryConfigStorage.setConfig(DeviceConfigKey.productId.getKey(), "test");
         CompositeDeviceStateChecker stateChecker = Mockito.mock(CompositeDeviceStateChecker.class);
         Mockito.when(stateChecker.checkState(Mockito.any(DeviceOperator.class))).thenReturn(Mono.just((byte) 1));
@@ -878,10 +749,7 @@ class LocalDeviceInstanceServiceTest {
             .thenReturn(Flux.just(readPropertyMessageReply));
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId("test");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setTransportProtocol("test");
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
@@ -898,9 +766,6 @@ class LocalDeviceInstanceServiceTest {
                 , new CompositeDeviceMessageSenderInterceptor(), stateChecker);
         defaultDeviceOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}").subscribe(System.out::println);
 
-//        defaultDeviceOperator.getMetadata()
-//            .map(e->e.getProperty("temperature").map(s1->s1.getValueType()))
-//            .map(s->s.get()).subscribe(System.out::println);
         Mockito.when(registry.getDevice(Mockito.anyString())).thenReturn(Mono.just(defaultDeviceOperator));
 
 
@@ -929,19 +794,9 @@ class LocalDeviceInstanceServiceTest {
         LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
-        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("test002");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
 
+        DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
+        initEntity(deviceInstanceEntity);
 
         InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
         inMemoryConfigStorage.setConfig(DeviceConfigKey.connectionServerId.getKey(), "12345");//连接服务id
@@ -965,10 +820,7 @@ class LocalDeviceInstanceServiceTest {
             .thenReturn(Flux.just(writePropertyMessageReply));
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId("test");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setTransportProtocol("test");
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
@@ -1019,20 +871,11 @@ class LocalDeviceInstanceServiceTest {
         LocalDeviceProductService deviceProductService = Mockito.mock(LocalDeviceProductService.class);
         DeviceConfigMetadataManager configMetadataManager = Mockito.mock(DeviceConfigMetadataManager.class);
         ReactiveRepository<DeviceTagEntity, String> tagRepository = Mockito.mock(ReactiveRepository.class);
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("test", "test");
+
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
+        initEntity(deviceInstanceEntity);
         deviceInstanceEntity.setDeriveMetadata("{\"events\":[],\"properties\":['test':'test'],\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}],\"tags\":[]}");
 
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("test002");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
         InMemoryConfigStorage inMemoryConfigStorage = new InMemoryConfigStorage();
         inMemoryConfigStorage.setConfig(DeviceConfigKey.connectionServerId.getKey(), "12345");//连接服务id
         inMemoryConfigStorage.setConfig(DeviceConfigKey.productId.getKey(), "test");
@@ -1056,10 +899,7 @@ class LocalDeviceInstanceServiceTest {
             .thenReturn(Flux.just(functionInvokeMessageReply));
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId("test");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setMessageProtocol("test");
-        deviceProductEntity.setTransportProtocol("test");
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = new InMemoryDeviceRegistry();
         DeviceProductOperator block = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
@@ -1107,17 +947,8 @@ class LocalDeviceInstanceServiceTest {
         HashMap<String, Object> map = new HashMap<>();
         map.put("test", "test");
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(ID_1);
-        deviceInstanceEntity.setConfiguration(map);
-        deviceInstanceEntity.setProductId("test");
-        deviceInstanceEntity.setState(DeviceState.online);
+        initEntity(deviceInstanceEntity);
         deviceInstanceEntity.setDeriveMetadata("{\"events\":[],\"properties\":['test':'test'],\"functions\":[{\"id\":\"AuditCommandFunction\",\"name\":\"查岗\",\"async\":false,\"output\":{},\"inputs\":[{\"id\":\"outTime\",\"name\":\"超时时间\",\"valueType\":{\"type\":\"int\",\"unit\":\"minutes\"}}]}],\"tags\":[]}");
-
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setProductId("test002");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setCreatorId("1199596756811550720");
-        deviceInstanceEntity.setCreatorName("超级管理员");
 
         LocalDeviceInstanceService service = new LocalDeviceInstanceService(registry, deviceProductService, configMetadataManager, tagRepository) {
             @Override

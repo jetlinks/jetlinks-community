@@ -40,6 +40,30 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
     public static final String DEVICE_ID = "test001";
     public static final String PRODUCT_ID = "test100";
 
+    void initInstanceEntity(DeviceInstanceEntity deviceInstanceEntity){
+        deviceInstanceEntity.setId(DEVICE_ID);
+        deviceInstanceEntity.setState(DeviceState.online);
+        deviceInstanceEntity.setCreatorName("超级管理员");
+        deviceInstanceEntity.setName("TCP-setvice");
+        deviceInstanceEntity.setProductId(PRODUCT_ID);
+        deviceInstanceEntity.setProductName("TCP测试");
+        deviceInstanceEntity.setDeriveMetadata(
+            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
+        );
+    }
+    void initProductEntity(DeviceProductEntity deviceProductEntity){
+        deviceProductEntity.setId(PRODUCT_ID);
+        deviceProductEntity.setTransportProtocol("TCP");
+        deviceProductEntity.setProtocolName("演示协议v1");
+        deviceProductEntity.setState((byte) 1);
+        deviceProductEntity.setCreatorId("1199596756811550720");
+        deviceProductEntity.setMessageProtocol("demo-v1");
+        deviceProductEntity.setName("TCP测试");
+        Map<String, Object> map = new HashMap<>();
+        map.put("tcp_auth_key", "admin");
+        deviceProductEntity.setConfiguration(map);
+        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
+    }
     @Test
     void registerMetadata() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
@@ -64,27 +88,10 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
+        initInstanceEntity(deviceInstanceEntity);
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map = new HashMap<>();
-        map.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map);
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
@@ -131,28 +138,10 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
+        initInstanceEntity(deviceInstanceEntity);
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map = new HashMap<>();
-        map.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
@@ -202,28 +191,10 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
+        initInstanceEntity(deviceInstanceEntity);
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map = new HashMap<>();
-        map.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
@@ -263,28 +234,10 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
+        initInstanceEntity(deviceInstanceEntity);
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map = new HashMap<>();
-        map.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map);
-
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
@@ -309,7 +262,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         Mockito.when(elasticSearchTimeSeriesService.query(Mockito.any(QueryParam.class)))
             .thenReturn(Flux.just(meterTimeSeriesData));
 
-
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
         assertNotNull(storagePolicy);
         storagePolicy.queryEachProperties(DEVICE_ID, new QueryParamEntity(), "temperature")
@@ -327,18 +279,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map = new HashMap<>();
-        map.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
         productInfo.addConfig(DeviceConfigKey.productId.getKey(),"productId")
@@ -397,27 +338,9 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
-
+        initInstanceEntity(deviceInstanceEntity);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
@@ -483,38 +406,17 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
     }
 
-
 //    =======AbstractDeviceDataStoragePolicy父类方法=================
-
     @Test
     void saveDeviceMessage() {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
+        initInstanceEntity(deviceInstanceEntity);
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
@@ -558,19 +460,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         properties.put("temperature", "36");
         message.setProperties(properties);
         storagePolicy.saveDeviceMessage(message);
-//        EventMessage eventMessage = new EventMessage();
-//        eventMessage.setEvent("fire_alarm");
-//        eventMessage.setData("aaa");
-//
-//        deviceProductOperator.updateMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}").subscribe(System.out::println);
-//      Mockito.when(registry.getProduct(Mockito.anyString()))
-//            .thenReturn(Mono.just(deviceProductOperator));
-//
-//        storagePolicy.saveDeviceMessage(eventMessage);
-//
-//
-
-
     }
 
     @Test
@@ -579,29 +468,10 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
 
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
+        initInstanceEntity(deviceInstanceEntity);
 
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
@@ -694,18 +564,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
 
@@ -774,15 +633,7 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
+        initInstanceEntity(deviceInstanceEntity);
 
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         //inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
@@ -816,7 +667,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         TimeSeriesColumnDeviceDataStoragePolicy storagePolicy = new TimeSeriesColumnDeviceDataStoragePolicy(registry, timeSeriesManager, new DeviceDataStorageProperties());
         assertNotNull(storagePolicy);
         storagePolicy.queryDeviceMessageLog(DEVICE_ID, new QueryParamEntity())
-//            .map(PagerResult::getTotal)
             .map(PagerResult::getTotal)
             .as(StepVerifier::create)
             .expectNext(1)
@@ -825,33 +675,12 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
     @Test
     void queryEvent() {
-
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
-
+        initInstanceEntity(deviceInstanceEntity);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
         productInfo.setVersion("1.1.9");
@@ -885,33 +714,12 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
 
     @Test
     void queryEventPage() {
-
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
-
+        initInstanceEntity(deviceInstanceEntity);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
         productInfo.setVersion("1.1.9");
@@ -961,29 +769,9 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
-
+        initInstanceEntity(deviceInstanceEntity);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
         productInfo.setVersion("1.1.9");
@@ -1021,29 +809,9 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
-
+        initInstanceEntity(deviceInstanceEntity);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
         productInfo.setVersion("1.1.9");
@@ -1108,21 +876,8 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
-        //inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).subscribe();
-        //DeviceOperator deviceOperator = inMemoryDeviceRegistry.register(deviceInstanceEntity.toDeviceInfo()).block();
         DeviceProductOperator deviceProductOperator = inMemoryDeviceRegistry.register(deviceProductEntity.toProductInfo()).block();
         assertNotNull(deviceProductOperator);
         Mockito.when(registry.getProduct(Mockito.anyString()))
@@ -1143,29 +898,9 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         DeviceRegistry registry = Mockito.mock(DeviceRegistry.class);
         TimeSeriesManager timeSeriesManager = Mockito.mock(TimeSeriesManager.class);
         DeviceInstanceEntity deviceInstanceEntity = new DeviceInstanceEntity();
-        deviceInstanceEntity.setId(DEVICE_ID);
-        deviceInstanceEntity.setState(DeviceState.online);
-        deviceInstanceEntity.setCreatorName("超级管理员");
-        deviceInstanceEntity.setName("TCP-setvice");
-        deviceInstanceEntity.setProductId(PRODUCT_ID);
-        deviceInstanceEntity.setProductName("TCP测试");
-        deviceInstanceEntity.setDeriveMetadata(
-            "{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[{\"id\":\"test\",\"name\":\"tag\",\"valueType\":{\"type\":\"int\",\"unit\":\"meter\"},\"expands\":{\"readOnly\":\"false\"}}]}"
-        );
-
+        initInstanceEntity(deviceInstanceEntity);
         DeviceProductEntity deviceProductEntity = new DeviceProductEntity();
-        deviceProductEntity.setId(PRODUCT_ID);
-        deviceProductEntity.setTransportProtocol("TCP");
-        deviceProductEntity.setProtocolName("演示协议v1");
-        deviceProductEntity.setState((byte) 1);
-        deviceProductEntity.setCreatorId("1199596756811550720");
-        deviceProductEntity.setMessageProtocol("demo-v1");
-        deviceProductEntity.setName("TCP测试");
-        Map<String, Object> map2 = new HashMap<>();
-        map2.put("tcp_auth_key", "admin");
-        deviceProductEntity.setConfiguration(map2);
-        deviceProductEntity.setMetadata("{\"events\":[{\"id\":\"fire_alarm\",\"name\":\"火警报警\",\"expands\":{\"level\":\"urgent\"},\"valueType\":{\"type\":\"object\",\"properties\":[{\"id\":\"lat\",\"name\":\"纬度\",\"valueType\":{\"type\":\"float\"}},{\"id\":\"point\",\"name\":\"点位\",\"valueType\":{\"type\":\"int\"}},{\"id\":\"lnt\",\"name\":\"经度\",\"valueType\":{\"type\":\"float\"}}]}}],\"properties\":[{\"id\":\"temperature\",\"name\":\"温度\",\"valueType\":{\"type\":\"float\",\"scale\":2,\"unit\":\"celsiusDegrees\"},\"expands\":{\"readOnly\":\"true\",\"source\":\"device\"}}],\"functions\":[],\"tags\":[]}");
-
+        initProductEntity(deviceProductEntity);
         InMemoryDeviceRegistry inMemoryDeviceRegistry = InMemoryDeviceRegistry.create();
         ProductInfo productInfo = deviceProductEntity.toProductInfo();
         productInfo.setVersion("1.1.9");
@@ -1183,8 +918,6 @@ class TimeSeriesColumnDeviceDataStoragePolicyTest {
         assertNotNull(storagePolicy);
         String type = storagePolicy.getPropertyMetadata(deviceMetadata, null).get(0).getValueType().getType();
         assertEquals("float",type);
-
-
         String type1 = storagePolicy.getPropertyMetadata(deviceMetadata, "temperature","test").get(0).getValueType().getType();
         assertEquals("float",type1);
 

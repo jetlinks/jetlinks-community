@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 //@WebFluxTest(MqttClientDebugSubscriptionProvider.class)
 class MqttClientDebugSubscriptionProviderTest{
-
+    private Vertx vertx = Vertx.vertx();
     @Test
     void id() {
         NetworkManager networkManager = Mockito.mock(NetworkManager.class);
@@ -54,7 +54,7 @@ class MqttClientDebugSubscriptionProviderTest{
         assertNotNull(pattern);
     }
 
-    private Vertx vertx = Vertx.vertx();
+
     @Test
     void subscribe() {
         assertNotNull(vertx);

@@ -25,6 +25,7 @@ import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -93,11 +94,15 @@ class DevicePropertyMeasurementTest {
 
     //内部类
     @Test
-    void measurementDimension() throws Exception {
+    void measurement() {
         DeviceDataService dataService = Mockito.mock(DeviceDataService.class);
         PropertyMetadata propertyMetadata = Mockito.mock(PropertyMetadata.class);
         DevicePropertyMeasurement measurement = new DevicePropertyMeasurement(PRODUCT_ID, new BrokerEventBus(), propertyMetadata, dataService);
+        assertNotNull(measurement);
+        measurement(measurement,propertyMetadata,dataService);
+    }
 
+    void measurement(DevicePropertyMeasurement measurement,PropertyMetadata propertyMetadata,DeviceDataService dataService){
         Class<? extends DevicePropertyMeasurement> measurementClass = measurement.getClass();
         Class<?>[] classes = measurementClass.getDeclaredClasses();
         MeasurementDimension dimension = null;
@@ -111,9 +116,22 @@ class DevicePropertyMeasurementTest {
                     .thenReturn(Flux.just(AggregationData.of(map)));
                 Mockito.when(propertyMetadata.getValueType())
                     .thenReturn(IntType.GLOBAL);
-                Constructor constructor = (Constructor) aClass.getDeclaredConstructor(measurementClass);
+                Constructor constructor = null;
+                try {
+                    constructor = (Constructor) aClass.getDeclaredConstructor(measurementClass);
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                }
                 constructor.setAccessible(true);
-                dimension = (MeasurementDimension) constructor.newInstance(measurement);
+                try {
+                    dimension = (MeasurementDimension) constructor.newInstance(measurement);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
                 assertNotNull(dimension);
                 DataType valueType = dimension.getValueType();
                 assertNotNull(valueType);
@@ -142,9 +160,22 @@ class DevicePropertyMeasurementTest {
                 Mockito.when(propertyMetadata.getId())
                     .thenReturn("test");
 
-                Constructor constructor = (Constructor) aClass.getDeclaredConstructor(measurementClass);
+                Constructor constructor = null;
+                try {
+                    constructor = (Constructor) aClass.getDeclaredConstructor(measurementClass);
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                }
                 constructor.setAccessible(true);
-                dimension = (MeasurementDimension) constructor.newInstance(measurement);
+                try {
+                    dimension = (MeasurementDimension) constructor.newInstance(measurement);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
                 assertNotNull(dimension);
                 DataType valueType = dimension.getValueType();
                 assertNotNull(valueType);
@@ -171,9 +202,22 @@ class DevicePropertyMeasurementTest {
 
             if(aClass.getName().contains("RealTimeDevicePropertyDimension")){
 
-                Constructor constructor = (Constructor) aClass.getDeclaredConstructor(measurementClass);
+                Constructor constructor = null;
+                try {
+                    constructor = (Constructor) aClass.getDeclaredConstructor(measurementClass);
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                }
                 constructor.setAccessible(true);
-                dimension = (MeasurementDimension) constructor.newInstance(measurement);
+                try {
+                    dimension = (MeasurementDimension) constructor.newInstance(measurement);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
                 assertNotNull(dimension);
                 DataType valueType = dimension.getValueType();
                 assertNotNull(valueType);
@@ -192,7 +236,5 @@ class DevicePropertyMeasurementTest {
                 value.subscribe();
             }
         }
-
-
     }
 }

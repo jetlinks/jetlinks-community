@@ -1,5 +1,6 @@
 package org.jetlinks.community.rule.engine.web;
 
+import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.service.DeviceAlarmService;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 
 import java.util.Date;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @WebFluxTest(DeviceAlarmController.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -23,8 +25,8 @@ class DeviceAlarmControllerTest extends TestJetLinksController {
     private static final String ID="test";
 
     @Test
-    void getService() {
-        new DeviceAlarmController(Mockito.any(DeviceAlarmService.class)).getService();
+    void service() {
+        assertNull(new DeviceAlarmController(Mockito.mock(DeviceAlarmService.class)).getService());
     }
 
     @Test
