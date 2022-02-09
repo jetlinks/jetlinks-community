@@ -65,39 +65,44 @@ public class GatewayDeviceController {
     @QueryAction
     @QueryOperation(summary = "查询网关设备详情")
     public Mono<PagerResult<GatewayDeviceInfo>> queryGatewayDevice(@Parameter(hidden = true) QueryParamEntity param) {
-        return getGatewayProductList()
-            .flatMap(productIdList ->
-                         param.toNestQuery(query -> query.in(DeviceInstanceEntity::getProductId, productIdList))
-                              .execute(instanceService::queryPager)
-                              .filter(r -> r.getTotal() > 0)
-                              .flatMap(result -> {
-                                  Map<String, DeviceInstanceEntity> mapping =
-                                      result.getData()
-                                            .stream()
-                                            .collect(Collectors.toMap(DeviceInstanceEntity::getId, Function.identity()));
+        return this
+            .getGatewayProductList()
+            .flatMap(productIdList -> param
+                .toNestQuery(query -> query.in(DeviceInstanceEntity::getProductId, productIdList))
+                .execute(instanceService::queryPager)
+                .filter(r -> r.getTotal() > 0)
+                .flatMap(result -> {
+                    Map<String, DeviceInstanceEntity> mapping =
+                        result.getData()
+                              .stream()
+                              .collect(Collectors.toMap(DeviceInstanceEntity::getId, Function.identity()));
 
-                                  //查询所有子设备并按父设备ID分组
-                                  return instanceService.createQuery()
-                                                        .where()
-                                                        .in(DeviceInstanceEntity::getParentId, mapping.keySet())
-                                                        .fetch()
-                                                        .groupBy(DeviceInstanceEntity::getParentId, Integer.MAX_VALUE)
-                                                        .flatMap(group -> {
-                                                            String parentId = group.key();
-                                                            return group
-                                                                .collectList()
-                                                                //将父设备和分组的子设备合并在一起
-                                                                .map(children -> GatewayDeviceInfo.of(mapping.get(parentId), children));
-                                                        })
-                                                        .collectMap(GatewayDeviceInfo::getId)//收集所有有子设备的网关设备信息
-                                                        .defaultIfEmpty(Collections.emptyMap())
-                                                        .flatMapMany(map -> Flux.fromIterable(mapping.values())
-                                                                                .flatMap(ins -> Mono.justOrEmpty(map.get(ins.getId()))
-                                                                                                    //处理没有子设备的网关信息
-                                                                                                    .switchIfEmpty(Mono.fromSupplier(() -> GatewayDeviceInfo.of(ins, Collections.emptyList())))))
-                                                        .collectList()
-                                                        .map(list -> PagerResult.of(result.getTotal(), list, param));
-                              }))
+                    //查询所有子设备并按父设备ID分组
+                    return instanceService
+                        .createQuery()
+                        .where()
+                        .in(DeviceInstanceEntity::getParentId, mapping.keySet())
+                        .fetch()
+                        .groupBy(DeviceInstanceEntity::getParentId, Integer.MAX_VALUE)
+                        .flatMap(group -> {
+                            String parentId = group.key();
+                            return group
+                                .collectList()
+                                //将父设备和分组的子设备合并在一起
+                                .map(children -> GatewayDeviceInfo.of(mapping.get(parentId), children));
+                        })
+                        //收集所有有子设备的网关设备信息
+                        .collectMap(GatewayDeviceInfo::getId)
+                        .defaultIfEmpty(Collections.emptyMap())
+                        .flatMapMany(map -> Flux
+                            .fromIterable(mapping.values())
+                            .flatMap(ins -> Mono
+                                .justOrEmpty(map.get(ins.getId()))
+                                //处理没有子设备的网关信息
+                                .switchIfEmpty(Mono.fromSupplier(() -> GatewayDeviceInfo.of(ins, Collections.emptyList())))))
+                        .collectList()
+                        .map(list -> PagerResult.of(result.getTotal(), list, param));
+                }))
             .defaultIfEmpty(PagerResult.empty());
     }
 
