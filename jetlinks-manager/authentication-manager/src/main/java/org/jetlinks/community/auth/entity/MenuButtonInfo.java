@@ -5,12 +5,14 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiPredicate;
 
 @Getter
 @Setter
-public class MenuButtonInfo {
+public class MenuButtonInfo implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "按钮ID")
     private String id;

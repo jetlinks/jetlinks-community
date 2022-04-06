@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.message;
 
 import lombok.extern.slf4j.Slf4j;
+import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceOperator;
@@ -221,6 +222,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         if (null == message) {
             return Mono.empty();
         }
+        message.addHeader(PropertyConstants.uid, IDGenerator.SNOW_FLAKE_STRING.generate());
         return this
             .getTopic(message)
             .flatMap(topic -> eventBus.publish(topic, message).then())

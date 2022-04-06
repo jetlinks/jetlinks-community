@@ -12,6 +12,8 @@ import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
+import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -127,8 +129,28 @@ public class DeviceDetail {
     public DeviceDetail notActive() {
 
         state = DeviceState.notActive;
+        initTags();
         return this;
     }
+
+    private DeviceMetadata decodeMetadata() {
+        if (StringUtils.isEmpty(metadata)) {
+            return null;
+        }
+        return JetLinksDeviceMetadataCodec.getInstance().doDecode(metadata);
+    }
+
+    private void initTags() {
+        DeviceMetadata metadata = decodeMetadata();
+        if (null != metadata) {
+            with(metadata
+                     .getTags()
+                     .stream()
+                     .map(DeviceTagEntity::of)
+                     .collect(Collectors.toList()));
+        }
+    }
+
 
     public Mono<DeviceDetail> with(DeviceOperator operator, List<ConfigPropertyMetadata> configs) {
         return Mono
@@ -140,7 +162,7 @@ public class DeviceDetail {
                 //T3: 离线时间
                 operator.getOfflineTime().defaultIfEmpty(0L),
                 //T4: 物模型
-                operator.getMetadata(),
+                operator.getMetadata().switchIfEmpty(Mono.fromSupplier(this::decodeMetadata)),
                 //T5: 真实的配置信息
                 operator.getSelfConfigs(configs
                                             .stream()

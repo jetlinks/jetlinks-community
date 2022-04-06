@@ -25,7 +25,9 @@ spring:
 #    database: 3
   #        max-wait: 10s
   r2dbc:
+    # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
     url: r2dbc:postgresql://localhost:5432/jetlinks
+#    url: r2dbc:mysql://localhost:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
     username: postgres
     password: jetlinks
     pool:

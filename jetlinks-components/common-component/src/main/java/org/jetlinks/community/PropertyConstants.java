@@ -16,6 +16,7 @@ public interface PropertyConstants {
     Key<String> deviceName = Key.of("deviceName");
 
     Key<String> productId = Key.of("productId");
+    Key<String> uid = Key.of("_uid");
 
 
     @SuppressWarnings("all")

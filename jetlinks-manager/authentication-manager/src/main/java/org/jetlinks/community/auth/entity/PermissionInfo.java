@@ -6,13 +6,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.Set;
 
 @Getter
 @Setter
 @AllArgsConstructor(staticName = "of")
 @NoArgsConstructor
-public class PermissionInfo {
+public class PermissionInfo implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "权限ID")
     private String permission;

@@ -86,7 +86,13 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                     .onErrorResume(error -> context.onError(error, input))
                     .subscribeOn(Schedulers.parallel())
                 )
-                .map(reply -> context.newRuleData(input.newData(reply.toJson())))
+                .map(reply -> {
+                    RuleData data = context.newRuleData(input.newData(reply.toJson()));
+                    if (config.getResponseHeaders() != null) {
+                        config.getResponseHeaders().forEach(data::setHeader);
+                    }
+                    return data;
+                })
                 ;
         }
 
@@ -145,6 +151,8 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
         private String waitType = "sync";
 
         private String stateOperator = "ignoreOffline";
+
+        private Map<String, Object> responseHeaders;
 
         public Map<String, Object> toMap() {
             Map<String, Object> conf = FastBeanCopier.copy(this, new HashMap<>());

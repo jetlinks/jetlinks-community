@@ -6,10 +6,7 @@ import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationData;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
-import org.jetlinks.community.timeseries.query.Group;
-import org.jetlinks.community.timeseries.query.TimeGroup;
+import org.jetlinks.community.timeseries.query.*;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
@@ -220,9 +217,28 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
             .to(request.to)
             .filter(request.filter)
             .execute(timeSeriesManager.getService(getPropertyTimeSeriesMetric(productId))::aggregation)
-            .groupBy(agg -> agg.getString("time", ""))
+            .groupBy(agg -> agg.getString("time", ""), Integer.MAX_VALUE)
             .flatMap(group -> group
-                .map(AggregationData::asMap)
+                .map(data -> {
+                    Map<String, Object> newMap = new HashMap<>();
+                    newMap.put("time", data.get("time").orElse(null));
+                    for (DeviceDataService.DevicePropertyAggregation property : properties) {
+                        Object val;
+                        if(property.getAgg() == Aggregation.FIRST || property.getAgg()==Aggregation.TOP){
+                            val = data
+                                .get(property.getProperty())
+                                .orElse(null);
+                        }else {
+                            val = data
+                                .get(property.getAlias())
+                                .orElse(null);
+                        }
+                        if (null != val) {
+                            newMap.put(property.getAlias(), val);
+                        }
+                    }
+                    return newMap;
+                })
                 .reduce((a, b) -> {
                     a.putAll(b);
                     return a;
@@ -231,6 +247,7 @@ public class TimeSeriesColumnDeviceDataStoragePolicy extends TimeSeriesDeviceDat
             .sort(Comparator.<AggregationData, Date>comparing(agg -> DateTime
                 .parse(agg.getString("time", ""), formatter)
                 .toDate()).reversed())
+            .take(request.getLimit())
             ;
     }
 

@@ -113,7 +113,6 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
             .flatMap(this::handleConnection)
             .flatMap(tuple3 -> handleAuthResponse(tuple3.getT1(), tuple3.getT2(), tuple3.getT3()))
             .flatMap(tp -> handleAcceptedMqttConnection(tp.getT1(), tp.getT2(), tp.getT3()), Integer.MAX_VALUE)
-            .onErrorContinue((err, obj) -> log.error("处理MQTT连接失败", err))
             .subscriberContext(ReactiveLogger.start("network", mqttServer.getId()))
             .subscribe();
 
@@ -175,9 +174,13 @@ class MqttServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGate
                         connection.onClose(conn -> {
                             counter.decrement();
                             DeviceSession _tmp = sessionManager.getSession(newSession.getId());
-
-                            if (newSession == _tmp || _tmp == null) {
-                                sessionManager.unregister(deviceId);
+                            //只有与创建的会话相同才移除(下线),因为有可能设置了keepOnline,
+                            //或者设备通过其他方式注册了会话,这里断开连接不能影响到以上情况.
+                            if (_tmp != null && _tmp.isWrapFrom(MqttConnectionSession.class)) {
+                                MqttConnectionSession connectionSession = _tmp.unwrap(MqttConnectionSession.class);
+                                if (connectionSession.getConnection() == conn) {
+                                    sessionManager.unregister(deviceId);
+                                }
                             }
                             gatewayMonitor.disconnected();
                             gatewayMonitor.totalConnection(counter.sum());

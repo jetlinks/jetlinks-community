@@ -13,9 +13,8 @@ import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.MenuView;
 import org.jetlinks.community.auth.entity.PermissionInfo;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,7 +54,7 @@ public class MenuGrantRequest {
         detail.setMerge(merge);
         detail.setPriority(priority);
 
-        List<AuthorizationSettingDetail.PermissionInfo> permissionInfos = new ArrayList<>();
+        Map<String, Set<String>> permissionInfos = new ConcurrentHashMap<>();
 
         for (MenuView menu : menus) {
             //平铺
@@ -68,7 +67,9 @@ public class MenuGrantRequest {
                 //自动持有配置的权限
                 if (CollectionUtils.isNotEmpty(entity.getPermissions())) {
                     for (PermissionInfo permission : entity.getPermissions()) {
-                        permissionInfos.add(AuthorizationSettingDetail.PermissionInfo.of(permission.getPermission(), permission.getActions()));
+                        permissionInfos
+                            .computeIfAbsent(permission.getPermission(), ignore -> new HashSet<>())
+                            .addAll(permission.getActions());
                     }
                 }
 
@@ -78,8 +79,12 @@ public class MenuGrantRequest {
                               .ifPresent(buttonInfo -> {
                                   if (CollectionUtils.isNotEmpty(buttonInfo.getPermissions())) {
                                       for (PermissionInfo permission : buttonInfo.getPermissions()) {
+                                          if (CollectionUtils.isEmpty(permission.getActions())) {
+                                              continue;
+                                          }
                                           permissionInfos
-                                              .add(AuthorizationSettingDetail.PermissionInfo.of(permission.getPermission(), permission.getActions()));
+                                              .computeIfAbsent(permission.getPermission(), ignore -> new HashSet<>())
+                                              .addAll(permission.getActions());
                                       }
 
                                   }
@@ -88,7 +93,12 @@ public class MenuGrantRequest {
                 }
             }
         }
-        detail.setPermissionList(permissionInfos);
+        detail.setPermissionList(permissionInfos
+                                     .entrySet()
+                                     .stream()
+                                     .map(e -> AuthorizationSettingDetail.PermissionInfo.of(e.getKey(), e.getValue()))
+                                     .collect(Collectors.toList()));
+
 
         return detail;
     }
