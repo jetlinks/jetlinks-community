@@ -62,7 +62,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 }
                 //定时节点
                 RuleNodeModel timer = new RuleNodeModel();
-                timer.setId("timer:" + (++index));
+                timer.setId("timer:" + (index));
                 timer.setName("定时发送设备消息");
                 timer.setExecutor("timer");
                 timer.setConfiguration(Collections.singletonMap("cron", timerTrigger.getCron()));
@@ -77,7 +77,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 senderDeviceMessageSendConfig.setMessage(msg.toJson());
 
                 RuleNodeModel messageSender = new RuleNodeModel();
-                messageSender.setId("message-sender:" + (++index));
+                messageSender.setId("message-sender:" + (index));
                 messageSender.setName("定时发送设备消息");
                 messageSender.setExecutor("device-message-sender");
                 messageSender.setConfiguration(senderDeviceMessageSendConfig.toMap());
@@ -99,6 +99,7 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
                 toAlarm.setTarget(conditionNode);
                 messageSender.getOutputs().add(toAlarm);
                 conditionNode.getInputs().add(toAlarm);
+                index++;
             }
         }
 
