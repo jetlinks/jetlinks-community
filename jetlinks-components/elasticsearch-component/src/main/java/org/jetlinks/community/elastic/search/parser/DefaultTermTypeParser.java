@@ -1,6 +1,8 @@
 package org.jetlinks.community.elastic.search.parser;
 
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.NestedQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.hswebframework.ezorm.core.param.Term;
@@ -23,6 +25,15 @@ public class DefaultTermTypeParser implements TermTypeParser {
 
 
     private QueryBuilder queryBuilder(Term term) {
-        return TermTypeEnum.of(term.getTermType().trim()).map(e -> e.process(term)).orElse(QueryBuilders.boolQuery());
+        return TermTypeEnum.of(term.getTermType().trim())
+                           .map(e -> createQueryBuilder(e,term))
+                           .orElse(QueryBuilders.boolQuery());
+    }
+
+    static QueryBuilder createQueryBuilder(TermTypeEnum linkTypeEnum, Term term) {
+        if (term.getColumn().contains(".")) {
+            return new NestedQueryBuilder(term.getColumn().split("[.]")[0], linkTypeEnum.process(term), ScoreMode.Max);
+        }
+        return linkTypeEnum.process(term);
     }
 }

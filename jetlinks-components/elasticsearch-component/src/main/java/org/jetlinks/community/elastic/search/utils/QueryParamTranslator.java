@@ -11,8 +11,13 @@ import org.hswebframework.ezorm.core.param.Sort;
 import org.hswebframework.ezorm.core.param.Term;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.community.elastic.search.parser.DefaultLinkTypeParser;
+import org.jetlinks.community.utils.ConverterUtils;
+import org.jetlinks.community.utils.TimeUtils;
+import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.types.DateTimeType;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
@@ -43,12 +48,21 @@ public class QueryParamTranslator {
         Consumer<Term> paramConverter = doNotingParamConverter;
         if (metadata != null) {
             paramConverter = t -> {
-                if (StringUtils.isEmpty(t.getColumn())) {
+                if (ObjectUtils.isEmpty(t.getColumn())) {
                     return;
                 }
                 PropertyMetadata property = metadata.getProperty(t.getColumn());
                 if (null != property) {
                     DataType type = property.getValueType();
+                    t.setValue(
+                        ConverterUtils.tryConvertToList(t.getValue(), val -> {
+                            if (type instanceof DateTimeType) {
+                                return TimeUtils.convertToDate(val).getTime();
+                            } else if (type instanceof Converter) {
+                                return ((Converter<?>) type).convert(val);
+                            }
+                            return val;
+                        }));
                     converter.getOrDefault(type.getId(), defaultDataTypeConverter).accept(type, t);
                 }
             };
@@ -58,6 +72,7 @@ public class QueryParamTranslator {
         }
         return queryBuilders;
     }
+
     public static SearchSourceBuilder convertSearchSourceBuilder(QueryParam queryParam, ElasticSearchIndexMetadata metadata) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         if (queryParam.isPaging()) {

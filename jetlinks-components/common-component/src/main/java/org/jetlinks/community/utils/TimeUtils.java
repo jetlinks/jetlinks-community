@@ -1,15 +1,13 @@
 package org.jetlinks.community.utils;
 
+import org.jetlinks.reactor.ql.utils.CastUtils;
+import reactor.core.publisher.Flux;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-/**
- * 时间工具类
- *
- * @author zhouhao
- */
 public class TimeUtils {
 
 
@@ -54,17 +52,25 @@ public class TimeUtils {
                 duration = duration.plus(plus);
             }
         }
+        if (numIndex != 0) {
+            duration = duration.plus(Duration.ofMillis(new BigDecimal(tmp, 0, numIndex).longValue()));
+        }
         return duration;
     }
+
 
     public static ChronoUnit parseUnit(String expr) {
 
         expr = expr.toUpperCase();
 
+        if (expr.equals("MILLENNIA")) {
+            return ChronoUnit.MILLENNIA;
+        } else if (expr.equals("FOREVER")) {
+            return ChronoUnit.FOREVER;
+        }
         if (!expr.endsWith("S")) {
             expr = expr + "S";
         }
-
         return ChronoUnit.valueOf(expr);
 
     }
@@ -85,4 +91,43 @@ public class TimeUtils {
         return new Date(DateMathParser.parse(expr, System::currentTimeMillis));
     }
 
+    public static Date convertToDate(Object obj) {
+        if(obj instanceof String){
+            return new Date(DateMathParser.parse(String.valueOf(obj), System::currentTimeMillis));
+        }
+        return CastUtils.castDate(obj);
+    }
+
+
+    public static long round(long ts, long interval) {
+        return (ts / interval) * interval;
+    }
+
+    /**
+     * 解析指定时间区间为每一个间隔时间
+     *
+     * @param from     时间从
+     * @param to       时间到
+     * @param interval 间隔
+     * @return 时间
+     */
+    public static Flux<Long> parseIntervalRange(long from, long to, long interval) {
+        return Flux
+            .create(sink -> {
+                long _from = from, _to = to;
+                if (_from > _to) {
+                    _from = to;
+                    _to = from;
+                }
+                _from = round(_from, interval);
+                _to = round(_to, interval);
+                sink.next(_from);
+                while (_from < _to && !sink.isCancelled()) {
+                    _from = _from + interval;
+                    sink.next(_from);
+                }
+                sink.complete();
+            });
+
+    }
 }
