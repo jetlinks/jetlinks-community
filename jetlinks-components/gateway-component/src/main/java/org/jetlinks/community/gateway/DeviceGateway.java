@@ -3,8 +3,11 @@ package org.jetlinks.community.gateway;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.Transport;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.function.BiConsumer;
 
 /**
  * 设备网关,用于统一管理设备连接,状态以及消息收发
@@ -62,5 +65,25 @@ public interface DeviceGateway {
 
     default boolean isAlive() {
         return true;
+    }
+
+    default boolean isStarted() {
+        return getState() == GatewayState.started;
+    }
+
+    default GatewayState getState() {
+        return GatewayState.started;
+    }
+
+    default void doOnStateChange(BiConsumer<GatewayState, GatewayState> listener) {
+
+    }
+
+    default void doOnShutdown(Disposable disposable) {
+        doOnStateChange((before, after) -> {
+            if (after == GatewayState.shutdown) {
+                disposable.dispose();
+            }
+        });
     }
 }

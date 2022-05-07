@@ -9,7 +9,7 @@ import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.server.session.DeviceSessionManager;
+import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;

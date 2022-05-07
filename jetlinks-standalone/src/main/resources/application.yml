@@ -136,7 +136,6 @@ logging:
     io.vertx.mqtt.impl: warn
     #    org.springframework.data.elasticsearch.client: trace
     #    org.elasticsearch: error
-    org.jetlinks.pro.influx: trace
     org.elasticsearch: error
     org.elasticsearch.deprecation.search.aggregations.bucket.histogram: error
   config: classpath:logback-spring.xml

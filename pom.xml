@@ -6,7 +6,7 @@
 
     <groupId>org.jetlinks.community</groupId>
     <artifactId>jetlinks-community</artifactId>
-    <version>1.13.0-SNAPSHOT</version>
+    <version>1.20.0-SNAPSHOT</version>
     <modules>
         <module>jetlinks-components</module>
         <module>jetlinks-manager</module>
@@ -16,23 +16,28 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.3.11.RELEASE</spring.boot.version>
+        <spring.boot.version>2.5.12</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <hsweb.framework.version>4.0.14-SNAPSHOT</hsweb.framework.version>
         <easyorm.version>4.0.14-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.1.10-SNAPSHOT</jetlinks.version>
+        <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Arabba-SR10</r2dbc.version>
-        <vertx.version>4.2.3</vertx.version>
         <netty.version>4.1.73.Final</netty.version>
         <elasticsearch.version>7.11.2</elasticsearch.version>
-        <reactor.excel.version>1.0.1</reactor.excel.version>
-        <reactor.ql.version>1.0.13</reactor.ql.version>
+        <reactor.excel.version>1.0.2</reactor.excel.version>
+        <reactor.ql.version>1.0.14-SNAPSHOT</reactor.ql.version>
+        <californium.version>3.3.1</californium.version>
         <fastjson.version>1.2.70</fastjson.version>
+        <reactor.version>2020.0.6</reactor.version>
+        <vertx.version>4.2.3</vertx.version>
         <log4j.version>2.17.1</log4j.version>
         <logback.version>1.2.9</logback.version>
+        <springdoc.version>1.6.6</springdoc.version>
+        <jackson.version>2.13.2.20220328</jackson.version>
     </properties>
+
 
     <build>
         <finalName>${project.artifactId}</finalName>
@@ -79,12 +84,15 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.0</version>
+                <version>0.8.7</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <propertyName>jacocoArgLine</propertyName>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>report</id>
@@ -126,8 +134,8 @@
                 <dependencies>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
-                        <artifactId>groovy-all</artifactId>
-                        <version>2.4.15</version>
+                        <artifactId>groovy</artifactId>
+                        <version>2.5.14</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -135,43 +143,41 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.17</version>
+                <version>2.22.0</version>
                 <configuration>
                     <includes>
                         <include>**/*Test.java</include>
-                        <include>**/*Test.groovy</include>
                         <include>**/*Tests.java</include>
-                        <include>**/*Test.groovy</include>
-                        <include>**/*Spec.java</include>
+                        <include>**/*TestCase.java</include>
                     </includes>
+                    <argLine>-Dfile.encoding=UTF-8 ${jacocoArgLine}</argLine>
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.0.0</version>
-            </plugin>
         </plugins>
-
     </build>
-
-    <profiles>
-        <profile>
-            <id>build</id>
-            <repositories>
-                <repository>
-                    <id>maven-central</id>
-                    <name>central</name>
-                    <url>https://repo1.maven.org/maven2/</url>
-                </repository>
-            </repositories>
-        </profile>
-    </profiles>
 
     <dependencyManagement>
 
         <dependencies>
+
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-common</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-webflux-core</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-webflux-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
@@ -191,6 +197,33 @@
                 <version>${log4j.version}</version>
             </dependency>
 
+            <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>1.70</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <version>1.70</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.15</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
@@ -200,17 +233,37 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jetlinks</groupId>
-                <artifactId>reactor-ql</artifactId>
-                <version>${reactor.ql.version}</version>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-bom</artifactId>
+                <version>${reactor.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>2.10.4</version>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-dependencies</artifactId>
+                <version>${vertx.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.californium</groupId>
+                <artifactId>californium-core</artifactId>
+                <version>${californium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.californium</groupId>
+                <artifactId>scandium</artifactId>
+                <version>${californium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jetlinks</groupId>
+                <artifactId>reactor-ql</artifactId>
+                <version>${reactor.ql.version}</version>
             </dependency>
 
             <dependency>
@@ -228,7 +281,13 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
             </dependency>
 
             <dependency>
@@ -261,10 +320,20 @@
                 <scope>import</scope>
                 <exclusions>
                     <exclusion>
+                        <groupId>io.r2dbc</groupId>
+                        <artifactId>r2dbc-bom</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-dependencies</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hswebframework.web</groupId>
+                <artifactId>hsweb-core</artifactId>
+                <version>${hsweb.framework.version}</version>
             </dependency>
 
             <dependency>
@@ -279,16 +348,11 @@
                 <version>${jetlinks.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-core</artifactId>
-                <version>${vertx.version}</version>
-            </dependency>
 
             <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-mqtt</artifactId>
-                <version>${vertx.version}</version>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>28.0-jre</version>
             </dependency>
 
             <dependency>
@@ -325,12 +389,21 @@
                 <groupId>org.hswebframework</groupId>
                 <artifactId>hsweb-easy-orm-rdb</artifactId>
                 <version>${easyorm.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.r2dbc</groupId>
+                        <artifactId>r2dbc-bom</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
+
             <dependency>
                 <groupId>org.hswebframework</groupId>
                 <artifactId>hsweb-easy-orm-elasticsearch</artifactId>
                 <version>${easyorm.version}</version>
             </dependency>
+
+
         </dependencies>
     </dependencyManagement>
 
@@ -343,13 +416,35 @@
         </dependency>
 
         <dependency>
-            <groupId>dev.miku</groupId>
-            <artifactId>r2dbc-mysql</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-tools</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>1.16.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.16.2</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -382,7 +477,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.32</version>
         </dependency>
 
         <dependency>
@@ -402,11 +496,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>org.hswebframework</groupId>
-            <artifactId>hsweb-utils</artifactId>
-            <version>3.0.3</version>
-        </dependency>
 
     </dependencies>
 
