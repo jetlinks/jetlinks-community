@@ -76,7 +76,7 @@ hsweb:
         allowed-headers: "*"
         allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
         allowed-origins: ["*"]
-        allow-credentials: true
+#        allow-credentials: true
         max-age: 1800
   dict:
     enum-packages: org.jetlinks
