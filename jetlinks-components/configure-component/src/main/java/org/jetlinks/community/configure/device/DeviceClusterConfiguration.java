@@ -8,6 +8,7 @@ import io.vavr.Lazy;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.crud.annotation.EnableEasyormRepository;
 import org.jetlinks.community.configure.cluster.ClusterProperties;
+import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.core.config.ConfigStorageManager;
@@ -97,5 +98,12 @@ public class DeviceClusterConfiguration {
         return new ClusterDeviceOperationBroker(cluster, sessionManager);
     }
 
+
+    @Bean(initMethod = "init")
+    public DeviceSessionMonitor deviceSessionMonitor(DeviceSessionManager sessionManager,
+                                                     MeterRegistryManager registryManager){
+
+        return new DeviceSessionMonitor(registryManager,sessionManager,"gateway-server-session");
+    }
 
 }
