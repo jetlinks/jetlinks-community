@@ -225,7 +225,8 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
             .collectList()
             .filter(CollectionUtils::isNotEmpty)
             .flatMapMany(metadataList -> this
-                .createSearchRequest(queryParam, metadataList)
+                .createSearchRequest(queryParam.clone().noPaging(), metadataList)
+                .doOnNext(search -> search.source().size(queryParam.getPageSize()))
                 .flatMapMany(restClient::scroll)
                 .map(searchHit -> Tuples.of(metadataList, searchHit))
             );
