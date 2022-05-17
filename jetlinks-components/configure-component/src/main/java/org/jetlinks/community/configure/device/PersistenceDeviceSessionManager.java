@@ -1,14 +1,13 @@
 package org.jetlinks.community.configure.device;
 
-import io.scalecube.services.ServiceCall;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.session.DeviceSessionEvent;
+import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.PersistentSession;
-import org.jetlinks.supports.device.session.MicroserviceDeviceSessionManager;
-import org.jetlinks.supports.scalecube.ExtendedCluster;
+import org.jetlinks.supports.device.session.ClusterDeviceSessionManager;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationContext;
@@ -22,15 +21,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Slf4j
-public class PersistenceDeviceSessionManager extends MicroserviceDeviceSessionManager implements CommandLineRunner, ApplicationContextAware {
+public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager implements CommandLineRunner, ApplicationContextAware {
     private Supplier<DeviceRegistry> registry;
 
     private final ReactiveRepository<PersistentSessionEntity, String> repository;
 
-    public PersistenceDeviceSessionManager(ExtendedCluster cluster,
-                                           ServiceCall serviceCall,
+    public PersistenceDeviceSessionManager(RpcManager rpcManager,
                                            ReactiveRepository<PersistentSessionEntity, String> repository) {
-        super(cluster, serviceCall);
+        super(rpcManager);
         this.repository = repository;
     }
 

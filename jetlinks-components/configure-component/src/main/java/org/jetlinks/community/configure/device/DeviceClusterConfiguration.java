@@ -2,12 +2,8 @@ package org.jetlinks.community.configure.device;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.guava.CaffeinatedGuava;
-import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceInfo;
-import io.vavr.Lazy;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.crud.annotation.EnableEasyormRepository;
-import org.jetlinks.community.configure.cluster.ClusterProperties;
 import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
@@ -17,21 +13,20 @@ import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.DeviceStateChecker;
 import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
+import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.core.server.MessageHandler;
 import org.jetlinks.supports.cluster.ClusterDeviceOperationBroker;
 import org.jetlinks.supports.cluster.ClusterDeviceRegistry;
-import org.jetlinks.supports.device.session.MicroserviceDeviceSessionManager;
 import org.jetlinks.supports.scalecube.ExtendedCluster;
 import org.jetlinks.supports.server.ClusterSendToDeviceMessageHandler;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableEasyormRepository("org.jetlinks.community.configure.device.PersistentSessionEntity")
 @ConditionalOnBean(ProtocolSupports.class)
 public class DeviceClusterConfiguration {
@@ -68,19 +63,11 @@ public class DeviceClusterConfiguration {
     }
 
     @Bean(initMethod = "init", destroyMethod = "shutdown")
-    @ConditionalOnBean(Microservices.class)
-    public PersistenceDeviceSessionManager deviceSessionManager(ExtendedCluster cluster,
-                                                                Microservices microservices,
+    @ConditionalOnBean(RpcManager.class)
+    public PersistenceDeviceSessionManager deviceSessionManager(RpcManager rpcManager,
                                                                 ReactiveRepository<PersistentSessionEntity, String> repository) {
 
-        return new PersistenceDeviceSessionManager(cluster, microservices.call(),repository);
-    }
-
-    @Bean
-    public ServiceInfo sessionManagerServiceInfo(ClusterProperties properties, ApplicationContext context) {
-        return MicroserviceDeviceSessionManager
-            .createService(properties.getId(),
-                           Lazy.of(() -> context.getBean(MicroserviceDeviceSessionManager.class)));
+        return new PersistenceDeviceSessionManager(rpcManager,repository);
     }
 
     @ConditionalOnBean(DecodedClientMessageHandler.class)

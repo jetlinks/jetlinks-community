@@ -20,6 +20,7 @@ import org.jetlinks.supports.scalecube.ExtendedCluster;
 import org.jetlinks.supports.scalecube.ExtendedClusterImpl;
 import org.jetlinks.supports.scalecube.ExtendedServiceDiscoveryImpl;
 import org.jetlinks.supports.scalecube.event.ScalecubeEventBusBroker;
+import org.jetlinks.supports.scalecube.rpc.ScalecubeRpcManager;
 import org.nustaq.serialization.FSTConfiguration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -33,7 +34,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.stream.Collectors;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(ClusterProperties.class)
 @ConditionalOnClass(ExtendedCluster.class)
 public class ClusterConfiguration {
@@ -104,27 +105,14 @@ public class ClusterConfiguration {
         return new RedisClusterManager(properties.getName(), properties.getId(), template);
     }
 
-    @Bean
-    public Microservices microservices(ExtendedCluster cluster,
-                                       ObjectProvider<ServiceInfo> infos,
-                                       ObjectProvider<ServiceProvider> providers,
-                                       ClusterProperties properties) {
-        return Microservices
-            .builder()
-            .services(infos.stream().toArray())
-            .services(call -> providers
-                .stream()
-                .flatMap(provider -> provider.provide(call).stream())
-                .collect(Collectors.toList()))
-            .serviceRegistry(new DynamicServiceRegistry())
-            .discovery(serviceEndpoint -> new ExtendedServiceDiscoveryImpl(cluster, serviceEndpoint))
+    @Bean(initMethod = "startAwait", destroyMethod = "stopAwait")
+    public ScalecubeRpcManager rpcManager(ExtendedCluster cluster, ClusterProperties properties) {
+        return new ScalecubeRpcManager(cluster,
+                                       () -> new RSocketServiceTransport()
+                                           .serverTransportFactory(RSocketServerTransportFactory.tcp(properties.getRpcPort()))
+                                           .clientTransportFactory(RSocketClientTransportFactory.tcp()))
             .externalHost(properties.getRpcExternalHost())
-            .externalPort(properties.getRpcExternalPort())
-            .transport(() -> new RSocketServiceTransport()
-                .serverTransportFactory(RSocketServerTransportFactory.tcp(properties.getRpcPort()))
-                .clientTransportFactory(RSocketClientTransportFactory.tcp())
-            )
-            .startAwait();
+            .externalPort(properties.getRpcExternalPort());
     }
 
 }
