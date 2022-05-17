@@ -1,7 +1,6 @@
 package org.jetlinks.community.notify.email.embedded;
 
 import com.alibaba.fastjson.JSONObject;
-import io.vavr.control.Try;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -11,14 +10,17 @@ import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.utils.ExpressionUtils;
 import org.hswebframework.web.utils.TemplateParser;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.core.Values;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
-import org.jetlinks.core.Values;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.springframework.core.io.*;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamSource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -33,8 +35,6 @@ import reactor.core.scheduler.Schedulers;
 import javax.annotation.Nonnull;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -131,17 +131,24 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
                 return Flux
                     .fromIterable(template.getAttachments().entrySet())
                     .flatMap(entry -> Mono.zip(Mono.just(entry.getKey()), convertResource(entry.getValue())))
-                    .doOnNext(tp -> Try
-                        .run(() -> helper.addAttachment(MimeUtility.encodeText(tp.getT1()), tp.getT2())).get())
-                    .then(Flux
-                              .fromIterable(template.getImages().entrySet())
-                              .flatMap(entry -> Mono.zip(Mono.just(entry.getKey()), convertResource(entry.getValue())))
-                              .doOnNext(tp -> Try
-                                  .run(() -> helper.addInline(tp.getT1(), tp.getT2(), MediaType.APPLICATION_OCTET_STREAM_VALUE))
-                                  .get())
-                              .then()
-                    ).thenReturn(mimeMessage)
-                    ;
+                    .flatMap(tp2 -> Mono
+                        .fromCallable(() -> {
+                            //添加附件
+                            helper.addAttachment(MimeUtility.encodeText(tp2.getT1()), tp2.getT2());
+                            return helper;
+                        }))
+                    .then(
+                        Flux.fromIterable(template.getImages().entrySet())
+                            .flatMap(entry -> Mono.zip(Mono.just(entry.getKey()), convertResource(entry.getValue())))
+                            .flatMap(tp2 -> Mono
+                                .fromCallable(() -> {
+                                    //添加图片资源
+                                    helper.addInline(tp2.getT1(), tp2.getT2(), MediaType.APPLICATION_OCTET_STREAM_VALUE);
+                                    return helper;
+                                }))
+                            .then()
+                    )
+                    .thenReturn(mimeMessage);
 
             })
             .flatMap(Function.identity())
@@ -159,8 +166,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
                 .get()
                 .uri(resource)
                 .accept(MediaType.APPLICATION_OCTET_STREAM)
-                .exchange()
-                .flatMap(rep -> rep.bodyToMono(Resource.class));
+                .exchangeToMono(res->res.bodyToMono(Resource.class));
         } else if (resource.startsWith("data:") && resource.contains(";base64,")) {
             String base64 = resource.substring(resource.indexOf(";base64,") + 8);
             return Mono.just(
@@ -186,7 +192,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
         if (StringUtils.isEmpty(subject) || StringUtils.isEmpty(text)) {
             throw new BusinessException("模板内容错误，text 或者 subject 不能为空.");
         }
-        String sendText = render(text, context, true);
+        String sendText = render(text, context,true);
         List<EmailTemplate.Attachment> tempAttachments = template.getAttachments();
         Map<String, String> attachments = new HashMap<>();
 
