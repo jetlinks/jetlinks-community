@@ -26,7 +26,7 @@
         <r2dbc.version>Arabba-SR10</r2dbc.version>
         <netty.version>4.1.73.Final</netty.version>
         <elasticsearch.version>7.11.2</elasticsearch.version>
-        <reactor.excel.version>1.0.2</reactor.excel.version>
+        <reactor.excel.version>1.0.3-SNAPSHOT</reactor.excel.version>
         <reactor.ql.version>1.0.14-SNAPSHOT</reactor.ql.version>
         <californium.version>3.3.1</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
@@ -408,6 +408,18 @@
     </dependencyManagement>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
