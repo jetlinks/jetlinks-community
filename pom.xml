@@ -29,7 +29,7 @@
         <elasticsearch.version>7.11.2</elasticsearch.version>
         <reactor.excel.version>1.0.1</reactor.excel.version>
         <reactor.ql.version>1.0.13</reactor.ql.version>
-        <fastjson.version>1.2.70</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <log4j.version>2.17.1</log4j.version>
         <logback.version>1.2.9</logback.version>
     </properties>
