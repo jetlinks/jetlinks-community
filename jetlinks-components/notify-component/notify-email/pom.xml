@@ -44,6 +44,13 @@
             <version>1.14.3</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>io-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+
     </dependencies>
 
 </project>

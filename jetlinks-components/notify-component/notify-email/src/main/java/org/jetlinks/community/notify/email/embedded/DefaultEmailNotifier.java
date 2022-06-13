@@ -11,6 +11,7 @@ import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.utils.ExpressionUtils;
 import org.hswebframework.web.utils.TemplateParser;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
@@ -19,6 +20,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.core.io.*;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -67,17 +69,23 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     @Setter
     private boolean enableFileSystemAttachment = Boolean.getBoolean("email.attach.local-file.enabled");
 
+    private final FileManager fileManager;
+
     public static Scheduler scheduler = Schedulers.elastic();
 
-    public DefaultEmailNotifier(NotifierProperties properties, TemplateManager templateManager) {
+    public DefaultEmailNotifier(NotifierProperties properties,
+                                TemplateManager templateManager,
+                                FileManager fileManager) {
         this(properties.getId(),
              new JSONObject(properties.getConfiguration()).toJavaObject(DefaultEmailProperties.class),
-             templateManager);
+             templateManager,
+             fileManager);
     }
 
     public DefaultEmailNotifier(String id,
                                 DefaultEmailProperties properties,
-                                TemplateManager templateManager) {
+                                TemplateManager templateManager,
+                                FileManager fileManager) {
         super(templateManager);
         ValidatorUtils.tryValidate(properties);
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
@@ -89,6 +97,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
         this.notifierId = id;
         this.sender = properties.getSender();
         this.javaMailSender = mailSender;
+        this.fileManager = fileManager;
     }
 
     @Nonnull
@@ -152,7 +161,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     }
 
 
-    protected Mono<InputStreamSource> convertResource(String resource) {
+    protected Mono<? extends InputStreamSource> convertResource(String resource) {
         if (resource.startsWith("http")) {
             return WebClient
                 .create()
@@ -166,12 +175,17 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
             return Mono.just(
                 new ByteArrayResource(Base64.decodeBase64(base64))
             );
-        } else if (enableFileSystemAttachment) {
+        } else if (enableFileSystemAttachment && resource.contains("/")) {
             return Mono.just(
                 new FileSystemResource(resource)
             );
         } else {
-            throw new UnsupportedOperationException("不支持的文件地址:" + resource);
+            return fileManager
+                .read(resource)
+                .as(DataBufferUtils::join)
+                .map(dataBuffer -> new ByteArrayResource(dataBuffer.asByteBuffer().array()))
+                .onErrorResume(e-> Mono.error(()-> new UnsupportedOperationException("不支持的文件地址:" + resource)))
+                .switchIfEmpty(Mono.error(()-> new UnsupportedOperationException("不支持的文件地址:" + resource)));
         }
     }
 
