@@ -106,6 +106,10 @@ hsweb:
     type: redis
     redis:
       local-cache-type: guava
+file:
+  manager:
+    storage-base-path: ./data/files
+
 jetlinks:
   server-id: ${spring.application.name}:${server.port} #设备服务网关服务ID,不同服务请设置不同的ID
   logging:
