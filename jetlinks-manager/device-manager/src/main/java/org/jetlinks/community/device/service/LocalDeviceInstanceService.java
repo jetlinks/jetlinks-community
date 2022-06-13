@@ -1,9 +1,11 @@
 package org.jetlinks.community.device.service;
 
+import com.google.common.collect.Maps;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.compress.utils.Lists;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveUpdate;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
@@ -34,6 +36,7 @@ import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.utils.CyclicDependencyChecker;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -508,5 +511,40 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     }
 
+    /**
+     * 批量删除设备,同时在注册中心取消激活已激活设备，并解绑子设备和网关.
+     *
+     * @param id 设备ID
+     * @return 删除结果数
+     */
+    public Mono<Integer> deleteDevice(Publisher<String> id) {
+        Map<String, List<String>> childrenDevices = Maps.newHashMap();
+        return this.findById(Flux.from(id))
+            .flatMap(device -> {
+                Mono<Void> todoMono = Mono.empty();
+                if (device.getState() != DeviceState.notActive) {
+                    todoMono = registry.unregisterDevice(device.getId());
+                }
+                if (!StringUtils.isEmpty(device.getParentId())) {
+                    childrenDevices.getOrDefault(device.getParentId(), Lists.newArrayList()).add(device.getId());
+                }
+                return todoMono.thenReturn(device.getId());
+            })
+            .as(this::deleteById)
+            .zipWith(Mono.from(Flux.defer(() ->
+                Flux.fromIterable(childrenDevices.entrySet()).flatMap(entry -> {
+                    String parentId = entry.getKey();
+                    List<String> children = entry.getValue();
+                    return Flux.fromIterable(children).flatMap(childrenId -> registry.getDevice(childrenId)
+                            .flatMap(device -> device.removeConfig(DeviceConfigKey.parentGatewayId.getKey()).thenReturn(device))
+                        )
+                        .as(childrenDeviceOp -> registry.getDevice(parentId)
+                        .flatMap(gwOperator -> gwOperator.getProtocol()
+                            .flatMap(protocolSupport -> protocolSupport.onChildUnbind(gwOperator, childrenDeviceOp))
+                        ));
+                })
+            )))
+            .map(Tuple2::getT1);
+    }
 
 }

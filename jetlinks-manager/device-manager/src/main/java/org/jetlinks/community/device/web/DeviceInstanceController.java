@@ -345,7 +345,7 @@ public class DeviceInstanceController implements
     @Operation(summary = "批量删除设备")
     public Mono<Integer> deleteBatch(@RequestBody Mono<List<String>> idList) {
         return idList.flatMapMany(Flux::fromIterable)
-                     .as(service::deleteById);
+                     .as(service::deleteDevice);
     }
 
     /**
