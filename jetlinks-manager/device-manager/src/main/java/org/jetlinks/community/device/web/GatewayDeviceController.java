@@ -137,7 +137,14 @@ public class GatewayDeviceController {
                     .execute()
                     .then(registry
                               .getDevice(deviceId)
-                              .flatMap(operator -> operator.setConfig(DeviceConfigKey.parentGatewayId, gatewayId)))
+                              .flatMap(operator -> operator.setConfig(DeviceConfigKey.parentGatewayId, gatewayId))
+                    ).then(registry.getDevice(gatewayId)
+                        .flatMap(gwOperator -> gwOperator.getProtocol()
+                            .map(protocolSupport -> protocolSupport.onChildBind(gwOperator,
+                                Flux.from(registry.getDevice(deviceId)))
+                            )
+                        )
+                    )
             )
             .then(getGatewayInfo(gatewayId));
     }
@@ -168,9 +175,14 @@ public class GatewayDeviceController {
                               .getDevice(id)
                               .flatMap(operator -> operator.setConfig(DeviceConfigKey.parentGatewayId, gatewayId)))
                           .then()
-                ))
-            .then(getGatewayInfo(gatewayId));
-
+                ).then(registry.getDevice(gatewayId)
+                    .flatMap(gwOperator -> gwOperator.getProtocol()
+                        .map(protocolSupport -> protocolSupport.onChildBind(gwOperator,
+                            Flux.fromIterable(deviceIdList).flatMap(id -> registry.getDevice(id)))
+                        )
+                    )
+                )
+            ).then(getGatewayInfo(gatewayId));
     }
 
     @PostMapping("/{gatewayId}/unbind/{deviceId}")
@@ -188,6 +200,13 @@ public class GatewayDeviceController {
             .flatMap(i -> registry
                 .getDevice(deviceId)
                 .flatMap(operator -> operator.removeConfig(DeviceConfigKey.parentGatewayId.getKey())))
+            .then(registry.getDevice(gatewayId)
+                .flatMap(gwOperator -> gwOperator.getProtocol()
+                    .map(protocolSupport -> protocolSupport.onChildUnbind(gwOperator,
+                        Flux.from(registry.getDevice(deviceId)))
+                    )
+                )
+            )
             .then(getGatewayInfo(gatewayId));
     }
 
