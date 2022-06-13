@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>easyexcel</artifactId>
-            <version>3.1.0</version>
+            <version>3.1.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.poi</groupId>
@@ -43,9 +43,27 @@
         </dependency>
 
         <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-core</artifactId>
             <version>${hsweb.framework.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.hswebframework.web</groupId>
+            <artifactId>hsweb-commons-crud</artifactId>
+            <version>${hsweb.framework.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetlinks</groupId>
+            <artifactId>jetlinks-supports</artifactId>
+            <version>${jetlinks.version}</version>
+        </dependency>
+
     </dependencies>
 </project>
