@@ -16,26 +16,27 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.5.12</spring.boot.version>
+        <spring.boot.version>2.5.13</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <hsweb.framework.version>4.0.14-SNAPSHOT</hsweb.framework.version>
-        <easyorm.version>4.0.14-SNAPSHOT</easyorm.version>
+        <easyorm.version>4.1.0-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
         <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
-        <r2dbc.version>Arabba-SR10</r2dbc.version>
-        <netty.version>4.1.73.Final</netty.version>
+        <r2dbc.version>Borca-SR1</r2dbc.version>
+        <netty.version>4.1.74.Final</netty.version>
         <elasticsearch.version>7.11.2</elasticsearch.version>
         <reactor.excel.version>1.0.3-SNAPSHOT</reactor.excel.version>
         <reactor.ql.version>1.0.14-SNAPSHOT</reactor.ql.version>
         <californium.version>3.3.1</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <reactor.version>2020.0.6</reactor.version>
-        <vertx.version>4.2.3</vertx.version>
+        <reactor.version>2020.0.18</reactor.version>
+        <vertx.version>4.3.0</vertx.version>
         <log4j.version>2.17.1</log4j.version>
         <logback.version>1.2.9</logback.version>
         <springdoc.version>1.6.6</springdoc.version>
         <jackson.version>2.13.2.20220328</jackson.version>
+        <opentelemetry.version>1.13.0</opentelemetry.version>
     </properties>
 
 
@@ -160,6 +161,12 @@
     <dependencyManagement>
 
         <dependencies>
+
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>2.1.210</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.springdoc</groupId>
@@ -352,7 +359,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>28.0-jre</version>
+                <version>31.0.1-jre</version>
             </dependency>
 
             <dependency>
@@ -396,13 +403,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-
-            <dependency>
-                <groupId>org.hswebframework</groupId>
-                <artifactId>hsweb-easy-orm-elasticsearch</artifactId>
-                <version>${easyorm.version}</version>
-            </dependency>
-
 
         </dependencies>
     </dependencyManagement>
@@ -448,14 +448,14 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.16.2</version>
+            <version>1.17.2</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.16.2</version>
+            <version>1.17.2</version>
             <scope>test</scope>
         </dependency>
 

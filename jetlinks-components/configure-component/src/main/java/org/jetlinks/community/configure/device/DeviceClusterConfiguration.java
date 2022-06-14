@@ -2,9 +2,7 @@ package org.jetlinks.community.configure.device;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.guava.CaffeinatedGuava;
-import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.crud.annotation.EnableEasyormRepository;
-import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.core.config.ConfigStorageManager;
@@ -27,7 +25,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableEasyormRepository("org.jetlinks.community.configure.device.PersistentSessionEntity")
 @ConditionalOnBean(ProtocolSupports.class)
 public class DeviceClusterConfiguration {
 
@@ -64,10 +61,9 @@ public class DeviceClusterConfiguration {
 
     @Bean(initMethod = "init", destroyMethod = "shutdown")
     @ConditionalOnBean(RpcManager.class)
-    public PersistenceDeviceSessionManager deviceSessionManager(RpcManager rpcManager,
-                                                                ReactiveRepository<PersistentSessionEntity, String> repository) {
+    public PersistenceDeviceSessionManager deviceSessionManager(RpcManager rpcManager) {
 
-        return new PersistenceDeviceSessionManager(rpcManager,repository);
+        return new PersistenceDeviceSessionManager(rpcManager);
     }
 
     @ConditionalOnBean(DecodedClientMessageHandler.class)
@@ -85,12 +81,5 @@ public class DeviceClusterConfiguration {
         return new ClusterDeviceOperationBroker(cluster, sessionManager);
     }
 
-
-    @Bean(initMethod = "init")
-    public DeviceSessionMonitor deviceSessionMonitor(DeviceSessionManager sessionManager,
-                                                     MeterRegistryManager registryManager){
-
-        return new DeviceSessionMonitor(registryManager,sessionManager,"gateway-server-session");
-    }
 
 }

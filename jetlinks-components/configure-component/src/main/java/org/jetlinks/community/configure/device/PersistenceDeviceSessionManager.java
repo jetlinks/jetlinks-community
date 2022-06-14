@@ -1,12 +1,17 @@
 package org.jetlinks.community.configure.device;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.h2.mvstore.MVMap;
+import org.h2.mvstore.MVStore;
+import org.h2.mvstore.MVStoreException;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.session.DeviceSessionEvent;
 import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.PersistentSession;
+import org.jetlinks.community.configure.cluster.Cluster;
 import org.jetlinks.supports.device.session.ClusterDeviceSessionManager;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.CommandLineRunner;
@@ -17,6 +22,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -24,18 +30,46 @@ import java.util.function.Supplier;
 public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager implements CommandLineRunner, ApplicationContextAware {
     private Supplier<DeviceRegistry> registry;
 
-    private final ReactiveRepository<PersistentSessionEntity, String> repository;
+    private MVMap<String, PersistentSessionEntity> repository;
 
-    public PersistenceDeviceSessionManager(RpcManager rpcManager,
-                                           ReactiveRepository<PersistentSessionEntity, String> repository) {
+    @Getter
+    @Setter
+    private String filePath;
+
+    public PersistenceDeviceSessionManager(RpcManager rpcManager) {
         super(rpcManager);
-        this.repository = repository;
+    }
+
+    static MVMap<String, PersistentSessionEntity> initStore(String file) {
+        File f = new File(file);
+        if (!f.getParentFile().exists()) {
+            f.getParentFile().mkdirs();
+        }
+        Supplier<MVMap<String, PersistentSessionEntity>>
+            builder = () -> {
+            MVStore store = new MVStore.Builder()
+                .fileName(file)
+                .cacheSize(1)
+                .open();
+            return store.openMap("device-session");
+        };
+        try {
+            return builder.get();
+        } catch (MVStoreException e) {
+            log.warn("load session from {} error,delete it and init.", file, e);
+            f.delete();
+            return builder.get();
+        }
     }
 
     @Override
     public void init() {
-
         super.init();
+        if (filePath == null) {
+            filePath = "./data/sessions-" + Cluster.id();
+        }
+        repository = initStore(filePath);
+
         disposable.add(
             listenEvent(event -> {
                 //移除持久化的会话
@@ -59,6 +93,7 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
             .map(session -> session.unwrap(PersistentSession.class))
             .as(this::tryPersistent)
             .block();
+        repository.store.close();
     }
 
     @Override
@@ -68,7 +103,6 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
         }
         if ((old == null || !old.isWrapFrom(PersistentSession.class))
             && newSession.isWrapFrom(PersistentSession.class)) {
-            //todo 批量处理?
             return this
                 .tryPersistent(Flux.just(newSession.unwrap(PersistentSession.class)))
                 .thenReturn(newSession);
@@ -81,7 +115,10 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
         return sessions
             .flatMap(session -> PersistentSessionEntity.from(getCurrentServerId(), session, registry.get()))
             .distinct(PersistentSessionEntity::getId)
-            .as(repository::save)
+            .doOnNext(e -> {
+                log.debug("persistent device[{}] session", e.getDeviceId());
+                repository.put(e.getDeviceId(), e);
+            })
             .onErrorResume(err -> {
                 log.warn("persistent session error", err);
                 return Mono.empty();
@@ -104,17 +141,14 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
     }
 
     Mono<Void> removePersistentSession(PersistentSession session) {
-        return repository
-            .deleteById(session.getId())
-            .then();
+        repository.remove(session.getId());
+        return Mono.empty();
     }
 
     @Override
     public void run(String... args) throws Exception {
-        repository
-            .createQuery()
-            .where(PersistentSessionEntity::getServerId, getCurrentServerId())
-            .fetch()
+
+        Flux.fromIterable(repository.values())
             .flatMap(this::resumeSession)
             .subscribe();
     }

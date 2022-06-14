@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.codec.binary.Base64;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
-import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.server.session.DeviceSessionProvider;
@@ -15,16 +14,10 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
 import javax.persistence.Column;
-import javax.persistence.Index;
-import javax.persistence.Table;
 import java.sql.JDBCType;
 
 @Getter
 @Setter
-@Table(name = "dev_sessions", indexes = @Index(
-    name = "idx_session_server", columnList = "server_id"
-))
-@Comment("设备会话信息表")
 @Generated
 public class PersistentSessionEntity extends GenericEntity<String> {
 
