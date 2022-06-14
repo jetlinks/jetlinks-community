@@ -542,7 +542,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     @EventListener
     public void deletedHandle(EntityDeletedEvent<DeviceInstanceEntity> event) {
         event.async(
-            this.deletedHandle(Flux.fromIterable(event.getEntity()))
+            this.deletedHandle(Flux.fromIterable(event.getEntity())).then()
         );
     }
 }
