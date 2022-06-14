@@ -446,7 +446,8 @@ public class DeviceInstanceController implements
     @SaveAction
     @Operation(summary = "导入设备数据")
     public Flux<ImportDeviceInstanceResult> doBatchImportByProduct(@PathVariable @Parameter(description = "产品ID") String productId,
-                                                                   @RequestParam @Parameter(description = "文件地址,支持csv,xlsx文件格式") String fileUrl) {
+                                                                   @RequestParam(required = false) @Parameter(description = "文件地址,支持csv,xlsx文件格式") String fileUrl,
+                                                                   @RequestParam(required = false) @Parameter(description = "文件Id") String fileId) {
         return Authentication
             .currentReactive()
             .flatMapMany(auth -> {
@@ -461,8 +462,7 @@ public class DeviceInstanceController implements
                     .getDeviceProductDetail(productId)
                     .map(tp4 -> Tuples.of(new DeviceWrapper(tp4.getT3().getTags(), tp4.getT4()), tp4.getT1()))
                     .flatMapMany(wrapper -> importExportService
-                        .getInputStream(fileUrl)
-                        .flatMapMany(inputStream -> read(inputStream, FileUtils.getExtension(fileUrl), wrapper.getT1()))
+                        .readData(fileUrl, fileId, wrapper.getT1())
                         .doOnNext(info -> info.setProductName(wrapper.getT2().getName()))
                     )
                     .map(info -> {

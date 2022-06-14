@@ -1,6 +1,7 @@
 package org.jetlinks.community.notify.email.embedded;
 
 import com.alibaba.fastjson.JSON;
+import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
@@ -22,8 +23,12 @@ public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateP
 
     private final TemplateManager templateManager;
 
-    public DefaultEmailNotifierProvider(TemplateManager templateManager) {
+    private final FileManager fileManager;
+
+    public DefaultEmailNotifierProvider(TemplateManager templateManager,
+                                        FileManager fileManager) {
         this.templateManager = templateManager;
+        this.fileManager = fileManager;
     }
 
     @Nonnull
@@ -111,7 +116,7 @@ public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateP
     @Nonnull
     @Override
     public Mono<DefaultEmailNotifier> createNotifier(@Nonnull NotifierProperties properties) {
-        return Mono.fromSupplier(() -> new DefaultEmailNotifier(properties, templateManager));
+        return Mono.fromSupplier(() -> new DefaultEmailNotifier(properties, templateManager, fileManager));
     }
 
     @Override
