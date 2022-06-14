@@ -516,22 +516,18 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      */
     private Flux<Void> deletedHandle(Flux<DeviceInstanceEntity> devices) {
         return devices.filter(device -> !StringUtils.isEmpty(device.getParentId()))
-            .collectMultimap(DeviceInstanceEntity::getParentId, DeviceInstanceEntity::getId)
-            .flatMapMany(map ->
-                Flux.fromIterable(map.entrySet()).flatMap(entry -> {
-                    String parentId = entry.getKey();
-                    Collection<String> children = entry.getValue();
-                    // 解绑子设备和网关
-                    return Flux.fromIterable(children).flatMap(childrenId -> registry.getDevice(childrenId)
+            .groupBy(DeviceInstanceEntity::getParentId)
+            .flatMap(group -> {
+                String parentId = group.key();
+                return group.flatMap(child -> registry.getDevice(child.getId())
                             .flatMap(device -> device.removeConfig(DeviceConfigKey.parentGatewayId.getKey()).thenReturn(device))
+                    )
+                    .as(childrenDeviceOp -> registry.getDevice(parentId)
+                        .flatMap(gwOperator -> gwOperator.getProtocol()
+                            .flatMap(protocolSupport -> protocolSupport.onChildUnbind(gwOperator, childrenDeviceOp))
                         )
-                        .as(childrenDeviceOp -> registry.getDevice(parentId)
-                            .flatMap(gwOperator -> gwOperator.getProtocol()
-                                .flatMap(protocolSupport -> protocolSupport.onChildUnbind(gwOperator, childrenDeviceOp))
-                            )
-                        );
-                })
-            )
+                    );
+            })
             // 取消激活
             .thenMany(
                 devices.filter(device -> device.getState() != DeviceState.notActive)
