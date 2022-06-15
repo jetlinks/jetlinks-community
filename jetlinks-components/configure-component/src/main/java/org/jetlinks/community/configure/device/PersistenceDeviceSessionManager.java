@@ -66,7 +66,10 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
     public void init() {
         super.init();
         if (filePath == null) {
-            filePath = "./data/sessions-" + Cluster.id();
+            filePath = "./data/sessions-" + (Cluster
+                .id()
+                .replace(":", "_")
+                .replace("/", ""));
         }
         repository = initStore(filePath);
 
