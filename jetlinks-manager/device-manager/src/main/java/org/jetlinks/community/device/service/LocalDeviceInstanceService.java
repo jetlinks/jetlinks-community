@@ -8,6 +8,7 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveUpdate;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.ezorm.rdb.operator.dml.Terms;
+import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
@@ -33,7 +34,9 @@ import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.utils.CyclicDependencyChecker;
 import org.reactivestreams.Publisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -508,5 +511,34 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     }
 
+    /**
+     * 删除设备后置处理,解绑子设备和网关,并在注册中心取消激活已激活设备.
+     */
+    private Flux<Void> deletedHandle(Flux<DeviceInstanceEntity> devices) {
+        return devices.filter(device -> !StringUtils.isEmpty(device.getParentId()))
+            .groupBy(DeviceInstanceEntity::getParentId)
+            .flatMap(group -> {
+                String parentId = group.key();
+                return group.flatMap(child -> registry.getDevice(child.getId())
+                            .flatMap(device -> device.removeConfig(DeviceConfigKey.parentGatewayId.getKey()).thenReturn(device))
+                    )
+                    .as(childrenDeviceOp -> registry.getDevice(parentId)
+                        .flatMap(gwOperator -> gwOperator.getProtocol()
+                            .flatMap(protocolSupport -> protocolSupport.onChildUnbind(gwOperator, childrenDeviceOp))
+                        )
+                    );
+            })
+            // 取消激活
+            .thenMany(
+                devices.filter(device -> device.getState() != DeviceState.notActive)
+                    .flatMap(device -> registry.unregisterDevice(device.getId()))
+            );
+    }
 
+    @EventListener
+    public void deletedHandle(EntityDeletedEvent<DeviceInstanceEntity> event) {
+        event.async(
+            this.deletedHandle(Flux.fromIterable(event.getEntity())).then()
+        );
+    }
 }
