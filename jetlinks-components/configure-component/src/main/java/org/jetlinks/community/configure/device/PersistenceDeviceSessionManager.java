@@ -96,6 +96,7 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
             .map(session -> session.unwrap(PersistentSession.class))
             .as(this::tryPersistent)
             .block();
+        repository.store.compactMoveChunks();
         repository.store.close();
     }
 
