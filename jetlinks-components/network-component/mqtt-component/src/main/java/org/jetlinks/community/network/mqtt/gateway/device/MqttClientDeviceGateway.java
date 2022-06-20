@@ -112,7 +112,7 @@ public class MqttClientDeviceGateway extends AbstractDeviceGateway {
                         return helper
                             .handleDeviceMessage(message,
                                                  device -> createDeviceSession(device, mqttClient),
-                                                 DeviceGatewayHelper.applySessionKeepaliveTimeout(message, timeoutRef::get),
+                                                 ignore->{},
                                                  () -> log.warn("无法从MQTT[{}]消息中获取设备信息:{}", mqttMessage.print(), message)
                             );
                     })

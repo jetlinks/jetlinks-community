@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 @Slf4j(topic = "system.tcp.gateway")
-class TcpServerDeviceGateway extends AbstractDeviceGateway implements  MonitorSupportDeviceGateway {
+class TcpServerDeviceGateway extends AbstractDeviceGateway implements MonitorSupportDeviceGateway {
 
     private final TcpServer tcpServer;
 
@@ -161,13 +161,11 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements  MonitorSu
             return helper
                 .handleDeviceMessage(message,
                                      device -> new TcpDeviceSession(device, client, getTransport(), monitor),
-                                     DeviceGatewayHelper
-                                         .applySessionKeepaliveTimeout(message, keepaliveTimeout::get)
-                                         .andThen(session -> {
-                                             TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
-                                             deviceSession.setClient(client);
-                                             sessionRef.set(deviceSession);
-                                         }),
+                                     session -> {
+                                         TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
+                                         deviceSession.setClient(client);
+                                         sessionRef.set(deviceSession);
+                                     },
                                      () -> log.warn("TCP{}: The device[{}] in the message body does not exist:{}", address, message.getDeviceId(), message)
                 )
                 .thenReturn(message);
@@ -190,7 +188,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements  MonitorSu
     }
 
     private void doStart() {
-        if ( disposable != null) {
+        if (disposable != null) {
             disposable.dispose();
         }
         disposable = tcpServer
@@ -214,7 +212,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements  MonitorSu
 
     @Override
     protected Mono<Void> doShutdown() {
-        if(disposable!=null){
+        if (disposable != null) {
             disposable.dispose();
         }
         return Mono.empty();
