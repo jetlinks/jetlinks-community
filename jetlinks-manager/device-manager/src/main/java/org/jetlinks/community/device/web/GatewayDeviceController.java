@@ -140,7 +140,7 @@ public class GatewayDeviceController {
                               .flatMap(operator -> operator.setConfig(DeviceConfigKey.parentGatewayId, gatewayId))
                     ).then(registry.getDevice(gatewayId)
                         .flatMap(gwOperator -> gwOperator.getProtocol()
-                            .map(protocolSupport -> protocolSupport.onChildBind(gwOperator,
+                            .flatMap(protocolSupport -> protocolSupport.onChildBind(gwOperator,
                                 Flux.from(registry.getDevice(deviceId)))
                             )
                         )
@@ -177,7 +177,7 @@ public class GatewayDeviceController {
                           .then()
                 ).then(registry.getDevice(gatewayId)
                     .flatMap(gwOperator -> gwOperator.getProtocol()
-                        .map(protocolSupport -> protocolSupport.onChildBind(gwOperator,
+                        .flatMap(protocolSupport -> protocolSupport.onChildBind(gwOperator,
                             Flux.fromIterable(deviceIdList).flatMap(id -> registry.getDevice(id)))
                         )
                     )
@@ -202,7 +202,7 @@ public class GatewayDeviceController {
                 .flatMap(operator -> operator.removeConfig(DeviceConfigKey.parentGatewayId.getKey())))
             .then(registry.getDevice(gatewayId)
                 .flatMap(gwOperator -> gwOperator.getProtocol()
-                    .map(protocolSupport -> protocolSupport.onChildUnbind(gwOperator,
+                    .flatMap(protocolSupport -> protocolSupport.onChildUnbind(gwOperator,
                         Flux.from(registry.getDevice(deviceId)))
                     )
                 )
