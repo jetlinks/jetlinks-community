@@ -26,6 +26,13 @@ import java.io.File;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+/**
+ * 支持会话持久化的设备会话管理器,将{@link PersistentSession}持久化到本地磁盘,在服务器重启后
+ * 将会对会话进行恢复.
+ *
+ * @author zhouhao
+ * @since 1.20
+ */
 @Slf4j
 public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager implements CommandLineRunner, ApplicationContextAware {
     private Supplier<DeviceRegistry> registry;
