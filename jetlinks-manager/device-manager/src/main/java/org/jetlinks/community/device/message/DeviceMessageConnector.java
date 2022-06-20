@@ -6,16 +6,20 @@ import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.session.DeviceSessionEvent;
+import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.*;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.server.MessageHandler;
-import org.jetlinks.core.server.session.DeviceSessionManager;
+import org.jetlinks.core.server.session.ChildrenDeviceSession;
+import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +41,10 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         PropertyConstants.deviceName.getKey(),
         PropertyConstants.orgId.getKey()
     };
-    private final static BiConsumer<Throwable, Object> doOnError = (error, val) -> DeviceMessageConnector.log.error(error.getMessage(), error);
+    private final static Function<Throwable, Mono<Void>> doOnError = (error) -> {
+        DeviceMessageConnector.log.error(error.getMessage(), error);
+        return Mono.empty();
+    };
     private final static Function<DeviceOperator, Mono<Values>> configGetter = operator -> operator.getSelfConfigs(allConfigHeader);
     private final static Values emptyValues = Values.of(Collections.emptyMap());
     private static final BiConsumer<Message, StringBuilder>[] fastTopicBuilder;
@@ -135,27 +142,48 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         this.registry = registry;
         this.eventBus = eventBus;
         this.messageHandler = messageHandler;
-        sessionManager
-            .onRegister()
-            .flatMap(session -> {
-                DeviceOnlineMessage message = new DeviceOnlineMessage();
-                message.setDeviceId(session.getDeviceId());
-                message.setTimestamp(session.connectTime());
-                return onMessage(message);
-            })
-            .onErrorContinue(doOnError)
-            .subscribe();
+        sessionManager.listenEvent(event->{
+            if(event.isClusterExists()){
+                return Mono.empty();
+            }
+            //从会话管理器里监听会话注册,转发为设备上线消息
+            if(event.getType()== DeviceSessionEvent.Type.unregister){
+                return this.handleSessionUnregister(event.getSession());
+            }
+            //从会话管理器里监听会话注销,转发为设备离线消息
+            if(event.getType()== DeviceSessionEvent.Type.register){
+                return this.handleSessionRegister(event.getSession());
+            }
+            return Mono.empty();
+        });
+    }
 
-        sessionManager
-            .onUnRegister()
-            .flatMap(session -> {
-                DeviceOfflineMessage message = new DeviceOfflineMessage();
-                message.setDeviceId(session.getDeviceId());
-                message.setTimestamp(System.currentTimeMillis());
-                return onMessage(message);
-            })
-            .onErrorContinue(doOnError)
-            .subscribe();
+
+    protected Mono<Void> handleSessionRegister(DeviceSession session) {
+        DeviceOnlineMessage message = new DeviceOnlineMessage();
+        message.addHeader("from", "session-register");
+        //添加客户端地址信息
+        message.addHeader("address", session.getClientAddress().map(InetSocketAddress::toString).orElse(""));
+        message.setDeviceId(session.getDeviceId());
+        message.setTimestamp(System.currentTimeMillis());
+        return this
+            .onMessage(message)
+            .onErrorResume(doOnError);
+    }
+
+    protected Mono<Void> handleSessionUnregister(DeviceSession session) {
+        DeviceOfflineMessage message = new DeviceOfflineMessage();
+        message.addHeader("from", "session-unregister");
+        message.setDeviceId(session.getDeviceId());
+        message.setTimestamp(System.currentTimeMillis());
+        //子设备会话时添加上级设备id到header中，下游可以直接通过获取header来获取上级设备id
+        if (session.isWrapFrom(ChildrenDeviceSession.class)) {
+            ChildrenDeviceSession child = session.unwrap(ChildrenDeviceSession.class);
+            message.addHeader("parentId", child.getParentDevice().getDeviceId());
+        }
+        return this
+            .onMessage(message)
+            .onErrorResume(doOnError);
     }
 
     public static Flux<String> createDeviceMessageTopic(DeviceRegistry deviceRegistry, Message message) {
@@ -226,7 +254,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         return this
             .getTopic(message)
             .flatMap(topic -> eventBus.publish(topic, message).then())
-            .onErrorContinue(doOnError)
+            .onErrorResume(doOnError)
             .then();
     }
 

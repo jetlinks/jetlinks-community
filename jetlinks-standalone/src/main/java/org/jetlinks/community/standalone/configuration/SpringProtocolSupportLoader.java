@@ -21,11 +21,14 @@ public class SpringProtocolSupportLoader implements ProtocolSupportLoader,BeanPo
     public void register(ProtocolSupportLoaderProvider provider) {
         this.providers.put(provider.getProvider(), provider);
     }
+
     @Override
     public Mono<? extends ProtocolSupport> load(ProtocolSupportDefinition definition) {
-        return Mono.justOrEmpty(this.providers.get(definition.getProvider()))
+        return Mono
+            .justOrEmpty(this.providers.get(definition.getProvider()))
             .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("unsupported provider:" + definition.getProvider())))
-            .flatMap((provider) -> provider.load(definition));
+            .flatMap((provider) -> provider.load(definition))
+            .map(loaded -> new RenameProtocolSupport(definition.getId(), definition.getName(), definition.getDescription(), loaded));
     }
 
     @Override

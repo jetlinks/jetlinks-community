@@ -45,7 +45,9 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
     }
 
     protected Mono<Void> doCreateIndex(ElasticSearchIndexMetadata metadata) {
-        return client.createIndex(createIndexRequest(metadata));
+        return client
+            .createIndex(createIndexRequest(metadata))
+            .then();
     }
 
     protected Mono<Void> doPutIndex(ElasticSearchIndexMetadata metadata,

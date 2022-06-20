@@ -14,10 +14,10 @@ public class DelimitedPayloadParserBuilder extends VertxPayloadParserBuilder {
     @Override
     protected RecordParser createParser(ValueObject config) {
 
-        return RecordParser.newDelimited(StringEscapeUtils
-                                             .unescapeJava(config
-                                                               .getString("delimited")
-                                                               .orElseThrow(() -> new IllegalArgumentException("delimited can not be null"))));
+        return RecordParser.newDelimited(StringEscapeUtils.unescapeJava(
+            config
+                .getString("delimited")
+                .orElseThrow(() -> new IllegalArgumentException("delimited can not be null"))));
     }
 
 

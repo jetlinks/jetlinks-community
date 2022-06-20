@@ -76,7 +76,7 @@ hsweb:
         allowed-headers: "*"
         allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
         allowed-origins: ["*"]
-        allow-credentials: true
+#        allow-credentials: true
         max-age: 1800
   dict:
     enum-packages: org.jetlinks
@@ -106,6 +106,10 @@ hsweb:
     type: redis
     redis:
       local-cache-type: guava
+file:
+  manager:
+    storage-base-path: ./data/files
+
 jetlinks:
   server-id: ${spring.application.name}:${server.port} #设备服务网关服务ID,不同服务请设置不同的ID
   logging:
@@ -136,7 +140,6 @@ logging:
     io.vertx.mqtt.impl: warn
     #    org.springframework.data.elasticsearch.client: trace
     #    org.elasticsearch: error
-    org.jetlinks.pro.influx: trace
     org.elasticsearch: error
     org.elasticsearch.deprecation.search.aggregations.bucket.histogram: error
   config: classpath:logback-spring.xml

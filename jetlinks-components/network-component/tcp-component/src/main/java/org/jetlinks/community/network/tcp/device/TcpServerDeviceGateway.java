@@ -1,11 +1,8 @@
 package org.jetlinks.community.network.tcp.device;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.logger.ReactiveLogger;
-import org.jetlinks.community.gateway.DeviceGateway;
-import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.gateway.monitor.GatewayMonitors;
+import org.jetlinks.community.gateway.AbstractDeviceGateway;
 import org.jetlinks.community.gateway.monitor.MonitorSupportDeviceGateway;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
@@ -18,39 +15,29 @@ import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.DefaultTransport;
-import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.DeviceGatewayContext;
 import org.jetlinks.core.server.session.DeviceSession;
-import org.jetlinks.core.server.session.DeviceSessionManager;
+import org.jetlinks.core.trace.DeviceTracer;
+import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import reactor.core.Disposable;
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 @Slf4j(topic = "system.tcp.gateway")
-class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGateway {
+class TcpServerDeviceGateway extends AbstractDeviceGateway implements MonitorSupportDeviceGateway {
 
-    @Getter
-    private final String id;
-
-    /**
-     * 维护所有创建的tcp server
-     */
     private final TcpServer tcpServer;
 
     private final String protocol;
@@ -59,25 +46,13 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
 
     private final DeviceRegistry registry;
 
-    private final DeviceSessionManager sessionManager;
+    private final org.jetlinks.core.device.session.DeviceSessionManager sessionManager;
 
-    private final DeviceGatewayMonitor gatewayMonitor;
-
-    /**
-     * 连接计数器
-     */
     private final LongAdder counter = new LongAdder();
 
-    private final EmitterProcessor<Message> processor = EmitterProcessor.create(false);
-
-    private final FluxSink<Message> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
-
-    private final AtomicBoolean started = new AtomicBoolean();
-    private final DeviceGatewayHelper helper;
-    /**
-     * 数据流控开关
-     */
     private Disposable disposable;
+
+    private final DeviceGatewayHelper helper;
 
     public TcpServerDeviceGateway(String id,
                                   String protocol,
@@ -86,8 +61,7 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                                   DecodedClientMessageHandler clientMessageHandler,
                                   DeviceSessionManager sessionManager,
                                   TcpServer tcpServer) {
-        this.gatewayMonitor = GatewayMonitors.getDeviceGatewayMonitor(id);
-        this.id = id;
+        super(id);
         this.protocol = protocol;
         this.registry = deviceRegistry;
         this.supports = supports;
@@ -100,90 +74,22 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
         return supports.getProtocol(protocol);
     }
 
-    /**
-     * 当前总链接
-     *
-     * @return 当前总链接
-     */
     @Override
     public long totalConnection() {
         return counter.sum();
     }
 
-    /**
-     * 传输协议
-     *
-     * @return {@link org.jetlinks.core.message.codec.DefaultTransport}
-     */
     @Override
     public Transport getTransport() {
         return DefaultTransport.TCP;
     }
 
-    /**
-     * 网络类型
-     *
-     * @return {@link  org.jetlinks.community.network.DefaultNetworkType}
-     */
     @Override
     public NetworkType getNetworkType() {
         return DefaultNetworkType.TCP_SERVER;
     }
 
-    /**
-     * 启动网关
-     */
-    private void doStart() {
-        if (started.getAndSet(true) || disposable != null) {
-            return;
-        }
-        // 从TCPServer中获取连接的client
-        // client实例化为TcpConnection之后处理消息
-        disposable = tcpServer
-            .handleConnection()
-            .publishOn(Schedulers.parallel())
-            .flatMap(client -> new TcpConnection(client).accept(), Integer.MAX_VALUE)
-            .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))
-            .subscriberContext(ReactiveLogger.start("network", tcpServer.getId()))
-            .subscribe(
-                ignore -> {
-                },
-                error -> log.error(error.getMessage(), error)
-            );
-    }
 
-    @Override
-    public Flux<Message> onMessage() {
-        return processor;
-    }
-
-    @Override
-    public Mono<Void> pause() {
-        return Mono.fromRunnable(() -> started.set(false));
-    }
-
-    @Override
-    public Mono<Void> startup() {
-        return Mono.fromRunnable(this::doStart);
-    }
-
-    @Override
-    public Mono<Void> shutdown() {
-        return Mono.fromRunnable(() -> {
-            started.set(false);
-            disposable.dispose();
-            disposable = null;
-        });
-    }
-
-    @Override
-    public boolean isAlive() {
-        return started.get();
-    }
-
-    /**
-     * TCP 客户端连接
-     */
     class TcpConnection implements DeviceGatewayContext {
         final TcpClient client;
         final AtomicReference<Duration> keepaliveTimeout = new AtomicReference<>();
@@ -193,51 +99,27 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
         TcpConnection(TcpClient client) {
             this.client = client;
             this.address = client.getRemoteAddress();
-            gatewayMonitor.totalConnection(counter.sum());
+            monitor.totalConnection(counter.sum());
             client.onDisconnect(() -> {
                 counter.decrement();
-                gatewayMonitor.disconnected();
-                gatewayMonitor.totalConnection(counter.sum());
+                monitor.disconnected();
+                monitor.totalConnection(counter.sum());
+                //check session
+                sessionManager
+                    .getSession(client.getId())
+                    .subscribe();
             });
-            gatewayMonitor.connected();
-            DeviceSession session = sessionManager.getSession(client.getId());
-            if (session == null) {
-                session = new UnknownTcpDeviceSession(client.getId(), client, getTransport()) {
-                    @Override
-                    public Mono<Boolean> send(EncodedMessage encodedMessage) {
-                        return super.send(encodedMessage).doOnSuccess(r -> gatewayMonitor.sentMessage());
-                    }
-
-                    @Override
-                    public void setKeepAliveTimeout(Duration timeout) {
-                        keepaliveTimeout.set(timeout);
-                        client.setKeepAliveTimeout(timeout);
-                    }
-
-                    @Override
-                    public Optional<InetSocketAddress> getClientAddress() {
-                        return Optional.of(address);
-                    }
-                };
-            }
-
-            sessionRef.set(session);
-
+            monitor.connected();
+            sessionRef.set(new UnknownTcpDeviceSession(client.getId(), client, getTransport()));
         }
 
-        /**
-         * 接收消息
-         *
-         * @return void
-         */
         Mono<Void> accept() {
             return getProtocol()
                 .flatMap(protocol -> protocol.onClientConnect(getTransport(), client, this))
                 .then(
                     client
                         .subscribe()
-                        .filter(tcp -> started.get())
-                        .publishOn(Schedulers.parallel())
+                        .filter(tcp -> isStarted())
                         .flatMap(this::handleTcpMessage)
                         .onErrorResume((err) -> {
                             log.error(err.getMessage(), err);
@@ -249,50 +131,44 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
                 .doOnCancel(client::shutdown);
         }
 
-        /**
-         * 处理TCP消息 ==>> 设备消息
-         *
-         * @param message tcp消息
-         * @return void
-         */
         Mono<Void> handleTcpMessage(TcpMessage message) {
+            long time = System.nanoTime();
             return getProtocol()
                 .flatMap(pt -> pt.getMessageCodec(getTransport()))
                 .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(sessionRef.get(), message, registry)))
                 .cast(DeviceMessage.class)
-                .doOnNext(msg -> gatewayMonitor.receivedMessage())
-                .flatMap(this::handleDeviceMessage)
-                .doOnEach(ReactiveLogger.onError(err -> log.error("处理TCP[{}]消息失败:\n{}",
-                    address,
-                    message
-                    , err)))
+                .flatMap(msg -> this
+                    .handleDeviceMessage(msg)
+                    .as(MonoTracer.create(
+                        DeviceTracer.SpanName.decode(msg.getDeviceId()),
+                        builder -> {
+                            builder.setAttribute(DeviceTracer.SpanKey.message, msg.toString());
+                            builder.setStartTimestamp(time, TimeUnit.NANOSECONDS);
+                        })))
+                .doOnEach(ReactiveLogger
+                              .onError(err -> log.error("Handle TCP[{}] message failed:\n{}",
+                                                        address,
+                                                        message
+                                  , err)))
+
                 .onErrorResume((err) -> Mono.fromRunnable(client::reset))
+                .subscribeOn(Schedulers.parallel())
                 .then();
         }
 
-        /**
-         * 处理设备消息
-         *
-         * @param message 设备消息
-         * @return void
-         */
-        Mono<Void> handleDeviceMessage(DeviceMessage message) {
-            if (processor.hasDownstreams()) {
-                sink.next(message);
-            }
+        Mono<DeviceMessage> handleDeviceMessage(DeviceMessage message) {
+            monitor.receivedMessage();
             return helper
                 .handleDeviceMessage(message,
-                    device -> new TcpDeviceSession(device, client, getTransport(), gatewayMonitor),
-                    DeviceGatewayHelper
-                        .applySessionKeepaliveTimeout(message, keepaliveTimeout::get)
-                        .andThen(session -> {
-                            TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
-                            deviceSession.setClient(client);
-                            sessionRef.set(deviceSession);
-                        }),
-                    () -> log.warn("无法从tcp[{}]消息中获取设备信息:{}", address, message)
+                                     device -> new TcpDeviceSession(device, client, getTransport(), monitor),
+                                     session -> {
+                                         TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
+                                         deviceSession.setClient(client);
+                                         sessionRef.set(deviceSession);
+                                     },
+                                     () -> log.warn("TCP{}: The device[{}] in the message body does not exist:{}", address, message.getDeviceId(), message)
                 )
-                .then();
+                .thenReturn(message);
         }
 
         @Override
@@ -307,7 +183,43 @@ class TcpServerDeviceGateway implements DeviceGateway, MonitorSupportDeviceGatew
 
         @Override
         public Mono<Void> onMessage(DeviceMessage message) {
-            return handleDeviceMessage(message);
+            return handleDeviceMessage(message).then();
         }
+    }
+
+    private void doStart() {
+        if (disposable != null) {
+            disposable.dispose();
+        }
+        disposable = tcpServer
+            .handleConnection()
+            .publishOn(Schedulers.parallel())
+            .flatMap(client -> new TcpConnection(client)
+                         .accept()
+                         .onErrorResume(err -> {
+                             log.error("handle tcp client[{}] error", client.getRemoteAddress(), err);
+                             return Mono.empty();
+                         })
+                , Integer.MAX_VALUE)
+            .onErrorContinue((err, obj) -> log.error(err.getMessage(), err))
+            .contextWrite(ReactiveLogger.start("network", tcpServer.getId()))
+            .subscribe(
+                ignore -> {
+                },
+                error -> log.error(error.getMessage(), error)
+            );
+    }
+
+    @Override
+    protected Mono<Void> doShutdown() {
+        if (disposable != null) {
+            disposable.dispose();
+        }
+        return Mono.empty();
+    }
+
+    @Override
+    protected Mono<Void> doStartup() {
+        return Mono.fromRunnable(this::doStart);
     }
 }

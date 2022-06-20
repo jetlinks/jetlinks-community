@@ -25,8 +25,8 @@ import org.springframework.data.elasticsearch.client.reactive.RequestCreator;
 import org.springframework.data.elasticsearch.client.reactive.WebClientProvider;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.tcp.ProxyProvider;
 import reactor.netty.tcp.TcpClient;
+import reactor.netty.transport.ProxyProvider;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
@@ -55,13 +55,14 @@ public class ElasticSearchConfiguration {
         this.properties = properties;
         this.embeddedProperties = embeddedProperties;
     }
+
     @Bean
     @SneakyThrows
     public DefaultReactiveElasticsearchClient reactiveElasticsearchClient(ClientConfiguration clientConfiguration) {
         if (embeddedProperties.isEnabled()) {
             log.debug("starting embedded elasticsearch on {}:{}",
-                embeddedProperties.getHost(),
-                embeddedProperties.getPort());
+                      embeddedProperties.getHost(),
+                      embeddedProperties.getPort());
 
             new EmbeddedElasticSearch(embeddedProperties).start();
         }
@@ -69,7 +70,9 @@ public class ElasticSearchConfiguration {
         WebClientProvider provider = getWebClientProvider(clientConfiguration);
 
         HostProvider hostProvider = HostProvider.provider(provider, clientConfiguration.getHeadersSupplier(),
-            clientConfiguration.getEndpoints().toArray(new InetSocketAddress[0]));
+                                                          clientConfiguration
+                                                              .getEndpoints()
+                                                              .toArray(new InetSocketAddress[0]));
 
         DefaultReactiveElasticsearchClient client =
             new DefaultReactiveElasticsearchClient(hostProvider, new RequestCreator() {
@@ -93,8 +96,8 @@ public class ElasticSearchConfiguration {
 
         if (!soTimeout.isNegative()) {
             tcpClient = tcpClient.doOnConnected(connection -> connection //
-                .addHandlerLast(new ReadTimeoutHandler(soTimeout.toMillis(), TimeUnit.MILLISECONDS))
-                .addHandlerLast(new WriteTimeoutHandler(soTimeout.toMillis(), TimeUnit.MILLISECONDS)));
+                                                                         .addHandlerLast(new ReadTimeoutHandler(soTimeout.toMillis(), TimeUnit.MILLISECONDS))
+                                                                         .addHandlerLast(new WriteTimeoutHandler(soTimeout.toMillis(), TimeUnit.MILLISECONDS)));
         }
 
         if (clientConfiguration.getProxy().isPresent()) {
@@ -104,7 +107,8 @@ public class ElasticSearchConfiguration {
             if (hostPort.length != 2) {
                 throw new IllegalArgumentException("invalid proxy configuration " + proxy + ", should be \"host:port\"");
             }
-            tcpClient = tcpClient.proxy(proxyOptions -> proxyOptions.type(ProxyProvider.Proxy.HTTP).host(hostPort[0])
+            tcpClient = tcpClient.proxy(proxyOptions -> proxyOptions
+                .type(ProxyProvider.Proxy.HTTP).host(hostPort[0])
                 .port(Integer.parseInt(hostPort[1])));
         }
 
@@ -118,7 +122,7 @@ public class ElasticSearchConfiguration {
             if (sslContext.isPresent()) {
                 httpClient = httpClient.secure(sslContextSpec -> {
                     sslContextSpec.sslContext(new JdkSslContext(sslContext.get(), true, null, IdentityCipherSuiteFilter.INSTANCE,
-                        ApplicationProtocolConfig.DISABLED, ClientAuth.NONE, null, false));
+                                                                ApplicationProtocolConfig.DISABLED, ClientAuth.NONE, null, false));
                 });
             } else {
                 httpClient = httpClient.secure();
@@ -135,7 +139,7 @@ public class ElasticSearchConfiguration {
         }
 
         provider = provider.withDefaultHeaders(clientConfiguration.getDefaultHeaders()) //
-            .withWebClientConfigurer(clientConfiguration.getWebClientConfigurer());
+                           .withWebClientConfigurer(clientConfiguration.getWebClientConfigurer());
         return provider;
     }
 
@@ -144,8 +148,8 @@ public class ElasticSearchConfiguration {
     public ElasticRestClient elasticRestClient() {
 
         RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(properties.createHosts())
-            .setRequestConfigCallback(properties::applyRequestConfigBuilder)
-            .setHttpClientConfigCallback(properties::applyHttpAsyncClientBuilder));
+                                                                       .setRequestConfigCallback(properties::applyRequestConfigBuilder)
+                                                                       .setHttpClientConfigCallback(properties::applyHttpAsyncClientBuilder));
         return new ElasticRestClient(client, client);
     }
 

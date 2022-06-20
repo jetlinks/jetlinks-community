@@ -1,60 +1,57 @@
 package org.jetlinks.community.io.file;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
+import io.scalecube.services.annotations.Service;
+import io.scalecube.services.annotations.ServiceMethod;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.exception.BusinessException;
+import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.core.rpc.RpcManager;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.NettyDataBufferFactory;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpRange;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.core.io.buffer.*;
 import org.springframework.http.codec.multipart.FilePart;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.File;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
 
 
-public class DefaultFileManager implements FileManager {
+public class ClusterFileManager implements FileManager {
 
     private final FileProperties properties;
 
-    private final DataBufferFactory bufferFactory = new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
+    private final NettyDataBufferFactory bufferFactory = new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
 
     private final ReactiveRepository<FileEntity, String> repository;
 
+    private final RpcManager rpcManager;
 
-    private final WebClient client;
-
-    public DefaultFileManager(WebClient.Builder builder,
+    public ClusterFileManager(RpcManager rpcManager,
                               FileProperties properties,
                               ReactiveRepository<FileEntity, String> repository) {
         new File(properties.getStorageBasePath()).mkdirs();
         this.properties = properties;
-        this.client = builder
-            .clone()
-            .filter(this.properties.createWebClientRute())
-            .build();
+        this.rpcManager = rpcManager;
         this.repository = repository;
+        rpcManager.registerService(new ServiceImpl());
     }
 
     @Override
@@ -69,27 +66,6 @@ public class DefaultFileManager implements FileManager {
         return dataBuffer;
     }
 
-    public Mono<FileInfo> saveFileToCluster(String name, Flux<DataBuffer> stream) {
-        String serverId = properties.selectServerNode();
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.asyncPart("file", stream, DataBuffer.class)
-               .headers(header -> header
-                   .setContentDisposition(ContentDisposition
-                                              .builder("form-data")
-                                              .name("file")
-                                              .filename(name)
-                                              .build()))
-               .contentType(MediaType.APPLICATION_OCTET_STREAM);
-        return client
-            .post()
-            .uri("http://" + serverId + "/file/" +serverId)
-            .attribute(FileProperties.serverNodeIdAttr, serverId)
-            .contentType(MediaType.MULTIPART_FORM_DATA)
-            .body(BodyInserters.fromMultipartData(builder.build()))
-            .retrieve()
-            .bodyToMono(FileInfo.class);
-    }
-
     public Mono<FileInfo> doSaveFile(String name, Flux<DataBuffer> stream) {
         LocalDate now = LocalDate.now();
         FileInfo fileInfo = new FileInfo();
@@ -102,7 +78,7 @@ public class DefaultFileManager implements FileManager {
         MessageDigest md5 = DigestUtils.getMd5Digest();
         MessageDigest sha256 = DigestUtils.getSha256Digest();
         String storageBasePath = properties.getStorageBasePath();
-        String serverNodeId = properties.getServerNodeId();
+        String serverNodeId = rpcManager.currentServerId();
         Path path = Paths.get(storageBasePath, storagePath);
         path.toFile().getParentFile().mkdirs();
         return stream
@@ -130,12 +106,7 @@ public class DefaultFileManager implements FileManager {
 
     @Override
     public Mono<FileInfo> saveFile(String name, Flux<DataBuffer> stream) {
-        if (properties.getClusterRute().isEmpty()
-            || properties.getClusterRute().containsKey(properties.getServerNodeId())) {
-            return doSaveFile(name, stream);
-        }
-        //配置里集群,但是并不支持本节点,则保存到其他节点
-        return saveFileToCluster(name, stream);
+        return doSaveFile(name, stream);
     }
 
     @Override
@@ -150,24 +121,25 @@ public class DefaultFileManager implements FileManager {
             .read(new FileSystemResource(Paths.get(properties.getStorageBasePath(), filePath)),
                   position,
                   bufferFactory,
-                  properties.getReadBufferSize());
+                  (int) properties.getReadBufferSize().toBytes())
+            .onErrorMap(NoSuchFileException.class, e -> new NotFoundException());
     }
 
     private Flux<DataBuffer> readFile(FileEntity file, long position) {
-        if (Objects.equals(file.getServerNodeId(), properties.getServerNodeId())) {
+        if (Objects.equals(file.getServerNodeId(), rpcManager.currentServerId())) {
             return readFile(file.getStoragePath(), position);
         }
         return readFromAnotherServer(file, position);
     }
 
     protected Flux<DataBuffer> readFromAnotherServer(FileEntity file, long position) {
-        return client
-            .get()
-            .uri("http://" + file.getServerNodeId() + "/file/{serverNodeId}/{fileId}", file.getServerNodeId(), file.getId())
-            .attribute(FileProperties.serverNodeIdAttr, file.getServerNodeId())
-            .headers(header -> header.setRange(Collections.singletonList(HttpRange.createByteRange(position))))
-            .retrieve()
-            .bodyToFlux(DataBuffer.class);
+
+        return rpcManager
+            .getService(file.getServerNodeId(), Service.class)
+            .switchIfEmpty(Mono.error(NotFoundException::new))
+            .flatMapMany(service -> service.read(new ReadRequest(file.getId(), position)))
+            .<DataBuffer>map(bufferFactory::wrap)
+            .doOnDiscard(PooledDataBuffer.class, DataBufferUtils::release);
     }
 
     @Override
@@ -179,6 +151,7 @@ public class DefaultFileManager implements FileManager {
     public Flux<DataBuffer> read(String id, long position) {
         return repository
             .findById(id)
+            .switchIfEmpty(Mono.error(NotFoundException::new))
             .flatMapMany(file -> readFile(file, position));
     }
 
@@ -186,6 +159,7 @@ public class DefaultFileManager implements FileManager {
     public Flux<DataBuffer> read(String id, Function<ReaderContext, Mono<Void>> beforeRead) {
         return repository
             .findById(id)
+            .switchIfEmpty(Mono.error(NotFoundException::new))
             .flatMapMany(file -> {
                 DefaultReaderContext context = new DefaultReaderContext(file.toInfo(), 0);
                 return beforeRead
@@ -210,4 +184,35 @@ public class DefaultFileManager implements FileManager {
         }
     }
 
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ReadRequest {
+        private String id;
+        private long position;
+    }
+
+    @io.scalecube.services.annotations.Service
+    public interface Service {
+
+        @ServiceMethod
+        Flux<ByteBuf> read(ReadRequest request);
+    }
+
+
+    public class ServiceImpl implements Service {
+        @Override
+        public Flux<ByteBuf> read(ReadRequest request) {
+            return ClusterFileManager
+                .this
+                .read(request.id, request.position)
+                .map(buf -> {
+                    if (buf instanceof NettyDataBuffer) {
+                        return ((NettyDataBuffer) buf).getNativeBuffer();
+                    }
+                    return Unpooled.wrappedBuffer(buf.asByteBuffer());
+                });
+        }
+    }
 }

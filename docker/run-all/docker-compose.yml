@@ -59,7 +59,7 @@ services:
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.13.0-SNAPSHOT
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:1.20.0-SNAPSHOT
     container_name: jetlinks-ce
     ports:
       - "8848:8848" # API端口
@@ -67,6 +67,7 @@ services:
       - "8000-8010:8000-8010" # 预留
     volumes:
       - "jetlinks-volume:/application/static/upload"  # 持久化上传的文件
+      - "jetlinks-file-volume:/application/data/files"
       - "jetlinks-protocol-volume:/application/data/protocols"
     environment:
       - "JAVA_OPTS=-Duser.language=zh -XX:+UseG1GC"
@@ -81,6 +82,7 @@ services:
 #        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
       - "spring.redis.host=redis"
       - "spring.redis.port=6379"
+      - "file.manager.storage-base-path=/application/data/files"
       - "spring.redis.password=JetLinks@redis"
       - "logging.level.io.r2dbc=warn"
       - "logging.level.org.springframework.data=warn"
@@ -101,4 +103,5 @@ volumes:
   redis-volume:
   elasticsearch-volume:
   jetlinks-volume:
+  jetlinks-file-volume:
   jetlinks-protocol-volume:
