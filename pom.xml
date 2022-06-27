@@ -19,7 +19,7 @@
         <spring.boot.version>2.5.13</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.14</hsweb.framework.version>
+        <hsweb.framework.version>4.0.15-SNAPSHOT</hsweb.framework.version>
         <easyorm.version>4.1.0-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
         <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
