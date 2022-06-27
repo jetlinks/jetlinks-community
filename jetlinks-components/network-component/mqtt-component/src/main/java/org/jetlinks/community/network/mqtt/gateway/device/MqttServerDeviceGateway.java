@@ -182,44 +182,45 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                 String deviceId = device.getDeviceId();
                 //认证通过
                 if (resp.isSuccess()) {
+                    //监听断开连接
+                    connection.onClose(conn -> {
+                        counter.decrement();
+                        //监控信息
+                        monitor.disconnected();
+                        monitor.totalConnection(counter.sum());
+
+                        sessionManager
+                            .getSession(deviceId)
+                            .flatMap(_tmp -> {
+                                //只有与创建的会话相同才移除(下线),因为有可能设置了keepOnline,
+                                //或者设备通过其他方式注册了会话,这里断开连接不能影响到以上情况.
+                                if (_tmp != null && _tmp.isWrapFrom(MqttConnectionSession.class) && !(_tmp instanceof KeepOnlineSession)) {
+                                    MqttConnectionSession connectionSession = _tmp.unwrap(MqttConnectionSession.class);
+                                    if (connectionSession.getConnection() == conn) {
+                                        return sessionManager.remove(deviceId, true);
+                                    }
+                                }
+                                return Mono.empty();
+                            })
+                            .subscribe();
+                    });
+
                     counter.increment();
                     return sessionManager
                         .compute(deviceId, old -> {
                             MqttConnectionSession newSession = new MqttConnectionSession(deviceId, device, getTransport(), connection, monitor);
                             return old
-                                .doOnNext(session -> {
-                                    if (session instanceof ReplaceableDeviceSession) {
-                                        //如果是可替换的会话，则替换为新的会话
-                                        //通常是设置了keepOnline或者之前的会话还没有来得及移除时,直接更新为新的会话.
-                                        ((ReplaceableDeviceSession) session).replaceWith(newSession);
+                                .<DeviceSession>map(session -> {
+                                    if (session instanceof KeepOnlineSession) {
+                                        //KeepOnlineSession 则依旧保持keepOnline
+                                        return new KeepOnlineSession(newSession, session.getKeepAliveTimeout());
                                     }
+                                    return newSession;
                                 })
                                 .defaultIfEmpty(newSession);
                         })
                         .flatMap(session -> Mono.fromCallable(() -> {
                             try {
-                                //监听断开连接
-                                connection.onClose(conn -> {
-                                    counter.decrement();
-                                    //监控信息
-                                    monitor.disconnected();
-                                    monitor.totalConnection(counter.sum());
-
-                                    sessionManager
-                                        .getSession(session.getDeviceId())
-                                        .flatMap(_tmp -> {
-                                            //只有与创建的会话相同才移除(下线),因为有可能设置了keepOnline,
-                                            //或者设备通过其他方式注册了会话,这里断开连接不能影响到以上情况.
-                                            if (_tmp != null && _tmp.isWrapFrom(MqttConnectionSession.class) && !(_tmp instanceof KeepOnlineSession)) {
-                                                MqttConnectionSession connectionSession = _tmp.unwrap(MqttConnectionSession.class);
-                                                if (connectionSession.getConnection() == conn) {
-                                                    return sessionManager.remove(deviceId, true);
-                                                }
-                                            }
-                                            return Mono.empty();
-                                        })
-                                        .subscribe();
-                                });
                                 return Tuples.of(connection.accept(), device, session.unwrap(MqttConnectionSession.class));
                             } catch (IllegalStateException ignore) {
                                 //忽略错误,偶尔可能会出现网络异常,导致accept时,连接已经中断.还有其他更好的处理方式?
