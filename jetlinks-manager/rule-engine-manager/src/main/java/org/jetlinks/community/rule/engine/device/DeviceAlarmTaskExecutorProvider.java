@@ -183,7 +183,8 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                 .accept()
                 //使用cache,多个定时收到相同的数据
                 //通过header来进行判断具体是哪个触发器触发的,应该还有更好的方式.
-                .cache(0);
+                .replay(0)
+                .refCount(1,Duration.ofMillis(10));
 
             for (DeviceAlarmRule.Trigger trigger : rule.getTriggers()) {
                 //QL不存在,理论上不会发生
