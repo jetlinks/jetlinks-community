@@ -25,7 +25,7 @@
         <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Borca-SR1</r2dbc.version>
         <netty.version>4.1.77.Final</netty.version>
-        <elasticsearch.version>7.11.2</elasticsearch.version>
+        <elasticsearch.version>7.13.4</elasticsearch.version>
         <reactor.excel.version>1.0.3</reactor.excel.version>
         <reactor.ql.version>1.0.14</reactor.ql.version>
         <californium.version>3.3.1</californium.version>
