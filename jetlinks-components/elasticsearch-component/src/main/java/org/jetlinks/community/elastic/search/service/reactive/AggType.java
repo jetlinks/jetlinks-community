@@ -36,6 +36,18 @@ public enum AggType {
             return AggregationBuilders.min(name).field(filed).missing(0);
         }
     },
+
+    DISTINCT_COUNT("去重计数") {
+        @Override
+        public AggregationBuilder aggregationBuilder(String name, String filed) {
+            return AggregationBuilders
+                .cardinality(name)
+                .field(filed)
+                .missing(0);
+        }
+
+    },
+
     FIRST("第一条数据") {
         @Override
         public AggregationBuilder aggregationBuilder(String name, String filed) {

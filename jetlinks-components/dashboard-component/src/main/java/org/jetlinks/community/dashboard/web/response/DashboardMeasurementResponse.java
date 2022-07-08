@@ -14,7 +14,7 @@ public class DashboardMeasurementResponse {
 
     private String group;
 
-    private MeasurementValue data;
+    private Object data;
 
 
 }

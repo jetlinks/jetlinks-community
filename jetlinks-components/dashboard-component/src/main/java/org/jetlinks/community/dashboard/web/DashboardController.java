@@ -53,7 +53,7 @@ public class DashboardController {
 
     @GetMapping(value = "/{dashboard}/{object}/{measurement}/{dimension}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Authorize(merge = false)
-    public Flux<MeasurementValue> getMeasurementValue(@PathVariable String dashboard,
+    public Flux<Object> getMeasurementValue(@PathVariable String dashboard,
                                                       @PathVariable String object,
                                                       @PathVariable String dimension,
                                                       @PathVariable String measurement,

@@ -9,6 +9,7 @@ public enum Aggregation {
     COUNT,
     FIRST,
     TOP,
+    DISTINCT_COUNT,
     NONE;
 
 }

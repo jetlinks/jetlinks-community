@@ -19,6 +19,6 @@ public interface MeasurementDimension {
 
     boolean isRealTime();
 
-    Publisher<? extends MeasurementValue> getValue(MeasurementParameter parameter);
+    Publisher<? extends Object> getValue(MeasurementParameter parameter);
 
 }
