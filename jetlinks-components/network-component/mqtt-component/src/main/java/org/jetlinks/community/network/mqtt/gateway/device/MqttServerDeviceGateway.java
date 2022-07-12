@@ -190,7 +190,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                         monitor.totalConnection(counter.sum());
 
                         sessionManager
-                            .getSession(deviceId)
+                            .getSession(deviceId,false)
                             .flatMap(_tmp -> {
                                 //只有与创建的会话相同才移除(下线),因为有可能设置了keepOnline,
                                 //或者设备通过其他方式注册了会话,这里断开连接不能影响到以上情况.
@@ -231,7 +231,9 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                             //监控信息
                             monitor.connected();
                             monitor.totalConnection(counter.sum());
-                        });
+                        })
+                        //会话empty说明注册会话失败或者设备会话已经被覆盖
+                        .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE)));
                 } else {
                     //认证失败返回 0x04 BAD_USER_NAME_OR_PASSWORD
                     connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD);
