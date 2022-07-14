@@ -3,14 +3,14 @@ package org.jetlinks.community.elastic.search.index.strategies;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-@Component
 public class DirectElasticSearchIndexStrategy extends AbstractElasticSearchIndexStrategy {
 
+    public static String ID = "direct";
+
     public DirectElasticSearchIndexStrategy(ReactiveElasticsearchClient client, ElasticSearchIndexProperties properties) {
-        super("direct", client, properties);
+        super(ID, client, properties);
     }
 
     @Override
@@ -24,8 +24,10 @@ public class DirectElasticSearchIndexStrategy extends AbstractElasticSearchIndex
     }
 
     @Override
-    public Mono<Void> putIndex(ElasticSearchIndexMetadata metadata) {
-        return doPutIndex(metadata, false);
+    public Mono<ElasticSearchIndexMetadata> putIndex(ElasticSearchIndexMetadata metadata) {
+        ElasticSearchIndexMetadata index = metadata.newIndexName(wrapIndex(metadata.getIndex()));
+        return doPutIndex(index, false)
+            .thenReturn(index);
     }
 
     @Override

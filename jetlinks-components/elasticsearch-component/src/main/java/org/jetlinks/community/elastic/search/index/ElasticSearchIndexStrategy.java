@@ -39,7 +39,7 @@ public interface ElasticSearchIndexStrategy {
      * @param metadata 索引元数据
      * @return 更新结果
      */
-    Mono<Void> putIndex(ElasticSearchIndexMetadata metadata);
+    Mono<ElasticSearchIndexMetadata> putIndex(ElasticSearchIndexMetadata metadata);
 
     Mono<ElasticSearchIndexMetadata> loadIndexMetadata(String index);
 }

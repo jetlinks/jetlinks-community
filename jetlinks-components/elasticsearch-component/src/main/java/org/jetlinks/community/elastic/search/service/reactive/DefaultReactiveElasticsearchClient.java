@@ -2,7 +2,6 @@ package org.jetlinks.community.elastic.search.service.reactive;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.Generated;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -119,6 +118,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
@@ -130,7 +130,8 @@ import static org.springframework.data.elasticsearch.client.util.RequestConverte
 
 @Slf4j
 @Generated
-public class DefaultReactiveElasticsearchClient implements org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient, ReactiveElasticsearchClient.Cluster {
+public class DefaultReactiveElasticsearchClient implements org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient,
+    org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient.Cluster {
     private final HostProvider<?> hostProvider;
     private final RequestCreator requestCreator;
     private Supplier<HttpHeaders> headersSupplier = () -> HttpHeaders.EMPTY;
@@ -149,11 +150,7 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
 
         this.hostProvider = hostProvider;
         this.requestCreator = requestCreator;
-        info()
-            .subscribe(mainResponse -> {
-                log.debug("connect elasticsearch server : {}", JSON.toJSONString(mainResponse, SerializerFeature.PrettyFormat));
-                version = mainResponse.getVersion();
-            });
+        version = info().block(Duration.ofSeconds(10)).getVersion();
     }
 
     public void setHeadersSupplier(Supplier<HttpHeaders> headersSupplier) {
@@ -705,16 +702,6 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
                                                                                                           .then();
     }
 
-    /*
-     * (non-Javadoc)
-     * @see org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient.Indices#updateMapping(org.springframework.http.HttpHeaders, org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest)
-     */
-    @Override
-    public Mono<Boolean> updateMapping(HttpHeaders headers, PutMappingRequest putMappingRequest) {
-
-        return putMapping(headers, putMappingRequest);
-    }
-
     @Override
     public Mono<Boolean> putMapping(HttpHeaders headers, PutMappingRequest putMappingRequest) {
         return sendRequest(putMappingRequest, requestCreator.putMapping(), AcknowledgedResponse.class, headers)
@@ -724,6 +711,7 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
 
     @Override
     public Mono<Boolean> putMapping(HttpHeaders headers, org.elasticsearch.client.indices.PutMappingRequest putMappingRequest) {
+
         return sendRequest(putMappingRequest, requestCreator.putMappingRequest(), AcknowledgedResponse.class, headers)
             .map(AcknowledgedResponse::isAcknowledged)
             .next();
@@ -841,8 +829,9 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
             .flatMapMany(spec -> {
                 return spec.exchangeToFlux(response -> {
                     return Flux.from(
-                        this.readResponseBody(logId, request, response, responseType, decoder)
-                    );
+                                   this.readResponseBody(logId, request, response, responseType, decoder)
+                               )
+                               .cast(responseType);
                 });
             });
     }
@@ -1178,7 +1167,7 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
     @Override
     public Mono<GetMappingsResponse> getMapping(HttpHeaders headers, GetMappingsRequest getMappingsRequest) {
         return sendRequest(getMappingsRequest, requestCreator.getMapping(),
-                           GetMappingsResponse.class, headers).next();
+                           org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse.class, headers).next();
     }
 
     @Override

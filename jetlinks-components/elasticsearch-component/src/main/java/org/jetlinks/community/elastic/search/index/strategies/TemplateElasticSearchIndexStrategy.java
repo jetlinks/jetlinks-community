@@ -1,8 +1,10 @@
 package org.jetlinks.community.elastic.search.index.strategies;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.client.indices.GetIndexTemplatesRequest;
+import org.elasticsearch.client.indices.PutIndexTemplateRequest;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient;
@@ -40,11 +42,13 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
     }
 
     @Override
-    public Mono<Void> putIndex(ElasticSearchIndexMetadata metadata) {
+    public Mono<ElasticSearchIndexMetadata> putIndex(ElasticSearchIndexMetadata metadata) {
+
         return client
-            .updateTemplate(createIndexTemplateRequest(metadata))
+            .putTemplate(createIndexTemplateRequest(metadata))
             //修改当前索引
-            .then(doPutIndex(metadata.newIndexName(getIndexForSave(metadata.getIndex())), true));
+            .then(doPutIndex(metadata.newIndexName(getIndexForSave(metadata.getIndex())), true))
+            .thenReturn(metadata.newIndexName(wrapIndex(metadata.getIndex())));
     }
 
     protected PutIndexTemplateRequest createIndexTemplateRequest(ElasticSearchIndexMetadata metadata) {
@@ -55,7 +59,11 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
         Map<String, Object> mappingConfig = new HashMap<>();
         mappingConfig.put("properties", createElasticProperties(metadata.getProperties()));
         mappingConfig.put("dynamic_templates", createDynamicTemplates());
-        request.mapping("_doc",mappingConfig);
+        if (client.serverVersion().after(Version.V_7_0_0)) {
+            request.mapping(mappingConfig);
+        } else {
+            request.mapping(Collections.singletonMap("_doc", mappingConfig));
+        }
         request.patterns(getIndexPatterns(index));
         return request;
     }
@@ -64,7 +72,10 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
     @Override
     public Mono<ElasticSearchIndexMetadata> loadIndexMetadata(String index) {
         return client.getTemplate(new GetIndexTemplatesRequest(getTemplate(index)))
-            .filter(resp -> resp.getIndexTemplates().size() > 0)
-            .flatMap(resp -> Mono.justOrEmpty(convertMetadata(index, resp.getIndexTemplates().get(0).mappings())));
+                     .filter(resp -> CollectionUtils.isNotEmpty(resp.getIndexTemplates()))
+                     .flatMap(resp -> Mono.justOrEmpty(convertMetadata(index, resp
+                         .getIndexTemplates()
+                         .get(0)
+                         .mappings())));
     }
 }

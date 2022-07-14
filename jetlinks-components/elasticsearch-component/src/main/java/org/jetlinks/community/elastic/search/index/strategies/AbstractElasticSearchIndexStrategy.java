@@ -3,12 +3,17 @@ package org.jetlinks.community.elastic.search.index.strategies;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.Version;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.indices.GetMappingsRequest;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.SimplePropertyMetadata;
+import org.jetlinks.core.metadata.types.*;
 import org.jetlinks.community.elastic.search.enums.ElasticDateFormat;
 import org.jetlinks.community.elastic.search.enums.ElasticPropertyType;
 import org.jetlinks.community.elastic.search.index.DefaultElasticSearchIndexMetadata;
@@ -16,10 +21,6 @@ import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexStrategy;
 import org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.SimplePropertyMetadata;
-import org.jetlinks.core.metadata.types.*;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Mono;
 
@@ -41,7 +42,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
     }
 
     protected Mono<Boolean> indexExists(String index) {
-        return client.existsIndex(req -> req.indices(wrapIndex(index)));
+        return client.existsIndex(new GetIndexRequest(wrapIndex(index)));
     }
 
     protected Mono<Void> doCreateIndex(ElasticSearchIndexMetadata metadata) {
@@ -58,7 +59,7 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
                        if (exists) {
                            return doLoadIndexMetadata(index)
                                .flatMap(oldMapping -> Mono.justOrEmpty(createPutMappingRequest(metadata, oldMapping)))
-                               .flatMap(request -> client.updateMapping(request))
+                               .flatMap(request -> client.putMapping(request))
                                .then();
                        }
                        if (justUpdateMapping) {
@@ -81,7 +82,11 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         Map<String, Object> mappingConfig = new HashMap<>();
         mappingConfig.put("properties", createElasticProperties(metadata.getProperties()));
         mappingConfig.put("dynamic_templates", createDynamicTemplates());
-        request.mapping("_doc", mappingConfig);
+        if (client.serverVersion().after(Version.V_7_0_0)) {
+            request.mapping(mappingConfig);
+        } else {
+            request.mapping(Collections.singletonMap("_doc", mappingConfig));
+        }
         return request;
     }
 
@@ -99,7 +104,6 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         }
         Map<String, Object> mappingConfig = new HashMap<>();
         PutMappingRequest request = new PutMappingRequest(wrapIndex(metadata.getIndex()));
-        request.type("_doc");
         List<PropertyMetadata> allProperties = new ArrayList<>();
         allProperties.addAll(metadata.getProperties());
         allProperties.addAll(ignore.getProperties());
@@ -159,26 +163,27 @@ public abstract class AbstractElasticSearchIndexStrategy implements ElasticSearc
         return property;
     }
 
-    protected ElasticSearchIndexMetadata convertMetadata(String index, ImmutableOpenMap<String, ?> metaData) {
+    protected ElasticSearchIndexMetadata convertMetadata(String index, MappingMetadata metadata) {
         MappingMetadata mappingMetadata;
         Object properties = null;
+        Map<String, Object> metaData = metadata.getSourceAsMap();
+
         if (metaData.containsKey("properties")) {
             Object res = metaData.get("properties");
-            if (res instanceof MappingMetadata) {
+            if (res instanceof Map) {
+                properties = res;
+            } else if (res instanceof MappingMetadata) {
                 mappingMetadata = ((MappingMetadata) res);
+                properties = mappingMetadata.sourceAsMap();
             } else if (res instanceof CompressedXContent) {
                 mappingMetadata = new MappingMetadata(((CompressedXContent) res));
+                properties = mappingMetadata.sourceAsMap();
             } else {
                 throw new UnsupportedOperationException("unsupported index metadata" + metaData);
             }
-            properties = mappingMetadata.sourceAsMap();
+
         } else {
-            Object res;
-            if (metaData.size() == 1) {
-                res = metaData.values().iterator().next().value;
-            } else {
-                res = metaData.get("_doc");
-            }
+            Object res = metaData.get("_doc");
             if (res instanceof MappingMetadata) {
                 mappingMetadata = ((MappingMetadata) res);
             } else if (res instanceof CompressedXContent) {
