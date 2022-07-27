@@ -6,15 +6,21 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.jetlinks.community.rule.engine.entity.TestEntity;
 import org.jetlinks.community.rule.engine.model.Action;
+import org.jetlinks.community.rule.engine.service.TestService;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.support.CronSequenceGenerator;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.*;
@@ -29,6 +35,7 @@ import java.util.stream.Stream;
  */
 @Getter
 @Setter
+@Component
 public class DeviceAlarmRule implements Serializable {
     private static final long serialVersionUID = -1L;
 
@@ -100,6 +107,10 @@ public class DeviceAlarmRule implements Serializable {
     @Schema(description = "告警类别")
     @Hidden
     private String type;
+
+    @Schema(description = "服务")
+    @Autowired
+    public TestService testService;
 
     public void validate() {
         if (org.apache.commons.collections.CollectionUtils.isEmpty(getTriggers())) {
@@ -243,10 +254,10 @@ public class DeviceAlarmRule implements Serializable {
             return columns;
         }
 
-        public List<Object> toFilterBinds() {
+        public List<Object> toFilterBinds(String deviceId,TestService testService) {
             return filters == null ? Collections.emptyList() :
                 filters.stream()
-                       .map(ConditionFilter::convertValue)
+                       .map(filter-> filter.convertValue(deviceId, testService))
                        .collect(Collectors.toList());
         }
 
@@ -363,9 +374,20 @@ public class DeviceAlarmRule implements Serializable {
             return false;
         }
 
-        public Object convertValue() {
-            return operator.convert(value);
+
+
+        public Object convertValue(String deviceId,TestService testService) {
+            if(value.contains("$")){
+                String s = testService.getValue(value);
+                System.out.println(s);
+            }
+            return operator.convert(value,deviceId);
         }
+
+        /*public Object convertValue() {
+            String deviceId = "test01";
+            return operator.convert(value,deviceId);
+        }*/
 
         public void validate() {
             if (StringUtils.isEmpty(key)) {
@@ -376,7 +398,6 @@ public class DeviceAlarmRule implements Serializable {
             }
         }
     }
-
 
     @AllArgsConstructor
     @Getter
@@ -390,7 +411,7 @@ public class DeviceAlarmRule implements Serializable {
         like("like");
         private final String symbol;
 
-        public Object convert(String value) {
+        public Object convert(String value,String deviceId) {
             return value;
         }
     }

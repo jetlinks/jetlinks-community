@@ -151,6 +151,7 @@
                         <include>**/*Tests.java</include>
                         <include>**/*TestCase.java</include>
                     </includes>
+                    <!--suppress UnresolvedMavenProperty -->
                     <argLine>-Dfile.encoding=UTF-8 ${jacocoArgLine}</argLine>
                 </configuration>
             </plugin>
@@ -423,46 +424,46 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <artifactId>spring-boot-starter-org.jetlinks.community.network.mqtt.client.test</artifactId>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <scope>test</scope>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <version>1.17.2</version>
-            <scope>test</scope>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>1.17.2</version>
-            <scope>test</scope>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-test</artifactId>
-            <scope>test</scope>
+            <artifactId>reactor-org.jetlinks.community.network.mqtt.client.test</artifactId>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>
@@ -483,7 +484,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
+            <scope>org.jetlinks.community.network.mqtt.client.test</scope>
         </dependency>
 
         <dependency>

@@ -241,8 +241,8 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                             map.put("alarmName", rule.getName());
                         }));
                 //绑定SQL中的预编译变量
-                trigger.toFilterBinds().forEach(qlContext::bind);
-
+                //trigger.toFilterBinds().forEach(qlContext::bind);
+                trigger.toFilterBinds(rule.getDeviceId(),rule.getTestService()).forEach(qlContext::bind);
                 //启动ReactorQL进行实时数据处理
                 triggerOutputs.add(ql.start(qlContext).map(ReactorQLRecord::asMap));
             }

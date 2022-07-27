@@ -23,7 +23,7 @@
         </root>
     </springProfile>
 
-    <springProfile name="test">
+    <springProfile name="org.jetlinks.community.network.mqtt.client.test">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="ErrorLOGEventPublisher"/>
