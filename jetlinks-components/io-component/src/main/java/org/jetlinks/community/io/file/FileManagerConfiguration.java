@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableConfigurationProperties(FileProperties.class)
-@EnableEasyormRepository("org.jetlinks.community.io.file.FileEntity")
+@EnableEasyormRepository("org.jetlinks.pro.io.file.FileEntity")
 public class FileManagerConfiguration {
 
 

@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
-import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -55,7 +54,7 @@ public class ClusterFileManager implements FileManager {
     }
 
     @Override
-    public Mono<FileInfo> saveFile(FilePart filePart) {
+    public Mono<FileInfo> saveFile(FilePart filePart, FileOption... options) {
         return saveFile(filePart.filename(), filePart.content());
     }
 
@@ -66,7 +65,7 @@ public class ClusterFileManager implements FileManager {
         return dataBuffer;
     }
 
-    public Mono<FileInfo> doSaveFile(String name, Flux<DataBuffer> stream) {
+    public Mono<FileInfo> doSaveFile(String name, Flux<DataBuffer> stream, FileOption... options) {
         LocalDate now = LocalDate.now();
         FileInfo fileInfo = new FileInfo();
         fileInfo.setId(IDGenerator.MD5.generate());
@@ -93,10 +92,12 @@ public class ClusterFileManager implements FileManager {
                 if (!savedFile.exists()) {
                     return Mono.error(new BusinessException("error.file_storage_failed"));
                 }
+                fileInfo.withAccessKey(IDGenerator.MD5.generate());
                 fileInfo.setMd5(ByteBufUtil.hexDump(md5.digest()));
                 fileInfo.setSha256(ByteBufUtil.hexDump(sha256.digest()));
                 fileInfo.setLength(savedFile.length());
                 fileInfo.setCreateTime(System.currentTimeMillis());
+                fileInfo.setOptions(options);
                 FileEntity entity = FileEntity.of(fileInfo, storagePath, serverNodeId);
                 return repository
                     .insert(entity)
@@ -105,8 +106,26 @@ public class ClusterFileManager implements FileManager {
     }
 
     @Override
-    public Mono<FileInfo> saveFile(String name, Flux<DataBuffer> stream) {
-        return doSaveFile(name, stream);
+    public Mono<FileInfo> saveFile(String name, Flux<DataBuffer> stream, FileOption... options) {
+        return doSaveFile(name, stream, options);
+    }
+
+    @Override
+    public Mono<FileInfo> getFileByMd5(String md5) {
+        return repository
+            .createQuery()
+            .where(FileEntity::getMd5, md5)
+            .fetchOne()
+            .map(FileEntity::toInfo);
+    }
+
+    @Override
+    public Mono<FileInfo> getFileBySha256(String sha256) {
+        return repository
+            .createQuery()
+            .where(FileEntity::getSha256, sha256)
+            .fetchOne()
+            .map(FileEntity::toInfo);
     }
 
     @Override
