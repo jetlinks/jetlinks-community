@@ -98,13 +98,12 @@ public class DeviceMessageBusinessHandler {
                 instance.mergeConfiguration(tps.getT5());
 
                 return deviceService
-                    .save(Mono.just(instance))
-                    .thenReturn(instance)
-                    .flatMap(device -> registry
-                        .register(device.toDeviceInfo()
-                                        .addConfig("state", selfManageState
-                                            ? org.jetlinks.core.device.DeviceState.offline
-                                            : org.jetlinks.core.device.DeviceState.online)));
+                    .save(instance)
+                    .then(Mono.defer(() -> registry
+                        .register(instance.toDeviceInfo()
+                                          .addConfig("state", selfManageState
+                                              ? org.jetlinks.core.device.DeviceState.offline
+                                              : org.jetlinks.core.device.DeviceState.online))));
             });
     }
 
