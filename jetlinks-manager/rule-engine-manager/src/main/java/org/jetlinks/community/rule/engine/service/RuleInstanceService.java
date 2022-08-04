@@ -33,6 +33,9 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
     @Autowired
     private ElasticSearchService elasticSearchService;
 
+    @Autowired
+    public TestService testService;
+
     public Mono<PagerResult<RuleEngineExecuteEventInfo>> queryExecuteEvent(QueryParam queryParam) {
         return elasticSearchService.queryPager(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG, queryParam, RuleEngineExecuteEventInfo.class);
     }
