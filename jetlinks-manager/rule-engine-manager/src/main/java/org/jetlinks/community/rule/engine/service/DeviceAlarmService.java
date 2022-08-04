@@ -5,7 +5,6 @@ import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
 import org.reactivestreams.Publisher;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -20,7 +19,6 @@ public class DeviceAlarmService extends GenericReactiveCrudService<DeviceAlarmEn
     public DeviceAlarmService(RuleInstanceService instanceService) {
         this.instanceService = instanceService;
     }
-
 
     @Override
     public Mono<SaveResult> save(Publisher<DeviceAlarmEntity> entityPublisher) {

@@ -8,7 +8,6 @@ import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.ValueObject;
-import org.jetlinks.community.rule.engine.service.TestService;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
@@ -25,7 +24,6 @@ import org.jetlinks.rule.engine.api.task.Task;
 import org.jetlinks.rule.engine.api.task.TaskExecutor;
 import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
 import org.jetlinks.rule.engine.defaults.AbstractTaskExecutor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
@@ -49,7 +47,6 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
     private final Scheduler scheduler;
 
-
     @Override
     public String getExecutor() {
         return "device_alarm";
@@ -59,7 +56,6 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
     public Mono<TaskExecutor> createTask(ExecutionContext context) {
         return Mono.just(new DeviceAlarmTaskExecutor(context, eventBus, scheduler));
     }
-
 
     static class DeviceAlarmTaskExecutor extends AbstractTaskExecutor {
 
@@ -173,8 +169,6 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
             return qlMap;
         }
 
-
-
         public Flux<Map<String, Object>> doSubscribe(EventBus eventBus) {
 
             //满足触发条件的输出数据流
@@ -248,7 +242,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                         }));
                 //绑定SQL中的预编译变量
                 //trigger.toFilterBinds().forEach(qlContext::bind);
-                trigger.toFilterBinds(rule.getDeviceId()).forEach(qlContext::bind);
+                trigger.toFilterBinds(rule.getDeviceId(),rule.getTestService()).forEach(qlContext::bind);
                 //启动ReactorQL进行实时数据处理
                 triggerOutputs.add(ql.start(qlContext).map(ReactorQLRecord::asMap));
             }

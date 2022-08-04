@@ -7,13 +7,11 @@ import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.rule.engine.device.DeviceAlarmRule;
 import org.jetlinks.community.rule.engine.entity.DeviceAlarmEntity;
 import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
-import org.jetlinks.community.rule.engine.service.TestService;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.rule.engine.api.model.RuleLink;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.jetlinks.rule.engine.model.RuleModelParserStrategy;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -27,9 +25,6 @@ import java.util.stream.Collectors;
 public class DeviceAlarmModelParser implements RuleModelParserStrategy {
 
     public static String format = "device_alarm";
-
-    @Autowired
-    TestService testService;
 
     @Override
     public String getFormat() {
@@ -47,7 +42,6 @@ public class DeviceAlarmModelParser implements RuleModelParserStrategy {
 
         DeviceAlarmRule alarmRule = rule.getAlarmRule();
         //验证规则
-//        testService.getValue("${NV}");
         alarmRule.validate();
 
         //告警条件节点

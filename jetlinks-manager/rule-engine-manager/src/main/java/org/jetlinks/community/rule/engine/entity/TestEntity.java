@@ -12,12 +12,14 @@ import javax.persistence.Column;
 import javax.persistence.Table;
 
 @Data
+@Table(name="s_test")
+@Component
 @Getter
 @Setter
-@Table(name="s_test")
 public class TestEntity extends GenericEntity<String> {
 
-    @Column(name="id",nullable = false, updatable = false)
+    @Id
+    @Column(nullable = false, updatable = false)
     @Schema(description = "key")
     private String id;
 
