@@ -36,5 +36,5 @@ public interface PayloadParser {
     /**
      * 重置规则
      */
-    default void reset(){}
+   default void reset(){}
 }

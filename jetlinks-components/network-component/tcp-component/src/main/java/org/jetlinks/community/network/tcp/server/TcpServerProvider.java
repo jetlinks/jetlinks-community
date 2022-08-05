@@ -8,6 +8,7 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.network.*;
 import org.jetlinks.community.network.security.CertificateManager;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
+import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilder;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * TCP服务提供商
@@ -69,8 +71,9 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
             instances.add(vertx.createNetServer(properties.getOptions()));
         }
         // 根据解析类型配置数据解析器
-        payloadParserBuilder.build(properties.getParserType(), properties);
-        tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(), properties));
+        Supplier<PayloadParser> parser= payloadParserBuilder.build(properties.getParserType(), properties);
+        parser.get();
+        tcpServer.setParserSupplier(parser);
         tcpServer.setServer(instances);
         tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout", Duration.ofMinutes(10).toMillis()));
         // 针对JVM做的多路复用优化

@@ -8,6 +8,7 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.network.*;
 import org.jetlinks.community.network.security.CertificateManager;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
+import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilder;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Duration;
+import java.util.function.Supplier;
 
 @Component
 @Slf4j
@@ -58,10 +60,12 @@ public class VertxTcpClientProvider implements NetworkProvider<TcpClientProperti
         NetClient netClient = vertx.createNetClient(properties.getOptions());
         client.setClient(netClient);
         client.setKeepAliveTimeoutMs(properties.getLong("keepAliveTimeout").orElse(Duration.ofMinutes(10).toMillis()));
+        Supplier<PayloadParser>  supplier= payloadParserBuilder.build(properties.getParserType(), properties);
+        supplier.get();
         netClient.connect(properties.getPort(), properties.getHost(), result -> {
             if (result.succeeded()) {
                 log.debug("connect tcp [{}:{}] success", properties.getHost(), properties.getPort());
-                client.setRecordParser(payloadParserBuilder.build(properties.getParserType(), properties));
+                client.setRecordParser(supplier.get());
                 client.setSocket(result.result());
             } else {
                 log.error("connect tcp [{}:{}] error", properties.getHost(), properties.getPort(),result.cause());

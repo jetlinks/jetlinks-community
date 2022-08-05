@@ -3,36 +3,48 @@ package org.jetlinks.community.network.tcp.parser.strateies;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Sinks;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * <pre>
- * PipePayloadParser parser = new PipePayloadParser();
- * parser.fixed(4)
- *       .handler(buffer -> {
- *            int len = BytesUtils.highBytes2Int(buffer.getBytes());
- *            parser.fixed(len);
+ * <pre>{@code
+ * PipePayloadParser payloadParser =
+ * //先读取4个字节
+ * new PipePayloadParser()
+ *       .fixed(4)
+ *        //第一次读取数据
+ *       .handler((buffer,parser) -> {
+ *            //4字节转为int，表示接下来要读取的包长度
+ *            int len = buffer.getInt(0);
+ *            parser
+ *              .result(buffer) //将已读取的4字节设置到结果中
+ *              .fixed(len);//设置接下来要读取的字节长度
  *         })
- *       .handler(buffer -> parser.result(buffer.toString("UTF-8")).complete());
- * </pre>
+ *         //第二次读取数据
+ *       .handler((buffer,parser) -> parser
+ *                .result(buffer) //设置结果
+ *                .complete() //完成本次读取，输出结果，开始下一次读取
+ *               );
+ * }</pre>
  */
 @Slf4j
 public class PipePayloadParser implements PayloadParser {
 
-    private final EmitterProcessor<Buffer> processor = EmitterProcessor.create(true);
+    private final static AtomicIntegerFieldUpdater<PipePayloadParser> CURRENT_PIPE =
+        AtomicIntegerFieldUpdater.newUpdater(PipePayloadParser.class, "currentPipe");
 
-    private final FluxSink<Buffer> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
+    private final Sinks.Many<Buffer> sink = Reactors.createMany();
 
-    private final List<Consumer<Buffer>> pipe = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<Buffer, PipePayloadParser>> pipe = new CopyOnWriteArrayList<>();
 
     private final List<Buffer> result = new CopyOnWriteArrayList<>();
 
@@ -42,7 +54,7 @@ public class PipePayloadParser implements PayloadParser {
 
     private Consumer<RecordParser> firstInit;
 
-    private final AtomicInteger currentPipe = new AtomicInteger();
+    private volatile int currentPipe;
 
     public Buffer newBuffer() {
         return Buffer.buffer();
@@ -56,10 +68,16 @@ public class PipePayloadParser implements PayloadParser {
         return result(Buffer.buffer(buffer));
     }
 
-    public PipePayloadParser handler(Consumer<Buffer> handler) {
+//    public PipePayloadParser handler(Consumer<Buffer> handler) {
+//
+//        return handler((payloadParser, buffer) -> handler.accept(buffer));
+//    }
+
+    public PipePayloadParser handler(BiConsumer<Buffer, PipePayloadParser> handler) {
         pipe.add(handler);
         return this;
     }
+
 
     public PipePayloadParser delimited(String delimited) {
         if (recordParser == null) {
@@ -90,22 +108,22 @@ public class PipePayloadParser implements PayloadParser {
         return this;
     }
 
-    private Consumer<Buffer> getNextHandler() {
-        int i = currentPipe.getAndIncrement();
+    private BiConsumer<Buffer, PipePayloadParser> getNextHandler() {
+        int i = CURRENT_PIPE.getAndIncrement(this);
         if (i < pipe.size()) {
             return pipe.get(i);
         }
-        currentPipe.set(0);
+        CURRENT_PIPE.set(this, 0);
         return pipe.get(0);
     }
 
     private void setParser(RecordParser parser) {
         this.recordParser = parser;
-        this.recordParser.handler(buffer -> getNextHandler().accept(buffer));
+        this.recordParser.handler(buffer -> getNextHandler().accept(buffer, this));
     }
 
     public PipePayloadParser complete() {
-        currentPipe.set(0);
+        CURRENT_PIPE.set(this, 0);
         if (recordParser != null) {
             firstInit.accept(recordParser);
         }
@@ -115,7 +133,7 @@ public class PipePayloadParser implements PayloadParser {
                 buffer.appendBuffer(buf);
             }
             this.result.clear();
-            sink.next(buffer);
+            sink.emitNext(buffer, Reactors.emitFailureHandler());
         }
         return this;
 
@@ -138,13 +156,13 @@ public class PipePayloadParser implements PayloadParser {
         }
         Buffer buf = directMapper.apply(buffer);
         if (null != buf) {
-            sink.next(buf);
+            sink.emitNext(buf, Reactors.emitFailureHandler());
         }
     }
 
     @Override
     public Flux<Buffer> handlePayload() {
-        return processor.map(Function.identity());
+        return sink.asFlux();
     }
 
     @Override
@@ -155,8 +173,8 @@ public class PipePayloadParser implements PayloadParser {
 
     @Override
     public void close() {
-        processor.onComplete();
-        currentPipe.set(0);
+        sink.tryEmitComplete();
+        CURRENT_PIPE.set(this, 0);
         this.result.clear();
     }
 

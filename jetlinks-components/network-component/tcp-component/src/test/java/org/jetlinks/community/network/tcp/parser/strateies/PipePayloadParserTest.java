@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.tcp.parser.strateies;
 
+import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
 import org.jetlinks.community.network.utils.BytesUtils;
 import org.junit.jupiter.api.Test;
@@ -18,25 +19,30 @@ class PipePayloadParserTest {
         PipePayloadParser parser = new PipePayloadParser();
 
         parser.fixed(4)
-                .handler(buffer -> {
-                    int len = BytesUtils.lowBytesToInt(buffer.getBytes());
+                .handler((buffer,p) -> {
+                    int len = buffer.getInt(0);
                     parser.fixed(len);
                 })
-                .handler(buffer -> parser.result(buffer).complete());
+                .handler((buffer,p)  -> parser.result(buffer).complete());
 
 
         parser.handlePayload()
                 .doOnSubscribe(sb -> {
                     Mono.delay(Duration.ofMillis(100))
                             .subscribe(r -> {
-                                Buffer buffer = Buffer.buffer(BytesUtils.toLowBytes(5));
-                                buffer.appendString("1234");
-                                parser.handle(buffer);
-                                parser.handle(Buffer.buffer("5"));
 
-                                parser.handle(Buffer.buffer(new byte[]{0, 0}));
-                                parser.handle(Buffer.buffer(new byte[]{0, 6}).appendString("12"));
-                                parser.handle(Buffer.buffer("3456"));
+                                {
+                                    Buffer buffer = Buffer.buffer(Unpooled.buffer().writeInt(5));
+                                    buffer.appendString("1234");
+                                    parser.handle(buffer);
+                                    parser.handle(Buffer.buffer("5"));
+                                }
+                                {
+                                    Buffer buffer = Buffer.buffer(Unpooled.buffer().writeInt(6));
+                                    buffer.appendString("1234");
+                                    parser.handle(buffer);
+                                    parser.handle(Buffer.buffer("56"));
+                                }
                             });
                 })
                 .take(2)
@@ -52,20 +58,19 @@ class PipePayloadParserTest {
         PipePayloadParser parser = new PipePayloadParser();
 
         parser.fixed(4)
-                .handler(buffer -> {
-                    int len = BytesUtils.highBytesToInt(buffer.getBytes());
-                    parser.fixed(len);
+                .handler((buffer,p) -> {
+                    int len = buffer.getInt(0);
+                    p.fixed(len);
                 })
-                .handler(buffer -> {
-                    parser.result(buffer)
-                            .complete();
+                .handler((buffer,p) -> {
+                    p.result(buffer).complete();
                 });
 
         byte[] payload = "hello".getBytes();
 
         Buffer buffer = Buffer.buffer(payload.length + 4);
 
-        buffer.appendBytes(BytesUtils.toHighBytes(payload.length));
+        buffer.appendBuffer(Buffer.buffer(Unpooled.buffer().writeInt(payload.length)));
         buffer.appendBytes(payload);
 
         parser.handlePayload()

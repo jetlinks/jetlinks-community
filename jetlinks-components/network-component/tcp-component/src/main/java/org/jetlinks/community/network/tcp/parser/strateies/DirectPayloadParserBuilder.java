@@ -7,6 +7,8 @@ import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilderStrategy;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
 
+import java.util.function.Supplier;
+
 public class DirectPayloadParserBuilder implements PayloadParserBuilderStrategy {
 
     @Override
@@ -16,7 +18,7 @@ public class DirectPayloadParserBuilder implements PayloadParserBuilderStrategy 
 
     @Override
     @SneakyThrows
-    public PayloadParser build(ValueObject config) {
-        return new DirectRecordParser();
+    public Supplier<PayloadParser> buildLazy(ValueObject config) {
+        return DirectRecordParser::new;
     }
 }
