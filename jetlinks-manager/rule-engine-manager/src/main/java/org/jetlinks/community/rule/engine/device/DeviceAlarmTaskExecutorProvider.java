@@ -8,6 +8,7 @@ import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.ValueObject;
+import org.jetlinks.community.rule.engine.service.TestService;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
@@ -46,6 +47,8 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
     private final EventBus eventBus;
 
     private final Scheduler scheduler;
+    //创建 service对象
+    private final TestService test;
 
     @Override
     public String getExecutor() {
@@ -54,7 +57,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
     @Override
     public Mono<TaskExecutor> createTask(ExecutionContext context) {
-        return Mono.just(new DeviceAlarmTaskExecutor(context, eventBus, scheduler));
+        return Mono.just(new DeviceAlarmTaskExecutor(context, eventBus, scheduler,test));
     }
 
     static class DeviceAlarmTaskExecutor extends AbstractTaskExecutor {
@@ -80,6 +83,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
         private final Scheduler scheduler;
 
+        private final TestService test;
         //触发器对应的ReactorQL缓存
         private final Map<DeviceAlarmRule.Trigger, ReactorQL> triggerQL = new ConcurrentHashMap<>();
 
@@ -88,10 +92,12 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
 
         DeviceAlarmTaskExecutor(ExecutionContext context,
                                 EventBus eventBus,
-                                Scheduler scheduler) {
+                                Scheduler scheduler,
+                                TestService test) {
             super(context);
             this.eventBus = eventBus;
             this.scheduler = scheduler;
+            this.test = test;
             init();
         }
 
@@ -104,7 +110,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
         @Override
         protected Disposable doStart() {
             rule.validate();
-            return doSubscribe(eventBus)
+            return doSubscribe(eventBus,test)
                 .filter(ignore -> state == Task.State.running)
                 .flatMap(result -> {
                     RuleData data = context.newRuleData(result);
@@ -169,7 +175,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
             return qlMap;
         }
 
-        public Flux<Map<String, Object>> doSubscribe(EventBus eventBus) {
+        public Flux<Map<String, Object>> doSubscribe(EventBus eventBus, TestService testService) {
 
             //满足触发条件的输出数据流
             List<Flux<? extends Map<String, Object>>> triggerOutputs = new ArrayList<>();
@@ -242,7 +248,7 @@ public class DeviceAlarmTaskExecutorProvider implements TaskExecutorProvider {
                         }));
                 //绑定SQL中的预编译变量
                 //trigger.toFilterBinds().forEach(qlContext::bind);
-                trigger.toFilterBinds(rule.getDeviceId(),rule.getTestService()).forEach(qlContext::bind);
+                trigger.toFilterBinds(rule.getDeviceId(),testService).forEach(qlContext::bind);
                 //启动ReactorQL进行实时数据处理
                 triggerOutputs.add(ql.start(qlContext).map(ReactorQLRecord::asMap));
             }

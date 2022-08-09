@@ -377,9 +377,20 @@ public class DeviceAlarmRule implements Serializable {
 
 
         public Object convertValue(String deviceId,TestService testService) {
+            //增加判断，检测到$开头进入判断，从数据库中获取值
             if(value.contains("$")){
-                String s = testService.getValue(value);
-                System.out.println(s);
+                String id = deviceId+value.substring(1);
+                System.out.println(id);
+                TestEntity testEntity;
+                try{
+                    testEntity = testService.getValue(id);
+                }
+                catch (NullPointerException e){
+                    System.out.println("数据库中没有数据");
+                    return operator.convert(value,deviceId);
+                }
+                System.out.println(testEntity.getValue());
+                value = testEntity.getValue();
             }
             return operator.convert(value,deviceId);
         }

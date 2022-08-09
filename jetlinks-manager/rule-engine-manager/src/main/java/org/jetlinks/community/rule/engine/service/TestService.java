@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 public class TestService extends GenericReactiveCrudService<TestEntity,String> {
 
 
-    public String getValue(String value){
-        String s = super.getRepository().findById(value).toString();
-        return s;
+    public TestEntity getValue(String value){
+        TestEntity block = super.getRepository().findById(value).block();
+        return block;
     }
 }
