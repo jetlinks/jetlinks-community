@@ -15,6 +15,7 @@ import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.core.server.MessageHandler;
 import org.jetlinks.supports.cluster.ClusterDeviceOperationBroker;
 import org.jetlinks.supports.cluster.ClusterDeviceRegistry;
+import org.jetlinks.supports.cluster.RpcDeviceOperationBroker;
 import org.jetlinks.supports.scalecube.ExtendedCluster;
 import org.jetlinks.supports.server.ClusterSendToDeviceMessageHandler;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
@@ -76,9 +77,9 @@ public class DeviceClusterConfiguration {
     }
 
     @Bean
-    public ClusterDeviceOperationBroker clusterDeviceOperationBroker(ExtendedCluster cluster,
-                                                                     DeviceSessionManager sessionManager) {
-        return new ClusterDeviceOperationBroker(cluster, sessionManager);
+    public RpcDeviceOperationBroker rpcDeviceOperationBroker(RpcManager rpcManager,
+                                                             DeviceSessionManager sessionManager) {
+        return new RpcDeviceOperationBroker(rpcManager, sessionManager);
     }
 
 
