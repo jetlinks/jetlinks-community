@@ -1,10 +1,13 @@
 package org.jetlinks.community;
 
+import lombok.Generated;
 import org.jetlinks.core.config.ConfigKey;
 import org.jetlinks.core.message.HeaderKey;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * @author wangzheng
@@ -24,7 +27,13 @@ public interface PropertyConstants {
         return Optional.ofNullable((T) map.get(key.getKey()));
     }
 
+    @Generated
     interface Key<V> extends ConfigKey<V>, HeaderKey<V> {
+
+        @Override
+        default Type getValueType() {
+            return ConfigKey.super.getValueType();
+        }
 
         @Override
         default Class<V> getType() {
@@ -41,6 +50,53 @@ public interface PropertyConstants {
                 @Override
                 public T getDefaultValue() {
                     return null;
+                }
+            };
+        }
+
+        static <T> Key<T> of(String key, T defaultValue) {
+            return new Key<T>() {
+                @Override
+                public String getKey() {
+                    return key;
+                }
+
+                @Override
+                public T getDefaultValue() {
+                    return defaultValue;
+                }
+            };
+        }
+
+        static <T> Key<T> of(String key, Supplier<T> defaultValue) {
+            return new Key<T>() {
+                @Override
+                public String getKey() {
+                    return key;
+                }
+
+                @Override
+                public T getDefaultValue() {
+                    return defaultValue.get();
+                }
+            };
+        }
+
+        static <T> Key<T> of(String key, Supplier<T> defaultValue, Type type) {
+            return new Key<T>() {
+                @Override
+                public Type getValueType() {
+                    return type;
+                }
+
+                @Override
+                public String getKey() {
+                    return key;
+                }
+
+                @Override
+                public T getDefaultValue() {
+                    return defaultValue.get();
                 }
             };
         }
