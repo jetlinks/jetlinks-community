@@ -1,11 +1,12 @@
 package org.jetlinks.community.elastic.search.service.reactive;
 
-import com.alibaba.fastjson.JSON;
-import io.netty.util.internal.ObjectPool;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.MultiSearchRequest;
@@ -17,6 +18,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.hswebframework.ezorm.core.param.QueryParam;
@@ -24,54 +26,61 @@ import org.hswebframework.utils.time.DateFormatter;
 import org.hswebframework.utils.time.DefaultDateFormatter;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.buffer.BufferProperties;
+import org.jetlinks.community.buffer.BufferSettings;
+import org.jetlinks.community.buffer.MemoryUsage;
+import org.jetlinks.community.buffer.PersistenceBuffer;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
 import org.jetlinks.community.elastic.search.utils.QueryParamTranslator;
+import org.jetlinks.community.utils.ErrorUtils;
+import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.community.utils.SystemUtils;
-import org.jetlinks.core.utils.FluxUtils;
+import org.jetlinks.core.utils.SerializeUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.util.unit.DataSize;
-import reactor.core.publisher.BufferOverflowStrategy;
+import org.springframework.web.reactive.function.client.WebClientException;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
-import reactor.util.retry.Retry;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.time.Duration;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * 响应式ES数据库操作类
+ * 响应式ElasticSearchService
  *
  * @author zhouhao
+ * @see ReactiveElasticsearchClient
  * @since 1.0
  **/
-@Service("elasticSearchService")
 @Slf4j
 @DependsOn("reactiveElasticsearchClient")
 @ConfigurationProperties(prefix = "elasticsearch")
 public class ReactiveElasticSearchService implements ElasticSearchService {
 
     @Getter
+    @Setter
+    private BufferConfig buffer = new BufferConfig();
+
+    @Getter
     private final ReactiveElasticsearchClient restClient;
     @Getter
     private final ElasticSearchIndexManager indexManager;
-
-    private FluxSink<Buffer> sink;
 
     public static final IndicesOptions indexOptions = IndicesOptions.fromOptions(
         true, true, false, false
@@ -79,7 +88,10 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
 
     static {
         DateFormatter.supportFormatter.add(new DefaultDateFormatter(Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.+"), "yyyy-MM-dd'T'HH:mm:ss.SSSZ"));
+        DateFormatter.supportFormatter.add(new DefaultDateFormatter(Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.+"), "yyyy-MM-dd HH:mm:ss.SSS"));
     }
+
+    private PersistenceBuffer<Buffer> writer;
 
     public ReactiveElasticSearchService(ReactiveElasticsearchClient restClient,
                                         ElasticSearchIndexManager indexManager) {
@@ -169,11 +181,9 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
 
         return Flux
             .fromIterable(response.getHits())
-            .map(hit -> {
+            .mapNotNull(hit -> {
                 Map<String, Object> hitMap = hit.getSourceAsMap();
-                if (StringUtils.isEmpty(hitMap.get("id"))) {
-                    hitMap.put("id", hit.getId());
-                }
+                hitMap.putIfAbsent("id", hit.getId());
                 return mapper
                     .apply(Optional
                                .ofNullable(metadata.get(hit.getIndex())).orElse(indexList.get(0))
@@ -191,11 +201,9 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
 
         return Flux
             .just(searchHit)
-            .map(hit -> {
+            .mapNotNull(hit -> {
                 Map<String, Object> hitMap = hit.getSourceAsMap();
-                if (StringUtils.isEmpty(hitMap.get("id"))) {
-                    hitMap.put("id", hit.getId());
-                }
+                hitMap.putIfAbsent("id", hit.getId());
                 return mapper
                     .apply(Optional
                                .ofNullable(metadata.get(hit.getIndex())).orElse(indexList.get(0))
@@ -226,12 +234,15 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
             .filter(CollectionUtils::isNotEmpty)
             .flatMapMany(metadataList -> this
                 .createSearchRequest(queryParam.clone().noPaging(), metadataList)
-                .doOnNext(search -> search.source().size(queryParam.getPageSize()))
+                .doOnNext(search -> search.source().size(getNoPagingPageSize(queryParam)))
                 .flatMapMany(restClient::scroll)
                 .map(searchHit -> Tuples.of(metadataList, searchHit))
             );
     }
 
+    private int getNoPagingPageSize(QueryParam param) {
+        return Math.max(10000, param.getPageSize());
+    }
 
     @Override
     public Mono<Long> count(String[] index, QueryParam queryParam) {
@@ -255,17 +266,13 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
     }
 
     private boolean checkWritable(String index) {
-        if (SystemUtils.memoryIsOutOfWatermark()) {
-            SystemUtils.printError("JVM内存不足,elasticsearch无法处理更多索引[%s]请求!", index);
-            return false;
-        }
         return true;
     }
 
     @Override
     public <T> Mono<Void> commit(String index, T payload) {
         if (checkWritable(index)) {
-            sink.next(Buffer.of(index, payload));
+            writer.write(Buffer.of(index, payload));
         }
         return Mono.empty();
     }
@@ -274,7 +281,7 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
     public <T> Mono<Void> commit(String index, Collection<T> payload) {
         if (checkWritable(index)) {
             for (T t : payload) {
-                sink.next(Buffer.of(index, t));
+                writer.write(Buffer.of(index, t));
             }
         }
         return Mono.empty();
@@ -299,7 +306,7 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
     public <T> Mono<Void> save(String index, Publisher<T> data) {
         return Flux.from(data)
                    .map(v -> Buffer.of(index, v))
-                   .collectList()
+                   .buffer(buffer.getSize())
                    .flatMap(this::doSave)
                    .then();
     }
@@ -311,122 +318,105 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
 
     @PreDestroy
     public void shutdown() {
-        sink.complete();
+        writer.dispose();
     }
 
     @Getter
     @Setter
-    private BufferConfig buffer = new BufferConfig();
-
-    @Getter
-    @Setter
-    public static class BufferConfig {
-        //最小间隔
-        private int rate = Integer.getInteger("elasticsearch.buffer.rate", 1000);
-        //缓冲最大数量
-        private int bufferSize = Integer.getInteger("elasticsearch.buffer.size", 3000);
-        //缓冲超时时间
-        private Duration bufferTimeout = Duration.ofSeconds(Integer.getInteger("elasticsearch.buffer.timeout", 3));
-        //背压堆积数量限制.
-        private int bufferBackpressure = Integer.getInteger("elasticsearch.buffer.backpressure", Runtime
-            .getRuntime()
-            .availableProcessors());
-        //最大缓冲字节
-        private DataSize bufferBytes = DataSize.parse(System.getProperty("elasticsearch.buffer.bytes", "15MB"));
-
-        //最大重试次数
-        private int maxRetry = 3;
-        //重试间隔
-        private Duration minBackoff = Duration.ofSeconds(3);
+    public static class BufferConfig extends BufferProperties {
+        public BufferConfig() {
+            //固定缓冲文件目录
+            setFilePath("./data/elasticsearch-buffer");
+            setSize(3000);
+        }
 
         private boolean refreshWhenWrite = false;
     }
 
-    //@PostConstruct
-    public void init() {
-        int flushRate = buffer.rate;
-        int bufferSize = buffer.bufferSize;
-        Duration bufferTimeout = buffer.bufferTimeout;
-        int bufferBackpressure = buffer.bufferBackpressure;
-        long bufferBytes = buffer.bufferBytes.toBytes();
-        AtomicLong bufferedBytes = new AtomicLong();
-
-        FluxUtils
-            .bufferRate(Flux.<Buffer>create(sink -> this.sink = sink),
-                        flushRate,
-                        bufferSize,
-                        bufferTimeout,
-                        (b, l) -> bufferedBytes.addAndGet(b.numberOfBytes()) >= bufferBytes)
-            .doOnNext(buf -> bufferedBytes.set(0))
-            .onBackpressureBuffer(bufferBackpressure, drop -> {
-                // TODO: 2020/11/25 将丢弃的数据存储到本地磁盘
-                drop.forEach(Buffer::release);
-                SystemUtils.printError("elasticsearch无法处理更多索引请求!丢弃数据数量:%d", drop.size());
-            }, BufferOverflowStrategy.DROP_OLDEST)
-            .publishOn(Schedulers.boundedElastic(), bufferBackpressure)
-            .flatMap(buffers -> {
-                return Mono.create(sink -> {
-                    try {
-                        sink.onCancel(this
-                                          .doSave(buffers)
-                                          .doFinally((s) -> sink.success())
-                                          .subscribe());
-                    } catch (Exception e) {
-                        sink.success();
-                    }
-                });
-            })
-            .onErrorResume((err) -> Mono
-                .fromRunnable(() -> SystemUtils.printError("保存ElasticSearch数据失败:\n" +
-                                                               org.hswebframework.utils.StringUtils.throwable2String(err))))
-            .subscribe();
+    @PostConstruct
+    public void reset() {
+        //spring 启动后更新配置信息
+        writer.settings(bufferSettings -> bufferSettings.properties(buffer));
     }
 
+    private void init() {
 
-    static ObjectPool<Buffer> pool = ObjectPool.newPool(Buffer::new);
+        writer = new PersistenceBuffer<>(
+            BufferSettings.create("writer.queue", buffer),
+            Buffer::new,
+            this::doSaveBuffer)
+            .name("elasticsearch")
+            .retryWhenError(e -> {
+                if (e instanceof ElasticsearchException) {
+                    ElasticsearchException elasticsearchException = (ElasticsearchException) e;
+                    if (elasticsearchException.status() == RestStatus.BAD_GATEWAY) {
+                        return true;
+                    }
+                }
+                return ErrorUtils.hasException(e, WebClientException.class)
+                    || ErrorUtils.hasException(e, IOException.class);
+            });
+
+        writer.start();
+
+    }
+
+    public Mono<Boolean> doSaveBuffer(Flux<Buffer> bufferFlux) {
+        return bufferFlux
+            .collectList()
+            .flatMap(this::doSave)
+            .subscribeOn(Schedulers.parallel())
+            .map(i -> i == 0);
+    }
 
     @Getter
-    static class Buffer {
+    public static class Buffer implements Externalizable, MemoryUsage {
+        private static final long serialVersionUID = 1;
+
         String index;
         String id;
-        String payload;
-        final ObjectPool.Handle<Buffer> handle;
+        byte[] payload;
 
-        public Buffer(ObjectPool.Handle<Buffer> handle) {
-            this.handle = handle;
-        }
-
+        @SneakyThrows
         public static Buffer of(String index, Object payload) {
-            Buffer buffer;
-            try {
-                buffer = pool.get();
-            } catch (Throwable e) {
-                buffer = new Buffer(null);
-            }
+            Buffer buffer = new Buffer();
             buffer.index = index;
+            @SuppressWarnings("unchecked")
             Map<String, Object> data = payload instanceof Map
                 ? ((Map) payload) :
                 FastBeanCopier.copy(payload, HashMap::new);
             Object id = data.get("id");
             buffer.id = id == null ? null : String.valueOf(id);
-            buffer.payload = JSON.toJSONString(data);
+            buffer.payload = ObjectMappers.JSON_MAPPER.writeValueAsBytes(data);
             return buffer;
         }
 
         void release() {
-            this.index = null;
-            this.id = null;
-            this.payload = null;
-            if (null != handle) {
-                handle.recycle(this);
-            }
+
         }
 
-        int numberOfBytes() {
-            return payload == null ? 0 : payload.length() * 2;
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeUTF(index);
+            SerializeUtils.writeNullableUTF(id, out);
+            out.writeInt(payload.length);
+            out.write(payload);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            index = in.readUTF();
+            id = SerializeUtils.readNullableUTF(in);
+            int length = in.readInt();
+            payload = new byte[length];
+            in.readFully(payload);
+        }
+
+        @Override
+        public int usage() {
+            return payload == null ? 64 : 64 + payload.length;
         }
     }
-
 
     private Mono<String> getIndexForSave(String index) {
         return indexManager
@@ -443,6 +433,7 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
     }
 
     protected Mono<Integer> doSave(Collection<Buffer> buffers) {
+        int size = buffers.size();
         return Flux
             .fromIterable(buffers)
             .groupBy(Buffer::getIndex, Integer.MAX_VALUE)
@@ -455,9 +446,12 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
                             try {
                                 IndexRequest request;
                                 if (buffer.id != null) {
-                                    request = new IndexRequest(realIndex).type("_doc").id(buffer.id);
+                                    request = new IndexRequest(realIndex).id(buffer.id);
                                 } else {
-                                    request = new IndexRequest(realIndex).type("_doc");
+                                    request = new IndexRequest(realIndex);
+                                }
+                                if (getRestClient().serverVersion().before(Version.V_7_0_0)) {
+                                    request.type("_doc");
                                 }
                                 request.source(buffer.payload, XContentType.JSON);
                                 return request;
@@ -475,14 +469,7 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
                     request.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                 }
                 lst.forEach(request::add);
-                return restClient
-                    .bulk(request)
-                    .as(save -> {
-                        if (buffer.maxRetry > 0) {
-                            return save.retryWhen(Retry.backoff(buffer.maxRetry, buffer.minBackoff));
-                        }
-                        return save;
-                    });
+                return restClient.bulk(request);
             })
             .doOnError((err) -> {
                 //这里的错误都输出到控制台,输入到slf4j可能会造成日志递归.
@@ -490,13 +477,12 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
                     org.hswebframework.utils.StringUtils.throwable2String(err)
                 });
             })
-            .doOnNext(response -> {
-                log.trace("保存ElasticSearch数据成功,数量:{},耗时:{}", response.getItems().length, response.getTook());
+            .map(response -> {
                 if (response.hasFailures()) {
-                    SystemUtils.printError(response.buildFailureMessage());
+                    return 0;
                 }
-            })
-            .thenReturn(buffers.size());
+                return size;
+            });
     }
 
     private <T> List<T> translate(Function<Map<String, Object>, T> mapper, SearchResponse response) {
@@ -541,4 +527,5 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
             .map(metadata -> QueryParamTranslator.createQueryBuilder(queryParam, metadata))
             .switchIfEmpty(Mono.fromSupplier(() -> QueryParamTranslator.createQueryBuilder(queryParam, null)));
     }
+
 }
