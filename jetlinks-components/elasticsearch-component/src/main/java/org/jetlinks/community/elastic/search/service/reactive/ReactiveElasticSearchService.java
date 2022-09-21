@@ -42,6 +42,8 @@ import org.jetlinks.core.utils.SerializeUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClientException;
 import reactor.core.publisher.Flux;
@@ -71,6 +73,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @DependsOn("reactiveElasticsearchClient")
 @ConfigurationProperties(prefix = "elasticsearch")
+@Service
 public class ReactiveElasticSearchService implements ElasticSearchService {
 
     @Getter
