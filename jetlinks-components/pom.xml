@@ -23,6 +23,8 @@
         <module>logging-component</module>
         <module>rule-engine-component</module>
         <module>configure-component</module>
+        <module>things-component</module>
+        <module>script-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>

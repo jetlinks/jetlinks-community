@@ -16,7 +16,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.5.13</spring.boot.version>
+        <spring.boot.version>2.7.1</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <hsweb.framework.version>4.0.15-SNAPSHOT</hsweb.framework.version>
@@ -24,14 +24,14 @@
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
         <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
         <r2dbc.version>Borca-SR1</r2dbc.version>
-        <netty.version>4.1.77.Final</netty.version>
-        <elasticsearch.version>7.11.2</elasticsearch.version>
-        <reactor.excel.version>1.0.3</reactor.excel.version>
-        <reactor.ql.version>1.0.14</reactor.ql.version>
-        <californium.version>3.3.1</californium.version>
+        <netty.version>4.1.79.Final</netty.version>
+        <elasticsearch.version>7.17.5</elasticsearch.version>
+        <reactor.excel.version>1.0.3-SNAPSHOT</reactor.excel.version>
+        <reactor.ql.version>1.0.14-SNAPSHOT</reactor.ql.version>
+        <californium.version>3.6.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <reactor.version>2020.0.18</reactor.version>
-        <vertx.version>4.3.0</vertx.version>
+        <reactor.version>2020.0.20</reactor.version>
+        <vertx.version>4.3.1</vertx.version>
         <log4j.version>2.17.1</log4j.version>
         <logback.version>1.2.9</logback.version>
         <springdoc.version>1.6.6</springdoc.version>
