@@ -8,6 +8,9 @@ import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilderStrategy;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
+import org.jetlinks.community.script.CompiledScript;
+import org.jetlinks.community.script.Script;
+import org.jetlinks.community.script.Scripts;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,24 +50,20 @@ public class ScriptPayloadParserBuilder implements PayloadParserBuilderStrategy 
         String lang = config.getString("lang")
                             .orElseThrow(() -> new IllegalArgumentException("lang不能为空"));
 
-        DynamicScriptEngine engine = DynamicScriptEngineFactory.getEngine(lang);
-        if (engine == null) {
-            throw new IllegalArgumentException("不支持的脚本:" + lang);
-        }
-        String id = DigestUtils.md5Hex(script);
-        if (!engine.compiled(id)) {
-            engine.compile(id, script);
-        }
-        doCreateParser(id,engine);
-        return ()-> doCreateParser(id, engine);
+        CompiledScript compiledScript = Scripts
+            .getFactory(lang)
+            .compile(Script.of("tcp-network-payload-parser", script));
+
+        return () -> {
+            PipePayloadParser parser = new PipePayloadParser();
+
+            Map<String, Object> ctx = new HashMap<>();
+            ctx.put("parser", parser);
+
+            compiledScript.call(ctx);
+            return parser;
+        };
     }
 
-    @SneakyThrows
-    private PipePayloadParser doCreateParser(String id,DynamicScriptEngine engine){
-        PipePayloadParser parser = new PipePayloadParser();
-        Map<String, Object> ctx = new HashMap<>();
-        ctx.put("parser", parser);
-        engine.execute(id, ctx).getIfSuccess();
-        return parser;
-    }
+
 }
