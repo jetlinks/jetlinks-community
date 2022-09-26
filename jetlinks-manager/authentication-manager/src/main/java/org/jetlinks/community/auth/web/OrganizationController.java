@@ -3,143 +3,87 @@ package org.jetlinks.community.auth.web;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.apache.commons.collections4.CollectionUtils;
-import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
-import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
-import org.hswebframework.web.authorization.Authentication;
-import org.hswebframework.web.authorization.Dimension;
-import org.hswebframework.web.authorization.annotation.*;
-import org.hswebframework.web.system.authorization.api.entity.DimensionEntity;
-import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntity;
-import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionService;
-import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.hswebframework.web.authorization.annotation.Authorize;
+import org.hswebframework.web.authorization.annotation.QueryAction;
+import org.hswebframework.web.authorization.annotation.Resource;
+import org.hswebframework.web.authorization.annotation.ResourceAction;
+import org.hswebframework.web.crud.service.ReactiveCrudService;
+import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
+import org.jetlinks.community.auth.entity.OrganizationEntity;
+import org.jetlinks.community.auth.service.OrganizationService;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @RequestMapping("/organization")
 @RestController
-@Resource(id = "organization", name = "机构管理")
-@Tag(name = "机构管理")
-public class OrganizationController {
-    static String orgDimensionTypeId = "org";
-    @Autowired
-    private DefaultDimensionService dimensionService;
+@Resource(id = "organization", name = "部门管理")
+@Tag(name = "部门管理")
+public class OrganizationController implements ReactiveServiceCrudController<OrganizationEntity, String> {
 
-    @Autowired
-    private DefaultDimensionUserService dimensionUserService;
+    private final OrganizationService organizationService;
 
+    public OrganizationController(OrganizationService organizationService) {
+        this.organizationService = organizationService;
+    }
 
-    public OrganizationController(DefaultDimensionService dimensionService) {
-        this.dimensionService = dimensionService;
+    private Flux<OrganizationEntity> queryAll() {
+        return organizationService.createQuery().fetch();
+    }
+
+    private Flux<OrganizationEntity> queryAll(Mono<QueryParamEntity> queryParamEntity) {
+        return organizationService.query(queryParamEntity);
     }
 
     @GetMapping("/_all/tree")
     @Authorize(merge = false)
     @Operation(summary = "获取全部机构信息(树结构)")
-    public Flux<DimensionEntity> getAllOrgTree() {
-        return getAllOrg()
+    public Flux<OrganizationEntity> getAllOrgTree() {
+        return queryAll()
             .collectList()
-            .flatMapIterable(list -> TreeSupportEntity.list2tree(list, DimensionEntity::setChildren));
+            .flatMapIterable(list -> TreeSupportEntity.list2tree(list, OrganizationEntity::setChildren));
+    }
+
+    @PostMapping("/_all/tree")
+    @Authorize(merge = false)
+    @Operation(summary = "获取全部机构信息(树结构)")
+    public Flux<OrganizationEntity> getAllOrgTree(@RequestBody Mono<QueryParamEntity> query) {
+        return queryAll(query)
+            .collectList()
+            .flatMapIterable(list -> TreeSupportEntity.list2tree(list, OrganizationEntity::setChildren));
     }
 
     @GetMapping("/_all")
     @Authorize(merge = false)
     @Operation(summary = "获取全部机构信息")
-    public Flux<DimensionEntity> getAllOrg() {
-        return Authentication
-            .currentReactive()
-            .flatMapMany(auth -> {
-                List<String> list = auth.getDimensions(orgDimensionTypeId)
-                                        .stream()
-                                        .map(Dimension::getId)
-                                        .collect(Collectors.toList());
-                if (CollectionUtils.isNotEmpty(list)) {
-                    return dimensionService.findById(list);
-                }
-                return dimensionService
-                    .createQuery()
-                    .where(DimensionEntity::getTypeId, orgDimensionTypeId)
-                    .fetch();
-            });
+    public Flux<OrganizationEntity> getAllOrg() {
+        return queryAll();
     }
 
-    @GetMapping("/_query")
-    @QueryAction
-    @QueryOperation(summary = "查询机构列表")
-    public Mono<PagerResult<DimensionEntity>> queryDimension(@Parameter(hidden = true) QueryParamEntity entity) {
-        return entity
-            .toNestQuery(q -> q.where(DimensionEntity::getTypeId, orgDimensionTypeId))
-            .execute(Mono::just)
-            .as(dimensionService::queryPager);
+    @PostMapping("/_all")
+    @Authorize(merge = false)
+    @Operation(summary = "获取全部机构信息")
+    public Flux<OrganizationEntity> getAllOrg(@RequestBody Mono<QueryParamEntity> query) {
+        return queryAll(query);
     }
 
     @GetMapping("/_query/_children/tree")
     @QueryAction
     @QueryOperation(summary = "查询机构列表(包含子机构)树结构")
-    public Mono<List<DimensionEntity>> queryChildrenTree(@Parameter(hidden = true) QueryParamEntity entity) {
-        return entity
-            .toNestQuery(q -> q.where(DimensionEntity::getTypeId, orgDimensionTypeId))
-            .execute(dimensionService::queryIncludeChildrenTree);
+    public Mono<List<OrganizationEntity>> queryChildrenTree(@Parameter(hidden = true) QueryParamEntity entity) {
+        return organizationService.queryIncludeChildrenTree(entity);
     }
 
     @GetMapping("/_query/_children")
     @QueryAction
     @QueryOperation(summary = "查询机构列表(包含子机构)")
-    public Flux<DimensionEntity> queryChildren(@Parameter(hidden = true) QueryParamEntity entity) {
-        return entity
-            .toNestQuery(q -> q.where(DimensionEntity::getTypeId, orgDimensionTypeId))
-            .execute(dimensionService::queryIncludeChildren);
-    }
-
-    @PostMapping
-    @CreateAction
-    @Operation(summary = "新增机构信息")
-    public Mono<Void> addOrg(@RequestBody Flux<DimensionEntity> entityFlux) {
-        return entityFlux
-            .doOnNext(entity -> entity.setTypeId(orgDimensionTypeId))
-            .as(dimensionService::insert)
-            .then();
-    }
-
-    @PutMapping("/{id}")
-    @SaveAction
-    @Operation(summary = "更新机构信息")
-    public Mono<Void> updateOrg(@PathVariable String id, @RequestBody Mono<DimensionEntity> entityMono) {
-        return entityMono
-            .doOnNext(entity -> {
-                entity.setTypeId(orgDimensionTypeId);
-                entity.setId(id);
-            })
-            .as(payload -> dimensionService.updateById(id, payload))
-            .then();
-    }
-
-    @PatchMapping
-    @SaveAction
-    @Operation(summary = "保存机构信息")
-    public Mono<Void> saveOrg(@RequestBody Flux<DimensionEntity> entityFlux) {
-        return entityFlux
-            .doOnNext(entity -> entity.setTypeId(orgDimensionTypeId))
-            .as(dimensionService::save)
-            .then();
-    }
-
-    @DeleteMapping("/{id}")
-    @DeleteAction
-    @Operation(summary = "删除机构信息")
-    public Mono<Void> deleteOrg(@PathVariable String id) {
-        return dimensionService
-            .deleteById(Mono.just(id))
-            .then();
+    public Flux<OrganizationEntity> queryChildren(@Parameter(hidden = true) QueryParamEntity entity) {
+        return organizationService.queryIncludeChildren(entity);
     }
 
     @PostMapping("/{id}/users/_bind")
@@ -149,19 +93,7 @@ public class OrganizationController {
                                   @Parameter(description = "用户ID")
                                   @RequestBody Mono<List<String>> userId) {
 
-        return userId
-            .flatMapIterable(Function.identity())
-            .map(uId -> {
-                DimensionUserEntity userEntity = new DimensionUserEntity();
-                userEntity.setUserId(uId);
-                userEntity.setUserName(uId);
-                userEntity.setDimensionId(id);
-                userEntity.setDimensionTypeId(orgDimensionTypeId);
-                userEntity.setDimensionName(orgDimensionTypeId);
-                return userEntity;
-            })
-            .as(dimensionUserService::save)
-            .map(SaveResult::getTotal);
+        return userId.flatMap(list -> organizationService.bindUser(id, list));
 
     }
 
@@ -171,14 +103,11 @@ public class OrganizationController {
     public Mono<Integer> unbindUser(@Parameter(description = "机构ID") @PathVariable String id,
                                     @Parameter(description = "用户ID")
                                     @RequestBody Mono<List<String>> userId) {
-        return userId
-            .flatMap(newUserIdList -> dimensionUserService
-                .createDelete()
-                .where(DimensionUserEntity::getDimensionTypeId, orgDimensionTypeId)
-                .in(DimensionUserEntity::getUserId, newUserIdList)
-                .and(DimensionUserEntity::getDimensionId, id)
-                .execute());
+        return userId.flatMap(list -> organizationService.unbindUser(id, list));
     }
 
-
+    @Override
+    public ReactiveCrudService<OrganizationEntity, String> getService() {
+        return organizationService;
+    }
 }
