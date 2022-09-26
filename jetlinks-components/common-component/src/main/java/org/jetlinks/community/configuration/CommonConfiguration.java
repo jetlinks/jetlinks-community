@@ -5,14 +5,22 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.Interval;
+import org.jetlinks.community.config.ConfigManager;
+import org.jetlinks.community.config.ConfigScopeCustomizer;
+import org.jetlinks.community.config.ConfigScopeProperties;
+import org.jetlinks.community.config.SimpleConfigManager;
+import org.jetlinks.community.config.entity.ConfigEntity;
 import org.jetlinks.community.utils.TimeUtils;
 import org.jetlinks.reactor.ql.feature.Feature;
 import org.jetlinks.reactor.ql.supports.DefaultReactorQLMetadata;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -25,6 +33,7 @@ import java.util.Date;
 
 @Configuration
 @SuppressWarnings("all")
+@EnableConfigurationProperties({ConfigScopeProperties.class})
 public class CommonConfiguration {
 
     static {
@@ -115,5 +124,17 @@ public class CommonConfiguration {
             builder.deserializerByType(Date.class,new SmartDateDeserializer());
         };
     }
+
+    @Bean
+    public ConfigManager configManager(ObjectProvider<ConfigScopeCustomizer> configScopeCustomizers,
+                                       ReactiveRepository<ConfigEntity, String> repository) {
+
+        SimpleConfigManager configManager = new SimpleConfigManager(repository);
+        for (ConfigScopeCustomizer customizer : configScopeCustomizers) {
+            customizer.custom(configManager);
+        }
+        return configManager;
+    }
+
 
 }
