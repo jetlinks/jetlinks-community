@@ -15,8 +15,8 @@ import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.community.device.service.data.DeviceDataStoragePolicy;
 import org.jetlinks.community.device.web.request.AggRequest;
+import org.jetlinks.community.things.data.ThingsDataRepositoryStrategy;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceConfigScope;
@@ -39,8 +39,7 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
 
     private final LocalDeviceProductService productService;
 
-    private final List<DeviceDataStoragePolicy> policies;
-
+    private final List<ThingsDataRepositoryStrategy> policies;
     private final DeviceDataService deviceDataService;
 
     private final DeviceConfigMetadataManager configMetadataManager;
@@ -50,7 +49,7 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
     private final DeviceMetadataCodec defaultCodec = new JetLinksDeviceMetadataCodec();
 
     public DeviceProductController(LocalDeviceProductService productService,
-                                   List<DeviceDataStoragePolicy> policies,
+                                   List<ThingsDataRepositoryStrategy> policies,
                                    DeviceDataService deviceDataService,
                                    DeviceConfigMetadataManager configMetadataManager,
                                    ObjectProvider<DeviceMetadataCodec> metadataCodecs) {
@@ -141,7 +140,7 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
     @Operation(summary = "获取支持的数据存储策略")
     public Flux<DeviceDataStorePolicyInfo> storePolicy() {
         return Flux.fromIterable(policies)
-            .flatMap(DeviceDataStorePolicyInfo::of);
+            .map(DeviceDataStorePolicyInfo::of);
     }
 
     @PostMapping("/{productId:.+}/agg/_query")
@@ -173,10 +172,8 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
 
         private ConfigMetadata configMetadata;
 
-        public static Mono<DeviceDataStorePolicyInfo> of(DeviceDataStoragePolicy policy) {
-            return policy.getConfigMetadata()
-                .map(metadata -> new DeviceDataStorePolicyInfo(policy.getId(), policy.getName(), policy.getDescription(), metadata))
-                .defaultIfEmpty(new DeviceDataStorePolicyInfo(policy.getId(), policy.getName(), policy.getDescription(), null));
+        public static DeviceDataStorePolicyInfo of(ThingsDataRepositoryStrategy strategy) {
+            return new DeviceDataStorePolicyInfo(strategy.getId(), strategy.getName(), null, null);
         }
     }
 

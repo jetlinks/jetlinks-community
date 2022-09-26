@@ -43,6 +43,8 @@ public interface DeviceDataService {
     Mono<Void> registerMetadata(@Nonnull String productId,
                                 @Nonnull DeviceMetadata metadata);
 
+    Mono<Void> reloadMetadata(@Nonnull String productId, @Nonnull DeviceMetadata metadata);
+
     /**
      * 批量保存消息
      *
