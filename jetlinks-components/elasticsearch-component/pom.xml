@@ -72,6 +72,11 @@
             <artifactId>reactor-netty</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>things-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>
