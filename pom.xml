@@ -23,8 +23,8 @@
         <easyorm.version>4.1.0-SNAPSHOT</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
         <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
-        <r2dbc.version>Borca-SR1</r2dbc.version>
-        <netty.version>4.1.79.Final</netty.version>
+        <r2dbc.version>Borca-SR2</r2dbc.version>
+        <netty.version>4.1.82.Final</netty.version>
         <elasticsearch.version>7.17.5</elasticsearch.version>
         <reactor.excel.version>1.0.3-SNAPSHOT</reactor.excel.version>
         <reactor.ql.version>1.0.14-SNAPSHOT</reactor.ql.version>
@@ -161,6 +161,24 @@
     <dependencyManagement>
 
         <dependencies>
+
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.32</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>20180130</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jsoup</groupId>
+                <artifactId>jsoup</artifactId>
+                <version>1.15.3</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.h2database</groupId>
@@ -516,12 +534,18 @@
             <id>aliyun-nexus</id>
             <name>aliyun</name>
             <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
         </repository>
 
         <repository>
             <id>hsweb-nexus</id>
             <name>Nexus Release Repository</name>
             <url>https://nexus.hsweb.me/content/groups/public/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
             <snapshots>
                 <enabled>true</enabled>
                 <updatePolicy>always</updatePolicy>
