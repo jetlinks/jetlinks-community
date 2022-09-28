@@ -1,9 +1,9 @@
 package org.jetlinks.community.notify;
 
 import lombok.AllArgsConstructor;
+import org.jetlinks.core.Values;
 import org.jetlinks.community.notify.event.NotifierEvent;
 import org.jetlinks.community.notify.template.Template;
-import org.jetlinks.core.Values;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
@@ -31,8 +31,13 @@ public abstract class NotifierProxy<T extends Template> implements Notifier<T> {
     }
 
     @Override
-    public <R extends Notifier<T>> R unwrap(Class<R> type) {
+    public <R> R unwrap(Class<R> type) {
         return target.unwrap(type);
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> type) {
+        return target.isWrapperFor(type);
     }
 
     @Nonnull
@@ -40,15 +45,16 @@ public abstract class NotifierProxy<T extends Template> implements Notifier<T> {
     public Mono<Void> send(@Nonnull String templateId, Values context) {
         return target
             .send(templateId, context)
-            .switchIfEmpty(Mono.defer(() -> onSuccess(templateId, context)))
+            .then(Mono.defer(() -> onSuccess(templateId, context)))
             .onErrorResume(err -> onError(templateId, context, err).then(Mono.error(err)));
     }
 
     @Nonnull
     @Override
     public Mono<Void> send(@Nonnull T template, @Nonnull Values context) {
-        return target.send(template, context)
-            .switchIfEmpty(Mono.defer(() -> onSuccess(template, context)))
+        return target
+            .send(template, context)
+            .then(Mono.defer(() -> onSuccess(template, context)))
             .onErrorResume(err -> onError(template, context, err).then(Mono.error(err)));
     }
 

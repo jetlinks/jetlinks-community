@@ -1,21 +1,22 @@
 package org.jetlinks.community.notify;
 
-import org.jetlinks.community.notify.template.Template;
 import org.jetlinks.core.Values;
+import org.jetlinks.core.Wrapper;
+import org.jetlinks.community.notify.template.Template;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 /**
- * 通知器,用于发送通知,如: 短信,邮件,语音,微信等s
+ * 通知器,用于发送通知,如: 短信,邮件,语音,微信等
  *
  * @author zhouhao
  * @see NotifierManager
  * @see NotifierProvider
  * @since 1.0
  */
-public interface Notifier<T extends Template> {
+public interface Notifier<T extends Template> extends Wrapper {
 
     /**
      * @return 通知器ID
@@ -78,7 +79,4 @@ public interface Notifier<T extends Template> {
     @Nonnull
     Mono<Void> close();
 
-    default <R extends Notifier<T>> R unwrap(Class<R> type) {
-        return type.cast(this);
-    }
 }

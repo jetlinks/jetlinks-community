@@ -2,6 +2,7 @@ package org.jetlinks.community.notify;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.community.ValueObject;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.Optional;
  */
 @Getter
 @Setter
-public class NotifierProperties implements Serializable {
+public class NotifierProperties implements ValueObject, Serializable {
 
     private static final long serialVersionUID = -6849794470754667710L;
 
@@ -27,6 +28,7 @@ public class NotifierProperties implements Serializable {
 
     /**
      * 通知类型标识
+     *
      * @see NotifyType
      */
     private String type;
@@ -43,17 +45,26 @@ public class NotifierProperties implements Serializable {
 
     /**
      * 配置内容,不同的服务提供商,配置不同.
+     *
      * @see NotifierProvider
      */
     private Map<String, Object> configuration;
 
-    public Optional<Object> getConfig(String key){
+    @Deprecated
+    public Optional<Object> getConfig(String key) {
         return Optional.ofNullable(configuration)
-                .map(conf->conf.get(key));
+            .map(conf -> conf.get(key));
     }
-    public Object getConfigOrNull(String key){
+
+    @Deprecated
+    public Object getConfigOrNull(String key) {
         return Optional.ofNullable(configuration)
-                .map(conf->conf.get(key))
-                .orElse(null);
+            .map(conf -> conf.get(key))
+            .orElse(null);
+    }
+
+    @Override
+    public Map<String, Object> values() {
+        return configuration;
     }
 }

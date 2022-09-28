@@ -12,7 +12,15 @@ import org.jetlinks.community.config.ConfigScopeCustomizer;
 import org.jetlinks.community.config.ConfigScopeProperties;
 import org.jetlinks.community.config.SimpleConfigManager;
 import org.jetlinks.community.config.entity.ConfigEntity;
+import org.jetlinks.community.reference.DataReferenceManager;
+import org.jetlinks.community.reference.DataReferenceProvider;
+import org.jetlinks.community.reference.DefaultDataReferenceManager;
+import org.jetlinks.community.resource.DefaultResourceManager;
+import org.jetlinks.community.resource.ResourceManager;
+import org.jetlinks.community.resource.ResourceProvider;
+import org.jetlinks.community.resource.initialize.PermissionResourceProvider;
 import org.jetlinks.community.utils.TimeUtils;
+import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.reactor.ql.feature.Feature;
 import org.jetlinks.reactor.ql.supports.DefaultReactorQLMetadata;
 import org.jetlinks.reactor.ql.utils.CastUtils;
@@ -136,5 +144,24 @@ public class CommonConfiguration {
         return configManager;
     }
 
+    @Bean
+    public PermissionResourceProvider permissionResourceProvider(){
+        return new PermissionResourceProvider();
+    }
 
+    @Bean
+    public ResourceManager resourceManager(ObjectProvider<ResourceProvider> providers) {
+        DefaultResourceManager manager = new DefaultResourceManager();
+        providers.forEach(manager::addProvider);
+        return manager;
+    }
+
+    @Bean
+    public DataReferenceManager dataReferenceManager(ObjectProvider<DataReferenceProvider> provider) {
+        DefaultDataReferenceManager referenceManager = new DefaultDataReferenceManager();
+
+        provider.forEach(referenceManager::addStrategy);
+
+        return referenceManager;
+    }
 }

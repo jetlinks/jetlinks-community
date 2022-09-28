@@ -10,24 +10,22 @@ import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.utils.ExpressionUtils;
 import org.hswebframework.web.utils.TemplateParser;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.notify.*;
+import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.core.Values;
 import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.notify.*;
-import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.core.io.*;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.InputStreamSource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -70,9 +68,10 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     @Setter
     private boolean enableFileSystemAttachment = Boolean.getBoolean("email.attach.local-file.enabled");
 
-    private final FileManager fileManager;
+    public static Scheduler scheduler = Schedulers.boundedElastic();
 
-    public static Scheduler scheduler = Schedulers.elastic();
+
+    private final FileManager fileManager;
 
     public DefaultEmailNotifier(NotifierProperties properties,
                                 TemplateManager templateManager,
@@ -81,6 +80,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
              new JSONObject(properties.getConfiguration()).toJavaObject(DefaultEmailProperties.class),
              templateManager,
              fileManager);
+
     }
 
     public DefaultEmailNotifier(String id,
@@ -105,7 +105,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     @Override
     public Mono<Void> send(@Nonnull EmailTemplate template, @Nonnull Values context) {
         return Mono.just(template)
-                   .map(temp -> convert(temp, context.getAllValues()))
+                   .flatMap(temp -> convert(temp, context.getAllValues()))
                    .flatMap(this::doSend);
     }
 
@@ -197,39 +197,41 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     }
 
 
-    public static ParsedEmailTemplate convert(EmailTemplate template, Map<String, Object> context) {
-        List<String> sendTo = template.getSendTo()
-                                      .stream()
-                                      .map(s -> render(s, context))
-                                      .collect(Collectors.toList());
-        String subject = template.getSubject();
-        String text = template.getText();
-        if (StringUtils.isEmpty(subject) || StringUtils.isEmpty(text)) {
-            throw new BusinessException("模板内容错误，text 或者 subject 不能为空.");
-        }
-        String sendText = render(text, context,true);
-        List<EmailTemplate.Attachment> tempAttachments = template.getAttachments();
-        Map<String, String> attachments = new HashMap<>();
+    public static Mono<ParsedEmailTemplate> convert(EmailTemplate template, Map<String, Object> context) {
+        return template.getSendTo(context)
+            .map(sendTo -> {
+                String subject = template.getSubject();
+                String text = template.getText();
+                if (CollectionUtils.isEmpty(sendTo) || StringUtils.isEmpty(subject) || StringUtils.isEmpty(text)) {
+                    throw new BusinessException("模板内容错误，sendTo, text 或者 subject 不能为空.");
+                }
+                List<String> sendToList = sendTo
+                    .stream()
+                    .map(s -> template.render(s, context))
+                    .collect(Collectors.toList());
+                String sendText = template.render(text, context);
+                List<EmailTemplate.Attachment> tempAttachments = template.getAttachments();
+                Map<String, String> attachments = new HashMap<>();
 
-        if (tempAttachments != null) {
-            List<EmailTemplate.Attachment> distinctAttachment = tempAttachments
-                .stream()
-                .distinct()
-                .collect(Collectors.toList());
-            for (EmailTemplate.Attachment tempAttachment : distinctAttachment) {
-                attachments.put(tempAttachment.getName(), render(tempAttachment.getLocation(), context));
-            }
-        }
+                if (tempAttachments != null) {
+                    List<EmailTemplate.Attachment> distinctAttachment = tempAttachments
+                        .stream()
+                        .distinct()
+                        .collect(Collectors.toList());
+                    for (EmailTemplate.Attachment tempAttachment : distinctAttachment) {
+                        attachments.put(tempAttachment.getName(), template.get(tempAttachment.getLocation(), EmailTemplate.Attachment.LOCATION_KEY, context));
+                    }
+                }
 
-
-        return ParsedEmailTemplate
-            .builder()
-            .attachments(attachments)
-            .images(extractSendTextImage(sendText))
-            .text(sendText)
-            .subject(render(subject, context))
-            .sendTo(sendTo)
-            .build();
+                return ParsedEmailTemplate
+                    .builder()
+                    .attachments(attachments)
+                    .images(extractSendTextImage(sendText))
+                    .text(sendText)
+                    .subject(template.render(subject, context))
+                    .sendTo(sendToList)
+                    .build();
+            });
     }
 
 

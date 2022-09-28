@@ -1,0 +1,22 @@
+[
+  {
+    "level": 1,
+    "title": "超紧急"
+  },
+  {
+    "level": 2,
+    "title": "紧急"
+  },
+  {
+    "level": 3,
+    "title": "严重"
+  },
+  {
+    "level": 4,
+    "title": "一般"
+  },
+  {
+    "level": 5,
+    "title": "提醒"
+  }
+]

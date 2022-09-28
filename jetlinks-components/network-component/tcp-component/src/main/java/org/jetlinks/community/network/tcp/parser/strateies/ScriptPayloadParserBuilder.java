@@ -1,13 +1,10 @@
 package org.jetlinks.community.network.tcp.parser.strateies;
 
 import lombok.SneakyThrows;
-import org.hswebframework.expands.script.engine.DynamicScriptEngine;
-import org.hswebframework.expands.script.engine.DynamicScriptEngineFactory;
-import org.hswebframework.web.utils.DigestUtils;
-import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilderStrategy;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
+import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.script.CompiledScript;
 import org.jetlinks.community.script.Script;
 import org.jetlinks.community.script.Scripts;
@@ -64,6 +61,4 @@ public class ScriptPayloadParserBuilder implements PayloadParserBuilderStrategy 
             return parser;
         };
     }
-
-
 }

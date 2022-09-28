@@ -3,8 +3,10 @@ package org.jetlinks.community.network.mqtt.client;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.buffer.Buffer;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.core.message.codec.MqttMessage;
@@ -23,6 +25,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * 使用Vertx，MQTT Client。
+ *
+ * @author zhouhao
+ * @since 1.0
+ */
 @Slf4j
 public class VertxMqttClient implements MqttClient {
 
@@ -36,6 +44,10 @@ public class VertxMqttClient implements MqttClient {
     private volatile boolean loading;
 
     private final List<Runnable> loadSuccessListener = new CopyOnWriteArrayList<>();
+
+    //订阅前缀
+    @Setter
+    private String topicPrefix;
 
     public void setLoading(boolean loading) {
         this.loading = loading;
@@ -65,26 +77,30 @@ public class VertxMqttClient implements MqttClient {
         client
             .closeHandler(nil -> log.debug("mqtt client [{}] closed", id))
             .publishHandler(msg -> {
-                MqttMessage mqttMessage = SimpleMqttMessage
-                    .builder()
-                    .messageId(msg.messageId())
-                    .topic(msg.topicName())
-                    .payload(msg.payload().getByteBuf())
-                    .dup(msg.isDup())
-                    .retain(msg.isRetain())
-                    .qosLevel(msg.qosLevel().value())
-                    .build();
-                log.debug("handle mqtt message \n{}", mqttMessage);
-                subscriber
-                    .findTopic(msg.topicName().replace("#", "**").replace("+", "*"))
-                    .flatMapIterable(Topic::getSubscribers)
-                    .subscribe(sink -> {
-                        try {
-                            sink.getT2().next(mqttMessage);
-                        } catch (Exception e) {
-                            log.error("handle mqtt message error", e);
-                        }
-                    });
+                try {
+                    MqttMessage mqttMessage = SimpleMqttMessage
+                        .builder()
+                        .messageId(msg.messageId())
+                        .topic(msg.topicName())
+                        .payload(msg.payload().getByteBuf())
+                        .dup(msg.isDup())
+                        .retain(msg.isRetain())
+                        .qosLevel(msg.qosLevel().value())
+                        .build();
+                    log.debug("handle mqtt message \n{}", mqttMessage);
+                    subscriber
+                        .findTopic(msg.topicName().replace("#", "**").replace("+", "*"))
+                        .flatMapIterable(Topic::getSubscribers)
+                        .subscribe(sink -> {
+                            try {
+                                sink.getT2().next(mqttMessage);
+                            } catch (Exception e) {
+                                log.error("handle mqtt message error", e);
+                            }
+                        });
+                } catch (Throwable e) {
+                    log.error("handle mqtt message error", e);
+                }
             });
         if (loading) {
             loadSuccessListener.add(this::reSubscribe);
@@ -96,9 +112,10 @@ public class VertxMqttClient implements MqttClient {
 
     private void reSubscribe() {
         subscriber
-            .findTopic("/**")
+            .getAllSubscriber()
             .filter(topic -> topic.getSubscribers().size() > 0)
-            .collectMap(topic -> convertMqttTopic(topic.getSubscribers().iterator().next().getT1()), topic -> topic.getSubscribers().iterator().next().getT3())
+            .collectMap(topic -> getCompleteTopic(convertMqttTopic(topic.getSubscribers().iterator().next().getT1())),
+                        topic -> topic.getSubscribers().iterator().next().getT3())
             .filter(MapUtils::isNotEmpty)
             .subscribe(topics -> {
                 log.debug("subscribe mqtt topic {}", topics);
@@ -113,16 +130,24 @@ public class VertxMqttClient implements MqttClient {
     protected String parseTopic(String topic) {
         //适配emqx共享订阅
         if (topic.startsWith("$share")) {
-            topic= Stream.of(topic.split("/"))
-                .skip(2)
-                .collect(Collectors.joining("/", "/", ""));
+            topic = Stream.of(topic.split("/"))
+                          .skip(2)
+                          .collect(Collectors.joining("/", "/", ""));
         } else if (topic.startsWith("$queue")) {
-            topic= topic.substring(6);
+            topic = topic.substring(6);
         }
-        if(topic.startsWith("//")){
+        if (topic.startsWith("//")) {
             return topic.substring(1);
         }
         return topic;
+    }
+
+    //获取完整的topic
+    protected String getCompleteTopic(String topic) {
+        if (StringUtils.isEmpty(topicPrefix)) {
+            return topic;
+        }
+        return topicPrefix.concat(topic);
     }
 
     @Override
@@ -133,22 +158,24 @@ public class VertxMqttClient implements MqttClient {
 
             for (String topic : topics) {
                 String realTopic = parseTopic(topic);
+                String completeTopic = getCompleteTopic(topic);
 
                 Topic<Tuple3<String, FluxSink<MqttMessage>, Integer>> sinkTopic = subscriber
-                    .append(realTopic.replace("#", "**")
-                                     .replace("+", "*"));
+                    .append(realTopic
+                                .replace("#", "**")
+                                .replace("+", "*"));
 
                 Tuple3<String, FluxSink<MqttMessage>, Integer> topicQos = Tuples.of(topic, sink, qos);
 
                 boolean first = sinkTopic.getSubscribers().size() == 0;
                 sinkTopic.subscribe(topicQos);
                 composite.add(() -> {
-                    if (sinkTopic.unsubscribe(topicQos).size() > 0) {
-                        client.unsubscribe(convertMqttTopic(topic), result -> {
+                    if (sinkTopic.unsubscribe(topicQos).size() > 0 && isAlive()) {
+                        client.unsubscribe(convertMqttTopic(completeTopic), result -> {
                             if (result.succeeded()) {
-                                log.debug("unsubscribe mqtt topic {}", topic);
+                                log.debug("unsubscribe mqtt topic {}", completeTopic);
                             } else {
-                                log.debug("unsubscribe mqtt topic {} error", topic, result.cause());
+                                log.debug("unsubscribe mqtt topic {} error", completeTopic, result.cause());
                             }
                         });
                     }
@@ -156,8 +183,8 @@ public class VertxMqttClient implements MqttClient {
 
                 //首次订阅
                 if (isAlive() && first) {
-                    log.debug("subscribe mqtt topic {}", topic);
-                    client.subscribe(convertMqttTopic(topic), qos, result -> {
+                    log.debug("subscribe mqtt topic {}", completeTopic);
+                    client.subscribe(convertMqttTopic(completeTopic), qos, result -> {
                         if (!result.succeeded()) {
                             sink.error(result.cause());
                         }
@@ -174,31 +201,33 @@ public class VertxMqttClient implements MqttClient {
         return Mono.create((sink) -> {
             Buffer buffer = Buffer.buffer(message.getPayload());
             client.publish(message.getTopic(),
-                buffer,
-                MqttQoS.valueOf(message.getQosLevel()),
-                message.isDup(),
-                message.isRetain(),
-                result -> {
-                    if (result.succeeded()) {
-                        log.info("publish mqtt [{}] message success: {}", client.clientId(), message);
-                        sink.success();
-                    } else {
-                        log.info("publish mqtt [{}] message error : {}", client.clientId(), message, result.cause());
-                        sink.error(result.cause());
-                    }
-                });
+                           buffer,
+                           MqttQoS.valueOf(message.getQosLevel()),
+                           message.isDup(),
+                           message.isRetain(),
+                           result -> {
+                               if (result.succeeded()) {
+                                   log.info("publish mqtt [{}] message success: {}", client.clientId(), message);
+                                   sink.success();
+                               } else {
+                                   log.info("publish mqtt [{}] message error : {}", client.clientId(), message, result.cause());
+                                   sink.error(result.cause());
+                               }
+                           });
         });
     }
 
     @Override
     public Mono<Void> publish(MqttMessage message) {
         if (loading) {
-            return Mono.create(sink ->
-                loadSuccessListener
-                    .add(() -> doPublish(message)
+            return Mono.create(sink -> {
+                loadSuccessListener.add(() -> {
+                    doPublish(message)
                         .doOnSuccess(sink::success)
                         .doOnError(sink::error)
-                        .subscribe()));
+                        .subscribe();
+                });
+            });
         }
         return doPublish(message);
     }

@@ -3,19 +3,27 @@ package org.jetlinks.community.rule.engine.executor;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.utils.ExpressionUtils;
+import org.hswebframework.web.utils.TemplateParser;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.enums.ErrorCode;
 import org.jetlinks.core.exception.DeviceOperationException;
-import org.jetlinks.core.message.*;
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.Headers;
+import org.jetlinks.core.message.MessageType;
+import org.jetlinks.core.message.RepayableDeviceMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessage;
+import org.jetlinks.community.relation.utils.VariableSource;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
+import org.jetlinks.reactor.ql.supports.DefaultPropertyFeature;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataHelper;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
@@ -23,7 +31,6 @@ import org.jetlinks.rule.engine.api.task.TaskExecutor;
 import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
 import org.jetlinks.rule.engine.defaults.FunctionTaskExecutor;
 import org.reactivestreams.Publisher;
-import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -39,15 +46,18 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Component
+
 @AllArgsConstructor
 public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvider {
 
+    public static final String EXECUTOR = "device-message-sender";
     private final DeviceRegistry registry;
+
+    private final DeviceSelectorBuilder selectorBuilder;
 
     @Override
     public String getExecutor() {
-        return "device-message-sender";
+        return EXECUTOR;
     }
 
     @Override
@@ -108,13 +118,15 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
         public void reload() {
             config = FastBeanCopier.copy(context.getJob().getConfiguration(), new DeviceMessageSendConfig());
             config.validate();
-            if (StringUtils.hasText(config.deviceId)) {
+            if (config.getSelectorSpec() != null) {
+                selector = selectorBuilder.createSelector(config.getSelectorSpec())::select;
+            }  else if (StringUtils.hasText(config.deviceId)) {
                 selector = ctx -> registry.getDevice(config.getDeviceId()).flux();
             } else if (StringUtils.hasText(config.productId)) {
-                selector = ctx -> registry.getProduct(config.getProductId()).flatMapMany(DeviceProductOperator::getDevices);
+                selector = selectorBuilder.createSelector(DeviceSelectorProviders.product(config.productId))::select;
             } else {
-                if (config.isFixed() && config.getMessage() != null) {
-                    selector = ctx -> registry.getDevice((String) config.getMessage().get("deviceId")).flux();
+                if (config.isFixed() && MapUtils.isNotEmpty(config.getMessage())) {
+                    selector = ctx -> registry.getDevice(config.getDeviceIdInMessage(ctx)).flux();
                 } else {
                     selector = ctx -> registry
                         .getDevice((String) ctx
@@ -129,6 +141,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
     }
 
+
     @Getter
     @Setter
     public static class DeviceMessageSendConfig {
@@ -138,6 +151,9 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
         //产品ID
         private String productId;
+
+        //选择器描述
+        private DeviceSelectorSpec selectorSpec;
 
         //消息来源: pre-node(上游节点),fixed(固定消息)
         private String from;
@@ -152,7 +168,11 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
         private String stateOperator = "ignoreOffline";
 
+        //延迟执行
+        private long delayMillis = 0;
+
         private Map<String, Object> responseHeaders;
+
 
         public Map<String, Object> toMap() {
             Map<String, Object> conf = FastBeanCopier.copy(this, new HashMap<>());
@@ -173,11 +193,18 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                 .justOrEmpty(MessageType.convertMessage(message))
                 .switchIfEmpty(context.onError(() -> new DeviceOperationException(ErrorCode.UNSUPPORTED_MESSAGE), input))
                 .cast(DeviceMessage.class)
-                .map(msg -> applyMessageExpression(ctx, msg))
+                .flatMap(msg -> applyMessageExpression(ctx, msg))
                 .doOnNext(msg -> msg
                     .addHeader(Headers.async, async || !"sync".equals(waitType))
                     .addHeader(Headers.sendAndForget, "forget".equals(waitType))
                     .addHeader(Headers.timeout, timeout.toMillis()))
+                .as(mono -> {
+                    if (delayMillis > 0) {
+                        return mono
+                            .delayElement(Duration.ofMillis(delayMillis));
+                    }
+                    return mono;
+                })
                 .flatMapMany(msg -> "forget".equals(waitType)
                     ? device.messageSender().send(msg).then(Mono.empty())
                     : device.messageSender()
@@ -192,22 +219,13 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                 );
         }
 
-        private ReadPropertyMessage applyMessageExpression(Map<String, Object> ctx, ReadPropertyMessage message) {
-            List<String> properties = message.getProperties();
+        private Mono<ReadPropertyMessage> applyMessageExpression(Map<String, Object> ctx, ReadPropertyMessage message) {
+            //读取属性暂时不支持通过变量获取属性
 
-            if (!CollectionUtils.isEmpty(properties)) {
-                message.setProperties(
-                    properties
-                        .stream()
-                        .map(prop -> ExpressionUtils.analytical(prop, ctx, "spel"))
-                        .collect(Collectors.toList())
-                );
-            }
-
-            return message;
+            return Mono.just(message);
         }
 
-        private WritePropertyMessage applyMessageExpression(Map<String, Object> ctx, WritePropertyMessage message) {
+        private Mono<WritePropertyMessage> applyMessageExpression(Map<String, Object> ctx, WritePropertyMessage message) {
             Map<String, Object> properties = message.getProperties();
 
             if (!CollectionUtils.isEmpty(properties)) {
@@ -220,25 +238,40 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                 );
             }
 
-            return message;
+            return Mono.just(message);
         }
 
-        private FunctionInvokeMessage applyMessageExpression(Map<String, Object> ctx, FunctionInvokeMessage message) {
+        private Mono<FunctionInvokeMessage> applyMessageExpression(Map<String, Object> ctx, FunctionInvokeMessage message) {
             List<FunctionParameter> inputs = message.getInputs();
-
             if (!CollectionUtils.isEmpty(inputs)) {
-                for (FunctionParameter input : inputs) {
-                    String stringVal = String.valueOf(input.getValue());
-                    if (stringVal.contains("$")) {
-                        input.setValue(ExpressionUtils.analytical(stringVal, ctx, "spel"));
-                    }
-                }
+                return Flux.fromIterable(inputs)
+                           .flatMap(param -> VariableSource
+                               .of(param.getValue())
+                               .resolve(ctx)
+                               .doOnNext(param::setValue))
+                           .then(Mono.just(message));
             }
 
-            return message;
+            return Mono.just(message);
         }
 
-        private DeviceMessage applyMessageExpression(Map<String, Object> ctx, DeviceMessage message) {
+        private String getDeviceIdInMessage(Map<String, Object> ctx) {
+            String deviceId = (String) message.get("deviceId");
+
+            if (StringUtils.hasText(deviceId)) {
+                if (deviceId.contains("${")) {
+                    return TemplateParser.parse(deviceId, var -> DefaultPropertyFeature
+                        .GLOBAL
+                        .getProperty(var, ctx)
+                        .map(String::valueOf)
+                        .orElse(""));
+                }
+                return deviceId;
+            }
+            return null;
+        }
+
+        private Mono<? extends DeviceMessage> applyMessageExpression(Map<String, Object> ctx, DeviceMessage message) {
             if (message instanceof ReadPropertyMessage) {
                 return applyMessageExpression(ctx, ((ReadPropertyMessage) message));
             }
@@ -248,7 +281,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
             if (message instanceof FunctionInvokeMessage) {
                 return applyMessageExpression(ctx, ((FunctionInvokeMessage) message));
             }
-            return message;
+            return Mono.just(message);
         }
 
         private boolean isFixed() {
@@ -258,7 +291,6 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
         private boolean isPreNode() {
             return "pre-node".equals(from);
         }
-
 
         public void validate() {
             if ("fixed".equals(from)) {

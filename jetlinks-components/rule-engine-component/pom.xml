@@ -64,6 +64,11 @@
             <artifactId>reactor-ql</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>relation-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

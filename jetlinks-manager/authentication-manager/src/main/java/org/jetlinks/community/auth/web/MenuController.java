@@ -22,7 +22,7 @@ import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.MenuView;
 import org.jetlinks.community.auth.service.DefaultMenuService;
 import org.jetlinks.community.auth.service.MenuGrantService;
-import org.jetlinks.community.auth.service.request.request.MenuGrantRequest;
+import org.jetlinks.community.auth.service.request.MenuGrantRequest;
 import org.jetlinks.community.auth.web.request.AuthorizationSettingDetail;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;

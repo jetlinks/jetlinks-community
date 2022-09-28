@@ -1,16 +1,17 @@
 package org.jetlinks.community.notify.email.embedded;
 
-import com.alibaba.fastjson.JSON;
-import org.jetlinks.community.io.file.FileManager;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.email.EmailProvider;
-import org.jetlinks.community.notify.template.TemplateManager;
 import org.jetlinks.community.notify.template.TemplateProperties;
 import org.jetlinks.community.notify.template.TemplateProvider;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.*;
+import org.jetlinks.community.io.file.FileManager;
+import org.jetlinks.community.notify.*;
+import org.jetlinks.community.notify.template.TemplateManager;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -22,6 +23,7 @@ import static org.jetlinks.community.ConfigMetadataConstants.*;
 public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateProvider {
 
     private final TemplateManager templateManager;
+
 
     private final FileManager fileManager;
 
@@ -58,17 +60,17 @@ public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateP
             location.setId("location");
             location.setName("文件地址");
             location.setValueType(new FileType()
-                    .bodyType(FileType.BodyType.url)
-                    .expand(allowInput.value(true)));
+                                      .bodyType(FileType.BodyType.url)
+                                      .expand(allowInput.value(true)));
 
             templateConfig = new DefaultConfigMetadata("邮件模版", "")
-                    .add("subject", "标题", "标题,可使用变量", new StringType().expand(maxLength.value(255L)))
-                    .add("text", "内容", "", new StringType().expand(maxLength.value(5120L), isRichText.value(true)))
-                    .add("sendTo", "收件人", "", new ArrayType().elementType(new StringType()))
-                    .add("attachments", "附件列表", "", new ArrayType()
-                            .elementType(new ObjectType()
-                                    .addPropertyMetadata(name)
-                                    .addPropertyMetadata(location)));
+                .add("subject", "标题", "标题,可使用变量", new StringType().expand(maxLength.value(255L)))
+                .add("text", "内容", "", new StringType().expand(maxLength.value(5120L), isRichText.value(true)))
+                .add("sendTo", "收件人", "", new ArrayType().elementType(new StringType()))
+                .add("attachments", "附件列表", "", new ArrayType()
+                    .elementType(new ObjectType()
+                                     .addPropertyMetadata(name)
+                                     .addPropertyMetadata(location)));
         }
 
         {
@@ -88,16 +90,16 @@ public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateP
             description.setValueType(new StringType());
 
             notifierConfig = new DefaultConfigMetadata("邮件配置", "")
-                    .add("host", "服务器地址", "例如: pop3.qq.com", new StringType().expand(maxLength.value(255L)))
-                    .add("port", "端口", "", new IntType().min(0).max(65536))
-                    .add("sender", "发件人", "默认和用户名相同", new StringType())
-                    .add("username", "用户名", "", new StringType())
-                    .add("password", "密码", "", new PasswordType())
-                    .add("properties", "其他配置", "", new ArrayType()
-                            .elementType(new ObjectType()
-                                    .addPropertyMetadata(name)
-                                    .addPropertyMetadata(value)
-                                    .addPropertyMetadata(description)));
+                .add("host", "服务器地址", "例如: pop3.qq.com", new StringType().expand(maxLength.value(255L)))
+                .add("port", "端口", "", new IntType().min(0).max(65536))
+                .add("sender", "发件人", "默认和用户名相同", new StringType())
+                .add("username", "用户名", "", new StringType())
+                .add("password", "密码", "", new PasswordType())
+                .add("properties", "其他配置", "", new ArrayType()
+                    .elementType(new ObjectType()
+                                     .addPropertyMetadata(name)
+                                     .addPropertyMetadata(value)
+                                     .addPropertyMetadata(description)));
         }
 
 
@@ -116,12 +118,14 @@ public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateP
     @Nonnull
     @Override
     public Mono<DefaultEmailNotifier> createNotifier(@Nonnull NotifierProperties properties) {
-        return Mono.fromSupplier(() -> new DefaultEmailNotifier(properties, templateManager, fileManager));
+        return Mono.fromSupplier(() -> new DefaultEmailNotifier(properties, templateManager,fileManager))
+            .as(LocaleUtils::transform);
     }
 
     @Override
     public Mono<EmailTemplate> createTemplate(TemplateProperties properties) {
 
-        return Mono.fromSupplier(() -> JSON.parseObject(properties.getTemplate(), EmailTemplate.class));
+        return Mono.fromSupplier(() -> new EmailTemplate().with(properties).validate())
+            .as(LocaleUtils::transform);
     }
 }

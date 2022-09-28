@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.auth.entity.MenuBindEntity;
 import org.jetlinks.community.auth.entity.MenuEntity;
-import org.jetlinks.community.auth.service.request.request.MenuGrantRequest;
+import org.jetlinks.community.auth.service.request.MenuGrantRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;

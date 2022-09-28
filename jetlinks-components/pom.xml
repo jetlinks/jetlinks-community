@@ -25,6 +25,8 @@
         <module>configure-component</module>
         <module>things-component</module>
         <module>script-component</module>
+        <module>protocol-component</module>
+        <module>relation-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>

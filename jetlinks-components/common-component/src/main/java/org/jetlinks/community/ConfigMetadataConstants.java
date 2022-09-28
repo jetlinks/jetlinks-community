@@ -18,5 +18,6 @@ public interface ConfigMetadataConstants {
     ConfigKey<Boolean> allowInput = ConfigKey.of("allowInput", "允许输入", Boolean.TYPE);
     ConfigKey<Boolean> required = ConfigKey.of("required", "是否必填", Boolean.TYPE);
 
+    ConfigKey<String> format = ConfigKey.of("format", "格式", String.class);
 
 }

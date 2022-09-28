@@ -15,6 +15,7 @@
         <module>network-core</module>
         <module>mqtt-component</module>
         <module>tcp-component</module>
+        <module>http-component</module>
     </modules>
 
     <artifactId>network-component</artifactId>

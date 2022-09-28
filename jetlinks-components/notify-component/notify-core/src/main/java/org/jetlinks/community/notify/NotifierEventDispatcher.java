@@ -1,8 +1,8 @@
 package org.jetlinks.community.notify;
 
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.community.notify.event.NotifierEvent;
 import org.jetlinks.community.notify.template.Template;
-import org.jetlinks.core.event.EventBus;
 import reactor.core.publisher.Mono;
 
 public class NotifierEventDispatcher<T extends Template> extends NotifierProxy<T> {
@@ -17,7 +17,6 @@ public class NotifierEventDispatcher<T extends Template> extends NotifierProxy<T
     @Override
     protected Mono<Void> onEvent(NotifierEvent event) {
         // /notify/{notifierId}/success
-
 
         return eventBus
             .publish(String.join("/", "/notify", event.getNotifierId(), event.isSuccess() ? "success" : "error"), event.toSerializable())

@@ -1,61 +1,77 @@
 package org.jetlinks.community.network.mqtt.gateway.device;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
-import lombok.Getter;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.trace.StatusCode;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.logger.ReactiveLogger;
-import org.jetlinks.community.gateway.AbstractDeviceGateway;
-import org.jetlinks.community.gateway.DeviceGateway;
-import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.gateway.monitor.GatewayMonitors;
-import org.jetlinks.community.gateway.monitor.MonitorSupportDeviceGateway;
-import org.jetlinks.community.network.DefaultNetworkType;
-import org.jetlinks.community.network.NetworkType;
-import org.jetlinks.community.network.mqtt.gateway.device.session.MqttConnectionSession;
 import org.jetlinks.community.network.mqtt.server.MqttConnection;
+import org.jetlinks.community.network.mqtt.server.MqttPublishing;
 import org.jetlinks.community.network.mqtt.server.MqttServer;
-import org.jetlinks.community.network.utils.DeviceGatewayHelper;
-import org.jetlinks.community.utils.SystemUtils;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.device.session.DeviceSessionManager;
-import org.jetlinks.core.message.CommonDeviceMessage;
-import org.jetlinks.core.message.CommonDeviceMessageReply;
 import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.Message;
-import org.jetlinks.core.message.codec.DefaultTransport;
-import org.jetlinks.core.message.codec.FromDeviceMessageContext;
-import org.jetlinks.core.message.codec.MqttMessage;
-import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.message.codec.*;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.KeepOnlineSession;
-import org.jetlinks.core.server.session.ReplaceableDeviceSession;
-import org.jetlinks.core.trace.DeviceTracer;
 import org.jetlinks.core.trace.FluxTracer;
 import org.jetlinks.core.trace.MonoTracer;
+import org.jetlinks.community.gateway.AbstractDeviceGateway;
+import org.jetlinks.community.gateway.GatewayState;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
+import org.jetlinks.community.gateway.monitor.GatewayMonitors;
+import org.jetlinks.community.network.mqtt.gateway.device.session.MqttConnectionSession;
+import org.jetlinks.community.gateway.DeviceGatewayHelper;
+import org.jetlinks.community.utils.ObjectMappers;
+import org.jetlinks.community.utils.SystemUtils;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
+import static org.jetlinks.core.trace.DeviceTracer.SpanKey;
+import static org.jetlinks.core.trace.DeviceTracer.SpanName;
+
+/**
+ * MQTT 服务设备网关,用于通过内置的mqtt server来进行设备通信,接入设备到平台中.
+ *
+ * <pre>
+ *     1. 监听Mqtt服务中的连接{@link MqttServer#handleConnection()}
+ *     2. 使用{@link MqttConnection#getClientId()}作为设备ID,从设备注册中心中获取设备.
+ *     3. 使用设备对应的协议{@link DeviceOperator#getProtocol()}来进行认证{@link ProtocolSupport#authenticate(AuthenticationRequest, DeviceOperator)}
+ *     4. 认证通过后应答mqtt,注册会话{@link DeviceSessionManager#compute(String, Function)}.
+ *     5. 监听mqtt消息推送,{@link MqttConnection#handleMessage()}
+ *     6. 当收到消息时,调用对应设备使用的协议{@link ProtocolSupport#getMessageCodec(Transport)}进行解码{@link DeviceMessageCodec#decode(MessageDecodeContext)}
+ * </pre>
+ *
+ * @author zhouhao
+ * @see MqttServer
+ * @see ProtocolSupport
+ * @since 1.0
+ */
 @Slf4j
-class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSupportDeviceGateway {
+class MqttServerDeviceGateway extends AbstractDeviceGateway {
+    static AttributeKey<String> clientId = AttributeKey.stringKey("clientId");
+
+    static AttributeKey<String> username = AttributeKey.stringKey("username");
+
+    static AttributeKey<String> password = AttributeKey.stringKey("password");
+
 
     //设备注册中心
     private final DeviceRegistry registry;
 
     //设备会话管理器
-    private final org.jetlinks.core.device.session.DeviceSessionManager sessionManager;
+    private final DeviceSessionManager sessionManager;
 
     //Mqtt 服务
     private final MqttServer mqttServer;
@@ -93,18 +109,13 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
         this.helper = new DeviceGatewayHelper(registry, sessionManager, messageHandler);
     }
 
-    @Override
-    public long totalConnection() {
-        return counter.sum();
-    }
-
     private void doStart() {
         if (disposable != null) {
             disposable.dispose();
         }
         disposable = mqttServer
-            //监听连接
-            .handleConnection()
+            //监听连接,mqtt网关可以复用网络网络组件,多个网关不能收到相同的连接信息
+            .handleConnection("device-gateway")
             .filter(conn -> {
                 //暂停或者已停止时.
                 if (!isStarted()) {
@@ -112,15 +123,25 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                     conn.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
                     monitor.rejected();
                 }
-                return isStarted();
+                return true;
             })
-            .publishOn(Schedulers.parallel())
+//            .publishOn(Schedulers.parallel())
             //处理mqtt连接请求
-            .flatMap(this::handleConnection)
-            //处理认证结果
-            .flatMap(tuple3 -> handleAuthResponse(tuple3.getT1(), tuple3.getT2(), tuple3.getT3()))
-            .flatMap(tp -> handleAcceptedMqttConnection(tp.getT1(), tp.getT2(), tp.getT3()), Integer.MAX_VALUE)
-            .contextWrite(ReactiveLogger.start("network", mqttServer.getId()))
+            .flatMap(connection -> this
+                         .handleConnection(connection)
+                         .flatMap(tuple3 -> handleAuthResponse(tuple3.getT1(), tuple3.getT2(), tuple3.getT3()))
+                         .flatMap(tp -> handleAcceptedMqttConnection(tp.getT1(), tp.getT2(), tp.getT3()))
+                         .onErrorResume(err -> {
+                             log.error(err.getMessage(), err);
+                             return Mono.empty();
+                         })
+                         .as(MonoTracer
+                                 .create(SpanName.connection(connection.getClientId()),
+                                         builder -> {
+                                             builder.setAttribute(clientId, connection.getClientId());
+                                             builder.setAttribute(SpanKey.address, connection.getClientAddress().toString());
+                                         })),
+                     Integer.MAX_VALUE)
             .subscribe();
 
     }
@@ -162,6 +183,22 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                     .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED)))
                     ;
             })
+            .as(MonoTracer
+                    .create(SpanName.auth(connection.getClientId()),
+                            (span, tp3) -> {
+                                AuthenticationResponse response = tp3.getT2();
+                                if (!response.isSuccess()) {
+                                    span.setStatus(StatusCode.ERROR, response.getMessage());
+                                }
+                            },
+                            (span, hasValue) -> {
+                                //empty
+                                if (!hasValue) {
+                                    span.setStatus(StatusCode.ERROR, "device not exists");
+                                }
+                                span.setAttribute(SpanKey.address, connection.getClientAddress().toString());
+                                span.setAttribute(clientId, connection.getClientId());
+                            }))
             //设备认证错误,拒绝连接
             .onErrorResume((err) -> Mono.fromRunnable(() -> {
                 log.error("MQTT连接认证[{}]失败", connection.getClientId(), err);
@@ -170,7 +207,8 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                 //应答SERVER_UNAVAILABLE
                 connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
             }))
-            .subscribeOn(Schedulers.parallel());
+//            .subscribeOn(Schedulers.parallel())
+            ;
     }
 
     //处理认证结果
@@ -190,7 +228,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                         monitor.totalConnection(counter.sum());
 
                         sessionManager
-                            .getSession(deviceId,false)
+                            .getSession(deviceId, false)
                             .flatMap(_tmp -> {
                                 //只有与创建的会话相同才移除(下线),因为有可能设置了keepOnline,
                                 //或者设备通过其他方式注册了会话,这里断开连接不能影响到以上情况.
@@ -219,21 +257,21 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                                 })
                                 .defaultIfEmpty(newSession);
                         })
-                        .flatMap(session -> Mono.fromCallable(() -> {
+                        .mapNotNull(session->{
                             try {
                                 return Tuples.of(connection.accept(), device, session.unwrap(MqttConnectionSession.class));
                             } catch (IllegalStateException ignore) {
                                 //忽略错误,偶尔可能会出现网络异常,导致accept时,连接已经中断.还有其他更好的处理方式?
                                 return null;
                             }
-                        }))
+                        })
                         .doOnNext(o -> {
                             //监控信息
                             monitor.connected();
                             monitor.totalConnection(counter.sum());
                         })
-                        //会话empty说明注册会话失败或者设备会话已经被覆盖
-                        .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE)));
+                        //会话empty说明注册会话失败?
+                        .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED)));
                 } else {
                     //认证失败返回 0x04 BAD_USER_NAME_OR_PASSWORD
                     connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD);
@@ -255,20 +293,19 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
     private Mono<Void> handleAcceptedMqttConnection(MqttConnection connection,
                                                     DeviceOperator operator,
                                                     MqttConnectionSession session) {
-
-
         return Flux
             .usingWhen(Mono.just(connection),
                        MqttConnection::handleMessage,
                        MqttConnection::close)
             //网关暂停或者已停止时,则不处理消息
             .filter(pb -> isStarted())
-            .doOnNext(msg -> monitor.receivedMessage())
+            .publishOn(Schedulers.parallel())
             //解码收到的mqtt报文
             .flatMap(publishing -> this
-                .decodeAndHandleMessage(operator, session, publishing.getMessage(), connection)
-                //应答MQTT(QoS1,2的场景)
-                .doOnSuccess(s -> publishing.acknowledge())
+                .decodeAndHandleMessage(operator, session, publishing, connection)
+                .as(MonoTracer
+                        .create(SpanName.upstream(connection.getClientId()),
+                                (span) -> span.setAttribute(SpanKey.message, publishing.print())))
             )
             //合并遗言消息
             .mergeWith(
@@ -284,6 +321,8 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                                               MqttConnectionSession session,
                                               MqttMessage message,
                                               MqttConnection connection) {
+        monitor.receivedMessage();
+
         return operator
             .getProtocol()
             .flatMap(protocol -> protocol.getMessageCodec(getTransport()))
@@ -295,19 +334,28 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                 if (!StringUtils.hasText(msg.getDeviceId())) {
                     msg.thingId(DeviceThingType.device, operator.getDeviceId());
                 }
-                return this
-                    .handleMessage(operator, msg, connection);
+                return this.handleMessage(operator, msg, connection);
             })
-            .doOnEach(ReactiveLogger.onError(err -> log.error("处理MQTT连接[{}]消息失败:{}", operator.getDeviceId(), message, err)))
+            .doOnComplete(() -> {
+                if (message instanceof MqttPublishing) {
+                    ((MqttPublishing) message).acknowledge();
+                }
+            })
             .as(FluxTracer
-                    .create(DeviceTracer.SpanName.decode(operator.getDeviceId()),
-                            (span, msg) -> span.setAttribute(DeviceTracer.SpanKey.message, msg
-                                .toJson()
-                                .toJSONString())))
+                    .create(SpanName.decode(operator.getDeviceId()),
+                            (span, msg) -> span.setAttribute(SpanKey.message, toJsonString(msg.toJson()))))
             //发生错误不中断流
-            .onErrorResume((err) -> Mono.empty())
+            .onErrorResume((err) -> {
+                log.error("handle mqtt message [{}] error:{}", operator.getDeviceId(), message, err);
+                return Mono.empty();
+            })
             .then()
-            .subscribeOn(Schedulers.parallel());
+            ;
+    }
+
+    @SneakyThrows
+    private String toJsonString(Object data){
+        return ObjectMappers.JSON_MAPPER.writeValueAsString(data);
     }
 
     private Mono<DeviceMessage> handleMessage(DeviceOperator mainDevice,
@@ -337,26 +385,20 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
     }
 
     @Override
-    public Transport getTransport() {
-        return DefaultTransport.MQTT;
-    }
-
-    @Override
-    public NetworkType getNetworkType() {
-        return DefaultNetworkType.MQTT_SERVER;
+    protected Mono<Void> doStartup() {
+        doStart();
+        return Mono.empty();
     }
 
     @Override
     protected Mono<Void> doShutdown() {
-        if(disposable!=null){
+        if (disposable != null && !disposable.isDisposed()) {
             disposable.dispose();
         }
         return Mono.empty();
     }
 
-    @Override
-    protected Mono<Void> doStartup() {
-        return Mono.fromRunnable(this::doStart);
+    public Transport getTransport() {
+        return DefaultTransport.MQTT;
     }
-
 }

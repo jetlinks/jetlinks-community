@@ -7,6 +7,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.MessagePayloadType;
+import org.jetlinks.rule.engine.executor.PayloadType;
+
+import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author bsetfeng
@@ -21,11 +26,16 @@ public class TcpMessage implements EncodedMessage {
 
     private ByteBuf payload;
 
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
 
-        ByteBufUtil.appendPrettyHexDump(builder,payload);
+        if (ByteBufUtil.isText(payload, StandardCharsets.UTF_8)) {
+            builder.append(payloadAsString());
+        } else {
+            ByteBufUtil.appendPrettyHexDump(builder, payload);
+        }
 
         return builder.toString();
     }

@@ -2,8 +2,8 @@ package org.jetlinks.community.network.tcp.client;
 
 import io.vertx.core.net.NetClientOptions;
 import lombok.*;
-import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
+import org.jetlinks.community.ValueObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +25,7 @@ public class TcpClientProperties implements ValueObject {
 
     private boolean ssl;
 
-    private PayloadParserType parserType;
+    private PayloadParserType parserType = PayloadParserType.DIRECT;
 
     private Map<String, Object> parserConfiguration = new HashMap<>();
 

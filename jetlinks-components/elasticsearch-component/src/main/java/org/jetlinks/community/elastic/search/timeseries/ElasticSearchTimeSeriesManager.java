@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zhouhao
  * @since 1.0
  **/
-@Service
 @Slf4j
 public class ElasticSearchTimeSeriesManager implements TimeSeriesManager {
 

@@ -12,8 +12,9 @@ spring:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: true
     default-property-inclusion: non_null
-  resources:
-    static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
+  web:
+    resources:
+      static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
   redis:
     host: 127.0.0.1
     port: 6379
@@ -38,14 +39,12 @@ spring:
   reactor:
     debug-agent:
       enabled: false
-  data:
-    elasticsearch:
-      client:
-        reactive:
-          endpoints: localhost:9200
-          max-in-memory-size: 100MB
-          socket-timeout: 5000
-          connection-timeout: 8000
+  elasticsearch:
+    uris: localhost:9200
+    socket-timeout: 10s
+    connection-timeout: 15s
+    webclient:
+      max-in-memory-size: 100MB
 easyorm:
   default-schema: public # 数据库默认的schema
   dialect: postgres #数据库方言
@@ -137,10 +136,11 @@ logging:
     org.springframework: warn
     org.jetlinks.community.device.message.writer: warn
     org.jetlinks.community.timeseries.micrometer: warn
-    org.jetlinks.community.elastic.search.service: trace
     org.jetlinks.community.elastic.search.service.reactive: trace
     org.jetlinks.community.network: warn
     io.vertx.mqtt.impl: warn
+    org.jetlinks.supports.scalecube.rpc: warn
+    "org.jetlinks.community.buffer": debug
     #    org.springframework.data.elasticsearch.client: trace
     #    org.elasticsearch: error
     org.elasticsearch: error

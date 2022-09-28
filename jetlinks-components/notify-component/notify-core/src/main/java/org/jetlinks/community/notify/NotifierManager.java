@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
  * 通知管理器,用于获取获取通知器.
  *
  * @author zhouhao
- * @see 1.0
+ * @since  1.0
  * @see Notifier
  * @see DefaultNotifyType
  * @see Template
@@ -29,6 +29,9 @@ public interface NotifierManager {
     @Nonnull
     <T extends Template> Mono<Notifier<T>> getNotifier(@Nonnull NotifyType type, @Nonnull String id);
 
+    @Nonnull
+    <T extends Template> Mono<Notifier<T>> createNotifier(NotifierProperties properties);
+
     /**
      * 重新加载通知管理器
      *
@@ -36,4 +39,5 @@ public interface NotifierManager {
      * @return 加载结果
      */
     Mono<Void> reload(String id);
+
 }

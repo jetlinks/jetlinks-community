@@ -1,6 +1,6 @@
 package org.jetlinks.community.network.mqtt.server;
 
-import org.jetlinks.community.network.Network;
+import org.jetlinks.community.network.ServerNetwork;
 import reactor.core.publisher.Flux;
 
 /**
@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
  * @version 1.0
  * @since 1.0
  */
-public interface MqttServer extends Network {
+public interface MqttServer extends ServerNetwork {
 
     /**
      * 订阅客户端连接
@@ -18,5 +18,7 @@ public interface MqttServer extends Network {
      * @return 客户端连接流
      */
     Flux<MqttConnection> handleConnection();
+
+    Flux<MqttConnection> handleConnection(String holder);
 
 }

@@ -29,6 +29,7 @@ import java.util.function.Supplier;
  * @since 1.5
  */
 @AllArgsConstructor
+@Deprecated
 public class DeviceGatewayHelper {
 
     private final DeviceRegistry registry;
