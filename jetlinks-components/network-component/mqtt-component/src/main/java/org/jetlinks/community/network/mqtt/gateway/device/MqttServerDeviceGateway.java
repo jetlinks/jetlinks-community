@@ -1,13 +1,9 @@
 package org.jetlinks.community.network.mqtt.gateway.device;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.community.gateway.AbstractDeviceGateway;
-import org.jetlinks.community.gateway.DeviceGateway;
-import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.gateway.monitor.GatewayMonitors;
 import org.jetlinks.community.gateway.monitor.MonitorSupportDeviceGateway;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
@@ -19,32 +15,23 @@ import org.jetlinks.community.utils.SystemUtils;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.device.session.DeviceSessionManager;
-import org.jetlinks.core.message.CommonDeviceMessage;
-import org.jetlinks.core.message.CommonDeviceMessageReply;
 import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.KeepOnlineSession;
-import org.jetlinks.core.server.session.ReplaceableDeviceSession;
 import org.jetlinks.core.trace.DeviceTracer;
 import org.jetlinks.core.trace.FluxTracer;
-import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
@@ -114,7 +101,6 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                 }
                 return isStarted();
             })
-            .publishOn(Schedulers.parallel())
             //处理mqtt连接请求
             .flatMap(this::handleConnection)
             //处理认证结果
@@ -169,8 +155,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                 monitor.rejected();
                 //应答SERVER_UNAVAILABLE
                 connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
-            }))
-            .subscribeOn(Schedulers.parallel());
+            }));
     }
 
     //处理认证结果
@@ -306,8 +291,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway implements MonitorSu
                                 .toJSONString())))
             //发生错误不中断流
             .onErrorResume((err) -> Mono.empty())
-            .then()
-            .subscribeOn(Schedulers.parallel());
+            .then();
     }
 
     private Mono<DeviceMessage> handleMessage(DeviceOperator mainDevice,

@@ -80,13 +80,16 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
         // 多个server listen同一个端口，每个client连接的时候vertx会分配
         // 一个connection只能在一个server中处理
         for (NetServer netServer : instances) {
-            netServer.listen(properties.createSocketAddress(), result -> {
-                if (result.succeeded()) {
-                    log.info("tcp server startup on {}", result.result().actualPort());
-                } else {
-                    log.error("startup tcp server error", result.cause());
-                }
-            });
+         vertx.nettyEventLoopGroup()
+             .execute(()->{
+                 netServer.listen(properties.createSocketAddress(), result -> {
+                     if (result.succeeded()) {
+                         log.info("tcp server startup on {}", result.result().actualPort());
+                     } else {
+                         log.error("startup tcp server error", result.cause());
+                     }
+                 });
+             });
         }
     }
 

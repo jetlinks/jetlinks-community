@@ -53,13 +53,17 @@ public class VertxMqttServerProvider implements NetworkProvider<VertxMqttServerP
         }
         server.setMqttServer(instances);
         for (MqttServer instance : instances) {
-            instance.listen(result -> {
-                if (result.succeeded()) {
-                    log.debug("startup mqtt server [{}] on port :{} ", properties.getId(), result.result().actualPort());
-                } else {
-                    log.warn("startup mqtt server [{}] error ", properties.getId(), result.cause());
-                }
-            });
+            vertx
+                .nettyEventLoopGroup()
+                .execute(()->{
+                    instance.listen(result -> {
+                        if (result.succeeded()) {
+                            log.debug("startup mqtt server [{}] on port :{} ", properties.getId(), result.result().actualPort());
+                        } else {
+                            log.warn("startup mqtt server [{}] error ", properties.getId(), result.cause());
+                        }
+                    });
+                });
         }
     }
 
