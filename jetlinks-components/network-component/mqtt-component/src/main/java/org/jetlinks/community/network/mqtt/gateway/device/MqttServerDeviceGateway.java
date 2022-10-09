@@ -5,10 +5,14 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.StatusCode;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.hswebframework.web.logger.ReactiveLogger;
+import org.jetlinks.community.gateway.AbstractDeviceGateway;
+import org.jetlinks.community.gateway.DeviceGatewayHelper;
+import org.jetlinks.community.network.mqtt.gateway.device.session.MqttConnectionSession;
 import org.jetlinks.community.network.mqtt.server.MqttConnection;
 import org.jetlinks.community.network.mqtt.server.MqttPublishing;
 import org.jetlinks.community.network.mqtt.server.MqttServer;
+import org.jetlinks.community.utils.ObjectMappers;
+import org.jetlinks.community.utils.SystemUtils;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.device.session.DeviceSessionManager;
@@ -18,20 +22,11 @@ import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.KeepOnlineSession;
 import org.jetlinks.core.trace.FluxTracer;
 import org.jetlinks.core.trace.MonoTracer;
-import org.jetlinks.community.gateway.AbstractDeviceGateway;
-import org.jetlinks.community.gateway.GatewayState;
-import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.gateway.monitor.GatewayMonitors;
-import org.jetlinks.community.network.mqtt.gateway.device.session.MqttConnectionSession;
-import org.jetlinks.community.gateway.DeviceGatewayHelper;
-import org.jetlinks.community.utils.ObjectMappers;
-import org.jetlinks.community.utils.SystemUtils;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
@@ -125,7 +120,6 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                 }
                 return true;
             })
-//            .publishOn(Schedulers.parallel())
             //处理mqtt连接请求
             .flatMap(connection -> this
                          .handleConnection(connection)
@@ -207,7 +201,6 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                 //应答SERVER_UNAVAILABLE
                 connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
             }))
-//            .subscribeOn(Schedulers.parallel())
             ;
     }
 
@@ -299,7 +292,6 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                        MqttConnection::close)
             //网关暂停或者已停止时,则不处理消息
             .filter(pb -> isStarted())
-            .publishOn(Schedulers.parallel())
             //解码收到的mqtt报文
             .flatMap(publishing -> this
                 .decodeAndHandleMessage(operator, session, publishing, connection)

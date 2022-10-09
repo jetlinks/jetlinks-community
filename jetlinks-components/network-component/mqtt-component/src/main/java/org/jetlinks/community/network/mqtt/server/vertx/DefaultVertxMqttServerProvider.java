@@ -60,16 +60,19 @@ public class DefaultVertxMqttServerProvider implements NetworkProvider<VertxMqtt
                 server.setBind(new InetSocketAddress(options.getHost(), options.getPort()));
                 server.setMqttServer(instances);
                 for (MqttServer instance : instances) {
-                    instance.listen(result -> {
-                        if (result.succeeded()) {
-                            log.debug("startup mqtt server [{}] on port :{} ", properties.getId(), result
-                                .result()
-                                .actualPort());
-                        } else {
-                            server.setLastError(result.cause().getMessage());
-                            log.warn("startup mqtt server [{}] error ", properties.getId(), result.cause());
-                        }
-                    });
+                   vertx.nettyEventLoopGroup()
+                       .execute(()->{
+                           instance.listen(result -> {
+                               if (result.succeeded()) {
+                                   log.debug("startup mqtt server [{}] on port :{} ", properties.getId(), result
+                                       .result()
+                                       .actualPort());
+                               } else {
+                                   server.setLastError(result.cause().getMessage());
+                                   log.warn("startup mqtt server [{}] error ", properties.getId(), result.cause());
+                               }
+                           });
+                       });
                 }
                 return server;
             });

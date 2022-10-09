@@ -60,20 +60,26 @@ public class VertxMqttServer implements MqttServer {
         }
     }
 
+    private boolean emitNext(Sinks.Many<MqttConnection> sink, VertxMqttConnection connection){
+        if (sink.currentSubscriberCount() <= 0) {
+            return false;
+        }
+        try{
+            sink.emitNext(connection,Reactors.emitFailureHandler());
+            return true;
+        }catch (Throwable ignore){}
+        return false;
+    }
 
     private void handleConnection(VertxMqttConnection connection) {
-        boolean anyHandled = false;
-        if (sink.currentSubscriberCount() > 0) {
-            if (sink.tryEmitNext(connection).isSuccess()) {
-                anyHandled = true;
-            }
-        }
+        boolean anyHandled = emitNext(sink, connection);
+
         for (List<Sinks.Many<MqttConnection>> value : sinks.values()) {
             if (value.size() == 0) {
                 continue;
             }
             Sinks.Many<MqttConnection> sink = value.get(ThreadLocalRandom.current().nextInt(value.size()));
-            if (sink.currentSubscriberCount() > 0 && sink.tryEmitNext(connection).isSuccess()) {
+            if (emitNext(sink, connection)) {
                 anyHandled = true;
             }
         }

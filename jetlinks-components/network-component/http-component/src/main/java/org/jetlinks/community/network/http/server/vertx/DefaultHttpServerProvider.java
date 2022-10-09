@@ -107,14 +107,17 @@ public class DefaultHttpServerProvider implements NetworkProvider<HttpServerConf
                 server.setBindAddress(new InetSocketAddress(config.getHost(), config.getPort()));
                 server.setHttpServers(instances);
                 for (HttpServer httpServer : instances) {
-                    httpServer.listen(result -> {
-                        if (result.succeeded()) {
-                            log.debug("startup http server on [{}]", server.getBindAddress());
-                        } else {
-                            server.setLastError(result.cause().getMessage());
-                            log.warn("startup http server on [{}] failed", server.getBindAddress(), result.cause());
-                        }
-                    });
+                    vertx.nettyEventLoopGroup()
+                        .execute(()->{
+                            httpServer.listen(result -> {
+                                if (result.succeeded()) {
+                                    log.debug("startup http server on [{}]", server.getBindAddress());
+                                } else {
+                                    server.setLastError(result.cause().getMessage());
+                                    log.warn("startup http server on [{}] failed", server.getBindAddress(), result.cause());
+                                }
+                            });
+                        });
                 }
                 return server;
             });

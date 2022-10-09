@@ -79,14 +79,17 @@ public class DefaultTcpServerProvider implements NetworkProvider<TcpServerProper
                     .toMillis()));
                 tcpServer.setBind(new InetSocketAddress(properties.getHost(), properties.getPort()));
                 for (NetServer netServer : instances) {
-                    netServer.listen(properties.createSocketAddress(), result -> {
-                        if (result.succeeded()) {
-                            log.info("tcp server startup on {}", result.result().actualPort());
-                        } else {
-                            tcpServer.setLastError(result.cause().getMessage());
-                            log.error("startup tcp server error", result.cause());
-                        }
-                    });
+                    vertx.nettyEventLoopGroup()
+                        .execute(()->{
+                            netServer.listen(properties.createSocketAddress(), result -> {
+                                if (result.succeeded()) {
+                                    log.info("tcp server startup on {}", result.result().actualPort());
+                                } else {
+                                    tcpServer.setLastError(result.cause().getMessage());
+                                    log.error("startup tcp server error", result.cause());
+                                }
+                            });
+                        });
                 }
                 return tcpServer;
             });
