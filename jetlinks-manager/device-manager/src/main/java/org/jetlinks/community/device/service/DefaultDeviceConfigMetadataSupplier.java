@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.service;
 
 import lombok.AllArgsConstructor;
+import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
@@ -94,8 +95,10 @@ public class DefaultDeviceConfigMetadataSupplier implements DeviceConfigMetadata
     private Flux<ConfigMetadata> getProductConfigMetadata0(String productId) {
         return productService
             .findById(productId)
+            .filter(product -> StringUtils.hasText(product.getMessageProtocol()))
             .flatMapMany(product -> protocolSupports
                 .getProtocol(product.getMessageProtocol())
+                .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, product.getMessageProtocol()))
                 .flatMap(support -> support.getConfigMetadata(Transport.of(product.getTransportProtocol()))));
     }
 }
