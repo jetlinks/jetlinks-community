@@ -13,6 +13,7 @@ import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
+import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.device.entity.ProtocolSupportEntity;
 import org.jetlinks.community.device.service.LocalProtocolSupportService;
 import org.jetlinks.community.device.web.protocol.ProtocolDetail;
@@ -20,6 +21,7 @@ import org.jetlinks.community.device.web.protocol.ProtocolInfo;
 import org.jetlinks.community.device.web.protocol.TransportInfo;
 import org.jetlinks.community.device.web.request.ProtocolDecodeRequest;
 import org.jetlinks.community.device.web.request.ProtocolEncodeRequest;
+import org.jetlinks.community.protocol.TransportDetail;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.message.codec.Transport;
@@ -203,4 +205,32 @@ public class ProtocolSupportController
             .sort(Comparator.comparingLong(Tuple2::getT1))
             .map(Tuple2::getT2);
     }
+
+    @GetMapping("/{id}/transport/{transport}")
+    @Authorize(merge = false)
+    @Operation(summary = "获取消息协议对应的传输协议信息")
+    public Mono<TransportDetail> getTransportDetail(@PathVariable @Parameter(description = "协议ID") String id,
+                                                    @PathVariable @Parameter(description = "传输协议") String transport) {
+        return protocolSupports
+            .getProtocol(id)
+            .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, id))
+            .flatMapMany(protocol -> protocol
+                .getSupportedTransport()
+                .filter(trans -> trans.isSame(transport))
+                .distinct()
+                .flatMap(_transport -> TransportDetail.of(protocol, _transport)))
+            .singleOrEmpty();
+    }
+
+
+    @PostMapping("/{id}/detail")
+    @QueryAction
+    @Operation(summary = "获取协议详情")
+    public Mono<ProtocolDetail> protocolDetail(@PathVariable String id) {
+        return protocolSupports
+            .getProtocol(id)
+            .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, id))
+            .flatMap(ProtocolDetail::of);
+    }
+
 }
