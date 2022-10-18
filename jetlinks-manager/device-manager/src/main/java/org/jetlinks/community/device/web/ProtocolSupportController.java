@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import org.hswebframework.utils.StringUtils;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
@@ -32,7 +33,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
+import java.util.Comparator;
 import java.util.List;
 
 @RestController
@@ -173,5 +177,30 @@ public class ProtocolSupportController
     @Operation(summary = "获取单位数据")
     public Flux<ValueUnit> allUnits() {
         return Flux.fromIterable(ValueUnits.getAllUnit());
+    }
+
+
+    @GetMapping("/supports/{transport}")
+    @Authorize(merge = false)
+    @Operation(summary = "获取支持指定传输协议的消息协议")
+    public Flux<ProtocolInfo> getSupportTransportProtocols(@PathVariable String transport,
+                                                           @Parameter(hidden = true) QueryParamEntity query) {
+        return protocolSupports
+            .getProtocols()
+            .collectMap(ProtocolSupport::getId)
+            .flatMapMany(protocols -> service.createQuery()
+                                             .setParam(query)
+                                             .fetch()
+                                             .index()
+                                             .flatMap(tp2 -> Mono
+                                                 .justOrEmpty(protocols.get(tp2.getT2().getId()))
+                                                 .filterWhen(support -> support
+                                                     .getSupportedTransport()
+                                                     .filter(t -> t.isSame(transport))
+                                                     .hasElements())
+                                                 .map(ProtocolInfo::of)
+                                                 .map(protocolInfo -> Tuples.of(tp2.getT1(), protocolInfo))))
+            .sort(Comparator.comparingLong(Tuple2::getT1))
+            .map(Tuple2::getT2);
     }
 }
