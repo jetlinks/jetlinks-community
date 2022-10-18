@@ -1,85 +1,72 @@
 package org.jetlinks.community.device.web;
 
-import com.alibaba.fastjson.JSON;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
-import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
-import org.jetlinks.community.device.entity.DeviceCategory;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.util.StreamUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.hswebframework.web.api.crud.entity.QueryNoPagingOperation;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
+import org.hswebframework.web.authorization.annotation.Authorize;
+import org.hswebframework.web.authorization.annotation.Resource;
+import org.hswebframework.web.crud.service.ReactiveCrudService;
+import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
+import org.jetlinks.community.device.entity.DeviceCategoryEntity;
+import org.jetlinks.community.device.service.DeviceCategoryService;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/device/category")
 @Slf4j
-@Tag(name = "设备分类目录")
-public class DeviceCategoryController {
+@Tag(name = "产品分类管理")
+@AllArgsConstructor
+@Resource(id="device-category",name = "产品分类")
+public class DeviceCategoryController implements ReactiveServiceCrudController<DeviceCategoryEntity,String> {
 
 
-    static List<DeviceCategory> statics;
-
-
-    static void rebuild(String parentId, List<DeviceCategory> children) {
-        if (children == null) {
-            return;
-        }
-        for (DeviceCategory child : children) {
-            String id = child.getId();
-            child.setId(parentId + "|" + id + "|");
-            child.setParentId(parentId + "|");
-            rebuild(parentId + "|" + id, child.getChildren());
-        }
-    }
-
-    static {
-        try {
-            ClassPathResource resource = new ClassPathResource("device-category.json");
-            String json = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-
-            List<DeviceCategory> all = JSON.parseArray(json, DeviceCategory.class);
-
-            List<DeviceCategory> root = TreeSupportEntity.list2tree(all, DeviceCategory::setChildren);
-
-            for (DeviceCategory category : root) {
-                String id = category.getId();
-
-                category.setId("|" + id + "|");
-                category.setParentId("|" + category.getParentId() + "|");
-                rebuild("|" + id, category.getChildren());
-            }
-
-            statics = all;
-
-        } catch (Exception e) {
-            statics = new ArrayList<>();
-            DeviceCategoryController.log.error(e.getMessage(), e);
-        }
-    }
+    private final DeviceCategoryService categoryService;
 
     @GetMapping
-    @Operation(summary = "获取全部分类目录")
-    public Flux<DeviceCategory> getAllCategory() {
-        return Flux.fromIterable(statics);
+    @QueryNoPagingOperation(summary = "获取全部分类")
+    @Authorize(merge = false)
+    public Flux<DeviceCategoryEntity> getAllCategory(@Parameter(hidden = true) QueryParamEntity query) {
+        return this
+            .categoryService
+            .createQuery()
+            .setParam(query)
+            .fetch();
     }
-
-    @GetMapping("/_query/no-paging")
-    @Operation(summary = "获取全部分类目录")
-    public Flux<DeviceCategory> getAllCategory2() {
-        return Flux.fromIterable(statics);
-    }
-
 
     @GetMapping("/_tree")
-    @Operation(summary = "获取全部分类目录(树结构)")
-    public Flux<DeviceCategory> getAllCategoryTree() {
-        return Flux.fromIterable(TreeSupportEntity.list2tree(statics, DeviceCategory::setChildren));
+    @QueryNoPagingOperation(summary = "获取全部分类(树结构)")
+    @Authorize(merge = false)
+    public Flux<DeviceCategoryEntity> getAllCategoryTree(@Parameter(hidden = true) QueryParamEntity query) {
+        return this
+            .categoryService
+            .createQuery()
+            .setParam(query)
+            .fetch()
+            .collectList()
+            .flatMapMany(all-> Flux.fromIterable(TreeSupportEntity.list2tree(all, DeviceCategoryEntity::setChildren)));
+    }
+
+
+    @PostMapping("/_tree")
+    @QueryNoPagingOperation(summary = "获取全部分类(树结构)")
+    @Authorize(merge = false)
+    public Flux<DeviceCategoryEntity> getAllCategoryTreeByQueryParam(@RequestBody Mono<QueryParamEntity> query) {
+        return this
+            .categoryService
+            .query(query)
+            .collectList()
+            .flatMapMany(all-> Flux.fromIterable(TreeSupportEntity.list2tree(all, DeviceCategoryEntity::setChildren)));
+    }
+
+    @Override
+    public ReactiveCrudService<DeviceCategoryEntity, String> getService() {
+        return categoryService;
     }
 }
