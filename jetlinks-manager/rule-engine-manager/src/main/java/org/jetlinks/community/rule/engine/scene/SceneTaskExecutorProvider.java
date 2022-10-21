@@ -2,6 +2,7 @@ package org.jetlinks.community.rule.engine.scene;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
@@ -89,7 +90,9 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
             if (disposable != null) {
                 disposable.dispose();
             }
-            SqlRequest request = rule.createSql();
+            boolean useBranch = CollectionUtils.isNotEmpty(rule.getBranches());
+
+            SqlRequest request = rule.createSql(!useBranch);
 
             //不是通过SQL来处理数据
             if (request.isEmpty()) {

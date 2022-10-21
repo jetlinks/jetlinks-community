@@ -6,6 +6,8 @@ import org.hswebframework.ezorm.rdb.exception.DuplicateKeyException;
 import org.hswebframework.ezorm.rdb.metadata.RDBColumnMetadata;
 import org.hswebframework.web.crud.web.ResponseMessage;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.reference.DataReferenceInfo;
+import org.jetlinks.community.reference.DataReferencedException;
 import org.jetlinks.core.enums.ErrorCode;
 import org.jetlinks.core.exception.DeviceOperationException;
 import org.springframework.core.Ordered;
@@ -101,6 +103,16 @@ public class ErrorControllerAdvice {
                 .status(status)
                 .body(ResponseMessage.error(status.value(), e.getCode().name().toLowerCase(), msg))
             );
+    }
+    @ExceptionHandler
+    public Mono<ResponseMessage<List<DataReferenceInfo>>> handleException(DataReferencedException e) {
+        return e
+            .getLocalizedMessageReactive()
+            .map(msg -> {
+                return ResponseMessage
+                    .<List<DataReferenceInfo>>error(400,"error.data.referenced", msg)
+                    .result(e.getReferenceList());
+            });
     }
 
 }
