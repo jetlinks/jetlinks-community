@@ -110,6 +110,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
     @Operation(summary = "解析规则中输出的变量")
     @QueryAction
     public Flux<Variable> parseVariables(@RequestBody Mono<SceneRule> ruleMono,
+                                         @RequestParam(required = false) Integer branch,
                                          @RequestParam(required = false) Integer action) {
         Mono<SceneRule> cache = ruleMono.cache();
         return Mono
@@ -123,6 +124,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
                                                     .filter(column -> column.hasColumn(terms.keySet()))
                                                     .map(column -> column.copyColumn(terms::containsKey))
                                                     .collect(Collectors.toList()),
+                                                branch,
                                                 action,
                                                 deviceRegistry);
                 })

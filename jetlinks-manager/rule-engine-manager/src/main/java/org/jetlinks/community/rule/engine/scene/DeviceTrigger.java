@@ -16,6 +16,7 @@ import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
@@ -24,9 +25,12 @@ import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.term.TermTypeSupport;
 import org.jetlinks.community.rule.engine.scene.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.value.TermValue;
+import org.jetlinks.reactor.ql.ReactorQL;
+import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -53,6 +57,10 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
     private DeviceOperation operation;
 
     public SqlRequest createSql(List<Term> terms) {
+        return createSql(terms, true);
+    }
+
+    public SqlRequest createSql(List<Term> terms, boolean hasWhere) {
 
         Map<String, Term> termsMap = SceneUtils.expandTerm(terms);
         // select * from (
@@ -78,6 +86,8 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
         selectColumns.add("this.headers._uid \"_uid\"");
         //维度绑定信息,如部门等
         selectColumns.add("this.headers.bindings \"_bindings\"");
+        //链路追踪ID
+        selectColumns.add("this.headers.traceparent \"traceparent\"");
 
         switch (this.operation.getOperator()) {
             case readProperty:
@@ -133,14 +143,56 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
         builder.append("\t\nfrom ").append(createFromTable());
         builder.append("\n) t \n");
 
-
-        SqlFragments fragments = terms == null ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
-        if (!fragments.isEmpty()) {
-            SqlRequest request = fragments.toRequest();
-            builder.append("where ").append(request.getSql());
+        if (hasWhere) {
+            SqlFragments fragments = terms == null ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
+            if (!fragments.isEmpty()) {
+                SqlRequest request = fragments.toRequest();
+                builder.append("where ").append(request.getSql());
+            }
+            return PrepareSqlRequest.of(builder.toString(), fragments.getParameters().toArray());
         }
 
-        return PrepareSqlRequest.of(builder.toString(), fragments.getParameters().toArray());
+        return PrepareSqlRequest.of(builder.toString(), new Object[0]);
+
+    }
+
+    String createFilterDescription(List<Term> terms) {
+        SqlFragments fragments = CollectionUtils.isEmpty(terms) ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
+        return fragments.isEmpty() ? "true" : fragments.toRequest().toNativeSql();
+    }
+
+    Function<Map<String, Object>, Mono<Boolean>> createFilter(List<Term> terms) {
+        SqlFragments fragments = CollectionUtils.isEmpty(terms) ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
+        if (!fragments.isEmpty()) {
+            SqlRequest request = fragments.toRequest();
+            String sql = "select 1 from t where " + request.getSql();
+            ReactorQL ql = ReactorQL
+                .builder()
+                .sql(sql)
+                .build();
+            Object[] args = request.getParameters();
+            String sqlString = request.toNativeSql();
+            return new Function<Map<String, Object>, Mono<Boolean>>() {
+                @Override
+                public Mono<Boolean> apply(Map<String, Object> map) {
+                    ReactorQLContext context = ReactorQLContext.ofDatasource((t) -> Flux.just(map));
+                    for (Object arg : args) {
+                        context.bind(arg);
+                    }
+
+                    return ql
+                        .start(context)
+                        .hasElements();
+                }
+
+                @Override
+                public String toString() {
+                    return sqlString;
+                }
+            };
+        }
+
+        return ignore -> Reactors.ALWAYS_TRUE;
 
     }
 
@@ -363,6 +415,8 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
         timerNode.setId("scene:device:timer");
         timerNode.setName("定时下发指令");
         timerNode.setExecutor("timer");
+        //使用最小负载节点来执行定时
+        // timerNode.setSchedulingRule(SchedulerSelectorStrategy.minimumLoad());
         timerNode.setConfiguration(FastBeanCopier.copy(timer, new HashMap<>()));
         model.getNodes().add(timerNode);
 

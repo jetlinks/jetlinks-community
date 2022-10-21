@@ -1,10 +1,7 @@
 package org.jetlinks.community.device.service;
 
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.ConfigScope;
-import org.jetlinks.core.metadata.DeviceConfigScope;
-import org.jetlinks.core.metadata.DeviceMetadataType;
+import org.jetlinks.core.metadata.*;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -71,5 +68,13 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
             register(((DeviceConfigMetadataSupplier) bean));
         }
         return bean;
+    }
+
+    @Override
+    public Flux<Feature> getProductFeatures(String productId) {
+        return Flux
+            .fromIterable(suppliers)
+            .flatMap(supplier -> supplier.getProductFeatures(productId))
+            .distinct(Feature::getId);
     }
 }

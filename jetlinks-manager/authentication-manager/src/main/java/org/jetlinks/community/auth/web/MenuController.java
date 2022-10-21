@@ -247,15 +247,16 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
 
     }
 
-    @PatchMapping("/_all")
+    @PatchMapping("/{owner}/_all")
     @SaveAction
     @Transactional
-    @Operation(summary = "全量保存数据", description = "先删除旧数据，再新增数据")
-    public Mono<SaveResult> saveAll(@RequestBody Flux<MenuEntity> menus) {
+    @Operation(summary = "保存一个应用下的全量数据", description = "先应用下全部删除旧数据，再新增数据")
+    public Mono<SaveResult> saveOwnerAll(@PathVariable String owner, @RequestBody Flux<MenuEntity> menus) {
         return this
             .getService()
             .createDelete()
             .where(MenuEntity::getStatus, 1)
+            .and(MenuEntity::getOwner, owner)
             .execute()
             .then(
                 this.save(menus)

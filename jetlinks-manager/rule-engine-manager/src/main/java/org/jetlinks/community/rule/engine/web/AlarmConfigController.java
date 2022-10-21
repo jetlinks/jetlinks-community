@@ -3,15 +3,13 @@ package org.jetlinks.community.rule.engine.web;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.service.ReactiveCrudService;
-import org.hswebframework.web.crud.web.reactive.ReactiveServiceQueryController;
+import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.jetlinks.community.rule.engine.alarm.AlarmLevelInfo;
 import org.jetlinks.community.rule.engine.alarm.AlarmTargetSupplier;
 import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
@@ -29,8 +27,7 @@ import reactor.core.publisher.Mono;
 @Authorize
 @Tag(name = "告警配置")
 @AllArgsConstructor
-public class AlarmConfigController implements ReactiveServiceQueryController<AlarmConfigEntity, String> {
-
+public class AlarmConfigController implements ReactiveServiceCrudController<AlarmConfigEntity, String> {
     private final AlarmConfigService alarmConfigService;
 
     private final ReactiveRepository<AlarmLevelEntity, String> alarmLevelRepository;
@@ -89,5 +86,4 @@ public class AlarmConfigController implements ReactiveServiceQueryController<Ala
     public Mono<AlarmLevelEntity> queryAlarmLevel() {
         return alarmLevelRepository.findById(AlarmLevelService.DEFAULT_ALARM_ID);
     }
-
 }

@@ -1,7 +1,9 @@
 package org.jetlinks.community.device.spi;
 
+import lombok.Generated;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceMetadataType;
+import org.jetlinks.core.metadata.Feature;
 import reactor.core.publisher.Flux;
 
 /**
@@ -36,6 +38,15 @@ public interface DeviceConfigMetadataSupplier {
                                                           DeviceMetadataType metadataType,
                                                           String metadataId,
                                                           String typeId) {
+        return Flux.empty();
+    }
+
+
+    /**
+     * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getProductFeatures(String)
+     */
+    @Generated
+    default Flux<Feature> getProductFeatures(String productId){
         return Flux.empty();
     }
 }

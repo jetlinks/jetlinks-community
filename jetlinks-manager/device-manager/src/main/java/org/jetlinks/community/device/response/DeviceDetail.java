@@ -7,12 +7,19 @@ import org.apache.commons.collections4.MapUtils;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
+import org.jetlinks.community.device.enums.DeviceFeature;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.enums.DeviceType;
+import org.jetlinks.community.relation.service.response.RelatedInfo;
+import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.Values;
+import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.Feature;
+import org.jetlinks.core.metadata.SimpleFeature;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -126,6 +133,13 @@ public class DeviceDetail {
     @Schema(description = "设备描述")
     private String description;
 
+    @Schema(description = "关系信息")
+    private List<RelatedInfo> relations;
+
+    @Schema(description = "设备特性")
+    private List<Feature> features = new ArrayList<>();
+
+
     public DeviceDetail notActive() {
 
         state = DeviceState.notActive;
@@ -209,6 +223,11 @@ public class DeviceDetail {
         return this;
     }
 
+    public DeviceDetail withRelation(List<RelatedInfo> relations){
+        this.relations=relations;
+        return this;
+    }
+
     public DeviceDetail with(DeviceProductEntity productEntity) {
         if (productEntity == null) {
             return this;
@@ -237,6 +256,9 @@ public class DeviceDetail {
         setOrgId(device.getOrgId());
         setParentId(device.getParentId());
         setDescription(device.getDescribe());
+        if (device.getFeatures() != null) {
+            withFeatures(Arrays.asList(device.getFeatures()));
+        }
         Optional.ofNullable(device.getRegistryTime())
                 .ifPresent(this::setRegisterTime);
 
@@ -266,5 +288,33 @@ public class DeviceDetail {
 
         return this;
     }
+
+    public DeviceDetail withFeatures(Collection<? extends Feature> features) {
+        for (Feature feature : features) {
+            this.features.add(new SimpleFeature(feature.getId(), feature.getName()));
+        }
+        return this;
+    }
+
+    public Mono<DeviceDetail> with(DeviceProductOperator product) {
+        return Mono
+            .zip(
+                product
+                    .getProtocol()
+                    .mapNotNull(ProtocolSupport::getName)
+                    .defaultIfEmpty(""),
+                product
+                    .getConfig(DeviceConfigKey.metadata)
+                    .defaultIfEmpty(""))
+            .doOnNext(tp2 -> {
+                setProtocolName(tp2.getT1());
+                //物模型以产品缓存里的为准
+                if (!this.independentMetadata && StringUtils.hasText(tp2.getT2())) {
+                    setMetadata(tp2.getT2());
+                }
+            })
+            .thenReturn(this);
+    }
+
 
 }
