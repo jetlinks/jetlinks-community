@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -124,8 +125,16 @@ public class DeviceGatewayHelper {
                     .createOrUpdateSession(childrenId,
                                            children,
                                            child -> Mono.just(new ChildrenDeviceSession(childrenId, parentSession, child)),
-                                           Mono::empty));
-
+                                           Mono::empty)
+                    .doOnNext(session -> {
+                        if (session.isWrapFrom(ChildrenDeviceSession.class)) {
+                            ChildrenDeviceSession childrenSession = session.unwrap(ChildrenDeviceSession.class);
+                            //网关发生变化,替换新的上级会话
+                            if (!Objects.equals(deviceId, childrenSession.getParent().getDeviceId())) {
+                                childrenSession.replaceWith(parentSession);
+                            }
+                        }
+                    }));
 
             //子设备注册
             if (isDoRegister(children)) {
