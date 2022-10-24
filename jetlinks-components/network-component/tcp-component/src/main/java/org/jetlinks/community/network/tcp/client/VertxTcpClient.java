@@ -141,7 +141,7 @@ public class VertxTcpClient implements TcpClient {
             return null;
         }
         SocketAddress socketAddress = socket.remoteAddress();
-        return new InetSocketAddress(socketAddress.host(), socketAddress.port());
+        return InetSocketAddress.createUnresolved(socketAddress.host(), socketAddress.port());
     }
 
     @Override
