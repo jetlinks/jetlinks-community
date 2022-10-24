@@ -18,6 +18,8 @@
         <module>notify-email</module>
         <module>notify-wechat</module>
         <module>notify-dingtalk</module>
+        <module>notify-voice</module>
+        <module>notify-webhook</module>
     </modules>
 
 

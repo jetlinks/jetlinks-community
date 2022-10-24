@@ -4,6 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.device.events.DeviceProductDeployEvent;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.device.service.data.DeviceLatestDataService;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +14,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import javax.annotation.PreDestroy;
 
 /**
  * 处理设备产品发布事件
@@ -31,33 +38,83 @@ public class DeviceProductDeployHandler implements CommandLineRunner {
 
     private final DeviceDataService dataService;
 
+    private final DeviceLatestDataService latestDataService;
+    private final EventBus eventBus;
+
+    private final Disposable disposable;
 
     @Autowired
     public DeviceProductDeployHandler(LocalDeviceProductService productService,
-                                      DeviceDataService dataService) {
+                                      DeviceDataService dataService,
+                                      EventBus eventBus,
+                                      DeviceLatestDataService latestDataService) {
         this.productService = productService;
         this.dataService = dataService;
+        this.eventBus = eventBus;
+        this.latestDataService = latestDataService;
+        //监听其他服务器上的物模型变更
+        disposable = eventBus
+            .subscribe(Subscription
+                           .builder()
+                           .subscriberId("product-metadata-upgrade")
+                           .topics("/_sys/product-upgrade")
+                           .justBroker()
+                           .build(), String.class)
+            .flatMap(id -> this
+                .reloadMetadata(id)
+                .onErrorResume((err) -> {
+                    log.warn("handle product upgrade event error", err);
+                    return Mono.empty();
+                }))
+            .subscribe();
     }
 
+    @PreDestroy
+    public void shutdown() {
+        disposable.dispose();
+    }
 
     @EventListener
     public void handlerEvent(DeviceProductDeployEvent event) {
         event.async(
             this
                 .doRegisterMetadata(event.getId(), event.getMetadata())
+                .then(
+                    eventBus.publish("/_sys/product-upgrade", event.getId())
+                )
         );
     }
 
-    private Mono<Void> doRegisterMetadata(String productId, String metadataString) {
+    protected Mono<Void> reloadMetadata(String productId) {
+        return productService
+            .findById(productId)
+            .flatMap(product -> doReloadMetadata(productId, product.getMetadata()))
+            .then();
+    }
+
+    protected Mono<Void> doReloadMetadata(String productId, String metadataString) {
         return codec
             .decode(metadataString)
-            .flatMap(metadata -> dataService.registerMetadata(productId, metadata));
+            .flatMap(metadata -> Flux
+                .mergeDelayError(2,
+                                 dataService.reloadMetadata(productId, metadata),
+                                 latestDataService.reloadMetadata(productId, metadata))
+                .then());
+    }
+
+    protected Mono<Void> doRegisterMetadata(String productId, String metadataString) {
+        return codec
+            .decode(metadataString)
+            .flatMap(metadata -> Flux
+                .mergeDelayError(2,
+                                 dataService.registerMetadata(productId, metadata),
+                                 latestDataService.upgradeMetadata(productId, metadata))
+                .then());
     }
 
 
     @Override
     public void run(String... args) {
-        //启动时发布物模型
         productService
             .createQuery()
             .fetch()
@@ -65,7 +122,7 @@ public class DeviceProductDeployHandler implements CommandLineRunner {
             .flatMap(deviceProductEntity -> this
                 .doRegisterMetadata(deviceProductEntity.getId(), deviceProductEntity.getMetadata())
                 .onErrorResume(err -> {
-                    log.warn("register product metadata error", err);
+                    log.warn("register product [{}] metadata error", deviceProductEntity.getId(), err);
                     return Mono.empty();
                 })
             )

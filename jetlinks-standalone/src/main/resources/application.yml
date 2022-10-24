@@ -197,3 +197,8 @@ springdoc:
         - org.jetlinks.community.logging.controller
   cache:
     disabled: false
+network:
+  resources:
+    - 1883-1890
+    - 8800-8810
+    - 5060-5061

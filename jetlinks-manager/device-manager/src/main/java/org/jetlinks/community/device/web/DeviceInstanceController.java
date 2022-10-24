@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.exception.DuplicateKeyException;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
@@ -22,6 +23,7 @@ import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.exception.ValidationException;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
@@ -34,10 +36,16 @@ import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.web.excel.DeviceExcelInfo;
 import org.jetlinks.community.device.web.excel.DeviceWrapper;
+import org.jetlinks.community.device.web.excel.PropertyMetadataExcelInfo;
+import org.jetlinks.community.device.web.excel.PropertyMetadataWrapper;
 import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.community.io.utils.FileUtils;
+import org.jetlinks.community.relation.RelationObjectProvider;
+import org.jetlinks.community.relation.service.RelationService;
+import org.jetlinks.community.relation.service.request.SaveRelationRequest;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.web.response.ValidationResult;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.device.manager.DeviceBindHolder;
@@ -48,6 +56,7 @@ import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.MessageType;
 import org.jetlinks.core.message.RepayableDeviceMessage;
 import org.jetlinks.core.metadata.*;
+import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.data.util.Lazy;
@@ -73,7 +82,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.hswebframework.reactor.excel.ReactorExcel.*;
+import static org.hswebframework.reactor.excel.ReactorExcel.read;
 
 @RestController
 @RequestMapping({"/device-instance", "/device/instance"})
@@ -99,6 +108,8 @@ public class DeviceInstanceController implements
 
     private final DeviceConfigMetadataManager metadataManager;
 
+    private final RelationService relationService;
+
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
                                     DeviceRegistry registry,
@@ -106,7 +117,8 @@ public class DeviceInstanceController implements
                                     ImportExportService importExportService,
                                     ReactiveRepository<DeviceTagEntity, String> tagRepository,
                                     DeviceDataService deviceDataService,
-                                    DeviceConfigMetadataManager metadataManager) {
+                                    DeviceConfigMetadataManager metadataManager,
+                                    RelationService relationService) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
@@ -114,6 +126,7 @@ public class DeviceInstanceController implements
         this.tagRepository = tagRepository;
         this.deviceDataService = deviceDataService;
         this.metadataManager = metadataManager;
+        this.relationService = relationService;
     }
 
 
@@ -124,6 +137,17 @@ public class DeviceInstanceController implements
     public Mono<DeviceDetail> getDeviceDetailInfo(@PathVariable @Parameter(description = "设备ID") String id) {
         return service.getDeviceDetail(id);
     }
+
+    //读取设备属性
+    @PostMapping("/{deviceId:.+}/properties/_read")
+    @QueryAction
+    @Operation(summary = "发送读取属性指令到设备", description = "请求示例: [\"属性ID\"]")
+    public Mono<?> readProperties(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                  @RequestBody Mono<List<String>> properties) {
+        return properties.flatMap(props -> service.readProperties(deviceId, props));
+    }
+
+
 
     //获取设备详情
     @GetMapping("/{id:.+}/config-metadata")
@@ -314,11 +338,21 @@ public class DeviceInstanceController implements
     //查询设备日志
     @GetMapping("/{deviceId:.+}/logs")
     @QueryAction
-    @QueryOperation(summary = "查询设备日志数据")
+    @QueryOperation(summary = "(GET)查询设备日志数据")
     public Mono<PagerResult<DeviceOperationLogEntity>> queryDeviceLog(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                                                       @Parameter(hidden = true) QueryParamEntity entity) {
         return deviceDataService.queryDeviceMessageLog(deviceId, entity);
     }
+
+    //查询设备日志
+    @PostMapping("/{deviceId:.+}/logs")
+    @QueryAction
+    @Operation(summary = "(POST)查询设备日志数据")
+    public Mono<PagerResult<DeviceOperationLogEntity>> queryDeviceLog(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                                      @RequestBody @Parameter(hidden = true) Mono<QueryParamEntity> queryParam) {
+        return queryParam.flatMap(param -> deviceDataService.queryDeviceMessageLog(deviceId, param));
+    }
+
 
     //删除标签
     @DeleteMapping("/{deviceId}/tag/{tagId:.+}")
@@ -366,8 +400,7 @@ public class DeviceInstanceController implements
      * 批量激活设备
      *
      * @param idList ID列表
-     * @return 被注销的数量
-     * @since 1.1
+     * @return 被激活的数量
      */
     @PutMapping("/batch/_deploy")
     @SaveAction
@@ -841,6 +874,94 @@ public class DeviceInstanceController implements
                         .flatMap(device -> device.updateMetadata(deviceInstance.getDeriveMetadata()))
                         .then())
                 ));
+    }
+
+
+    @GetMapping("/{id:.+}/exists")
+    @QueryAction
+    @Operation(summary = "验证设备ID是否存在")
+    public Mono<Boolean> deviceIdValidate(@PathVariable @Parameter(description = "设备ID") String id) {
+        return service.findById(id)
+                      .hasElement();
+    }
+
+    @GetMapping("/id/_validate")
+    @QueryAction
+    @Operation(summary = "验证设备ID是否合法")
+    public Mono<ValidationResult> deviceIdValidate2(@RequestParam @Parameter(description = "设备ID") String id) {
+        return LocaleUtils.currentReactive()
+                          .flatMap(locale -> {
+                              DeviceInstanceEntity entity = new DeviceInstanceEntity();
+                              entity.setId(id);
+                              entity.validateId();
+
+                              return service.findById(id)
+                                            .map(device -> ValidationResult.error(
+                                                LocaleUtils.resolveMessage("error.device_ID_already_exists", locale)))
+                                            .defaultIfEmpty(ValidationResult.success());
+                          })
+                          .onErrorResume(ValidationException.class, e -> Mono.just(e.getI18nCode())
+                                                                             .map(ValidationResult::error));
+    }
+
+
+    //解析文件为属性物模型
+    @PostMapping(value = "/{productId}/property-metadata/import")
+    @SaveAction
+    @Operation(summary = "解析文件为属性物模型")
+    public Mono<String> importPropertyMetadata(@PathVariable @Parameter(description = "产品ID") String productId,
+                                               @RequestParam @Parameter(description = "文件地址,支持csv,xlsx文件格式") String fileUrl) {
+        return metadataManager
+            .getMetadataExpandsConfig(productId, DeviceMetadataType.property, "*", "*", DeviceConfigScope.device)
+            .collectList()
+            .map(PropertyMetadataWrapper::new)
+            //解析数据并转为物模型
+            .flatMap(wrapper -> importExportService
+                .getInputStream(fileUrl)
+                .flatMapMany(inputStream -> read(inputStream, FileUtils.getExtension(fileUrl), wrapper))
+                .map(PropertyMetadataExcelInfo::toMetadata)
+                .collectList())
+            .filter(CollectionUtils::isNotEmpty)
+            .map(list -> {
+                SimpleDeviceMetadata metadata = new SimpleDeviceMetadata();
+                list.forEach(metadata::addProperty);
+                return JetLinksDeviceMetadataCodec.getInstance().doEncode(metadata);
+            });
+    }
+
+    //获取物模型属性导入模块
+    @GetMapping("/{deviceId}/property-metadata/template.{format}")
+    @QueryAction
+    @Operation(summary = "下载设备物模型属性导入模块")
+    public Mono<Void> downloadMetadataExportTemplate(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                     ServerHttpResponse response,
+                                                     @PathVariable @Parameter(description = "文件格式,支持csv,xlsx") String format) throws IOException {
+        response.getHeaders().set(HttpHeaders.CONTENT_DISPOSITION,
+                                  "attachment; filename=".concat(URLEncoder.encode("物模型导入模块." + format, StandardCharsets.UTF_8
+                                      .displayName())));
+
+        return metadataManager
+            .getMetadataExpandsConfig(deviceId, DeviceMetadataType.property, "*", "*", DeviceConfigScope.device)
+            .collectList()
+            .map(PropertyMetadataExcelInfo::getTemplateHeaderMapping)
+            .flatMapMany(headers ->
+                             ReactorExcel.<DeviceExcelInfo>writer(format)
+                                 .headers(headers)
+                                 .converter(DeviceExcelInfo::toMap)
+                                 .writeBuffer(Flux.empty()))
+            .doOnError(err -> log.error(err.getMessage(), err))
+            .map(bufferFactory::wrap)
+            .as(response::writeWith)
+            ;
+    }
+
+
+    @PatchMapping("/{deviceId}/relations")
+    @Operation(summary = "保存设备的关系信息")
+    @SaveAction
+    public Mono<Void> saveRelation(@PathVariable String deviceId,
+                                   @RequestBody Flux<SaveRelationRequest> requestFlux) {
+        return relationService.saveRelated(RelationObjectProvider.TYPE_DEVICE, deviceId, requestFlux);
     }
 
 
