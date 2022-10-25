@@ -31,7 +31,6 @@ public class AliyunVoiceTemplate extends AbstractTemplate<AliyunVoiceTemplate> {
 
     private String calledShowNumbers;
 
-    @NotBlank(message = "[calledNumber]不能为空")
     private String calledNumber;
 
     @Schema(description = "通知播放次数")
