@@ -1,11 +1,13 @@
 package org.jetlinks.community.device.web;
 
 import com.alibaba.fastjson.JSON;
+import io.netty.buffer.ByteBufAllocator;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.utils.StringUtils;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.annotation.Authorize;
@@ -21,6 +23,7 @@ import org.jetlinks.community.device.web.protocol.ProtocolInfo;
 import org.jetlinks.community.device.web.protocol.TransportInfo;
 import org.jetlinks.community.device.web.request.ProtocolDecodeRequest;
 import org.jetlinks.community.device.web.request.ProtocolEncodeRequest;
+import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.protocol.TransportDetail;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
@@ -32,6 +35,9 @@ import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoaderProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -39,7 +45,9 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/protocol")
@@ -61,6 +69,9 @@ public class ProtocolSupportController
 
     @Autowired
     private ProtocolSupportLoader supportLoader;
+
+    @Autowired
+    private FileManager fileManager;
 
     @PostMapping("/{id}/_deploy")
     @SaveAction
@@ -231,6 +242,36 @@ public class ProtocolSupportController
             .getProtocol(id)
             .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, id))
             .flatMap(ProtocolDetail::of);
+    }
+
+
+    @PostMapping("/default-protocol/_save")
+    @SaveAction
+    @Operation(summary = "保存默认协议")
+    public Mono<Void> saveDefaultProtocol() {
+
+        String defaultProtocolName = "JetLinks官方协议";
+        String fileNeme = "jetlinks-official-protocol-3.0-SNAPSHOT.zip";
+        return fileManager
+            .saveFile(fileNeme,
+                      DataBufferUtils.read(new ClassPathResource(fileNeme),
+                                           new NettyDataBufferFactory(ByteBufAllocator.DEFAULT),
+                                           1024))
+            .flatMap(fileInfo -> {
+                Map<String, Object> conf = new HashMap<>();
+                conf.put("fileId", fileInfo.getId());
+                conf.put("provider", "org.jetlinks.protocol.official.JetLinksProtocolSupportProvider");
+                conf.put("location", fileInfo.getAccessUrl());
+                ProtocolSupportEntity entity = new ProtocolSupportEntity();
+                entity.setId(DigestUtils.md5Hex(defaultProtocolName));
+                entity.setType("jar");
+                entity.setName(defaultProtocolName);
+                entity.setState((byte) 1);
+                entity.setDescription("JetLinks官方协议包");
+                entity.setConfiguration(conf);
+                return getService().save(entity);
+            })
+            .then();
     }
 
 }
