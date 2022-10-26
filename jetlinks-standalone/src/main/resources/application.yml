@@ -159,6 +159,25 @@ micrometer:
     metrics:
       default:
         step: 30s
+system:
+  config:
+    scopes:
+      - id: front
+        name: 前端配置
+        public-access: true
+      - id: paths
+        name: 访问路径配置
+        public-access: true
+        properties:
+          - key: base-path
+            name: 接口根路径
+            default-value: http://localhost:9000/api
+      - id: amap
+        name: 高德地图配置
+        public-access: false
+        properties:
+          - key: apiKey # 配置id
+            name: 高德地图ApiKey # 名称
 management:
   health:
     elasticsearch:
