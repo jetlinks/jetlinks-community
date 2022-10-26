@@ -144,7 +144,7 @@ logging:
     #    org.springframework.data.elasticsearch.client: trace
     #    org.elasticsearch: error
     org.elasticsearch: error
-    org.elasticsearch.deprecation.search.aggregations.bucket.histogram: error
+    org.elasticsearch.deprecation: off
   config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds
