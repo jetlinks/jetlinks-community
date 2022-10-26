@@ -6,7 +6,7 @@ services:
     #    ports:
     #      - "6379:6379"
     volumes:
-      - "redis-volume:/data"
+      - "./data/redis:/data"
     command: redis-server --appendonly yes --requirepass "JetLinks@redis"
     environment:
       - TZ=Asia/Shanghai
@@ -20,8 +20,8 @@ services:
       bootstrap.memory_lock: "true"
       discovery.zen.minimum_master_nodes: 1
       discovery.zen.ping.unicast.hosts: elasticsearch
-    volumes:
-      - elasticsearch-volume:/usr/share/elasticsearch/data
+  #  volumes:
+  #    - ./data/elasticsearch:/usr/share/elasticsearch/data
   #    ports:
   #      - "9200:9200"
   #      - "9300:9300"
@@ -33,14 +33,14 @@ services:
     links:
       - elasticsearch:elasticsearch
     ports:
-      - "5602:5601"
+      - "5601:5601"
     depends_on:
       - elasticsearch
   postgres:
     image: postgres:11-alpine
     container_name: jetlinks-ce-postgres
     volumes:
-      - "postgres-volume:/var/lib/postgresql/data"
+      - "./data/postgres:/var/lib/postgresql/data"
     ports:
       - "5432:5432"
     environment:
@@ -55,22 +55,26 @@ services:
     environment:
       - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
     volumes:
-      - "jetlinks-volume:/usr/share/nginx/html/upload"
+      - "./data/jetlinks-ui:/usr/share/nginx/html/upload"
     links:
       - jetlinks:jetlinks
   jetlinks:
     image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:2.0.0-SNAPSHOT
     container_name: jetlinks-ce
+
     ports:
       - "8848:8848" # API端口
       - "1883-1890:1883-1890" # 预留
       - "8800-8810:8800-8810" # 预留
       - "5060-5061:5060-5061" # 预留
     volumes:
-      - "jetlinks-volume:/application/static/upload"  # 持久化上传的文件
-      - "jetlinks-file-volume:/application/data/files"
-      - "jetlinks-protocol-volume:/application/data/protocols"
+      - "./data/jetlinks:/application/static/upload"  # 持久化上传的文件
+      - "./data/jetlinks/:/application/data/files"
+      - "./data/jetlinks/:/application/data/protocols"
+      - "./entrypoint.sh:/entrypoint.sh"
+    #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
     environment:
+     # - "SLEEP_SECOND=4"
       - "JAVA_OPTS=-Duser.language=zh -XX:+UseG1GC"
       - "TZ=Asia/Shanghai"
       - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
@@ -78,9 +82,9 @@ services:
       - "spring.r2dbc.username=postgres"
       - "spring.r2dbc.password=jetlinks"
       - "spring.data.elasticsearch.client.reactive.endpoints=elasticsearch:9200"
-#        - "spring.data.elasticsearch.client.reactive.username=admin"
-#        - "spring.data.elasticsearch.client.reactive.password=admin"
-#        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
+      #        - "spring.data.elasticsearch.client.reactive.username=admin"
+      #        - "spring.data.elasticsearch.client.reactive.password=admin"
+      #        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
       - "spring.redis.host=redis"
       - "spring.redis.port=6379"
       - "file.manager.storage-base-path=/application/data/files"
@@ -112,10 +116,3 @@ services:
       - postgres
       - redis
       - elasticsearch
-volumes:
-  postgres-volume:
-  redis-volume:
-  elasticsearch-volume:
-  jetlinks-volume:
-  jetlinks-file-volume:
-  jetlinks-protocol-volume:
