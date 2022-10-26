@@ -36,6 +36,16 @@ public class FileInfo {
 
     private Map<String, Object> others;
 
+    private String accessUrl;
+
+    public void withBasePath(String apiBashPath) {
+        if (!apiBashPath.endsWith("/")) {
+            apiBashPath = apiBashPath + "/";
+        }
+        accessUrl = apiBashPath + "file/" + id + "?accessKey=" + accessKey().orElse("");
+    }
+
+
     public MediaType mediaType() {
         if (!StringUtils.hasText(extension)) {
             return MediaType.APPLICATION_OCTET_STREAM;
