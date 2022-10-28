@@ -140,6 +140,23 @@ public class DeviceDetail {
     private List<Feature> features = new ArrayList<>();
 
 
+    @Schema(description = "设备接入方式ID")
+    private String accessId;
+
+    @Schema(description = "设备接入方式")
+    private String accessProvider;
+
+    @Schema(description = "设备接入方式名称")
+    private String accessName;
+
+    @Schema(description = "产品所属品类ID")
+    private String classifiedId;
+
+    @Schema(description = "产品所属品类名称")
+    private String classifiedName;
+
+
+
     public DeviceDetail notActive() {
 
         state = DeviceState.notActive;
@@ -245,6 +262,11 @@ public class DeviceDetail {
         setProductName(productEntity.getName());
         setDeviceType(productEntity.getDeviceType());
         setProtocolName(productEntity.getProtocolName());
+        setAccessProvider(productEntity.getAccessProvider());
+        setAccessId(productEntity.getAccessId());
+        setAccessName(productEntity.getAccessName());
+        setClassifiedId(productEntity.getClassifiedId());
+        setClassifiedName(productEntity.getClassifiedName());
         return this;
     }
 
