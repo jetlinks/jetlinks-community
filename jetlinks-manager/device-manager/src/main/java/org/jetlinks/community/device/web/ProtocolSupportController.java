@@ -251,7 +251,7 @@ public class ProtocolSupportController
     public Mono<Void> saveDefaultProtocol() {
 
         String defaultProtocolName = "JetLinks官方协议";
-        String fileNeme = "jetlinks-official-protocol-3.0-SNAPSHOT.zip";
+        String fileNeme = "jetlinks-official-protocol-3.0-SNAPSHOT.jar";
         return fileManager
             .saveFile(fileNeme,
                       DataBufferUtils.read(new ClassPathResource(fileNeme),
