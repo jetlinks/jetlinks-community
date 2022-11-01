@@ -3,6 +3,7 @@ package org.jetlinks.community.things.data.operations;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.community.things.data.ThingsDataConstants;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.things.ThingMetadata;
 import org.jetlinks.core.things.ThingsRegistry;
@@ -60,6 +61,8 @@ public abstract class ColumnModeQueryOperationsBase extends AbstractQueryOperati
                                 .next(ThingPropertyDetail
                                           .of(value, entry.getValue())
                                           .thingId(data.getString(metricBuilder.getThingIdProperty(), null))
+                                          .timestamp(data.getTimestamp())
+                                          .createTime(data.getLong(ThingsDataConstants.COLUMN_CREATE_TIME,data.getTimestamp()))
                                           .generateId()
                                 ));
                     }
@@ -94,6 +97,8 @@ public abstract class ColumnModeQueryOperationsBase extends AbstractQueryOperati
                          data -> ThingPropertyDetail
                              .of(data.get(property).orElse(null), properties.get(property))
                              .thingId(data.getString(metricBuilder.getThingIdProperty(), null))
+                             .timestamp(data.getTimestamp())
+                             .createTime(data.getLong(ThingsDataConstants.COLUMN_CREATE_TIME, data.getTimestamp()))
                              .generateId()
             );
     }
