@@ -3,6 +3,7 @@ package org.jetlinks.community.elastic.search.index.strategies;
 import org.hswebframework.utils.time.DateFormatter;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexProperties;
 import org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import java.util.Date;
  * @since 1.0
  */
 @Component
+@ConditionalOnBean(ReactiveElasticsearchClient.class)
 public class TimeByDayElasticSearchIndexStrategy extends TemplateElasticSearchIndexStrategy {
 
     public TimeByDayElasticSearchIndexStrategy(ReactiveElasticsearchClient client, ElasticSearchIndexProperties properties) {

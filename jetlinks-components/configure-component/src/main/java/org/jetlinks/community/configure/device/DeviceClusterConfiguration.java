@@ -29,58 +29,58 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnBean(ProtocolSupports.class)
 public class DeviceClusterConfiguration {
 
-    @Bean
-    public ClusterDeviceRegistry deviceRegistry(ProtocolSupports supports,
-                                                ClusterManager manager,
-                                                ConfigStorageManager storageManager,
-                                                DeviceOperationBroker handler) {
-
-        return new ClusterDeviceRegistry(supports,
-                                         storageManager,
-                                         manager,
-                                         handler,
-                                         CaffeinatedGuava.build(Caffeine.newBuilder()));
-    }
-
-
-    @Bean
-    @ConditionalOnBean(ClusterDeviceRegistry.class)
-    public BeanPostProcessor interceptorRegister(ClusterDeviceRegistry registry) {
-        return new BeanPostProcessor() {
-            @Override
-            public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-                if (bean instanceof DeviceMessageSenderInterceptor) {
-                    registry.addInterceptor(((DeviceMessageSenderInterceptor) bean));
-                }
-                if (bean instanceof DeviceStateChecker) {
-                    registry.addStateChecker(((DeviceStateChecker) bean));
-                }
-                return bean;
-            }
-        };
-    }
-
-    @Bean(initMethod = "init", destroyMethod = "shutdown")
-    @ConditionalOnBean(RpcManager.class)
-    public PersistenceDeviceSessionManager deviceSessionManager(RpcManager rpcManager) {
-
-        return new PersistenceDeviceSessionManager(rpcManager);
-    }
-
-    @ConditionalOnBean(DecodedClientMessageHandler.class)
-    @Bean
-    public ClusterSendToDeviceMessageHandler defaultSendToDeviceMessageHandler(DeviceSessionManager sessionManager,
-                                                                               DeviceRegistry registry,
-                                                                               MessageHandler messageHandler,
-                                                                               DecodedClientMessageHandler clientMessageHandler) {
-        return new ClusterSendToDeviceMessageHandler(sessionManager, messageHandler, registry, clientMessageHandler);
-    }
-
-    @Bean
-    public RpcDeviceOperationBroker rpcDeviceOperationBroker(RpcManager rpcManager,
-                                                             DeviceSessionManager sessionManager) {
-        return new RpcDeviceOperationBroker(rpcManager, sessionManager);
-    }
+//    @Bean
+//    public ClusterDeviceRegistry deviceRegistry(ProtocolSupports supports,
+//                                                ClusterManager manager,
+//                                                ConfigStorageManager storageManager,
+//                                                DeviceOperationBroker handler) {
+//
+//        return new ClusterDeviceRegistry(supports,
+//                                         storageManager,
+//                                         manager,
+//                                         handler,
+//                                         CaffeinatedGuava.build(Caffeine.newBuilder()));
+//    }
+//
+//
+//    @Bean
+//    @ConditionalOnBean(ClusterDeviceRegistry.class)
+//    public BeanPostProcessor interceptorRegister(ClusterDeviceRegistry registry) {
+//        return new BeanPostProcessor() {
+//            @Override
+//            public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+//                if (bean instanceof DeviceMessageSenderInterceptor) {
+//                    registry.addInterceptor(((DeviceMessageSenderInterceptor) bean));
+//                }
+//                if (bean instanceof DeviceStateChecker) {
+//                    registry.addStateChecker(((DeviceStateChecker) bean));
+//                }
+//                return bean;
+//            }
+//        };
+//    }
+//
+//    @Bean(initMethod = "init", destroyMethod = "shutdown")
+//    @ConditionalOnBean(RpcManager.class)
+//    public PersistenceDeviceSessionManager deviceSessionManager(RpcManager rpcManager) {
+//
+//        return new PersistenceDeviceSessionManager(rpcManager);
+//    }
+//
+//    @ConditionalOnBean(DecodedClientMessageHandler.class)
+//    @Bean
+//    public ClusterSendToDeviceMessageHandler defaultSendToDeviceMessageHandler(DeviceSessionManager sessionManager,
+//                                                                               DeviceRegistry registry,
+//                                                                               MessageHandler messageHandler,
+//                                                                               DecodedClientMessageHandler clientMessageHandler) {
+//        return new ClusterSendToDeviceMessageHandler(sessionManager, messageHandler, registry, clientMessageHandler);
+//    }
+//
+//    @Bean
+//    public RpcDeviceOperationBroker rpcDeviceOperationBroker(RpcManager rpcManager,
+//                                                             DeviceSessionManager sessionManager) {
+//        return new RpcDeviceOperationBroker(rpcManager, sessionManager);
+//    }
 
 
 }

@@ -2,11 +2,13 @@ package org.jetlinks.community.rule.engine.event.handler;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
+import org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteEventInfo;
 import org.jetlinks.core.event.TopicPayload;
 import org.jetlinks.rule.engine.defaults.LogEvent;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -14,6 +16,7 @@ import reactor.core.publisher.Mono;
 @Component
 @Slf4j
 @Order(3)
+@ConditionalOnBean(ElasticSearchService.class)
 public class RuleLogHandler {
 
     @Autowired

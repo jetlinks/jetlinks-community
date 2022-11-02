@@ -8,6 +8,7 @@ import org.jetlinks.core.event.Subscription;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 @Slf4j
+@ConditionalOnBean(NetworkConfigManager.class)
 public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor, CommandLineRunner {
 
     private final NetworkConfigManager configManager;

@@ -6,6 +6,7 @@ import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.rule.engine.event.handler.RuleEngineLoggerIndexProvider;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Order(1)
 @Slf4j
+@ConditionalOnBean(DefaultElasticSearchIndexMetadata.class)
 public class RuleEngineLogIndexInitialize {
 
     public RuleEngineLogIndexInitialize(ElasticSearchIndexManager indexManager) {

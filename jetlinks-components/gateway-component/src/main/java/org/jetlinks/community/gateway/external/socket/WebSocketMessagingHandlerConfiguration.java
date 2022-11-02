@@ -3,6 +3,7 @@ package org.jetlinks.community.gateway.external.socket;
 import org.hswebframework.web.authorization.ReactiveAuthenticationManager;
 import org.hswebframework.web.authorization.token.UserTokenManager;
 import org.jetlinks.community.gateway.external.MessagingManager;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,10 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-//@ConditionalOnBean({
-//    ReactiveAuthenticationManager.class,
-//    UserTokenManager.class
-//})
+@ConditionalOnBean({
+    ReactiveAuthenticationManager.class,
+    UserTokenManager.class
+})
 public class WebSocketMessagingHandlerConfiguration {
 
 

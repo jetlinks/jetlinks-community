@@ -99,6 +99,13 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>test-component</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>

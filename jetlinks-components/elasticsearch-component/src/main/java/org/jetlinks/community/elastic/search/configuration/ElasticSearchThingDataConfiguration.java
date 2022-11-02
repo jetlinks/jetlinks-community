@@ -7,6 +7,7 @@ import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.elastic.search.things.ElasticSearchColumnModeStrategy;
 import org.jetlinks.community.elastic.search.things.ElasticSearchRowModeStrategy;
 import org.jetlinks.community.things.data.ThingsDataRepositoryStrategy;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 public class ElasticSearchThingDataConfiguration {
 
     @Bean
+    @ConditionalOnBean(ElasticSearchService.class)
     public ElasticSearchColumnModeStrategy elasticSearchColumnModThingDataPolicy(
         ThingsRegistry registry,
         ElasticSearchService searchService,
@@ -26,6 +28,7 @@ public class ElasticSearchThingDataConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(ElasticSearchService.class)
     public ElasticSearchRowModeStrategy elasticSearchRowModThingDataPolicy(
         ThingsRegistry registry,
         ElasticSearchService searchService,
