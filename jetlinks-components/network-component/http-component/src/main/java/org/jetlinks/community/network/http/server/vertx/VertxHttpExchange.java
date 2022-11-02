@@ -2,6 +2,8 @@ package org.jetlinks.community.network.http.server.vertx;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.buffer.UnpooledHeapByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -224,7 +226,12 @@ public class VertxHttpExchange implements HttpExchange, HttpResponse, HttpReques
             .<Void>create(sink -> {
                 Buffer buf = Buffer.buffer(buffer);
                 setResponseDefaultLength(buf.length());
-                response.write(buf, v -> sink.success());
+                response.write(buf, v -> {
+                    sink.success();
+                    if(!(buffer instanceof UnpooledHeapByteBuf)){
+                        ReferenceCountUtil.safeRelease(buffer);
+                    }
+                });
             });
     }
 

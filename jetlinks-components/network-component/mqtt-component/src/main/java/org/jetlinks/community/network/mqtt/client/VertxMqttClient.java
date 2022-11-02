@@ -1,6 +1,8 @@
 package org.jetlinks.community.network.mqtt.client;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.util.ReferenceCountUtil;
 import io.vertx.core.buffer.Buffer;
 import lombok.Getter;
 import lombok.Setter;
@@ -199,19 +201,24 @@ public class VertxMqttClient implements MqttClient {
 
     private Mono<Void> doPublish(MqttMessage message) {
         return Mono.create((sink) -> {
-            Buffer buffer = Buffer.buffer(message.getPayload());
+            ByteBuf payload = message.getPayload();
+            Buffer buffer = Buffer.buffer(payload);
             client.publish(message.getTopic(),
                            buffer,
                            MqttQoS.valueOf(message.getQosLevel()),
                            message.isDup(),
                            message.isRetain(),
                            result -> {
-                               if (result.succeeded()) {
-                                   log.info("publish mqtt [{}] message success: {}", client.clientId(), message);
-                                   sink.success();
-                               } else {
-                                   log.info("publish mqtt [{}] message error : {}", client.clientId(), message, result.cause());
-                                   sink.error(result.cause());
+                               try {
+                                   if (result.succeeded()) {
+                                       log.info("publish mqtt [{}] message success: {}", client.clientId(), message);
+                                       sink.success();
+                                   } else {
+                                       log.info("publish mqtt [{}] message error : {}", client.clientId(), message, result.cause());
+                                       sink.error(result.cause());
+                                   }
+                               } finally {
+                                   ReferenceCountUtil.safeRelease(payload);
                                }
                            });
         });
