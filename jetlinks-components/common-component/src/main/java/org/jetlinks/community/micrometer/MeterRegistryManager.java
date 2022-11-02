@@ -23,7 +23,6 @@ public class MeterRegistryManager {
 
     private Map<String, MeterRegistry> meterRegistryMap = new ConcurrentHashMap<>();
 
-    @Autowired
     private List<MeterRegistrySupplier> suppliers;
 
     private MeterRegistry createMeterRegistry(String metric, String... tagKeys) {

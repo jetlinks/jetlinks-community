@@ -27,6 +27,7 @@
         <module>script-component</module>
         <module>protocol-component</module>
         <module>relation-component</module>
+        <module>test-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>
