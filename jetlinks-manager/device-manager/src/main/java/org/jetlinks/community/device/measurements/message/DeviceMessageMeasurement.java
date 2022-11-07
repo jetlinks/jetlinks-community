@@ -168,7 +168,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
                 .to(parameter.getDate("to").orElse(new Date()))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
                 .index((index, data) -> SimpleMeasurementValue.of(
-                    data.getInt("count").orElse(0),
+                    data.getLong("count").orElse(0L),
                     data.getString("time").orElse(""),
                     index))
                 .sort();

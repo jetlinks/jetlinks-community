@@ -2,6 +2,7 @@ package org.jetlinks.community;
 
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.utils.TimeUtils;
+import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
@@ -15,7 +16,7 @@ public interface ValueObject {
 
     default Optional<Object> get(String name) {
         return Optional.ofNullable(values())
-            .map(map -> map.get(name));
+                       .map(map -> map.get(name));
     }
 
     default Optional<Integer> getInt(String name) {
@@ -44,9 +45,8 @@ public interface ValueObject {
             .map(Interval::of);
     }
 
-    default Interval getInterval(String name,Interval defaultValue) {
-        return getString(name)
-            .map(Interval::of)
+    default Interval getInterval(String name, Interval defaultValue) {
+        return getInterval(name)
             .orElse(defaultValue);
     }
 
@@ -56,9 +56,14 @@ public interface ValueObject {
     }
 
     default Optional<Date> getDate(String name) {
-        return get(name)
-            .map(String::valueOf)
-            .map(TimeUtils::parseDate);
+        return this
+            .get(name)
+            .map(d -> {
+                if (d instanceof Date) {
+                    return (Date) d;
+                }
+                return TimeUtils.parseDate(String.valueOf(d));
+            });
     }
 
     default Date getDate(String name, Date defaultValue) {
@@ -83,7 +88,8 @@ public interface ValueObject {
     }
 
     default Optional<Boolean> getBoolean(String name) {
-        return get(name, Boolean.class);
+        return get(name)
+            .map(CastUtils::castBoolean);
     }
 
     default boolean getBoolean(String name, boolean defaultValue) {
@@ -95,8 +101,9 @@ public interface ValueObject {
             .map(obj -> FastBeanCopier.DEFAULT_CONVERT.convert(obj, type, FastBeanCopier.EMPTY_CLASS_ARRAY));
     }
 
-    static ValueObject of(Map<String, Object> mapVal) {
-        return () -> mapVal;
+    @SuppressWarnings("unchecked")
+    static ValueObject of(Map<String, ?> mapVal) {
+        return () -> (Map<String, Object>) mapVal;
     }
 
     default <T> T as(Class<T> type) {
