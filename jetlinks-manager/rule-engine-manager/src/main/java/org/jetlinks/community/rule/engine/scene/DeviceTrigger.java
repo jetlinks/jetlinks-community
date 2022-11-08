@@ -264,9 +264,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
 
             String column;
             if (arr.length > 3 && arr[0].equals("properties")) {
-                column = "t['" + createColumnAlias(term.getColumn()) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
+                column = "t['" + createColumnAlias(term.getColumn(), false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
             } else {
-                column = "t." + createColumnAlias(term.getColumn());
+                column = "t['" + createColumnAlias(term.getColumn(), false) + "']";
             }
 
             List<TermValue> values = TermValue.of(term);
@@ -315,9 +315,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
                 String property = arr[1];
                 switch (valueType) {
                     case current:
-                        return "this.properties." + property;
+                        return "this['properties." + property + "']";
                     case recent:
-                        return "coalesce(this.properties." + property + ",device.property.recent(deviceId,'" + property + "',timestamp))";
+                        return "coalesce(this['properties." + property + "']" + ",device.property.recent(deviceId,'" + property + "',timestamp))";
                     case last:
                         return "device.property.recent(deviceId,'" + property + "',timestamp)";
                 }
@@ -328,21 +328,28 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
         return "this['" + String.join(".", Arrays.copyOfRange(arr, 1, arr.length)) + "']";
     }
 
-    static String createColumnAlias(String column) {
+    static String createColumnAlias(String column, boolean wrapColumn) {
         if (!column.contains(".")) {
             return wrapColumnName(column);
         }
         String[] arr = column.split("[.]");
+        String alias;
         //properties.temp.current
         if ("properties".equals(arr[0])) {
             String property = arr[1];
-            return wrapColumnName(property + "_" + arr[arr.length - 1]);
+            alias = property + "_" + arr[arr.length - 1];
         } else {
             if (arr.length > 1) {
-                return wrapColumnName(String.join("_", Arrays.copyOfRange(arr, 1, arr.length)));
+                alias = String.join("_", Arrays.copyOfRange(arr, 1, arr.length));
+            } else {
+                alias = column.replace(".", "_");
             }
-            return wrapColumnName(column.replace(".", "_"));
         }
+        return wrapColumn ? wrapColumnName(alias) : alias;
+    }
+
+    static String createColumnAlias(String column) {
+        return createColumnAlias(column, true);
     }
 
     static String wrapColumnName(String column) {
