@@ -19,6 +19,7 @@ import javax.persistence.Column;
 import javax.persistence.Index;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.Date;
 
 @Getter
@@ -45,8 +46,8 @@ public class DeviceTagEntity extends GenericEntity<String> {
     private String name;
 
     @Column(length = 256, nullable = false)
-    @NotBlank(message = "[value]不能为空", groups = CreateGroup.class)
-    @Length(max = 256, min = 1, message = "[value]长度不能大于256", groups = CreateGroup.class)
+    @NotNull(message = "[value]不能为空", groups = CreateGroup.class)
+    @Length(max = 256, message = "[value]长度不能大于256", groups = CreateGroup.class)
     @Schema(description = "标签值")
     private String value;
 

@@ -14,14 +14,12 @@ spring:
     password:
     pool:
       max-size: 32
-  data:
-    elasticsearch:
-      client:
-        reactive:
-          endpoints: ${elasticsearch.client.host}:${elasticsearch.client.port}
-          max-in-memory-size: 100MB
-          socket-timeout: ${elasticsearch.client.socket-timeout}
-          connection-timeout: ${elasticsearch.client.socket-timeout}
+  elasticsearch:
+    uris: localhost:9201
+    socket-timeout: 10s
+    connection-timeout: 15s
+    webclient:
+      max-in-memory-size: 100MB
 easyorm:
   default-schema: PUBLIC # 数据库默认的schema
   dialect: h2 #数据库方言
@@ -31,13 +29,6 @@ elasticsearch:
     data-path: ./data/elasticsearch
     port: 9201
     host: 0.0.0.0
-  client:
-    host: localhost
-    port: 9201
-    max-conn-total: 128
-    connect-timeout: 5000
-    socket-timeout: 5000
-    connection-request-timeout: 8000
   index:
     default-strategy: time-by-month #默认es的索引按月进行分表, direct则为直接操作索引.
     settings:

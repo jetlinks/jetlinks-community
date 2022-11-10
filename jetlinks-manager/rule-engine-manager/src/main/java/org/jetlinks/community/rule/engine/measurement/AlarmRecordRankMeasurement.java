@@ -95,9 +95,9 @@ public class AlarmRecordRankMeasurement extends StaticMeasurement {
 
             Comparator<AggregationData> comparator;
             if (Objects.equals(parameter.getString("order",""), "asc")){
-                 comparator = Comparator.comparingInt(d-> d.getInt("count", 0));
+                 comparator = Comparator.comparingLong(d-> d.getLong("count", 0L));
             }else {
-                comparator = Comparator.<AggregationData>comparingInt(d-> d.getInt("count", 0)).reversed();
+                comparator = Comparator.<AggregationData>comparingLong(d-> d.getLong("count", 0L)).reversed();
             }
 
             AggregationQueryParam param = createQueryParam(parameter);
@@ -122,11 +122,11 @@ public class AlarmRecordRankMeasurement extends StaticMeasurement {
 
             private String targetName;
 
-            private Integer count;
+            private long count;
 
             public SimpleResult(AggregationData data) {
                 String targetId = data.getString("targetId", "");
-                this.setCount(data.getInt("count", 0));
+                this.setCount(data.getLong("count", 0L));
                 this.setTargetName(data.getString("targetName", targetId));
                 this.setTargetId(data.getString("targetId", ""));
             }

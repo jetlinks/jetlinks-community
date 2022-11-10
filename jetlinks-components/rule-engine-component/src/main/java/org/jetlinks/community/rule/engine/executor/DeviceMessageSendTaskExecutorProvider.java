@@ -31,6 +31,7 @@ import org.jetlinks.rule.engine.api.task.TaskExecutor;
 import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
 import org.jetlinks.rule.engine.defaults.FunctionTaskExecutor;
 import org.reactivestreams.Publisher;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
 
 
 @AllArgsConstructor
+@Component
 public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvider {
 
     public static final String EXECUTOR = "device-message-sender";

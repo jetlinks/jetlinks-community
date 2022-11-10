@@ -80,6 +80,10 @@ public class ThingPropertyDetail implements ThingProperty {
         return this;
     }
 
+    public ThingPropertyDetail createTime(long createTime) {
+        this.createTime = createTime;
+        return this;
+    }
 
     public ThingPropertyDetail formatTime(String formatTime) {
         this.formatTime = formatTime;

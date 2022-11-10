@@ -1,5 +1,7 @@
 package org.jetlinks.community.network.tcp.client;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetSocket;
@@ -78,9 +80,11 @@ public class VertxTcpClient implements TcpClient {
                     sink.error(new SocketException("socket closed"));
                     return;
                 }
-                Buffer buffer = Buffer.buffer(message.getPayload());
+                ByteBuf buf = message.getPayload();
+                Buffer buffer = Buffer.buffer(buf);
                 int len = buffer.length();
                 socket.write(buffer, r -> {
+                    ReferenceCountUtil.safeRelease(buf);
                     if (r.succeeded()) {
                         keepAlive();
                         sink.success();
