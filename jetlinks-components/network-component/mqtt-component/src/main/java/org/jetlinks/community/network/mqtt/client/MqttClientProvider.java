@@ -129,7 +129,7 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 
         String username = config.getUsername();
 
-        String password = config.getUsername();
+        String password = config.getPassword();
 
         options.setClientId(clientId);
         options.setPassword(password);
