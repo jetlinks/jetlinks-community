@@ -1,6 +1,7 @@
 package org.jetlinks.community.protocol.configuration;
 
 import org.jetlinks.community.protocol.*;
+import org.jetlinks.community.protocol.local.LocalProtocolSupportLoader;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
@@ -85,6 +86,9 @@ public class ProtocolAutoConfiguration {
         return protocolSupports;
     }
 
-
-
+    @Bean
+    @Profile("dev")
+    public LocalProtocolSupportLoader localProtocolSupportLoader(ServiceContext context) {
+        return new LocalProtocolSupportLoader(context);
+    }
 }
