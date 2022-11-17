@@ -22,12 +22,12 @@ spring:
       pool:
         max-active: 1024
     timeout: 20s
-#    database: 3
+  #    database: 3
   #        max-wait: 10s
   r2dbc:
     # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
     url: r2dbc:postgresql://localhost:5432/jetlinks
-#    url: r2dbc:mysql://localhost:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
+    #    url: r2dbc:mysql://localhost:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
     username: postgres
     password: jetlinks
     pool:
@@ -47,6 +47,14 @@ spring:
 easyorm:
   default-schema: public # 数据库默认的schema
   dialect: postgres #数据库方言
+tdengine:
+  enabled: false
+  database: jetlinks
+  restful:
+    endpoints:
+      - http://localhost:6041/
+    username: root
+    password: taosdata
 elasticsearch:
   embedded:
     enabled: false # 为true时使用内嵌的elasticsearch,不建议在生产环境中使用
@@ -62,7 +70,7 @@ device:
   message:
     writer:
       time-series:
-        enabled: true #写出设备消息数据到elasticsearch
+        enabled: true #对设备数据进行持久化
 captcha:
   enabled: false # 开启验证码
   ttl: 2m #验证码过期时间,2分钟
@@ -72,9 +80,8 @@ hsweb:
     configs:
       - path: /**
         allowed-headers: "*"
-        allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-        allowed-origins: ["*"]
-#        allow-credentials: true
+        allowed-methods: [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ]
+        allowed-origins: [ "*" ] ## 生产环境请替换为具体的域名端口如: http://xxxxx
         max-age: 1800
   dict:
     enum-packages: org.jetlinks
@@ -108,7 +115,7 @@ file:
   manager:
     storage-base-path: ./data/files
 api:
-   # 访问api接口的根地址
+  # 访问api接口的根地址
   base-path: http://127.0.0.1:${server.port}
 
 jetlinks:

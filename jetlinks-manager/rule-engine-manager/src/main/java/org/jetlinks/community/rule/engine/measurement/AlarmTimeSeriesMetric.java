@@ -7,7 +7,7 @@ import org.jetlinks.community.timeseries.TimeSeriesMetric;
  *
  * @author bestfeng
  *
- * @see org.jetlinks.pro.timeseries.TimeSeriesService
+ * @see org.jetlinks.community.timeseries.TimeSeriesService
  * @see TimeSeriesMetric
  */
 public interface AlarmTimeSeriesMetric {
