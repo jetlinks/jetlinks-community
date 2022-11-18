@@ -25,6 +25,7 @@ import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.PropertyMetric;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.DeviceDeployResult;
@@ -109,6 +110,7 @@ public class DeviceInstanceController implements
     private final DeviceConfigMetadataManager metadataManager;
 
     private final RelationService relationService;
+
 
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
@@ -321,19 +323,31 @@ public class DeviceInstanceController implements
             .orElseThrow(() -> new ValidationException("请设置[property]参数"));
 
     }
-
     //查询设备事件数据
     @GetMapping("/{deviceId:.+}/event/{eventId}")
     @QueryAction
-    @QueryOperation(summary = "查询设备事件数据")
+    @QueryOperation(summary = "(GET)查询设备事件数据")
     public Mono<PagerResult<DeviceEvent>> queryPagerByDeviceEvent(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                                                   @PathVariable @Parameter(description = "事件ID") String eventId,
                                                                   @Parameter(hidden = true) QueryParamEntity queryParam,
-
                                                                   @RequestParam(defaultValue = "false")
                                                                   @Parameter(description = "是否格式化返回结果,格式化对字段添加_format后缀") boolean format) {
         return deviceDataService.queryEventPage(deviceId, eventId, queryParam, format);
     }
+
+    //查询设备事件数据
+    @PostMapping("/{deviceId:.+}/event/{eventId}")
+    @QueryAction
+    @Operation(summary = "(POST)查询设备事件数据")
+    public Mono<PagerResult<DeviceEvent>> queryPagerByDeviceEvent(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                                  @PathVariable @Parameter(description = "事件ID") String eventId,
+                                                                  @RequestBody Mono<QueryParamEntity> queryParam,
+                                                                  @RequestParam(defaultValue = "false")
+                                                                  @Parameter(description = "是否格式化返回结果,格式化对字段添加_format后缀") boolean format) {
+        return queryParam.flatMap(q -> deviceDataService.queryEventPage(deviceId, eventId, q, format));
+    }
+
+
 
     //查询设备日志
     @GetMapping("/{deviceId:.+}/logs")
