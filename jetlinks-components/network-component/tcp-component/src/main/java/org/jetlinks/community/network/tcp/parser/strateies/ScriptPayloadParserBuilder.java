@@ -45,7 +45,7 @@ public class ScriptPayloadParserBuilder implements PayloadParserBuilderStrategy 
         String script = config.getString("script")
                               .orElseThrow(() -> new IllegalArgumentException("script不能为空"));
         String lang = config.getString("lang")
-                            .orElseThrow(() -> new IllegalArgumentException("lang不能为空"));
+                            .orElse("js");
 
         CompiledScript compiledScript = Scripts
             .getFactory(lang)
