@@ -45,6 +45,7 @@ public abstract class Jsr223ScriptFactory extends AbstractScriptFactory {
         ctx.setAttribute("console", new Jsr223ScriptFactory.Console(
                              LoggerFactory.getLogger("org.jetlinks.community.script." + script.getName())),
                          ScriptContext.ENGINE_SCOPE);
+        ctx.setAttribute("utils", getUtils(), ScriptContext.ENGINE_SCOPE);
 
         ctx.setAttribute("engine", null, ScriptContext.ENGINE_SCOPE);
 
