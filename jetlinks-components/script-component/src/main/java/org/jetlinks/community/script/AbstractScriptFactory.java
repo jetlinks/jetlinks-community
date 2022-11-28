@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractScriptFactory implements ScriptFactory {
 
+    private final Utils utils = new Utils();
+
     static Class<?>[] DEFAULT_DENIES = {
         System.class,
         File.class,
@@ -95,6 +97,22 @@ public abstract class AbstractScriptFactory implements ScriptFactory {
             return false;
         }
         return denies.contains("*") || denies.contains(typeName);
+    }
+
+
+    public Utils getUtils(){
+        return utils;
+    }
+
+
+    public class Utils {
+
+        private Utils(){}
+
+        public Object toJavaType(Object obj) {
+            return AbstractScriptFactory.this.convertToJavaType(obj);
+        }
+
     }
 
 }

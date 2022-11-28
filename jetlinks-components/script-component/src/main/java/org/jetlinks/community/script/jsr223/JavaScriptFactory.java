@@ -30,8 +30,8 @@ public abstract class JavaScriptFactory extends Jsr223ScriptFactory {
                      "this.eval = function(e){};" +
                      "function readFully(){};" +
                      "function readLine(){};" +
-                     "const print = console.log;" +
-                     "const echo = console.log;");
+                     "const print = function(e){console.log(e)};" +
+                     "const echo = print;");
 
         wrap.add("/*  script start */");
 
@@ -57,6 +57,7 @@ public abstract class JavaScriptFactory extends Jsr223ScriptFactory {
                                               Class<? super T> expose) {
         StringJoiner joiner = new StringJoiner("\n");
         Set<String> distinct = new HashSet<>();
+        joiner.add("var _$this = $this;");
         joiner.add(
             Arrays.stream(expose.getMethods())
                   .filter(method -> !ignoreMethod.contains(method))
@@ -70,10 +71,14 @@ public abstract class JavaScriptFactory extends Jsr223ScriptFactory {
                           .append(method.getName())
                           .append("(){");
                       if (method.getParameterCount() == 0) {
-                          call.append("return $$__that.")
+                          call.append("return _$this.")
                               .append(method.getName())
                               .append("();");
-                      } else {
+                      } else if (method.getParameterCount() == 1 && method.getParameterTypes()[0].isArray()) {
+                          call.append("return _$this.")
+                              .append(method.getName())
+                              .append("(utils.toJavaType(arguments));");
+                      }else {
 
                           for (int i = 0; i <= method.getParameterCount(); i++) {
                               String[] args = new String[i];
@@ -82,7 +87,7 @@ public abstract class JavaScriptFactory extends Jsr223ScriptFactory {
                               }
                               String arg = String.join(",", args);
                               call.append("if(arguments.length==").append(i).append("){")
-                                  .append("return $$__that.")
+                                  .append("return _$this.")
                                   .append(method.getName())
                                   .append("(").append(arg).append(");")
                                   .append("}");
@@ -101,7 +106,7 @@ public abstract class JavaScriptFactory extends Jsr223ScriptFactory {
         CompiledScript compiledScript = compile(script.content(joiner.toString()));
 
         return (instance, ctx) -> {
-            ctx.setAttribute("$$__that", instance, ScriptContext.ENGINE_SCOPE);
+            ctx.setAttribute("$this", instance, ScriptContext.ENGINE_SCOPE);
             return compiledScript.call(ctx);
         };
     }
