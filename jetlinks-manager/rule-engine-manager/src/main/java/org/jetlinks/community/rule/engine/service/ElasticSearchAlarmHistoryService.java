@@ -18,7 +18,6 @@ import java.time.Duration;
  * @author bestfeng
  */
 @AllArgsConstructor
-@Service
 public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
 
     public final static String ALARM_HISTORY_INDEX="alarm_history";

@@ -25,6 +25,7 @@ import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.term.TermTypeSupport;
 import org.jetlinks.community.rule.engine.scene.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.value.TermValue;
+import org.jetlinks.reactor.ql.DefaultReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.rule.engine.api.model.RuleModel;
@@ -55,6 +56,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
     @Schema(description = "操作方式")
     @NotNull(message = "error.scene_rule_trigger_device_operation_cannot_be_null")
     private DeviceOperation operation;
+
+    @Schema(description = "拓展信息")
+    private Map<String,Object> options;
 
     public SqlRequest createSql(List<Term> terms) {
         return createSql(terms, true);
@@ -170,16 +174,12 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
                 .builder()
                 .sql(sql)
                 .build();
-            Object[] args = request.getParameters();
+            List<Object> args = Arrays.asList(request.getParameters());
             String sqlString = request.toNativeSql();
             return new Function<Map<String, Object>, Mono<Boolean>>() {
                 @Override
                 public Mono<Boolean> apply(Map<String, Object> map) {
-                    ReactorQLContext context = ReactorQLContext.ofDatasource((t) -> Flux.just(map));
-                    for (Object arg : args) {
-                        context.bind(arg);
-                    }
-
+                    ReactorQLContext context = new DefaultReactorQLContext((t) -> Flux.just(map), args);
                     return ql
                         .start(context)
                         .hasElements();
@@ -361,7 +361,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
 
     public List<Variable> createDefaultVariable() {
         return Arrays.asList(
-            Variable.of("deviceId", "设备ID"),
+            Variable.of("deviceId", "设备ID").withOption(Variable.OPTION_PRODUCT_ID,productId),
             Variable.of("deviceName", "设备名称"),
             Variable.of("productId", "产品ID"),
             Variable.of("productName", "产品名称")

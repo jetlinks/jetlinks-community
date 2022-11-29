@@ -18,9 +18,9 @@ public class RuleEngineManagerConfiguration {
 
     @Bean
     public SceneTaskExecutorProvider sceneTaskExecutorProvider(EventBus eventBus,
-                                                               ObjectProvider<SceneFilter> filters) {
+                                                                ObjectProvider<SceneFilter> filters) {
         return new SceneTaskExecutorProvider(eventBus,
-                                             SceneFilter.composite(filters));
+                                              SceneFilter.composite(filters));
     }
 
     @Configuration(proxyBeanMethods = false)

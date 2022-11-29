@@ -71,8 +71,8 @@ public class SceneUtils {
             if (term != null) {
                 //有条件的数据会有别名 以_分隔
                 variables.add(Variable
-                    .of(column.getVariable("_"), variableName)
-                    .withType(column.getDataType()));
+                                  .of(column.getVariable("_"), variableName)
+                                  .withType(column.getDataType()));
                 List<TermValue> termValues = TermValue.of(term);
                 String property = column.getPropertyOrNull();
                 for (TermValue termValue : termValues) {

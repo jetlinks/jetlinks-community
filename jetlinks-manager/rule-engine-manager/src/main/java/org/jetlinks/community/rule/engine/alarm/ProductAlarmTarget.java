@@ -1,6 +1,6 @@
 package org.jetlinks.community.rule.engine.alarm;
 
-import org.jetlinks.community.rule.engine.scene.SceneData;
+
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import reactor.core.publisher.Flux;
 
@@ -23,7 +23,7 @@ public class ProductAlarmTarget implements AlarmTarget {
     }
 
     @Override
-    public Flux<AlarmTargetInfo> convert(SceneData data) {
+    public Flux<AlarmTargetInfo> convert(AlarmData data) {
         Map<String, Object> output = data.getOutput();
         String productId = CastUtils.castString(output.get("productId"));
         String productName = CastUtils.castString(output.getOrDefault("productName", productId));

@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 @AllArgsConstructor
+@Deprecated
 public class AlarmSceneHandler implements SceneFilter, CommandLineRunner {
 
     private final EventBus eventBus;
@@ -63,7 +64,7 @@ public class AlarmSceneHandler implements SceneFilter, CommandLineRunner {
                 .fromIterable(alarmConfigMap.values())
                 .flatMap(alarmConfig -> AlarmTarget
                     .of(alarmConfig.getTargetType())
-                    .convert(data)
+                    .convert(AlarmData.of(alarmConfig.getId(), alarmConfig.getName(), data.getRule().getId(), data.getRule().getName(), data.getOutput()))
                     .flatMap(targetInfo -> {
                         AlarmRecordEntity record = ofRecord(targetInfo, alarmConfig);
                         //修改告警记录

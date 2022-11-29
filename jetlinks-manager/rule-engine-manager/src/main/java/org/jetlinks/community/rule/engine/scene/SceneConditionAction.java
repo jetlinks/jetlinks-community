@@ -13,6 +13,11 @@ import java.util.List;
 @Setter
 public class SceneConditionAction implements Serializable {
 
+    /**
+     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
+     * @see org.jetlinks.community.rule.engine.scene.term.TermType
+     * @see org.jetlinks.community.rule.engine.scene.value.TermValue
+     */
     @Schema(description = "条件")
     private List<Term> when;
 
@@ -20,6 +25,6 @@ public class SceneConditionAction implements Serializable {
     private ShakeLimit shakeLimit;
 
     @Schema(description = "满足条件时执行的动作")
-    private SceneActions then;
+    private List<SceneActions> then;
 
 }

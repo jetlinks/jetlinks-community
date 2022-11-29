@@ -25,17 +25,21 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     @Schema(description = "告警配置ID")
     private String alarmConfigId;
 
-    @Column(length = 64, nullable = false, updatable = false)
+    @Column(length = 64, nullable = false)
     @Schema(description = "告警配置名称")
     private String alarmName;
 
-    @Column
+    @Column(length = 32, updatable = false)
     @Schema(description = "告警目标类型")
     private String targetType;
 
-    @Column
+    @Column(length = 64, updatable = false)
     @Schema(description = "告警目标Id")
     private String targetId;
+
+    @Column(length = 64, updatable = false)
+    @Schema(description = "告警目标Key")
+    private String targetKey;
 
     @Column
     @Schema(description = "告警目标名称")
@@ -44,6 +48,10 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     @Column
     @Schema(description = "最近一次告警时间")
     private Long alarmTime;
+
+    @Column
+    @Schema(description = "处理时间")
+    private Long handleTime;
 
     @Column
     @Schema(description = "告警级别")
@@ -60,14 +68,25 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     @Schema(description = "说明")
     private String description;
 
+    public String getTargetKey() {
+        if (targetKey == null) {
+            generateKey();
+        }
+        return targetKey;
+    }
+
+    public void generateKey() {
+        setTargetKey(generateId(targetId, targetType));
+    }
 
     public void generateId() {
         setId(generateId(targetId, targetType, alarmConfigId));
     }
 
-    public static String generateId(String targetId, String targetType, String alarmConfigId) {
-        return DigestUtils.md5Hex(String.join("-", targetId, targetType, alarmConfigId));
+    public static String generateId(String... args) {
+        return DigestUtils.md5Hex(String.join("-", args));
     }
 
 
 }
+

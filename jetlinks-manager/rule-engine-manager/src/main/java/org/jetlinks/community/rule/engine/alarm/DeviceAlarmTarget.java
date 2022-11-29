@@ -23,7 +23,7 @@ public class DeviceAlarmTarget implements AlarmTarget {
     }
 
     @Override
-    public Flux<AlarmTargetInfo> convert(SceneData data) {
+    public Flux<AlarmTargetInfo> convert(AlarmData data) {
         Map<String, Object> output = data.getOutput();
         String deviceId = CastUtils.castString(output.get("deviceId"));
         String deviceName = CastUtils.castString(output.getOrDefault("deviceName", deviceId));

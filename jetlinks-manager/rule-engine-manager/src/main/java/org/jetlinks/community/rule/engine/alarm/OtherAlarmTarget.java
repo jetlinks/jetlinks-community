@@ -20,11 +20,12 @@ public class OtherAlarmTarget implements AlarmTarget {
     }
 
     @Override
-    public Flux<AlarmTargetInfo> convert(SceneData data) {
+    public Flux<AlarmTargetInfo> convert(AlarmData data) {
         return Flux.just(AlarmTargetInfo
-                             .of(data.getRule().getId(),
-                                 data.getRule().getName(),
+                             .of(data.getRuleId(),
+                                 data.getRuleName(),
                                  getType()));
     }
+
 
 }

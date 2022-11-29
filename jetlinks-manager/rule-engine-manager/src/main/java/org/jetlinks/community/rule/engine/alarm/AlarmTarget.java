@@ -1,6 +1,5 @@
 package org.jetlinks.community.rule.engine.alarm;
 
-import org.jetlinks.community.rule.engine.scene.SceneData;
 import reactor.core.publisher.Flux;
 
 /**
@@ -15,7 +14,7 @@ public interface AlarmTarget {
 
     String getName();
 
-    Flux<AlarmTargetInfo> convert(SceneData data);
+    Flux<AlarmTargetInfo> convert(AlarmData data);
 
     static AlarmTarget of(String type) {
         return AlarmTargetSupplier

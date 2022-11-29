@@ -12,7 +12,8 @@ public class TermTypes {
     private static final Map<String, TermTypeSupport> supports = new LinkedHashMap<>();
 
     static {
-        for (FixedTermTypeSupport value : FixedTermTypeSupport.values()) {
+        for (FixedTermTypeSupport value : FixedTermTypeSupport
+                .values()) {
             register(value);
         }
     }

@@ -135,13 +135,13 @@ public class DeviceOperation {
             terms.addAll(
                 this.createTerm(
                     metadata.getEvent(eventId)
-                            .<List<PropertyMetadata>>map(event -> Collections
-                                .singletonList(
-                                    of("data",
-                                       event.getName(),
-                                       event.getType())
-                                ))
-                            .orElse(Collections.emptyList()),
+                        .<List<PropertyMetadata>>map(event -> Collections
+                            .singletonList(
+                                of("data",
+                                   event.getName(),
+                                   event.getType())
+                            ))
+                        .orElse(Collections.emptyList()),
                     (property, column) -> column.setChildren(createTermColumn("event", property, false))));
         }
         //调用功能
@@ -149,12 +149,12 @@ public class DeviceOperation {
             terms.addAll(
                 this.createTerm(
                     metadata.getFunction(functionId)
-                            .<List<PropertyMetadata>>map(meta -> Collections.singletonList(
-                                of("output",
-                                   meta.getName(),
-                                   meta.getOutput()))
-                            )
-                            .orElse(Collections.emptyList()),
+                        .<List<PropertyMetadata>>map(meta -> Collections.singletonList(
+                            of("output",
+                               meta.getName(),
+                               meta.getOutput()))
+                        )
+                        .orElse(Collections.emptyList()),
                     (property, column) -> column.setChildren(createTermColumn("function", property, false))));
         }
 
