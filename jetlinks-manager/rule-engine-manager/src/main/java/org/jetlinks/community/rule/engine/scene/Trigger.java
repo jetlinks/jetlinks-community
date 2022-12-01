@@ -89,6 +89,8 @@ public class Trigger implements Serializable {
             timerNode.setId("scene:timer");
             timerNode.setName("定时触发场景");
             timerNode.setExecutor("timer");
+            //使用最小负载节点来执行定时
+            // timerNode.setSchedulingRule(SchedulerSelectorStrategy.minimumLoad());
             timerNode.setConfiguration(FastBeanCopier.copy(timer, new HashMap<>()));
             model.getNodes().add(timerNode);
             //定时->场景

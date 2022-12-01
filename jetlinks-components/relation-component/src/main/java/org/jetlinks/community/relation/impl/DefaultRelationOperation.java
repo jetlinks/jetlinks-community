@@ -79,8 +79,8 @@ class DefaultRelationOperation implements RelationOperation {
     private RelatedObject toObject(RelatedEntity entity) {
         if (reverse) {
             return new DefaultRelatedObject(
-                entity.getRelatedType(),
-                entity.getRelatedId(),
+                entity.getObjectType(),
+                entity.getObjectId(),
                 type,
                 id,
                 entity.getRelation(),
@@ -88,10 +88,10 @@ class DefaultRelationOperation implements RelationOperation {
                 objectProvider);
         }
         return new DefaultRelatedObject(
-            type,
-            id,
             entity.getRelatedType(),
             entity.getRelatedId(),
+            type,
+            id,
             entity.getRelation(),
             relatedRepository,
             objectProvider);

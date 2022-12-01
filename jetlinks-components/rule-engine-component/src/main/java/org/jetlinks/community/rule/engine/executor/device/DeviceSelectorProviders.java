@@ -12,6 +12,12 @@ public class DeviceSelectorProviders {
 
     private final static Map<String, DeviceSelectorProvider> providers = new LinkedHashMap<>();
 
+    public static final String
+        PROVIDER_FIXED = "fixed",
+        PROVIDER_CONTEXT = "context",
+        PROVIDER_PRODUCT = "product",
+        PROVIDER_TAG = "tag";
+
     static {
 
         register(SimpleDeviceSelectorProvider
@@ -19,21 +25,44 @@ public class DeviceSelectorProviders {
                          "all", "全部设备",
                          (args, query) -> query));
 
-        register(SimpleDeviceSelectorProvider
-                     .of(
-                         "fixed", "固定设备",
-                         (args, query) -> query.in("id", args)));
+        { //固定设备,fixed和context作用和效果完全相同,只是为了前端方便区分不同的操作
+
+              /*
+            选择固定的设备
+            {
+             "selector":"fixed",
+             "selectorValues":[ {"value":"deviceId","name":"设备名称"} ],
+            }
+             */
+            register(SimpleDeviceSelectorProvider
+                         .of(
+                             PROVIDER_FIXED, "固定设备",
+                             (args, query) -> query.in("id", args)));
+            /*
+            根据上下文变量选择设备
+            {
+             "selector":"context",
+             "source":"upper",
+             "upperKey":"deviceId"
+            }
+             */
+            register(SimpleDeviceSelectorProvider
+                         .of(
+                             PROVIDER_CONTEXT, "内置参数",
+                             (args, query) -> query.in("id", args)));
+        }
+
 
         register(SimpleDeviceSelectorProvider
                      .of("state", "按状态",
                          (args, query) -> query.in("state", args)));
 
         register(SimpleDeviceSelectorProvider
-                     .of("product", "按产品",
+                     .of(PROVIDER_PRODUCT, "按产品",
                          (args, query) -> query.in("productId", args)));
 
         register(SimpleDeviceSelectorProvider
-                     .of("tag", "按标签",
+                     .of(PROVIDER_TAG, "按标签",
                          (args, query) -> {
                              if (args.size() == 1) {
                                  return query.accept("id",
@@ -69,9 +98,15 @@ public class DeviceSelectorProviders {
 
     }
 
+    //判断是否为固定设备选择器，固定设备选择器不需要执行查询库,性能更高
+    public static boolean isFixed(DeviceSelectorSpec spec) {
+        return PROVIDER_FIXED.equals(spec.getSelector()) ||
+            PROVIDER_CONTEXT.equals(spec.getSelector());
+    }
+
     public static DeviceSelectorSpec fixed(Object value) {
         DeviceSelectorSpec spec = new DeviceSelectorSpec();
-        spec.setSelector("fixed");
+        spec.setSelector(PROVIDER_CONTEXT);
         spec.setSource(VariableSource.Source.fixed);
         spec.setValue(value);
         return spec;
@@ -79,7 +114,7 @@ public class DeviceSelectorProviders {
 
     public static DeviceSelectorSpec product(String productId) {
         DeviceSelectorSpec spec = new DeviceSelectorSpec();
-        spec.setSelector("product");
+        spec.setSelector(PROVIDER_PRODUCT);
         spec.setSource(VariableSource.Source.fixed);
         spec.setValue(productId);
         return spec;

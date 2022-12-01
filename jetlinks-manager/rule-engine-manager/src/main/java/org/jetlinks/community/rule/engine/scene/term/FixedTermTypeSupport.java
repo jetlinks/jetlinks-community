@@ -36,13 +36,31 @@ public enum FixedTermTypeSupport implements TermTypeSupport {
             return val;
         }
     },
-    in("在...之中", "in", StringType.ID, IntType.ID, LongType.ID, FloatType.ID, DoubleType.ID, EnumType.ID, ArrayType.ID) {
+    in("在...之中", "in", StringType.ID, IntType.ID, LongType.ID, FloatType.ID, DoubleType.ID, EnumType.ID) {
         @Override
         protected Object convertValue(Object val) {
             return val;
         }
     },
-    nin("不在...之中", "not in", StringType.ID, IntType.ID, LongType.ID, FloatType.ID, DoubleType.ID, EnumType.ID, ArrayType.ID) {
+    nin("不在...之中", "nin", StringType.ID, IntType.ID, LongType.ID, FloatType.ID, DoubleType.ID, EnumType.ID) {
+        @Override
+        protected Object convertValue(Object val) {
+            return val;
+        }
+    },
+    contains_all("全部包含在...之中", "contains_all", ArrayType.ID) {
+        @Override
+        protected Object convertValue(Object val) {
+            return val;
+        }
+    },
+    contains_any("任意包含在...之中", "contains_any", ArrayType.ID) {
+        @Override
+        protected Object convertValue(Object val) {
+            return val;
+        }
+    },
+    not_contains("不包含在...之中", "not_contains", ArrayType.ID) {
         @Override
         protected Object convertValue(Object val) {
             return val;
@@ -50,9 +68,21 @@ public enum FixedTermTypeSupport implements TermTypeSupport {
     },
 
     like("包含字符", "str_like", StringType.ID),
-    nlike("不包含字符", "not str_like", StringType.ID),
+    nlike("不包含字符", "str_nlike", StringType.ID),
 
-    ;
+    // gt(math.sub(column,now()),?)
+    time_gt_now("距离当前时间大于...秒", "time_gt_now", DateTimeType.ID) {
+        @Override
+        protected void appendFunction(String column, PrepareSqlFragments fragments) {
+            fragments.addSql("gt(math.divi(math.sub(now(),", column, "),1000),");
+        }
+    },
+    time_lt_now("距离当前时间小于...秒", "time_lt_now", DateTimeType.ID){
+        @Override
+        protected void appendFunction(String column, PrepareSqlFragments fragments) {
+            fragments.addSql("lt(math.divi(math.sub(now(),", column, "),1000),");
+        }
+    };
 
     private final String text;
     private final Set<String> supportTypes;
@@ -80,17 +110,23 @@ public enum FixedTermTypeSupport implements TermTypeSupport {
         return val;
     }
 
-    @Override
-    public final SqlFragments createSql(String column, Object value) {
-        PrepareSqlFragments fragments = PrepareSqlFragments.of();
+    protected void appendFunction(String column, PrepareSqlFragments fragments) {
         fragments.addSql(function + "(", column, ",");
+    }
+
+    @Override
+    public SqlFragments createSql(String column, Object value) {
+        PrepareSqlFragments fragments = PrepareSqlFragments.of();
+        appendFunction(column, fragments);
+        value = convertValue(value);
+
         if (value instanceof NativeSql) {
             fragments
                 .addSql(((NativeSql) value).getSql())
                 .addParameter(((NativeSql) value).getParameters());
         } else {
             fragments.addSql("?")
-                     .addParameter(convertValue(value));
+                     .addParameter(value);
         }
         fragments.addSql(")");
         return fragments;

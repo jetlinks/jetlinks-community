@@ -9,10 +9,10 @@ import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.types.EnumType;
 import org.jetlinks.community.PropertyMetadataConstants;
 import org.jetlinks.community.PropertyMetric;
 import org.jetlinks.community.rule.engine.scene.DeviceOperation;
-import org.jetlinks.core.metadata.types.EnumType;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
@@ -45,30 +45,31 @@ public class TermColumn {
     @Schema(description = "支持的条件类型")
     private List<TermType> termTypes;
 
-    @Schema(description = "可选内容")
-    private List<PropertyMetric> options;
-
     @Schema(description = "支持的指标")
     private List<PropertyMetric> metrics;
+
+    @Schema(description = "可选内容")
+    private List<PropertyMetric> options;
 
     @Schema(description = "子列,在类型为object时有值")
     private List<TermColumn> children;
 
 
     public TermColumn copyColumn(Predicate<String> childrenPredicate) {
-        TermColumn copy = FastBeanCopier.copy(this,new TermColumn());
+        TermColumn copy = FastBeanCopier.copy(this, new TermColumn());
 
         if (CollectionUtils.isNotEmpty(children)) {
             copy.setChildren(
-                    children.stream()
-                            .filter(child -> childrenPredicate.test(child.getColumn()))
-                            .map(child -> child.copyColumn(childrenPredicate))
-                            .collect(Collectors.toList())
+                children.stream()
+                        .filter(child -> childrenPredicate.test(child.getColumn()))
+                        .map(child -> child.copyColumn(childrenPredicate))
+                        .collect(Collectors.toList())
             );
         }
 
         return copy;
     }
+
     public boolean hasColumn(Collection<String> columns) {
         for (String column : columns) {
             if (hasColumn(column)) {

@@ -122,7 +122,7 @@ public class DeviceSelectorSpec extends VariableSource {
         if (CollectionUtils.isNotEmpty(selectorValues)) {
             return Flux
                 .fromIterable(selectorValues)
-                .map(SelectorValue::getValue);
+                .mapNotNull(SelectorValue::getValue);
         }
         return super.resolve(context);
     }
@@ -148,3 +148,4 @@ public class DeviceSelectorSpec extends VariableSource {
             .flatMap(DeviceProductOperator::getMetadata);
     }
 }
+

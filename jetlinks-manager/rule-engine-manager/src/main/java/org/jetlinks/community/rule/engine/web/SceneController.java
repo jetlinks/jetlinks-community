@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+
 @RestController
 @RequestMapping("/scene")
 @Tag(name = "场景管理")
@@ -51,8 +52,8 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
     @PutMapping("/{id}")
     @Operation(summary = "更新场景")
     @SaveAction
-    public Mono<Void> updateScene(@PathVariable String id,
-                                  @RequestBody Mono<SceneRule> sceneRuleMono) {
+    public Mono<Void> update(@PathVariable String id,
+                             @RequestBody Mono<SceneRule> sceneRuleMono) {
         return sceneRuleMono
             .flatMap(sceneRule -> service.updateScene(id, sceneRule))
             .then();
@@ -111,6 +112,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
     @QueryAction
     public Flux<Variable> parseVariables(@RequestBody Mono<SceneRule> ruleMono,
                                          @RequestParam(required = false) Integer branch,
+                                         @RequestParam(required = false) Integer branchGroup,
                                          @RequestParam(required = false) Integer action) {
         Mono<SceneRule> cache = ruleMono.cache();
         return Mono
@@ -125,6 +127,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
                                                     .map(column -> column.copyColumn(terms::containsKey))
                                                     .collect(Collectors.toList()),
                                                 branch,
+                                                branchGroup,
                                                 action,
                                                 deviceRegistry);
                 })

@@ -9,11 +9,14 @@ import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.rule.engine.scene.term.TermType;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
 public class Variable {
+    public static final String OPTION_PRODUCT_ID = "productId";
     @Schema(description = "变量ID")
     private String id;
 
@@ -34,6 +37,23 @@ public class Variable {
 
     @Schema(description = "子级变量")
     private List<Variable> children;
+
+    @Schema(description = "其他配置")
+    private Map<String, Object> options;
+
+    public synchronized Map<String, Object> safeOptions() {
+        return options == null ? options = new HashMap<>() : options;
+    }
+
+    public Variable withOption(String key, Object value) {
+        safeOptions().put(key, value);
+        return this;
+    }
+
+    public Variable withOptions(Map<String, Object> options) {
+        safeOptions().putAll(options);
+        return this;
+    }
 
     public Variable withType(String type) {
         this.type = type;
