@@ -11,6 +11,8 @@ import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportManager;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -21,6 +23,7 @@ import java.util.function.Consumer;
 @Slf4j
 @Getter
 @Setter
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class LazyInitManagementProtocolSupports extends StaticProtocolSupports implements CommandLineRunner {
 
     private ProtocolSupportManager manager;
