@@ -1,6 +1,7 @@
 package org.jetlinks.community.rule.engine.service;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
@@ -12,6 +13,7 @@ import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
 import org.jetlinks.community.rule.engine.scene.SceneRule;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleEngine;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +27,8 @@ import java.util.Map;
 
 @Service
 @AllArgsConstructor
-public class SceneService extends GenericReactiveCrudService<SceneEntity, String> {
+@Slf4j
+public class SceneService extends GenericReactiveCrudService<SceneEntity, String> implements CommandLineRunner {
 
     private final RuleEngine ruleEngine;
 
@@ -138,6 +141,21 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
         event.async(
             handleEvent(event.getEntity())
         );
+    }
+
+    @Override
+    public void run(String... args) {
+        createQuery()
+            .where()
+            .is(SceneEntity::getState, RuleInstanceState.started)
+            .fetch()
+            .flatMap(e -> Mono
+                .defer(() -> ruleEngine.startRule(e.getId(), e.toRule().getModel()).then())
+                .onErrorResume(err -> {
+                    log.warn("启动场景[{}]失败", e.getName(), err);
+                    return Mono.empty();
+                }))
+            .subscribe();
     }
 
 }
