@@ -42,13 +42,12 @@ public class HttpWebHookTemplate extends AbstractTemplate<HttpWebHookTemplate> {
     //todo 增加认证类型, oauth2等
 
     public String resolveBody(Values context) {
-        if (!StringUtils.hasText(body)) {
-            return body;
-        }
+
+        Map<String, Object> contextVal = renderMap(context.getAllValues());
+
         if (contextAsBody) {
-            return JSON.toJSONString(context.getAllValues());
+            return JSON.toJSONString(contextVal);
         }
-        Map<String, Object> contextVal = context.getAllValues();
 
         try {
             if (bodyIsJson == null || bodyIsJson) {
