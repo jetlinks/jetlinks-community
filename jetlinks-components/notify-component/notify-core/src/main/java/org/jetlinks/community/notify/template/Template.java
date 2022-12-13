@@ -1,6 +1,7 @@
 package org.jetlinks.community.notify.template;
 
 
+import com.google.common.collect.Maps;
 import org.jetlinks.community.notify.NotifierProvider;
 import org.jetlinks.community.relation.utils.VariableSource;
 
@@ -45,6 +46,10 @@ public interface Template extends Serializable {
             value = defaultValueSupplier.get();
         }
         return convert(key, value);
+    }
+
+    default Map<String, Object> renderMap(Map<String, Object> context) {
+        return Maps.transformValues(context, value -> VariableSource.of(value).resolveStatic(context));
     }
 
     default String convert(String key, Object value) {
