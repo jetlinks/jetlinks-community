@@ -52,13 +52,12 @@ public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
                 .addProperty("alarmRecordId", StringType.GLOBAL)
                 .addProperty("level", IntType.GLOBAL)
                 .addProperty("description", StringType.GLOBAL)
-                .addProperty("alarmTime", LongType.GLOBAL)
+                .addProperty("alarmTime", DateTimeType.GLOBAL)
                 .addProperty("targetType", StringType.GLOBAL)
                 .addProperty("targetName", StringType.GLOBAL)
                 .addProperty("targetId", StringType.GLOBAL)
                 .addProperty("alarmInfo", StringType.GLOBAL)
                 .addProperty("creatorId", StringType.GLOBAL)
-                .addProperty("bindings", new ArrayType().elementType(new ObjectType()))
         ).block(Duration.ofSeconds(10));
     }
 }
