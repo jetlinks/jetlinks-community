@@ -88,6 +88,7 @@ public class VertxMqttClient implements MqttClient {
                         .dup(msg.isDup())
                         .retain(msg.isRetain())
                         .qosLevel(msg.qosLevel().value())
+                        .properties(msg.properties())
                         .build();
                     log.debug("handle mqtt message \n{}", mqttMessage);
                     subscriber

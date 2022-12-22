@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.util.ReferenceCountUtil;
 import io.vertx.core.buffer.Buffer;
@@ -43,7 +44,9 @@ class VertxMqttConnection implements MqttConnection {
     private long keepAliveTimeoutMs;
     @Getter
     private long lastPingTime = System.currentTimeMillis();
-    private volatile boolean closed = false, accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = true;
+    private volatile boolean closed = false, accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = false;
+    private int messageIdCounter;
+
     private static final MqttAuth emptyAuth = new MqttAuth() {
         @Override
         public String getUsername() {
@@ -56,7 +59,7 @@ class VertxMqttConnection implements MqttConnection {
         }
     };
     private final Sinks.Many<MqttPublishing> messageProcessor = Reactors.createMany(Integer.MAX_VALUE, false);
-    private final Sinks.Many<MqttSubscription> subscription =Reactors.createMany(Integer.MAX_VALUE, false);
+    private final Sinks.Many<MqttSubscription> subscription = Reactors.createMany(Integer.MAX_VALUE, false);
     private final Sinks.Many<MqttUnSubscription> unsubscription = Reactors.createMany(Integer.MAX_VALUE, false);
 
 
@@ -203,7 +206,7 @@ class VertxMqttConnection implements MqttConnection {
             .subscribeHandler(msg -> {
                 ping();
                 VertxMqttSubscription subscription = new VertxMqttSubscription(msg, false);
-                boolean hasDownstream = this.subscription.currentSubscriberCount()>0;
+                boolean hasDownstream = this.subscription.currentSubscriberCount() > 0;
                 if (autoAckSub || !hasDownstream) {
                     subscription.acknowledge();
                 }
@@ -214,7 +217,7 @@ class VertxMqttConnection implements MqttConnection {
             .unsubscribeHandler(msg -> {
                 ping();
                 VertxMqttMqttUnSubscription unSubscription = new VertxMqttMqttUnSubscription(msg, false);
-                boolean hasDownstream = this.unsubscription.currentSubscriberCount()>0;
+                boolean hasDownstream = this.unsubscription.currentSubscriberCount() > 0;
                 if (autoAckUnSub || !hasDownstream) {
                     unSubscription.acknowledge();
                 }
@@ -259,6 +262,7 @@ class VertxMqttConnection implements MqttConnection {
     @Override
     public Mono<Void> publish(MqttMessage message) {
         ping();
+        int messageId = message.getMessageId() <= 0 ? nextMessageId() : message.getMessageId();
         return Mono
             .<Void>create(sink -> {
                 ByteBuf buf = message.getPayload();
@@ -269,6 +273,8 @@ class VertxMqttConnection implements MqttConnection {
                     MqttQoS.valueOf(message.getQosLevel()),
                     message.isDup(),
                     message.isRetain(),
+                    messageId,
+                    message.getProperties(),
                     result -> {
                         if (result.succeeded()) {
                             sink.success();
@@ -325,7 +331,7 @@ class VertxMqttConnection implements MqttConnection {
 
     @Override
     public Mono<Void> close() {
-        if(closed){
+        if (closed) {
             return Mono.empty();
         }
         return Mono.<Void>fromRunnable(() -> {
@@ -402,6 +408,11 @@ class VertxMqttConnection implements MqttConnection {
         @Override
         public String toString() {
             return print();
+        }
+
+        @Override
+        public MqttProperties getProperties() {
+            return message.properties();
         }
 
         @Override
@@ -486,6 +497,11 @@ class VertxMqttConnection implements MqttConnection {
         public String getPassword() {
             return endpoint.auth().getPassword();
         }
+    }
+
+    private int nextMessageId() {
+        this.messageIdCounter = ((this.messageIdCounter % 65535) != 0) ? this.messageIdCounter + 1 : 1;
+        return this.messageIdCounter;
     }
 
     @Override
