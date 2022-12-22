@@ -38,7 +38,7 @@ public class VertxTcpServer implements TcpServer {
     private final String id;
 
 
-    private final Sinks.Many<TcpClient> sink = Reactors.createMany();
+    private final Sinks.Many<TcpClient> sink = Reactors.createMany(Integer.MAX_VALUE,false);
 
     @Getter
     @Setter
