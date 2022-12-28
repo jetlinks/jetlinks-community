@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
 import org.jetlinks.community.micrometer.MeterRegistryManager;
+import org.jetlinks.community.rule.engine.alarm.AlarmConstants;
 import org.jetlinks.community.rule.engine.entity.AlarmHistoryInfo;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.utils.ConverterUtils;
@@ -42,10 +43,12 @@ public class AlarmRecordMeasurementProvider extends StaticMeasurementProvider {
 
     public String[] getTags(AlarmHistoryInfo info) {
         Map<String, Object> tagMap = Maps.newLinkedHashMap();
-        tagMap.put("targetId", info.getTargetId());
-        tagMap.put("targetType", info.getTargetType());
-        tagMap.put("targetName", info.getTargetName());
-        tagMap.put("alarmConfigId", info.getAlarmConfigId());
+
+        tagMap.put(AlarmConstants.ConfigKey.targetId, info.getTargetId());
+        tagMap.put(AlarmConstants.ConfigKey.targetType, info.getTargetType());
+        tagMap.put(AlarmConstants.ConfigKey.targetName, info.getTargetName());
+
+        tagMap.put(AlarmConstants.ConfigKey.alarmConfigId, info.getAlarmConfigId());
         return ConverterUtils.convertMapToTags(tagMap);
     }
 }

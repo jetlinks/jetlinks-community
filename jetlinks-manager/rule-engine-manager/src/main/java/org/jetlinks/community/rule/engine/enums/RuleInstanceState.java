@@ -9,9 +9,8 @@ import org.hswebframework.web.dict.EnumDict;
 @AllArgsConstructor
 @Dict( "rule-instance-state")
 public enum RuleInstanceState implements EnumDict<String> {
-    disable("已禁用"),
-    started("已启动"),
-    stopped("已停止");
+    started("正常"),
+    disable("禁用");
     private final String text;
 
     @Override

@@ -1,7 +1,6 @@
 package org.jetlinks.community.rule.engine.service;
 
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
@@ -11,9 +10,9 @@ import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.rule.engine.entity.SceneEntity;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
 import org.jetlinks.community.rule.engine.scene.SceneRule;
+import org.jetlinks.community.rule.engine.web.request.SceneExecuteRequest;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleEngine;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +22,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
 @AllArgsConstructor
-@Slf4j
-public class SceneService extends GenericReactiveCrudService<SceneEntity, String> implements CommandLineRunner {
+public class SceneService extends GenericReactiveCrudService<SceneEntity, String> {
 
     private final RuleEngine ruleEngine;
 
@@ -45,6 +44,25 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
             .then();
     }
 
+    public Mono<Void> executeBatch(Flux<SceneExecuteRequest> requestFlux) {
+        long t = System.currentTimeMillis();
+
+        return requestFlux
+            .doOnNext(request -> {
+                if (request.getContext() == null) {
+                    request.setContext(new HashMap<>());
+                }
+                request.getContext().put("_now", t);
+                request.getContext().put("timestamp", t);
+            })
+            .flatMap(request -> ruleEngine
+                .getTasks(request.getId())
+                .filter(task -> task.getJob().getNodeId().equals(request.getId()))
+                .next()//只执行一个
+                .flatMap(task -> task.execute(RuleData.create(request.getContext()))))
+            .then();
+    }
+
     @Transactional(rollbackFor = Throwable.class)
     public Mono<SceneEntity> createScene(SceneRule rule) {
         if (!StringUtils.hasText(rule.getId())) {
@@ -52,7 +70,7 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
         }
         rule.validate();
         SceneEntity entity = new SceneEntity().with(rule);
-        entity.setState(RuleInstanceState.started);
+        entity.setState(RuleInstanceState.disable);
 
         return this
             .insert(entity)
@@ -127,8 +145,11 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
                 //禁用时,停止规则
                 if (scene.getState() == RuleInstanceState.disable) {
                     return ruleEngine.shutdown(scene.getId());
+                }else if (scene.getState() == RuleInstanceState.started){
+                    scene.validate();
+                    return ruleEngine.startRule(scene.getId(), scene.toRule().getModel());
                 }
-                return ruleEngine.startRule(scene.getId(), scene.toRule().getModel());
+                return Mono.empty();
             })
             .then();
     }
@@ -141,21 +162,6 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
         event.async(
             handleEvent(event.getEntity())
         );
-    }
-
-    @Override
-    public void run(String... args) {
-        createQuery()
-            .where()
-            .is(SceneEntity::getState, RuleInstanceState.started)
-            .fetch()
-            .flatMap(e -> Mono
-                .defer(() -> ruleEngine.startRule(e.getId(), e.toRule().getModel()).then())
-                .onErrorResume(err -> {
-                    log.warn("启动场景[{}]失败", e.getName(), err);
-                    return Mono.empty();
-                }))
-            .subscribe();
     }
 
 }

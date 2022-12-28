@@ -1,4 +1,4 @@
-package org.jetlinks.community.rule.engine.scene.term;
+package org.jetlinks.community.reactorql.term;
 
 import org.jetlinks.core.metadata.DataType;
 
@@ -9,10 +9,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * @deprecated
- * @see org.jetlinks.community.reactorql.term.TermTypes
+ * @see org.jetlinks.community.utils.ReactorUtils#createFilter(List)
  */
-@Deprecated
 public class TermTypes {
     private static final Map<String, TermTypeSupport> supports = new LinkedHashMap<>();
 

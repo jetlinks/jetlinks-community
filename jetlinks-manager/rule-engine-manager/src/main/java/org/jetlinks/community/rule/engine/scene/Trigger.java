@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
@@ -11,13 +12,11 @@ import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 @Setter
@@ -36,6 +35,29 @@ public class Trigger implements Serializable {
 
     @Schema(description = "[type]为[timer]时不能为空")
     private TimerSpec timer;
+
+
+    /**
+     * 重构查询条件,替换为实际将要输出的变量.
+     *
+     * @param terms 条件
+     * @return 重构后的条件
+     * @see DeviceTrigger#refactorTermValue(String,Term)
+     */
+    public List<Term> refactorTerm(String tableName,List<Term> terms) {
+        if (CollectionUtils.isEmpty(terms)) {
+            return terms;
+        }
+        List<Term> target = new ArrayList<>(terms.size());
+        for (Term term : terms) {
+            Term copy = term.clone();
+            target.add(DeviceTrigger.refactorTermValue(tableName,copy));
+            if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(copy.getTerms())) {
+                copy.setTerms(refactorTerm(tableName,copy.getTerms()));
+            }
+        }
+        return target;
+    }
 
     public void validate() {
         Assert.notNull(type, "error.scene_rule_trigger_cannot_be_null");

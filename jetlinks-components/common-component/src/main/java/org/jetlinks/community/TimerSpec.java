@@ -15,9 +15,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
+import org.hswebframework.web.exception.ValidationException;
 import org.springframework.util.Assert;
 
-import javax.validation.ValidationException;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
@@ -86,6 +86,12 @@ public class TimerSpec implements Serializable {
             if (to != null) {
                 predicate = predicate.and(time -> time.toLocalTime().compareTo(to) <= 0);
             }
+            return predicate.and(range);
+        }
+        if (mod == ExecuteMod.once){
+            LocalTime onceTime = once.localTime();
+            Predicate<LocalDateTime> predicate
+                = time -> time.toLocalTime().compareTo(onceTime) == 0;
             return predicate.and(range);
         }
         return range;
@@ -201,10 +207,16 @@ public class TimerSpec implements Serializable {
         if (trigger == null) {
             Assert.hasText(cron, "error.scene_rule_timer_cron_cannot_be_empty");
         }
-        try {
-            toCronExpression();
-        } catch (Throwable e) {
-            throw new ValidationException("error.cron_format_error");
+        if (trigger == Trigger.cron) {
+            try {
+                toCronExpression();
+            } catch (Throwable e) {
+                ValidationException exception = new ValidationException("cron", "error.cron_format_error", cron);
+                exception.addSuppressed(e);
+                throw exception;
+            }
+        } else {
+            nextDurationBuilder().apply(ZonedDateTime.now());
         }
 
     }
@@ -213,7 +225,8 @@ public class TimerSpec implements Serializable {
     @Setter
     @AllArgsConstructor(staticName = "of")
     @NoArgsConstructor
-    public static class Once {
+    public static class Once implements Serializable {
+        private static final long serialVersionUID = 1L;
         //时间点
         @Schema(description = "时间点.格式:[hh:mm],或者[hh:mm:ss]")
         @NotBlank
@@ -226,7 +239,8 @@ public class TimerSpec implements Serializable {
 
     @Getter
     @Setter
-    public static class Period {
+    public static class Period implements Serializable {
+        private static final long serialVersionUID = 1L;
         //周期执行的时间区间
         @Schema(description = "执行时间范围从.格式:[hh:mm],或者[hh:mm:ss]")
         private String from;
@@ -356,8 +370,43 @@ public class TimerSpec implements Serializable {
         };
     }
 
+    private TimerIterable onceIterable() {
+        Assert.notNull(once, "once can not be null");
+        Predicate<LocalDateTime> filter = createTimeFilter();
+        LocalTime onceTime = once.localTime();
+        return baseTime -> new Iterator<ZonedDateTime>() {
+            ZonedDateTime current = baseTime;
+
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public ZonedDateTime next() {
+                ZonedDateTime dateTime = current;
+                int max = MAX_IT_TIMES;
+                if (dateTime.toLocalTime().compareTo(onceTime) != 0){
+                    dateTime = onceTime.atDate(dateTime.toLocalDate()).atZone(dateTime.getZone());
+                }
+                do {
+                    if (filter.test(dateTime.toLocalDateTime()) && current.compareTo(dateTime) <= 0) {
+                        current = dateTime.plusDays(1);
+                        break;
+                    }
+                    dateTime = dateTime.plusDays(1);
+                    max--;
+                } while (max > 0);
+                return dateTime;
+            }
+        };
+    }
+
     public TimerIterable iterable() {
-        return mod == ExecuteMod.period ? periodIterable() : cronIterable();
+        if ((trigger == Trigger.cron || trigger == null) && cron != null){
+            return cronIterable();
+        }
+        return mod == ExecuteMod.period ? periodIterable() : onceIterable();
     }
 
     public List<ZonedDateTime> getNextExecuteTimes(ZonedDateTime from, long times) {

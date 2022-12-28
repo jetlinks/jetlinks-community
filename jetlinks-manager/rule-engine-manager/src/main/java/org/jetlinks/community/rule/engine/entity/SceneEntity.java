@@ -3,6 +3,7 @@ package org.jetlinks.community.rule.engine.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
@@ -13,11 +14,11 @@ import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.api.crud.entity.RecordModifierEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.exception.BusinessException;
+import org.jetlinks.community.rule.engine.RuleEngineConstants;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
-import org.jetlinks.community.rule.engine.scene.SceneAction;
-import org.jetlinks.community.rule.engine.scene.SceneRule;
-import org.jetlinks.community.rule.engine.scene.Trigger;
-import org.jetlinks.community.rule.engine.scene.TriggerType;
+import org.jetlinks.community.rule.engine.scene.*;
+import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.cluster.RuleInstance;
 
 import javax.persistence.Column;
@@ -26,6 +27,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.sql.JDBCType;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -69,6 +71,12 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
     @Schema(description = "执行动作")
     private List<SceneAction> actions;
 
+    @Column
+    @JsonCodec
+    @ColumnType(javaType = String.class, jdbcType = JDBCType.LONGVARCHAR)
+    @Schema(description = "动作分支")
+    private List<SceneConditionAction> branches;
+
     @Column(length = 64, updatable = false)
     @Schema(description = "创建人")
     private String creatorId;
@@ -96,8 +104,14 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
     @EnumCodec
     @ColumnType(javaType = String.class)
     @NotBlank
-    @DefaultValue("started")
+    @DefaultValue("disable")
     private RuleInstanceState state;
+
+    @Schema(description = "扩展配置")
+    @Column(name = "options")
+    @JsonCodec
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR)
+    private Map<String, Object> options;
 
     @Column
     @Schema(description = "说明")
@@ -108,7 +122,10 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
 
         RuleInstance instance = new RuleInstance();
         instance.setId(getId());
-        instance.setModel(rule.toModel());
+        RuleModel model = rule.toModel();
+        model.addConfiguration(RuleEngineConstants.ruleCreatorIdKey, modifierId);
+        model.addConfiguration(RuleEngineConstants.ruleName, getName());
+        instance.setModel(model);
         return instance;
     }
 
@@ -116,5 +133,13 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
         SceneEntity entity = copyFrom(rule);
         entity.setTriggerType(rule.getTrigger().getType());
         return entity;
+    }
+
+
+    public void validate() {
+        getTrigger().validate();
+       if (CollectionUtils.isEmpty(getActions()) && CollectionUtils.isEmpty(getBranches())){
+           throw new BusinessException("error.scene_action_rule_cannot_be_null");
+       }
     }
 }

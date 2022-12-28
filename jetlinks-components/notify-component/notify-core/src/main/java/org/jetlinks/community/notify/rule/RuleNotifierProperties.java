@@ -43,7 +43,7 @@ public class RuleNotifierProperties {
     public Map<String, Object> createVariables(RuleData data) {
         Map<String, Object> vars = RuleDataHelper.toContextMap(data);
         if (MapUtils.isNotEmpty(variables)) {
-            vars.putAll(VariableSource.wrap(variables));
+            vars.putAll(VariableSource.wrap(variables,vars));
         }
         return vars;
     }

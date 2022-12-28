@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
@@ -12,6 +14,7 @@ import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.jetlinks.community.rule.engine.alarm.AlarmLevelInfo;
 import org.jetlinks.community.rule.engine.alarm.AlarmTargetSupplier;
+import org.jetlinks.community.rule.engine.entity.AlarmConfigDetail;
 import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
 import org.jetlinks.community.rule.engine.entity.AlarmLevelEntity;
 import org.jetlinks.community.rule.engine.service.AlarmConfigService;
@@ -78,6 +81,13 @@ public class AlarmConfigController implements ReactiveServiceCrudController<Alar
         return alarmLevelRepository
             .save(entity)
             .then();
+    }
+
+    @PostMapping("/detail/_query")
+    @Operation(summary = "查询告警配置详情")
+    @QueryAction
+    public Mono<PagerResult<AlarmConfigDetail>> queryDetailPager(@RequestBody Mono<QueryParamEntity> query) {
+        return query.flatMap(alarmConfigService::queryDetailPager);
     }
 
     @GetMapping("/default/level")

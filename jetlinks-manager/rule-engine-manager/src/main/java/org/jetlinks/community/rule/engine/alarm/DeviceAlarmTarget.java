@@ -1,7 +1,5 @@
 package org.jetlinks.community.rule.engine.alarm;
 
-import org.jetlinks.community.rule.engine.scene.SceneData;
-import org.jetlinks.reactor.ql.utils.CastUtils;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
@@ -10,7 +8,7 @@ import java.util.Map;
  * @author bestfeng
  */
 
-public class DeviceAlarmTarget implements AlarmTarget {
+public class DeviceAlarmTarget extends AbstractAlarmTarget {
 
     @Override
     public String getType() {
@@ -23,10 +21,15 @@ public class DeviceAlarmTarget implements AlarmTarget {
     }
 
     @Override
-    public Flux<AlarmTargetInfo> convert(AlarmData data) {
+    public Flux<AlarmTargetInfo> doConvert(AlarmData data) {
         Map<String, Object> output = data.getOutput();
-        String deviceId = CastUtils.castString(output.get("deviceId"));
-        String deviceName = CastUtils.castString(output.getOrDefault("deviceName", deviceId));
+        String deviceId = AbstractAlarmTarget.getFromOutput("deviceId", output).map(String::valueOf).orElse(null);
+        String deviceName = AbstractAlarmTarget.getFromOutput("deviceName", output).map(String::valueOf).orElse(deviceId);
+
+        if (deviceId == null) {
+            return Flux.empty();
+        }
+
         return Flux.just(AlarmTargetInfo.of(deviceId, deviceName, getType()));
     }
 

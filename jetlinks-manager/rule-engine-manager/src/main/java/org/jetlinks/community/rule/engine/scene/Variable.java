@@ -5,8 +5,11 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
+import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.rule.engine.scene.term.TermType;
+import org.jetlinks.community.reactorql.term.TermType;
+import org.jetlinks.community.reactorql.term.TermTypes;
+import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
@@ -23,6 +26,12 @@ public class Variable {
     @Schema(description = "变量名")
     private String name;
 
+    @Schema(description = "变量全名")
+    private String fullName;
+
+    @Schema(description = "列")
+    private String column;
+
     @Schema(description = "说明")
     private String description;
 
@@ -38,8 +47,25 @@ public class Variable {
     @Schema(description = "子级变量")
     private List<Variable> children;
 
+    @Schema(description = "是否为物模型变量")
+    private boolean metadata;
+
     @Schema(description = "其他配置")
     private Map<String, Object> options;
+
+    public String getFullName() {
+        return fullName == null ? name : fullName;
+    }
+
+    public Variable withDescription(String description) {
+        this.description = description;
+        return this;
+    }
+
+    public Variable withMetadata(boolean metadata) {
+        this.metadata = metadata;
+        return this;
+    }
 
     public synchronized Map<String, Object> safeOptions() {
         return options == null ? options = new HashMap<>() : options;
@@ -60,18 +86,58 @@ public class Variable {
         return this;
     }
 
+    public Variable withType(DataType type) {
+        withType(type.getId())
+            .withTermType(TermTypes.lookup(type));
+        return this;
+    }
+
+    public Variable withTermType(List<TermType> termTypes) {
+        this.termTypes = termTypes;
+        return this;
+    }
+
+    public Variable withColumn(String column) {
+        this.column = column;
+        return this;
+    }
+
+    public String getColumn() {
+        if (StringUtils.hasText(column)) {
+            return column;
+        }
+        return id;
+    }
+
+    public Variable with(TermColumn column) {
+        this.name = column.getName();
+        this.column = column.getColumn();
+        this.metadata = column.isMetadata();
+        this.description = column.getDescription();
+        this.fullName = column.getFullName();
+        this.type = column.getDataType();
+        this.termTypes = column.getTermTypes();
+        return this;
+    }
+
+
     public void refactorPrefix() {
+        refactorPrefix(this);
+    }
+
+    public void refactorPrefix(Variable main) {
         if (CollectionUtils.isNotEmpty(children)) {
             for (Variable child : children) {
-                if (!child.getId().startsWith(id + ".")) {
-                    child.setId(id + "." + child.getId());
+                if (!child.getId().startsWith(main.id + ".")) {
+                    child.setId(main.id + "." + child.getId());
                 }
 
-                if (StringUtils.hasText(child.description)
-                    && StringUtils.hasText(description)) {
-                    child.setDescription(description + "/" + child.description);
+                if (StringUtils.hasText(child.getFullName())
+                    && StringUtils.hasText(main.getFullName())) {
+                    child.setFullName(main.getFullName() + "/" + child.getFullName());
                 }
-                child.refactorPrefix();
+
+                child.refactorPrefix(main);
             }
         }
     }

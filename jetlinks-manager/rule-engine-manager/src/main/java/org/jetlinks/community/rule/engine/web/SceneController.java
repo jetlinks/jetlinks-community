@@ -14,6 +14,7 @@ import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceQueryController;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.rule.engine.service.SceneService;
+import org.jetlinks.community.rule.engine.web.request.SceneExecuteRequest;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.community.rule.engine.entity.SceneEntity;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProvider;
@@ -26,7 +27,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 
 @RestController
@@ -81,6 +81,13 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
         return context.flatMap(ctx -> service.execute(id, ctx));
     }
 
+    @PostMapping("/batch/_execute")
+    @Operation(summary = "批量手动执行场景")
+    @SaveAction
+    public Mono<Void> executeBatch(@RequestBody Flux<SceneExecuteRequest> request) {
+        return service.executeBatch(request);
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "删除场景")
     @DeleteAction
@@ -119,18 +126,12 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
             .zip(
                 parseTermColumns(cache).collectList(),
                 cache,
-                (columns, rule) -> {
-                    Map<String, Term> terms = SceneUtils.expandTerm(rule.getTerms());
-                    return rule.createVariables(columns
-                                                    .stream()
-                                                    .filter(column -> column.hasColumn(terms.keySet()))
-                                                    .map(column -> column.copyColumn(terms::containsKey))
-                                                    .collect(Collectors.toList()),
-                                                branch,
-                                                branchGroup,
-                                                action,
-                                                deviceRegistry);
-                })
+                (columns, rule) -> rule
+                    .createVariables(columns ,
+                                     branch,
+                                     branchGroup,
+                                     action,
+                                     deviceRegistry))
             .flatMapMany(Function.identity());
     }
 
