@@ -2,12 +2,14 @@ package org.jetlinks.community.rule.engine.configuration;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.rule.engine.commons.TermsConditionEvaluator;
+import org.jetlinks.core.cluster.ClusterManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.rule.engine.api.RuleEngine;
 import org.jetlinks.rule.engine.api.scheduler.Scheduler;
 import org.jetlinks.rule.engine.api.task.ConditionEvaluator;
 import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
 import org.jetlinks.rule.engine.api.worker.Worker;
+import org.jetlinks.rule.engine.cluster.worker.ClusterWorker;
 import org.jetlinks.rule.engine.condition.ConditionEvaluatorStrategy;
 import org.jetlinks.rule.engine.condition.DefaultConditionEvaluator;
 import org.jetlinks.rule.engine.condition.supports.DefaultScriptEvaluator;
@@ -58,7 +60,7 @@ public class RuleEngineConfiguration {
     @Bean
     public BeanPostProcessor autoRegisterStrategy(DefaultRuleModelParser defaultRuleModelParser,
                                                   DefaultConditionEvaluator defaultConditionEvaluator,
-                                                  LocalWorker worker) {
+                                                  ClusterWorker worker) {
         return new BeanPostProcessor() {
             @Override
             public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -94,8 +96,8 @@ public class RuleEngineConfiguration {
     }
 
     @Bean
-    public LocalWorker localWorker(EventBus eventBus, ConditionEvaluator evaluator) {
-        return new LocalWorker("local", "local", eventBus, evaluator);
+    public ClusterWorker localWorker(EventBus eventBus, ClusterManager clusterManager, ConditionEvaluator evaluator) {
+        return new ClusterWorker("local", "local", eventBus,clusterManager, evaluator);
     }
 
 
