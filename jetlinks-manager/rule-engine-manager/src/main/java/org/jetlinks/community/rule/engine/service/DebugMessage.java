@@ -1,9 +1,6 @@
 package org.jetlinks.community.rule.engine.service;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -13,6 +10,7 @@ import java.util.Date;
 @Setter
 @AllArgsConstructor(staticName = "of")
 @NoArgsConstructor
+@Generated
 public class DebugMessage implements Serializable {
 
     private String type;

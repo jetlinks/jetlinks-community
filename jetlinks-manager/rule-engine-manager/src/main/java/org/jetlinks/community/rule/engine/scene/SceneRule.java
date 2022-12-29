@@ -14,6 +14,7 @@ import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.utils.Reactors;
+import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
 import org.jetlinks.community.rule.engine.commons.TermsConditionEvaluator;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
@@ -45,6 +46,13 @@ public class SceneRule implements Serializable {
     public static final String ACTION_KEY_GROUP_INDEX = "_groupIndex";
     public static final String ACTION_KEY_ACTION_INDEX = "_actionIndex";
 
+    public static final String CONTEXT_KEY_SCENE_OUTPUT = "scene";
+
+    public static final String SOURCE_TYPE_KEY = "sourceType";
+    public static final String SOURCE_ID_KEY = "sourceId";
+    public static final String SOURCE_NAME_KEY = "sourceName";
+
+
     @Schema(description = "告警ID")
     @NotBlank(message = "error.scene_rule_id_cannot_be_blank")
     private String id;
@@ -58,9 +66,9 @@ public class SceneRule implements Serializable {
     private Trigger trigger;
 
     /**
-     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
-     * @see org.jetlinks.community.rule.engine.scene.term.TermType
-     * @see org.jetlinks.community.rule.engine.scene.value.TermValue
+     * @see org.jetlinks.pro.rule.engine.scene.term.TermColumn
+     * @see org.jetlinks.pro.reactorql.term.TermType
+     * @see org.jetlinks.pro.rule.engine.scene.value.TermValue
      */
     @Schema(description = "触发条件")
     private List<Term> terms;
@@ -82,9 +90,17 @@ public class SceneRule implements Serializable {
 
     public SqlRequest createSql(boolean hasWhere) {
         if (trigger != null && trigger.getType() == TriggerType.device) {
+            List<Term> terms = new ArrayList<>();
+            if (CollectionUtils.isNotEmpty(this.terms)) {
+                terms.addAll(this.terms);
+            }
+            if (CollectionUtils.isNotEmpty(this.branches)) {
+                for (SceneConditionAction branch : branches) {
+                    terms.addAll(branch.createContextTerm());
+                }
+            }
             return trigger.getDevice().createSql(terms, hasWhere);
         }
-
         return EmptySqlRequest.INSTANCE;
     }
 
@@ -120,7 +136,7 @@ public class SceneRule implements Serializable {
                             Variable variable = Variable
                                 .of("scene", LocaleUtils.resolveMessage(
                                     "message.scene_trigger_" + trigger.getType().name() + "_output",
-                                    trigger.getType().getText() + "输出"
+                                    trigger.getType().getText() + "输出的数据"
                                 ));
 
                             List<Variable> defaultVariables = createDefaultVariable();
@@ -128,19 +144,25 @@ public class SceneRule implements Serializable {
                             List<Variable> variables = new ArrayList<>(defaultVariables.size() + termVar.size());
 
                             //设备触发但是没有指定条件,或者其它触发类型,以下是内置的输出参数
-                            if (trigger.getType() != TriggerType.device || CollectionUtils.isEmpty(termVar)) {
+                            if (trigger.getType() != TriggerType.device) {
                                 variables.add(Variable
                                                   .of("_now",
                                                       LocaleUtils.resolveMessage(
                                                           "message.scene_term_column_now",
                                                           "服务器时间"))
-                                                  .withType(DateTimeType.ID));
-                                variables.add(Variable
-                                                  .of("timestamp",
-                                                      LocaleUtils.resolveMessage(
-                                                          "message.scene_term_column_timestamp",
-                                                          "数据上报时间"))
-                                                  .withType(DateTimeType.ID));
+                                                  .withType(DateTimeType.ID)
+                                                  .withTermType(TermTypes.lookup(DateTimeType.GLOBAL))
+                                                  .withColumn("_now")
+                                );
+//                                variables.add(Variable
+//                                                  .of("timestamp",
+//                                                      LocaleUtils.resolveMessage(
+//                                                          "message.scene_term_column_timestamp",
+//                                                          "数据上报时间"))
+//                                                  .withType(DateTimeType.ID)
+//                                                  .withTermType(TermTypes.lookup(DateTimeType.GLOBAL))
+//                                                  .withColumn("timestamp")
+//                                );
                             }
 
                             variables.addAll(defaultVariables);
@@ -163,7 +185,9 @@ public class SceneRule implements Serializable {
         if (branchIndex == null && !parallel && actionIndex != null && CollectionUtils.isNotEmpty(actions)) {
 
             for (int i = 0; i < Math.min(actions.size(), actionIndex + 1); i++) {
-                variables = variables.concatWith(actions.get(i).createVariables(registry, branchIndex, i));
+                variables = variables.concatWith(actions
+                                                     .get(i)
+                                                     .createVariables(registry, null, branchGroupIndex, i + 1));
             }
         }
         //分支条件
@@ -176,7 +200,9 @@ public class SceneRule implements Serializable {
                 CollectionUtils.isNotEmpty(actionList = then.getActions())) {
 
                 for (int i = 0; i < Math.min(actionList.size(), actionIndex + 1); i++) {
-                    variables = variables.concatWith(actionList.get(i).createVariables(registry, branchIndex, i));
+                    variables = variables.concatWith(actionList
+                                                         .get(i)
+                                                         .createVariables(registry, branchIndex + 1, branchGroupIndex + 1, i + 1));
                 }
 
             }
@@ -186,7 +212,7 @@ public class SceneRule implements Serializable {
             .doOnNext(Variable::refactorPrefix);
     }
 
-    private String createBranchActionId(int branchIndex, int groupId, int actionIndex) {
+    static String createBranchActionId(int branchIndex, int groupId, int actionIndex) {
         return "branch_" + branchIndex + "_group_" + groupId + "_action_" + actionIndex;
     }
 
@@ -339,7 +365,7 @@ public class SceneRule implements Serializable {
 
         //传递数据到下级节点
         sceneNode.addConfiguration(AbstractExecutionContext.RECORD_DATA_TO_HEADER, true);
-        sceneNode.addConfiguration(AbstractExecutionContext.RECORD_DATA_TO_HEADER_KEY, "scene");
+        sceneNode.addConfiguration(AbstractExecutionContext.RECORD_DATA_TO_HEADER_KEY, CONTEXT_KEY_SCENE_OUTPUT);
 
         //触发器
         trigger.applyModel(model, sceneNode);
@@ -372,7 +398,7 @@ public class SceneRule implements Serializable {
                         RuleLink link = model.link(preNode, actionNode);
                         //设置上一个节点到此节点的输出条件
                         if (CollectionUtils.isNotEmpty(preAction.getTerms())) {
-                            link.setCondition(TermsConditionEvaluator.createCondition(preAction.getTerms()));
+                            link.setCondition(TermsConditionEvaluator.createCondition(trigger.refactorTerm("this", preAction.getTerms())));
                         }
                         preNode = actionNode;
                     }
@@ -419,11 +445,17 @@ public class SceneRule implements Serializable {
                                         RuleLink link = model.link(preNode, actionNode);
                                         //设置上一个节点到此节点的输出条件
                                         if (CollectionUtils.isNotEmpty(preAction.getTerms())) {
-                                            link.setCondition(TermsConditionEvaluator.createCondition(preAction.getTerms()));
+                                            link.setCondition(TermsConditionEvaluator.createCondition(trigger.refactorTerm("this", preAction.getTerms())));
                                         }
+                                    } else if (trigger.getType() == TriggerType.manual) {
+                                        model.link(sceneNode, actionNode);
                                     }
 
                                     preNode = actionNode;
+                                } else {
+                                    if (trigger.getType() == TriggerType.manual) {
+                                        model.link(sceneNode, actionNode);
+                                    }
                                 }
 
                                 model.getNodes().add(actionNode);

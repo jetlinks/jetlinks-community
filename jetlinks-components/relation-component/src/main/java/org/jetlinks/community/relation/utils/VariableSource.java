@@ -41,6 +41,9 @@ public class VariableSource implements Serializable {
     @Schema(description = "关系,[source]为[relation]时不能为空")
     private VariableObjectSpec relation;
 
+    @Schema(description = "拓展信息")
+    private Map<String, Object> options;
+
     public Map<String, Object> toMap() {
         return FastBeanCopier.copy(this, new HashMap<>());
     }
@@ -136,7 +139,7 @@ public class VariableSource implements Serializable {
             return value;
         }
         if (getSource() == VariableSource.Source.upper) {
-            return  DefaultPropertyFeature.GLOBAL.getProperty(getUpperKey(), context);
+            return  DefaultPropertyFeature.GLOBAL.getProperty(getUpperKey(), context).orElse(null);
         }
         return value;
     }
@@ -196,15 +199,15 @@ public class VariableSource implements Serializable {
             .orElse(null);
     }
 
-    public static Map<String,Object> wrap(Map<String,Object> context){
-        Map<String, Object> vars = Maps.newLinkedHashMapWithExpectedSize(context.size());
+    public static Map<String, Object> wrap(Map<String, Object> def,Map<String, Object> context) {
+        Map<String, Object> vars = Maps.newLinkedHashMapWithExpectedSize(def.size());
 
-        for (Map.Entry<String, Object> entry : context.entrySet()) {
+        for (Map.Entry<String, Object> entry : def.entrySet()) {
             String key = entry.getKey();
             VariableSource source = VariableSource.of(entry.getValue());
             if (source.getSource() == VariableSource.Source.upper) {
                 //替换上游值,防止key冲突(source的key和上游的key一样)导致无法获取到真实到上游值
-                vars.put(key, VariableSource.fixed(VariableSource.getNestProperty(source.getUpperKey(), vars)));
+                vars.put(key, VariableSource.fixed(VariableSource.getNestProperty(source.getUpperKey(), context)));
             } else {
                 vars.put(key, source);
             }

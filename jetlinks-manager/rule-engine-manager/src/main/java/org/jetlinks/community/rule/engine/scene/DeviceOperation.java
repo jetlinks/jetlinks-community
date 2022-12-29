@@ -104,22 +104,22 @@ public class DeviceOperation {
         List<TermColumn> terms = new ArrayList<>(32);
         //服务器时间 // _now
         terms.add(TermColumn.of("_now",
-                                resolveI18n("message.scene_term_column_now", "服务器时间"),
-                                DateTimeType.GLOBAL,
-                                resolveI18n("message.scene_term_column_now_desc", "收到设备数据时,服务器的时间.")));
+            resolveI18n("message.scene_term_column_now", "服务器时间"),
+            DateTimeType.GLOBAL,
+            resolveI18n("message.scene_term_column_now_desc", "收到设备数据时,服务器的时间.")));
         //数据上报时间 // timestamp
         terms.add(TermColumn.of("timestamp",
-                                resolveI18n("message.scene_term_column_timestamp", "数据上报时间"),
-                                DateTimeType.GLOBAL,
-                                resolveI18n("message.scene_term_column_timestamp_desc", "设备上报的数据中指定的时间.")));
+            resolveI18n("message.scene_term_column_timestamp", "数据上报时间"),
+            DateTimeType.GLOBAL,
+            resolveI18n("message.scene_term_column_timestamp_desc", "设备上报的数据中指定的时间.")));
 
         //下发指令操作可以判断结果
         if (operator == Operator.readProperty
             || operator == Operator.writeProperty
             || operator == Operator.invokeFunction) {
             terms.add(TermColumn.of("success",
-                                    resolveI18n("message.scene_term_column_event_success", "执行是否成功"),
-                                    BooleanType.GLOBAL));
+                resolveI18n("message.scene_term_column_event_success", "场景触发是否成功"),
+                BooleanType.GLOBAL));
         }
         //属性相关
         if (operator == Operator.readProperty
@@ -128,31 +128,42 @@ public class DeviceOperation {
             terms.addAll(
                 this.createTerm(
                     metadata.getProperties(),
-                    (property, column) -> column.setChildren(createTermColumn("properties", property, true))));
+                    (property, column) -> column.setChildren(createTermColumn("properties", property, true, PropertyValueType
+                            .values())),
+                    LocaleUtils.resolveMessage("message.device_metadata_property", "属性"))
+            );
+        } else {
+            //其他操作只能获取属性的上一次的值
+            terms.addAll(
+                this.createTerm(
+                    metadata.getProperties(),
+                    (property, column) -> column.setChildren(createTermColumn("properties", property, true, PropertyValueType.last)),
+                    LocaleUtils.resolveMessage("message.device_metadata_property", "属性")));
         }
+
         //事件上报
-        else if (operator == Operator.reportEvent) {
+        if (operator == Operator.reportEvent) {
             terms.addAll(
                 this.createTerm(
                     metadata.getEvent(eventId)
                         .<List<PropertyMetadata>>map(event -> Collections
                             .singletonList(
                                 of("data",
-                                   event.getName(),
-                                   event.getType())
+                                    event.getName(),
+                                    event.getType())
                             ))
                         .orElse(Collections.emptyList()),
                     (property, column) -> column.setChildren(createTermColumn("event", property, false))));
         }
         //调用功能
-        else if (operator == Operator.invokeFunction) {
+        if (operator == Operator.invokeFunction) {
             terms.addAll(
                 this.createTerm(
                     metadata.getFunction(functionId)
                         .<List<PropertyMetadata>>map(meta -> Collections.singletonList(
                             of("output",
-                               meta.getName(),
-                               meta.getOutput()))
+                                meta.getName(),
+                                meta.getOutput()))
                         )
                         .orElse(Collections.emptyList()),
                     (property, column) -> column.setChildren(createTermColumn("function", property, false))));
@@ -182,7 +193,7 @@ public class DeviceOperation {
         return joiner.toString();
     }
 
-    private List<TermColumn> createTermColumn(String prefix, PropertyMetadata property, boolean last) {
+    private List<TermColumn> createTermColumn(String prefix, PropertyMetadata property, boolean last, PropertyValueType... valueTypes) {
         //对象类型嵌套
         if (property.getValueType() instanceof ObjectType) {
             ObjectType objType = ((ObjectType) property.getValueType());
@@ -191,38 +202,44 @@ public class DeviceOperation {
                 (prop, column) -> {
                     String _prefix = prefix == null ? property.getId() : prefix + "." + property.getId();
                     if (!last && !(prop.getValueType() instanceof ObjectType)) {
-                        TermColumn term = createTermColumn(_prefix, prop, false).get(0);
+                        TermColumn term = createTermColumn(_prefix, prop, false, valueTypes).get(0);
                         column.setColumn(term.getColumn());
                         column.setName(term.getName());
                     } else {
-                        column.setChildren(createTermColumn(_prefix, prop, last));
+                        column.setChildren(createTermColumn(_prefix, prop, last, valueTypes));
                     }
                 });
+
         } else {
             if (!last) {
                 return Collections.singletonList(
                     TermColumn.of(appendColumn(prefix, property.getId()),
-                                  property.getName(), property.getValueType())
-                              .withMetrics(property)
+                            property.getName(), property.getValueType())
+                        .withMetrics(property)
+                        .withMetadataTrue()
                 );
             }
             return Arrays
-                .stream(PropertyValueType.values())
+                .stream(valueTypes)
                 .map(type -> TermColumn
                     .of(appendColumn(prefix, property.getId(), type.name()), type.getName(), property.getValueType())
-                    .withMetrics(property))
+                    .withMetrics(property)
+                    .withMetadataTrue()
+                )
                 .collect(Collectors.toList());
 
         }
     }
 
     private List<TermColumn> createTerm(List<PropertyMetadata> metadataList,
-                                        BiConsumer<PropertyMetadata, TermColumn> consumer) {
+                                        BiConsumer<PropertyMetadata, TermColumn> consumer,
+                                        String... description) {
         List<TermColumn> columns = new ArrayList<>(metadataList.size());
         for (PropertyMetadata metadata : metadataList) {
             TermColumn column = TermColumn.of(metadata);
+            column.setDescription(String.join("", description));
             consumer.accept(metadata, column);
-            columns.add(column);
+            columns.add(column.withMetadataTrue());
         }
         return columns;
     }
@@ -239,17 +256,17 @@ public class DeviceOperation {
                 return;
             case readProperty:
                 Assert.notEmpty(readProperties,
-                                "error.scene_rule_trigger_device_operation_read_property_cannot_be_empty");
+                    "error.scene_rule_trigger_device_operation_read_property_cannot_be_empty");
                 return;
             case writeProperty:
                 Assert.notEmpty(writeProperties,
-                                "error.scene_rule_trigger_device_operation_write_property_cannot_be_empty");
+                    "error.scene_rule_trigger_device_operation_write_property_cannot_be_empty");
                 return;
             case invokeFunction:
                 Assert.hasText(functionId,
-                               "error.scene_rule_trigger_device_operation_function_id_cannot_be_null");
+                    "error.scene_rule_trigger_device_operation_function_id_cannot_be_null");
                 Assert.notEmpty(functionParameters,
-                                "error.scene_rule_trigger_device_operation_function_parameter_cannot_be_empty");
+                    "error.scene_rule_trigger_device_operation_function_parameter_cannot_be_empty");
         }
     }
 

@@ -63,14 +63,11 @@ public class AlarmHandleHistoryEntity extends GenericEntity<String> implements R
     )
     private Long createTime;
 
-    public static AlarmHandleHistoryEntity of(String alarmRecordId,
-                                              String alarmConfigId,
-                                              Long alarmTime,
-                                              AlarmHandleInfo handleInfo) {
+    public static AlarmHandleHistoryEntity of(AlarmHandleInfo handleInfo) {
         AlarmHandleHistoryEntity entity = new AlarmHandleHistoryEntity();
-        entity.setAlarmId(alarmConfigId);
-        entity.setAlarmRecordId(alarmRecordId);
-        entity.setAlarmTime(alarmTime);
+        entity.setAlarmId(handleInfo.getAlarmConfigId());
+        entity.setAlarmRecordId(handleInfo.getAlarmRecordId());
+        entity.setAlarmTime(handleInfo.getAlarmTime());
         entity.setHandleType(handleInfo.getType());
         entity.setDescription(handleInfo.getDescribe());
         entity.setHandleTime(handleInfo.getHandleTime() == null ? System.currentTimeMillis() : handleInfo.getHandleTime());

@@ -55,7 +55,7 @@ public interface AlarmRuleHandler {
         @Schema(description = "告警名称")
         private String alarmName;
 
-        @Schema(description = "当前是否正在告警")
+        @Schema(description = "是否重复告警")
         private boolean alarming;
 
         @Schema(description = "当前首次触发")
@@ -79,12 +79,24 @@ public interface AlarmRuleHandler {
         @Schema(description = "告警目标名称")
         private String targetName;
 
+        @Schema(description = "告警来源类型")
+        private String sourceType;
+
+        @Schema(description = "告警来源ID")
+        private String sourceId;
+
+        @Schema(description = "告警来源名称")
+        private String sourceName;
+
 
         public Result copyWith(AlarmTargetInfo targetInfo) {
             Result result = FastBeanCopier.copy(this, new Result());
             result.setTargetType(targetInfo.getTargetType());
             result.setTargetId(targetInfo.getTargetId());
             result.setTargetName(targetInfo.getTargetName());
+            result.setSourceType(targetInfo.getSourceType());
+            result.setSourceId(targetInfo.getSourceId());
+            result.setSourceName(targetInfo.getSourceName());
             return result;
         }
 
@@ -99,9 +111,14 @@ public interface AlarmRuleHandler {
             map.put(ConfigKey.level, level);
             map.put(ConfigKey.alarmTime, alarmTime);
             map.put(ConfigKey.lastAlarmTime, lastAlarmTime);
+
             map.put(ConfigKey.targetType, targetType);
             map.put(ConfigKey.targetId, targetId);
             map.put(ConfigKey.targetName, targetName);
+
+            map.put(ConfigKey.sourceType, sourceType);
+            map.put(ConfigKey.sourceId, sourceId);
+            map.put(ConfigKey.sourceName, sourceName);
 
             return map;
         }

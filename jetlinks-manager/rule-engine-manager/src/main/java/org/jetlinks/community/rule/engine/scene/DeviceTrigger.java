@@ -9,21 +9,22 @@ import org.hswebframework.ezorm.rdb.executor.PrepareSqlRequest;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.AbstractTermsFragmentBuilder;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments;
-import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.TimerSpec;
+import org.jetlinks.community.reactorql.term.TermType;
+import org.jetlinks.community.reactorql.term.TermTypeSupport;
+import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.rule.engine.executor.device.SelectorValue;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
-import org.jetlinks.community.rule.engine.scene.term.TermTypeSupport;
-import org.jetlinks.community.rule.engine.scene.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.value.TermValue;
 import org.jetlinks.reactor.ql.DefaultReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQL;
@@ -57,9 +58,6 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
     @NotNull(message = "error.scene_rule_trigger_device_operation_cannot_be_null")
     private DeviceOperation operation;
 
-    @Schema(description = "拓展信息")
-    private Map<String,Object> options;
-
     public SqlRequest createSql(List<Term> terms) {
         return createSql(terms, true);
     }
@@ -86,6 +84,10 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
         selectColumns.add("this.headers.deviceName \"deviceName\"");
         selectColumns.add("this.headers.productId \"productId\"");
         selectColumns.add("this.headers.productName \"productName\"");
+        //触发源信息
+        selectColumns.add("'device' \"" + SceneRule.SOURCE_TYPE_KEY + "\"");
+        selectColumns.add("this.deviceId \"" + SceneRule.SOURCE_ID_KEY + "\"");
+        selectColumns.add("this.deviceName \"" + SceneRule.SOURCE_NAME_KEY + "\"");
         //消息唯一ID
         selectColumns.add("this.headers._uid \"_uid\"");
         //维度绑定信息,如部门等
@@ -255,43 +257,93 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
 
         @Override
         protected SqlFragments createTermFragments(DeviceTrigger trigger, Term term) {
+            if (!StringUtils.hasText(term.getColumn())) {
+                return EmptySqlFragments.INSTANCE;
+            }
             String termType = StringUtils.hasText(term.getTermType()) ? term.getTermType() : "is";
             TermTypeSupport support = TermTypes
                 .lookupSupport(termType)
                 .orElseThrow(() -> new UnsupportedOperationException("unsupported termType " + termType));
 
-            String[] arr = term.getColumn().split("[.]");
+            Term copy = refactorTermValue("t", term.clone());
 
-            String column;
-            if (arr.length > 3 && arr[0].equals("properties")) {
-                column = "t['" + createColumnAlias(term.getColumn(), false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
-            } else {
-                column = "t['" + createColumnAlias(term.getColumn(), false) + "']";
-            }
-
-            List<TermValue> values = TermValue.of(term);
-            if (values.size() == 0) {
-                return support.createSql(column, null);
-            }
-            Object val;
-            Function<TermValue, Object> parser = value -> {
-                if (value.getSource() == TermValue.Source.manual) {
-                    return value.getValue();
-                } else {
-                    return NativeSql.of("t." + arr[1] + "_metric_" + value.getMetric());
-                }
-            };
-            if (values.size() == 1) {
-                val = parser.apply(values.get(0));
-            } else {
-                val = values
-                    .stream()
-                    .map(parser)
-                    .collect(Collectors.toList());
-            }
-
-            return support.createSql(column, val);
+            return support.createSql(copy.getColumn(), copy.getValue(), term);
         }
+    }
+
+
+    static String createTermColumn(String tableName, String column) {
+        String[] arr = column.split("[.]");
+
+        // properties.xxx.last的场景
+        if (arr.length > 3 && arr[0].equals("properties")) {
+            column = tableName + "['" + createColumnAlias(column, false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
+        } else {
+            column = tableName + "['" + createColumnAlias(column, false) + "']";
+        }
+        return column;
+    }
+
+    static Term refactorTermValue(String tableName, Term term) {
+        if (term.getColumn() == null) {
+            return term;
+        }
+        String[] arr = term.getColumn().split("[.]");
+
+        List<TermValue> values = TermValue.of(term);
+        if (values.size() == 0) {
+            return term;
+        }
+
+        Function<TermValue, Object> parser = value -> {
+            //上游变量
+            if (value.getSource() == TermValue.Source.variable
+                || value.getSource() == TermValue.Source.upper) {
+                term.getOptions().add(TermType.OPTIONS_NATIVE_SQL);
+                return tableName + "['" + value.getValue() + "']";
+            }
+            //指标
+            else if (value.getSource() == TermValue.Source.metric) {
+                term.getOptions().add(TermType.OPTIONS_NATIVE_SQL);
+                return tableName + "['" + arr[1] + "_metric_" + value.getMetric() + "']";
+            }
+            //手动设置值
+            else {
+                return value.getValue();
+            }
+        };
+        Object val;
+        if (values.size() == 1) {
+            val = parser.apply(values.get(0));
+        } else {
+            val = values
+                .stream()
+                .map(parser)
+                .collect(Collectors.toList());
+        }
+
+        if (!term.getOptions().contains(TermType.OPTIONS_NATIVE_SQL)) {
+            String column;
+            // properties.xxx.last的场景
+            if (arr.length > 3 && arr[0].equals("properties")) {
+                column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
+            } else if (!isBranchTerm(arr[0])) {
+                column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "']";
+            } else {
+                column = term.getColumn();
+            }
+            term.setColumn(column);
+        }
+
+        term.setValue(val);
+
+        return term;
+    }
+
+    private static boolean isBranchTerm(String column) {
+        return column.startsWith("branch_") &&
+            column.contains("_group_")
+            && column.contains("_action_");
     }
 
     static String parseProperty(String column) {
@@ -330,7 +382,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
 
     static String createColumnAlias(String column, boolean wrapColumn) {
         if (!column.contains(".")) {
-            return wrapColumnName(column);
+            return wrapColumn ? wrapColumnName(column) : column;
         }
         String[] arr = column.split("[.]");
         String alias;
@@ -361,10 +413,19 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
 
     public List<Variable> createDefaultVariable() {
         return Arrays.asList(
-            Variable.of("deviceId", "设备ID").withOption(Variable.OPTION_PRODUCT_ID,productId),
-            Variable.of("deviceName", "设备名称"),
-            Variable.of("productId", "产品ID"),
+            Variable.of("deviceId", "设备ID")
+                    .withOption(Variable.OPTION_PRODUCT_ID, productId)
+                    .withTermType(TermTypes.lookup(StringType.GLOBAL))
+                    .withColumn("deviceId"),
+            Variable.of("deviceName", "设备名称")
+                    .withTermType(TermTypes.lookup(StringType.GLOBAL))
+                    .withColumn("deviceName"),
+            Variable.of("productId", "产品ID")
+                    .withTermType(TermTypes.lookup(StringType.GLOBAL))
+                    .withColumn("productId"),
             Variable.of("productName", "产品名称")
+                    .withTermType(TermTypes.lookup(StringType.GLOBAL))
+                    .withColumn("productName")
         );
     }
 

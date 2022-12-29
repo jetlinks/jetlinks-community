@@ -54,7 +54,7 @@ public class NotifierTaskExecutorProvider implements TaskExecutorProvider {
                                              properties.getNotifyType().getName(),
                                              properties.getNotifierId(),
                                              properties.getTemplateId());
-                }).then(Mono.empty());
+                }).thenReturn(context.newRuleData(input));
         }
 
         @Override
