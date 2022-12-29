@@ -1,15 +1,14 @@
 package org.jetlinks.community.utils;
 
-import lombok.Getter;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.AbstractTermsFragmentBuilder;
-import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
-import org.hswebframework.ezorm.rdb.operator.builder.fragments.PrepareSqlFragments;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.reactorql.term.FixedTermTypeSupport;
+import org.jetlinks.community.reactorql.term.TermTypeSupport;
+import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.core.metadata.Jsonable;
-import org.jetlinks.core.metadata.types.*;
 import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.reactor.ql.ReactorQL;
@@ -20,7 +19,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -28,10 +29,9 @@ import java.util.function.Function;
  * 响应式相关工具类
  *
  * @author zhouhao
- * @since 2.0
+ * @since 1.12
  */
 public class ReactorUtils {
-
 
     public static <T> Function<Flux<T>, Flux<T>> limit(Long pageIndex, Long pageSize) {
         if (pageIndex == null || pageSize == null) {
@@ -130,7 +130,7 @@ public class ReactorUtils {
 
         SqlRequest request = fragments.toRequest();
 
-        String sql = "select 1 from dual where " + request.getSql();
+        String sql = "select 1 from t where " + request.getSql();
         String nativeSql = request.toNativeSql();
         try {
             ReactorQL ql = ReactorQL.builder().sql(sql).build();
@@ -173,105 +173,37 @@ public class ReactorUtils {
             switch (termType) {
                 case "is":
                 case "=":
-                    termType = "eq";
+                    termType = FixedTermTypeSupport.eq.name();
                     break;
                 case ">":
-                    termType = "gt";
+                    termType = FixedTermTypeSupport.gt.name();
                     break;
                 case ">=":
-                    termType = "gte";
+                    termType = FixedTermTypeSupport.gte.name();
                     break;
                 case "<":
-                    termType = "lt";
+                    termType = FixedTermTypeSupport.lt.getName();
                     break;
                 case "<=":
-                    termType = "lte";
+                    termType = FixedTermTypeSupport.lte.getName();
                     break;
                 case "!=":
                 case "<>":
-                    termType = "neq";
+                    termType = FixedTermTypeSupport.neq.getName();
                     break;
             }
-            try {
-                TermTypeSupport support = TermTypeSupport.valueOf(termType);
-                return support.createSql("this['" + term.getColumn() + "']", term.getValue());
-            } catch (Throwable e) {
-                throw new IllegalArgumentException("unsupported termType " + term.getTermType(), e);
+
+            TermTypeSupport support = TermTypes.lookupSupport(termType).orElse(null);
+            if (support == null) {
+                throw new UnsupportedOperationException("unsupported termType " + term.getTermType());
             }
+            String column = term.getColumn();
+            if (!column.contains("[") && !column.contains("'")) {
+                column = "this['" + column + "']";
+            }
+            return support.createSql(column, term.getValue(), term);
+
         }
-    }
-
-    @Getter
-    enum TermTypeSupport {
-
-        eq("等于", "eq"),
-        neq("不等于", "neq"),
-
-        gt("大于", "gt", DateTimeType.ID, IntType.ID, FloatType.ID, DoubleType.ID),
-        gte("大于等于", "gte", DateTimeType.ID, IntType.ID, FloatType.ID, DoubleType.ID),
-        lt("小于", "lt", DateTimeType.ID, IntType.ID, FloatType.ID, DoubleType.ID),
-        lte("小于等于", "lte", DateTimeType.ID, IntType.ID, FloatType.ID, DoubleType.ID),
-
-        btw("在...之间", "btw", DateTimeType.ID, IntType.ID, FloatType.ID, DoubleType.ID) {
-            @Override
-            protected Object convertValue(Object val) {
-                return val;
-            }
-        },
-        nbtw("不在...之间", "nbtw", DateTimeType.ID, IntType.ID, FloatType.ID, DoubleType.ID) {
-            @Override
-            protected Object convertValue(Object val) {
-                return val;
-            }
-        },
-        in("在...之中", "in", StringType.ID, IntType.ID, FloatType.ID, DoubleType.ID) {
-            @Override
-            protected Object convertValue(Object val) {
-                return val;
-            }
-        },
-        nin("不在...之中", "not in", StringType.ID, IntType.ID, FloatType.ID, DoubleType.ID) {
-            @Override
-            protected Object convertValue(Object val) {
-                return val;
-            }
-        },
-
-        like("包含字符", "str_like", StringType.ID),
-        nlike("不包含字符", "not str_like", StringType.ID),
-
-        ;
-
-        private final String text;
-        private final Set<String> supportTypes;
-        private final String function;
-
-        TermTypeSupport(String text, String function, String... supportTypes) {
-            this.text = text;
-            this.function = function;
-            this.supportTypes = new HashSet<>(Arrays.asList(supportTypes));
-        }
-
-        protected Object convertValue(Object val) {
-
-            return val;
-        }
-
-        public final SqlFragments createSql(String column, Object value) {
-            PrepareSqlFragments fragments = PrepareSqlFragments.of();
-            fragments.addSql(function + "(", column, ",");
-            if (value instanceof NativeSql) {
-                fragments
-                    .addSql(((NativeSql) value).getSql())
-                    .addParameter(((NativeSql) value).getParameters());
-            } else {
-                fragments.addSql("?")
-                         .addParameter(convertValue(value));
-            }
-            fragments.addSql(")");
-            return fragments;
-        }
-
     }
 
 }

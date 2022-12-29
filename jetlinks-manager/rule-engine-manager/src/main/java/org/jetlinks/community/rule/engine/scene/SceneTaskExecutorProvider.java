@@ -11,6 +11,7 @@ import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.trace.TraceHolder;
 import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.community.PropertyConstants;
+import org.jetlinks.community.rule.engine.RuleEngineConstants;
 import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
@@ -26,6 +27,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Slf4j
 @AllArgsConstructor
@@ -88,6 +90,20 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
             this.rule = sceneRule;
         }
 
+        private Object getDataId(Map<String, Object> data) {
+            Object id;
+            Object header = data.get("headers");
+            if (header instanceof Map) {
+                id = ((Map<?, ?>) header).get(PropertyConstants.uid.getKey());
+            } else {
+                id = data.get(PropertyConstants.uid.getKey());
+            }
+            if (null == id) {
+                id = IDGenerator.RANDOM.generate();
+            }
+            return id;
+        }
+
         private ReactorQLContext createReactorQLContext() {
             return ReactorQLContext
                 .ofDatasource(table -> {
@@ -96,13 +112,7 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                         return this
                             .subscribe(table)
                             //有效期去重,同一个设备在多个部门的场景下,可能收到2条相同的数据问题
-                            .as(FluxUtils.distinct(map -> {
-                                Object id = map.get(PropertyConstants.uid.getKey());
-                                if (null == id) {
-                                    id = IDGenerator.SNOW_FLAKE_STRING.generate();
-                                }
-                                return id;
-                            }, Duration.ofSeconds(1)));
+                            .as(FluxUtils.distinct(this::getDataId, Duration.ofSeconds(1)));
                     } else {
                         //来自上游(定时等)
                         return context
@@ -152,7 +162,7 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                 return rule
                     .createBranchHandler(
                         source,
-                        (idx,nodeId, data) -> {
+                        (idx, nodeId, data) -> {
                             if (log.isDebugEnabled()) {
                                 log.debug("scene [{}] branch [{}] execute", rule.getId(), nodeId);
                             }
@@ -193,25 +203,17 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                         .topics(topic)
                         .subscriberId("scene:" + rule.getId())
                         .build())
-                .<Map<String, Object>>handle((topicPayload, synchronousSink) -> {
+                .handle((topicPayload, synchronousSink) -> {
                     try {
                         synchronousSink.next(topicPayload.bodyToJson(true));
                     } catch (Throwable err) {
                         log.warn("decode payload error {}", topicPayload.getTopic(), err);
                     }
-                })
-                //有效期去重,同一个设备在多个部门的场景下,可能收到2条相同的数据问题
-                .as(FluxUtils.distinct(map -> {
-                    Object id = map.get(PropertyConstants.uid.getKey());
-                    if (null == id) {
-                        id = IDGenerator.SNOW_FLAKE_STRING.generate();
-                    }
-                    return id;
-                }, Duration.ofSeconds(5)));
+                });
         }
 
-        private Mono<Void> handleOutput(RuleData data) {
 
+        private Mono<Void> handleOutput(RuleData data) {
             return data
                 .dataToMap()
                 .filterWhen(map -> {
@@ -242,6 +244,19 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
 
         @Override
         public Mono<Void> execute(RuleData ruleData) {
+            //分支
+            if (CollectionUtils.isNotEmpty(rule.getBranches())) {
+                if (log.isDebugEnabled()) {
+                    log.debug("scene [{}] execute", rule.getId());
+                }
+                RuleData newData = context.newRuleData(ruleData);
+                return context
+                    .getOutput()
+                    .write(newData)
+                    .onErrorResume(err -> context.onError(err, ruleData))
+                    .as(tracer())
+                    .then();
+            }
             return handleOutput(ruleData);
         }
     }

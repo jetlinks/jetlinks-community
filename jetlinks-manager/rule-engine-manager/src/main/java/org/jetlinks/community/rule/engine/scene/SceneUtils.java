@@ -25,9 +25,6 @@ public class SceneUtils {
      */
     public static List<Variable> parseVariable(List<Term> terms,
                                                List<TermColumn> columns) {
-//        if (CollectionUtils.isEmpty(terms)) {
-//            return Collections.emptyList();
-//        }
         //平铺条件
         Map<String, Term> termCache = expandTerm(terms);
 
@@ -64,15 +61,14 @@ public class SceneUtils {
                                                    TermColumn column,
                                                    Function<String, Term> termSupplier) {
         List<Variable> variables = new ArrayList<>(1);
-        String variableName = prefixName == null ? column.getName() : prefixName + "_" + column.getName();
+        String variableName = column.getName(); //prefixName == null ? column.getName() : prefixName + "/" + column.getName();
 
         if (CollectionUtils.isEmpty(column.getChildren())) {
             Term term = termSupplier.apply(column.getColumn());
+            variables.add(Variable.of(column.getVariable("_"), variableName)
+                                  .with(column)
+            );
             if (term != null) {
-                //有条件的数据会有别名 以_分隔
-                variables.add(Variable
-                                  .of(column.getVariable("_"), variableName)
-                                  .withType(column.getDataType()));
                 List<TermValue> termValues = TermValue.of(term);
                 String property = column.getPropertyOrNull();
                 for (TermValue termValue : termValues) {
@@ -80,18 +76,25 @@ public class SceneUtils {
                     if (property != null && metric != null && termValue.getSource() == TermValue.Source.metric) {
                         // temp_metric
                         variables.add(Variable.of(
-                            property + "_metric_" + termValue.getMetric(),
-                            (prefixName == null ? column.getName() : prefixName) + "_指标_" + metric.getName()));
+                                                  property + "_metric_" + termValue.getMetric(),
+                                                  (prefixName == null ? column.getName() : prefixName) + "_指标_" + metric.getName())
+                                              .withTermType(column.getTermTypes())
+                                              .withColumn(column.getColumn())
+                                              .withMetadata(column.isMetadata())
+                        );
                     }
                 }
-            } else {
-                //没有条件,没有别名
-                variables.add(Variable.of(column.getVariable("."), variableName));
             }
 
         } else {
+            Variable variable = Variable.of(column.getColumn(), column.getName());
+            List<Variable> children = new ArrayList<>();
+            variable.setChildren(children);
+            variable.with(column);
+
+            variables.add(variable);
             for (TermColumn child : column.getChildren()) {
-                variables.addAll(columnToVariable(variableName, child, termSupplier));
+                children.addAll(columnToVariable(column.getName(), child, termSupplier));
             }
         }
         return variables;

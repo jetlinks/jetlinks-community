@@ -2,20 +2,24 @@ package org.jetlinks.community.rule.engine.service;
 
 import lombok.AllArgsConstructor;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
+import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.rule.engine.alarm.AlarmHandleInfo;
-import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
-import org.jetlinks.community.rule.engine.entity.AlarmHandleHistoryEntity;
-import org.jetlinks.community.rule.engine.entity.SceneEntity;
+import org.jetlinks.community.rule.engine.entity.*;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -30,29 +34,66 @@ public class AlarmConfigService extends GenericReactiveCrudService<AlarmConfigEn
 
     private final ReactiveRepository<AlarmHandleHistoryEntity, String> handleHistoryRepository;
 
+    private final SceneService sceneService;
 
     /**
      * 处理告警
      *
-     * @param id         告警记录ID
-     * @param handleInfo 处理信息
+     * @param info 告警处理信息
      */
-    public Mono<Void> handleAlarm(String id, AlarmHandleInfo handleInfo) {
+    public Mono<Void> handleAlarm(AlarmHandleInfo info){
         return alarmRecordService
-            .findById(id)
-            .flatMap(alarmRecord -> alarmRecordService
-                .changeRecordState(handleInfo.getState(), handleInfo.getId())
-                .then(handleHistoryRepository
-                          .save(AlarmHandleHistoryEntity.of(handleInfo.getId(),
-                                                            alarmRecord.getAlarmConfigId(),
-                                                            alarmRecord.getAlarmTime(),
-                                                            handleInfo)))
-                .then());
+            .changeRecordState(info.getState(), info.getAlarmRecordId())
+            .flatMap(total-> {
+                if (total > 0){
+                    return handleHistoryRepository
+                        .save(AlarmHandleHistoryEntity.of(info));
+                }else {
+                    return Mono.error(new BusinessException("error.the_alarm_record_has_been_processed"));
+                }
+            })
+            .then();
+    }
+
+
+    public Mono<PagerResult<AlarmConfigDetail>> queryDetailPager(QueryParamEntity query) {
+        return this
+            .queryPager(query)
+            .flatMap(result -> Flux
+                .fromIterable(result.getData())
+                .index()
+                .flatMap(tp2 -> this
+                    // 转换为详情
+                    .convertDetail(tp2.getT2())
+                    .map(detail -> Tuples.of(tp2.getT1(), detail)))
+                // 重新排序,因为转为详情是异步的可能导致顺序乱掉
+                .sort(Comparator.comparingLong(Tuple2::getT1))
+                .map(Tuple2::getT2)
+                .collectList()
+                .map(detail -> PagerResult.of(result.getTotal(), detail, query)));
+    }
+
+    /**
+     * 转换为详情信息
+     *
+     * @param entity 告警配置
+     * @return 告警配置详情
+     */
+    private Mono<AlarmConfigDetail> convertDetail(AlarmConfigEntity entity) {
+        return sceneService
+            .createQuery()
+            .and(SceneEntity::getId, "alarm-bind-rule", entity.getId())
+            .fetch()
+            .collectList()
+            .map(sceneInfo -> AlarmConfigDetail
+                .of(entity)
+                .withScene(sceneInfo));
     }
 
 
     //同步场景修改后的数据到告警配置中
     @EventListener
+    @Deprecated
     public void handleSceneSaved(EntitySavedEvent<SceneEntity> event) {
         event.async(Mono.defer(() -> Flux
             .fromIterable(event.getEntity())
@@ -62,6 +103,7 @@ public class AlarmConfigService extends GenericReactiveCrudService<AlarmConfigEn
 
     //同步场景修改后的数据到告警配置中
     @EventListener
+    @Deprecated
     public void handleSceneSaved(EntityModifyEvent<SceneEntity> event) {
 
         Map<String, SceneEntity> before = event
@@ -82,7 +124,7 @@ public class AlarmConfigService extends GenericReactiveCrudService<AlarmConfigEn
         );
     }
 
-
+    @Deprecated
     public Mono<Void> updateByScene(SceneEntity entity) {
         return createUpdate()
             .set(AlarmConfigEntity::getSceneName, entity.getName())

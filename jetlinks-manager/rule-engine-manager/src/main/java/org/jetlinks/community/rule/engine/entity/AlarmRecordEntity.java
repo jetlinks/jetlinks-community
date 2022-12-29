@@ -3,12 +3,12 @@ package org.jetlinks.community.rule.engine.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
+import org.hswebframework.web.utils.DigestUtils;
 import org.jetlinks.community.rule.engine.enums.AlarmRecordState;
 
 import javax.persistence.Column;
@@ -45,6 +45,19 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     @Schema(description = "告警目标名称")
     private String targetName;
 
+    @Column(length = 32)
+    @Schema(description = "告警源类型")
+    private String sourceType;
+
+    @Column(length = 64)
+    @Schema(description = "告警源Id")
+    private String sourceId;
+
+    @Column
+    @Schema(description = "告警源名称")
+    private String sourceName;
+
+
     @Column
     @Schema(description = "最近一次告警时间")
     private Long alarmTime;
@@ -70,12 +83,12 @@ public class AlarmRecordEntity extends GenericEntity<String> {
 
     public String getTargetKey() {
         if (targetKey == null) {
-            generateKey();
+            generateTargetKey();
         }
         return targetKey;
     }
 
-    public void generateKey() {
+    public void generateTargetKey() {
         setTargetKey(generateId(targetId, targetType));
     }
 
@@ -89,4 +102,3 @@ public class AlarmRecordEntity extends GenericEntity<String> {
 
 
 }
-

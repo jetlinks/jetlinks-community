@@ -7,8 +7,6 @@ import org.jetlinks.community.rule.engine.enums.AlarmRecordState;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.util.Date;
-
 @Service
 @AllArgsConstructor
 public class AlarmRecordService extends GenericReactiveCrudService<AlarmRecordEntity, String> {
@@ -19,13 +17,13 @@ public class AlarmRecordService extends GenericReactiveCrudService<AlarmRecordEn
      * @param id 告警记录ID
      * @return
      */
-    public Mono<Void> changeRecordState(AlarmRecordState state, String id) {
+    public Mono<Integer> changeRecordState(AlarmRecordState state, String id) {
         return createUpdate()
             .set(AlarmRecordEntity::getState, state)
-            .set(AlarmRecordEntity::getAlarmTime, new Date())
+            .set(AlarmRecordEntity::getHandleTime, System.currentTimeMillis())
             .where(AlarmRecordEntity::getId, id)
-            .execute()
-            .then();
+            .not(AlarmRecordEntity::getState, state)
+            .execute();
     }
 
 

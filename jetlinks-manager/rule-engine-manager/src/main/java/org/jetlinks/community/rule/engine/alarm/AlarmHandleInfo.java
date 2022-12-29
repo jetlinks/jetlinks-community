@@ -16,12 +16,21 @@ import javax.validation.constraints.NotBlank;
 public class AlarmHandleInfo {
 
     @Schema(description = "告警记录ID")
-    private String id;
+    @NotBlank
+    private String alarmRecordId;
+
+    @Schema(description = "告警ID")
+    @NotBlank
+    private String alarmConfigId;
+
+    @Schema(description = "告警时间")
+    @NotBlank
+    private Long alarmTime;
 
     @Schema(description = "处理说明")
     private String describe;
 
-    @Schema(description = "处理说明")
+    @Schema(description = "处理时间")
     private Long handleTime;
 
     @NotBlank
@@ -29,6 +38,7 @@ public class AlarmHandleInfo {
     private AlarmHandleType type;
 
     @Schema(description = "处理后的状态")
+    @NotBlank
     private AlarmRecordState state;
 
 

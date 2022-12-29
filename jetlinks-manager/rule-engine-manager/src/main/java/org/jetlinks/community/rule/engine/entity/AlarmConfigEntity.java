@@ -45,10 +45,12 @@ public class AlarmConfigEntity extends GenericEntity<String> implements RecordCr
 
     @Column(length = 128)
     @Schema(description = "关联场景名称")
+    @Deprecated
     private String sceneName;
 
     @Column(length = 64)
     @Schema(description = "关联场景Id")
+    @Deprecated
     private String sceneId;
 
     @Column(length = 32, nullable = false)

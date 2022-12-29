@@ -17,6 +17,7 @@ import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -41,16 +42,18 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
         return elasticSearchService.queryPager(RuleEngineLoggerIndexProvider.RULE_LOG, queryParam, RuleEngineExecuteLogInfo.class);
     }
 
+    @Transactional
     public Mono<Void> stop(String id) {
         return this.ruleEngine
             .shutdown(id)
             .then(createUpdate()
-                      .set(RuleInstanceEntity::getState, RuleInstanceState.stopped)
+                      .set(RuleInstanceEntity::getState, RuleInstanceState.disable)
                       .where(RuleInstanceEntity::getId, id)
                       .execute())
             .then();
     }
 
+    @Transactional
     public Mono<Void> start(String id) {
         return findById(Mono.just(id))
             .flatMap(this::doStart);

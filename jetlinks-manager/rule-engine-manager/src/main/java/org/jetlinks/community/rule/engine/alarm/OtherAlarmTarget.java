@@ -1,6 +1,5 @@
 package org.jetlinks.community.rule.engine.alarm;
 
-import org.jetlinks.community.rule.engine.scene.SceneData;
 import reactor.core.publisher.Flux;
 
 /**
@@ -22,10 +21,9 @@ public class OtherAlarmTarget implements AlarmTarget {
     @Override
     public Flux<AlarmTargetInfo> convert(AlarmData data) {
         return Flux.just(AlarmTargetInfo
-                             .of(data.getRuleId(),
+                             .of(data.getAlarmConfigId(),
                                  data.getRuleName(),
                                  getType()));
     }
-
 
 }

@@ -14,6 +14,8 @@ import org.jetlinks.community.PropertyMetadataConstants;
 import org.jetlinks.community.PropertyMetric;
 import org.jetlinks.community.rule.engine.scene.DeviceOperation;
 import org.springframework.util.StringUtils;
+import org.jetlinks.community.reactorql.term.TermType;
+import org.jetlinks.community.reactorql.term.TermTypes;
 
 import java.util.*;
 import java.util.function.Function;
@@ -39,6 +41,9 @@ public class TermColumn {
     @Schema(description = "数据类型")
     private String dataType;
 
+    @Schema(description = "是否为物模型列")
+    private boolean metadata;
+
     /**
      * @see Term#getTermType()
      */
@@ -54,6 +59,10 @@ public class TermColumn {
     @Schema(description = "子列,在类型为object时有值")
     private List<TermColumn> children;
 
+    public TermColumn withMetadataTrue() {
+        metadata = true;
+        return this;
+    }
 
     public TermColumn copyColumn(Predicate<String> childrenPredicate) {
         TermColumn copy = FastBeanCopier.copy(this, new TermColumn());

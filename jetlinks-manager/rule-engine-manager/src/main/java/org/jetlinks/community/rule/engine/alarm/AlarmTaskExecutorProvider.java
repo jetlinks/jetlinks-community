@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.rule.engine.enums.AlarmMode;
@@ -23,6 +24,7 @@ import java.util.function.Function;
 
 @AllArgsConstructor
 @Component
+@Slf4j
 public class AlarmTaskExecutorProvider implements TaskExecutorProvider {
     public static final String executor = "alarm";
 
@@ -62,6 +64,7 @@ public class AlarmTaskExecutorProvider implements TaskExecutorProvider {
         protected Publisher<RuleData> apply(RuleData input) {
             return executor
                 .apply(input)
+                .doOnError(err -> log.warn("{} alarm error,rule:{}", config.mode, context.getInstanceId(), err))
                 .map(result -> context.newRuleData(input.newData(result.toMap())));
         }
 

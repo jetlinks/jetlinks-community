@@ -6,15 +6,19 @@ public interface AlarmConstants {
         String alarmConfigId = "alarmConfigId";
         String alarming = "alarming";
         String firstAlarm = "firstAlarm";
-        String alarmName = "name";
+        String alarmName = "alarmName";
         String level = "level";
         String ownerId = "ownerId";
-        String targetType = "targetType";
         String state = "state";
         String alarmTime = "alarmTime";
         String lastAlarmTime = "lastAlarmTime";
+
+        String targetType = "targetType";
         String targetId = "targetId";
         String targetName = "targetName";
 
+        String sourceType = "sourceType";
+        String sourceId = "sourceId";
+        String sourceName = "sourceName";
     }
 }

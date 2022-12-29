@@ -67,6 +67,8 @@ public class TermValue implements Serializable {
 
     public enum Source {
         manual,
-        metric
+        metric,
+        variable,
+        upper
     }
 }
