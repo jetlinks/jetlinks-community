@@ -1,0 +1,225 @@
+server:
+  port: 28848
+
+spring:
+  profiles:
+    active: beta
+  application:
+    name: jetlinks-platform
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: true
+    default-property-inclusion: non_null
+  web:
+    resources:
+      static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
+  redis:
+    host: iotbase
+    port: 6379
+    lettuce:
+      pool:
+        max-active: 256
+    timeout: 20s
+  #    database: 3
+  #        max-wait: 10s
+  r2dbc:
+    # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
+    url: r2dbc:mysql://iotbase:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
+    username: iotdev
+    password: 9W3d!xdb#hDkv&KEucC
+    pool:
+      max-size: 32
+      max-idle-time: 2m # 值不能大于mysql server的wait_timeout配置
+      max-life-time: 10m
+      acquire-retry: 3
+  reactor:
+    debug-agent:
+      enabled: false
+  elasticsearch:
+    uris: iotbase:9200
+    socket-timeout: 10s
+    connection-timeout: 15s
+    webclient:
+      max-in-memory-size: 100MB
+easyorm:
+  default-schema: jetlinks # 数据库默认的schema
+  dialect: mysql #数据库方言
+tdengine:
+  enabled: false
+  database: jetlinks
+  restful:
+    endpoints:
+      - http://localhost:6041/
+    username: root
+    password: taosdata
+elasticsearch:
+  embedded:
+    enabled: false # 为true时使用内嵌的elasticsearch,不建议在生产环境中使用
+    data-path: ./data/elasticsearch
+    port: 9200
+    host: 0.0.0.0
+  index:
+    default-strategy: time-by-month #默认es的索引按月进行分表, direct则为直接操作索引.
+    settings:
+      number-of-shards: 1 # es 分片数量
+      number-of-replicas: 0 # 副本数量
+device:
+  message:
+    writer:
+      time-series:
+        enabled: true #对设备数据进行持久化
+captcha:
+  enabled: false # 开启验证码
+  ttl: 2m #验证码过期时间,2分钟
+hsweb:
+  cors:
+    enable: true
+    configs:
+      - path: /**
+        allowed-headers: "*"
+        allowed-methods: [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ]
+        allowed-origins: [ "*" ] ## 生产环境请替换为具体的域名端口如: http://xxxxx
+        max-age: 1800
+  dict:
+    enum-packages: org.jetlinks
+  file:
+    upload:
+      static-file-path: ./static/upload
+      static-location: http://localhost:28848/upload
+  webflux:
+    response-wrapper:
+      enabled: true #开启响应包装器(将返回值包装为ResponseMessage)
+      excludes: # 这下包下的接口不包装
+        - org.springdoc
+  #  auth:   #默认的用户配置
+  #    users:
+  #      admin:
+  #        username: admin
+  #        password: admin
+  #        name: 超级管理员
+  authorize:
+    auto-parse: true
+  permission:
+    filter:
+      enabled: true # 设置为true开启权限过滤,赋权时,不能赋予比自己多的权限.
+      exclude-username: admin # admin用户不受上述限制
+      un-auth-strategy: ignore # error表示:发生越权时,抛出403错误. ignore表示会忽略越权的赋权.
+  cache:
+    type: redis
+    redis:
+      local-cache-type: guava
+file:
+  manager:
+    storage-base-path: ./data/files
+api:
+  # 访问api接口的根地址
+  base-path: http://127.0.0.1:${server.port}
+
+jetlinks:
+  server-id: ${spring.application.name}:${server.port} #设备服务网关服务ID,不同服务请设置不同的ID
+  logging:
+    system:
+      context:
+        server: ${spring.application.name}
+  protocol:
+    spi:
+      enabled: true # 为true时开启自动加载通过依赖引入的协议包
+logging:
+  level:
+    org.jetlinks: debug
+    rule.engine: debug
+    org.hswebframework: debug
+    org.springframework.transaction: debug
+    org.springframework.data.r2dbc.connectionfactory: warn
+    io.micrometer: warn
+    org.hswebframework.expands: debug
+    system: debug
+    org.jetlinks.rule.engine: warn
+    org.jetlinks.supports.event: debug
+    org.springframework: warn
+    org.jetlinks.community.device.message.writer: warn
+    org.jetlinks.community.timeseries.micrometer: warn
+    org.jetlinks.community.elastic.search.service.reactive: trace
+    org.jetlinks.community.network: warn
+    io.vertx.mqtt.impl: warn
+    org.jetlinks.supports.scalecube.rpc: warn
+    "org.jetlinks.community.buffer": debug
+    org.elasticsearch: error
+    org.elasticsearch.deprecation: off
+    "io.vertx.core.impl.ContextImpl": off
+  config: classpath:logback-spring.xml
+vertx:
+  max-event-loop-execute-time-unit: seconds
+  max-event-loop-execute-time: 30
+  max-worker-execute-time-unit: seconds
+  max-worker-execute-time: 30
+  prefer-native-transport: true
+micrometer:
+  time-series:
+    tags:
+      server: ${spring.application.name}
+    metrics:
+      default:
+        step: 30s
+system:
+  config:
+    scopes:
+      - id: front
+        name: 前端配置
+        public-access: true
+      - id: paths
+        name: 访问路径配置
+        public-access: true
+        properties:
+          - key: base-path
+            name: 接口根路径
+            default-value: http://59.36.146.21:1700/api
+      - id: amap
+        name: 高德地图配置
+        public-access: false
+        properties:
+          - key: apiKey # 配置id
+            name: 高德地图ApiKey # 名称
+management:
+  health:
+    elasticsearch:
+      enabled: false  # 关闭elasticsearch健康检查
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  #  packages-to-scan: org.jetlinks
+  group-configs:
+    - group: 设备管理相关接口
+      packages-to-scan:
+        - org.jetlinks.community.device
+      paths-to-exclude:
+        - /device-instance/**
+        - /device-product/**
+        - /protocol/**
+    - group: 规则引擎相关接口
+      packages-to-scan: org.jetlinks.community.rule.engine.web
+      paths-to-exclude: /api/**
+    - group: 通知管理相关接口
+      packages-to-scan: org.jetlinks.community.notify.manager.web
+    - group: 设备接入相关接口
+      packages-to-scan:
+        - org.jetlinks.community.network.manager.web
+        - org.jetlinks.community.device.web
+      paths-to-match:
+        - /gateway/**
+        - /network/**
+        - /protocol/**
+    - group: 系统管理相关接口
+      packages-to-scan:
+        - org.jetlinks.community.auth
+        - org.hswebframework.web.system.authorization.defaults.webflux
+        - org.hswebframework.web.file
+        - org.hswebframework.web.authorization.basic.web
+        - org.jetlinks.community.logging.controller
+  cache:
+    disabled: false
+network:
+  resources:
+    - 5900-5910

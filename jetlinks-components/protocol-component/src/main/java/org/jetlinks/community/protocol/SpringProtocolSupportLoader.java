@@ -7,6 +7,8 @@ import org.jetlinks.core.event.EventBus;
 import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoaderProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -22,11 +24,15 @@ import java.util.concurrent.ConcurrentHashMap;
 @Generated
 public class SpringProtocolSupportLoader implements ProtocolSupportLoader {
 
+    private static final Logger log = LoggerFactory.getLogger(SpringProtocolSupportLoader.class);
+
     private final Map<String, ProtocolSupportLoaderProvider> providers = new ConcurrentHashMap<>();
 
     private final EventBus eventBus;
 
     public void register(ProtocolSupportLoaderProvider provider) {
+        log.info("[ProtocolRegister]LoaderProvider {}={}", provider.getProvider(), provider);
+
         this.providers.put(provider.getProvider(), provider);
     }
 

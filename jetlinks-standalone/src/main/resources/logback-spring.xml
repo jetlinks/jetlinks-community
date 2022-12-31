@@ -60,6 +60,19 @@
         </root>
     </springProfile>
 
+    <springProfile name="beta">
+
+        <logger name="system" level="debug">
+            <appender-ref ref="LOGEventPublisher"/>
+        </logger>
+
+        <root level="DEBUG">
+            <appender-ref ref="AsyncConsoleAppender"/>
+            <appender-ref ref="ErrorLOGEventPublisher"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
     <springProfile name="test">
         <root level="INFO">
             <appender-ref ref="AsyncConsoleAppender"/>
