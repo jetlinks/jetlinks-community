@@ -21,7 +21,7 @@ import static org.jetlinks.community.network.manager.service.DeviceGatewayEventH
 @Service
 public class DeviceGatewayService extends GenericReactiveCrudService<DeviceGatewayEntity, String> {
 
-    public Mono<Integer> updateState(String id, NetworkConfigState state) {
+    public Mono<Integer> updateState(String id, DeviceGatewayState state) {
         return createUpdate()
             .where()
             .and(DeviceGatewayEntity::getId, id)

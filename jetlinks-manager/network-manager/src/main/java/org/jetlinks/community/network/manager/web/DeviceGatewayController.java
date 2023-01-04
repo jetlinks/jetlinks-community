@@ -13,6 +13,7 @@ import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.network.manager.enums.DeviceGatewayState;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.session.DeviceSessionInfo;
 import org.jetlinks.core.device.session.DeviceSessionManager;
@@ -59,7 +60,7 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
                               @Parameter(description = "网关ID") String id) {
         return gatewayManager
             .start(id)
-            .then(deviceGatewayService.updateState(id, NetworkConfigState.enabled))
+            .then(deviceGatewayService.updateState(id, DeviceGatewayState.enabled))
             .then();
     }
 
@@ -71,7 +72,7 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
         return gatewayManager
             .getGateway(id)
             .flatMap(DeviceGateway::pause)
-            .then(deviceGatewayService.updateState(id, NetworkConfigState.paused))
+            .then(deviceGatewayService.updateState(id, DeviceGatewayState.paused))
             .then();
     }
 
@@ -82,7 +83,7 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
                                @Parameter(description = "网关ID") String id) {
         return gatewayManager
             .shutdown(id)
-            .then(deviceGatewayService.updateState(id, NetworkConfigState.disabled).then());
+            .then(deviceGatewayService.updateState(id, DeviceGatewayState.disabled).then());
     }
 
     @GetMapping("/{id}/detail")
