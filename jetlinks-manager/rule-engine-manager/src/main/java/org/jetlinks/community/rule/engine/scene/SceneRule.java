@@ -66,9 +66,9 @@ public class SceneRule implements Serializable {
     private Trigger trigger;
 
     /**
-     * @see org.jetlinks.pro.rule.engine.scene.term.TermColumn
-     * @see org.jetlinks.pro.reactorql.term.TermType
-     * @see org.jetlinks.pro.rule.engine.scene.value.TermValue
+     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
+     * @see org.jetlinks.community.reactorql.term.TermType
+     * @see org.jetlinks.community.rule.engine.scene.value.TermValue
      */
     @Schema(description = "触发条件")
     private List<Term> terms;
