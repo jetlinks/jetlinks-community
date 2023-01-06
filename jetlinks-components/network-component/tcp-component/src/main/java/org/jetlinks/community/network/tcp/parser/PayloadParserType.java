@@ -22,10 +22,11 @@ public enum PayloadParserType implements EnumDict<String> {
      * @see ScriptPayloadParserBuilder
      * @see PipePayloadParser
      */
-    SCRIPT("自定义脚本")
+    SCRIPT("自定义脚本"),
+    LENGTH_FIELD("长度字段"),
     ;
 
-    private String text;
+    private final String text;
     @Override
     public String getValue() {
         return name();

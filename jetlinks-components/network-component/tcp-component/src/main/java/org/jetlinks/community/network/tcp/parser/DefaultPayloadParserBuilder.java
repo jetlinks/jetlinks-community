@@ -25,6 +25,7 @@ public class DefaultPayloadParserBuilder implements PayloadParserBuilder, BeanPo
         register(new DelimitedPayloadParserBuilder());
         register(new ScriptPayloadParserBuilder());
         register(new DirectPayloadParserBuilder());
+        register(new LengthFieldPayloadParserBuilder());
     }
     @Override
     public Supplier<PayloadParser> build(PayloadParserType type, ValueObject configuration) {
