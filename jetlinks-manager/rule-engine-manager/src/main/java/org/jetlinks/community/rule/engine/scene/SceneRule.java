@@ -250,7 +250,7 @@ public class SceneRule implements Serializable {
                         //多个并行执行动作
                         String[] nodeIds = new String[size];
                         for (int i = 0; i < nodeIds.length; i++) {
-                            nodeIds[0] = createBranchActionId(_branchIndex, thenIndex, 1 + (i + 1));
+                            nodeIds[i] = createBranchActionId(_branchIndex, thenIndex, 1 + (i + 1));
                         }
                         Flux<String> nodeIdFlux = Flux.fromArray(nodeIds);
                         //并行
