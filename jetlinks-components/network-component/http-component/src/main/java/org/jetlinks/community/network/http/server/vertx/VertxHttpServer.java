@@ -7,6 +7,7 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.http.server.HttpExchange;
 import org.jetlinks.community.network.http.server.HttpServer;
+import org.jetlinks.community.network.http.server.WebSocketExchange;
 import org.springframework.http.HttpStatus;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
@@ -36,6 +37,7 @@ public class VertxHttpServer implements HttpServer {
     private String id;
 
     private final Topic<FluxSink<HttpExchange>> route = Topic.createRoot();
+    private final Topic<FluxSink<WebSocketExchange>> websocketRoute = Topic.createRoot();
 
     @Getter
     @Setter
@@ -60,31 +62,57 @@ public class VertxHttpServer implements HttpServer {
         }
         this.httpServers = httpServers;
         for (io.vertx.core.http.HttpServer server : this.httpServers) {
-            server.requestHandler(request -> {
-                request.exceptionHandler(err -> {
-                    log.error(err.getMessage(), err);
+            server
+                .webSocketHandler(socket -> {
+                    socket.exceptionHandler(err -> {
+                        log.error(err.getMessage(), err);
+                    });
+
+                    String url = socket.path();
+                    if (url.endsWith("/")) {
+                        url = url.substring(0, url.length() - 1);
+                    }
+                    VertxWebSocketExchange exchange = new VertxWebSocketExchange(socket);
+
+                    websocketRoute
+                        .findTopic("/ws" + url)
+                        .flatMapIterable(Topic::getSubscribers)
+                        .doOnNext(sink -> sink.next(exchange))
+                        .switchIfEmpty(Mono.fromRunnable(() -> {
+
+                            log.warn("http server no handler for:[{}://{}{}]", socket.scheme(), socket.host(), socket.path());
+                            socket.reject(404);
+
+                        }))
+                        .subscribe();
+
+                })
+                .requestHandler(request -> {
+                    request.exceptionHandler(err -> {
+                        log.error(err.getMessage(), err);
+                    });
+
+                    VertxHttpExchange exchange = new VertxHttpExchange(request, config);
+
+                    String url = exchange.getUrl();
+                    if (url.endsWith("/")) {
+                        url = url.substring(0, url.length() - 1);
+                    }
+
+                    route.findTopic("/" + exchange.request().getMethod().name().toLowerCase() + url)
+                         .flatMapIterable(Topic::getSubscribers)
+                         .doOnNext(sink -> sink.next(exchange))
+                         .switchIfEmpty(Mono.fromRunnable(() -> {
+
+                             log.warn("http server no handler for:[{} {}://{}{}]", request.method(), request.scheme(), request.host(), request.path());
+                             request.response()
+                                    .setStatusCode(HttpStatus.NOT_FOUND.value())
+                                    .end();
+
+                         }))
+                         .subscribe();
+
                 });
-                VertxHttpExchange exchange = new VertxHttpExchange(request, config);
-
-                String url = exchange.getUrl();
-                if (url.endsWith("/")) {
-                    url = url.substring(0, url.length() - 1);
-                }
-
-                route.findTopic("/" + exchange.request().getMethod().name().toLowerCase() + url)
-                     .flatMapIterable(Topic::getSubscribers)
-                     .doOnNext(sink -> sink.next(exchange))
-                     .switchIfEmpty(Mono.fromRunnable(() -> {
-
-                         log.warn("http server no handler for:[{} {}://{}{}]", request.method(), request.scheme(), request.host(), request.path());
-                         request.response()
-                                .setStatusCode(HttpStatus.NOT_FOUND.value())
-                                .end();
-
-                     }))
-                     .subscribe();
-
-            });
             server.exceptionHandler(err -> log.error(err.getMessage(), err));
         }
     }
@@ -94,9 +122,17 @@ public class VertxHttpServer implements HttpServer {
         return handleRequest("*", "/**");
     }
 
+    @Override
+    public Flux<WebSocketExchange> handleWebsocket(String urlPattern) {
+        return createRoute(websocketRoute, "ws", urlPattern);
+    }
 
     @Override
     public Flux<HttpExchange> handleRequest(String method, String... urlPatterns) {
+        return createRoute(route, method, urlPatterns);
+    }
+
+    private <T> Flux<T> createRoute(Topic<FluxSink<T>> root, String prefix, String... urlPatterns) {
         return Flux.create(sink -> {
             Disposable.Composite disposable = Disposables.composite();
             for (String urlPattern : urlPatterns) {
@@ -116,9 +152,9 @@ public class VertxHttpServer implements HttpServer {
                 if (!pattern.startsWith("/")) {
                     pattern = "/".concat(pattern);
                 }
-                pattern = "/" + method + pattern;
+                pattern = "/" + prefix + pattern;
                 log.debug("handle http request : {}", pattern);
-                Topic<FluxSink<HttpExchange>> sub = route.append(pattern);
+                Topic<FluxSink<T>> sub = root.append(pattern);
                 sub.subscribe(sink);
                 disposable.add(() -> sub.unsubscribe(sink));
             }

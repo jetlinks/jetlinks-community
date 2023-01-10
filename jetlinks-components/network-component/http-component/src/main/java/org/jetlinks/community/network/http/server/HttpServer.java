@@ -38,6 +38,8 @@ public interface HttpServer extends ServerNetwork {
      */
     Flux<HttpExchange> handleRequest(String method, String... urlPattern);
 
+    Flux<WebSocketExchange> handleWebsocket(String urlPattern);
+
     default Flux<HttpExchange> handleRequest(HttpMethod method, String... urlPattern) {
         return handleRequest(method.name().toLowerCase(Locale.ROOT), urlPattern);
     }

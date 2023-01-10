@@ -1,10 +1,15 @@
 package org.jetlinks.community.network.http.device;
 
+import lombok.Setter;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.message.codec.http.websocket.DefaultWebSocketMessage;
+import org.jetlinks.core.message.codec.http.websocket.WebSocketMessage;
 import org.jetlinks.core.server.session.DeviceSession;
+import org.jetlinks.core.utils.Reactors;
+import org.jetlinks.community.network.http.server.WebSocketExchange;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
@@ -23,6 +28,9 @@ class HttpDeviceSession implements DeviceSession {
     private final DeviceOperator operator;
 
     private final InetSocketAddress address;
+
+    @Setter
+    private WebSocketExchange websocket;
 
     private long lastPingTime = System.currentTimeMillis();
 
@@ -62,7 +70,18 @@ class HttpDeviceSession implements DeviceSession {
 
     @Override
     public Mono<Boolean> send(EncodedMessage encodedMessage) {
-        return Mono.just(false);
+        if(websocket==null){
+            return Reactors.ALWAYS_FALSE;
+        }
+        if (encodedMessage instanceof WebSocketMessage) {
+            return websocket
+                .send(((WebSocketMessage) encodedMessage))
+                .thenReturn(true);
+        } else {
+            return websocket
+                .send(DefaultWebSocketMessage.of(WebSocketMessage.Type.TEXT, encodedMessage.getPayload()))
+                .thenReturn(true);
+        }
     }
 
     @Override

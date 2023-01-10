@@ -14,18 +14,19 @@ import lombok.Generated;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.message.codec.http.Header;
+import org.jetlinks.core.message.codec.http.HttpRequestMessage;
+import org.jetlinks.core.message.codec.http.HttpResponseMessage;
+import org.jetlinks.core.message.codec.http.MultiPart;
 import org.jetlinks.community.network.http.DefaultHttpRequestMessage;
 import org.jetlinks.community.network.http.VertxWebUtils;
 import org.jetlinks.community.network.http.server.HttpExchange;
 import org.jetlinks.community.network.http.server.HttpRequest;
 import org.jetlinks.community.network.http.server.HttpResponse;
-import org.jetlinks.core.message.codec.http.*;
-import org.jetlinks.core.utils.Reactors;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -72,50 +73,21 @@ public class VertxHttpExchange implements HttpExchange, HttpResponse, HttpReques
         if (httpServerRequest.method() == HttpMethod.GET) {
             body = Mono.just(Unpooled.EMPTY_BUFFER);
         } else {
-            log.debug("create multi part");
+
+            Mono<ByteBuf> buffer = Mono
+                .fromCompletionStage(this.httpServerRequest.body().toCompletionStage())
+                .map(Buffer::getByteBuf);
+
             if (MultiPart.isMultiPart(getContentType())) {
-
-                Sinks.Many<ByteBuf> sink = Reactors.createMany(false);
-
-                this.httpServerRequest
-                    .handler(buf -> sink.emitNext(buf.getByteBuf(), (s, result) -> {
-                        if (result != Sinks.EmitResult.OK) {
-                            response
-                                .putHeader("X-Server-Error", result.toString())
-                                .setStatusCode(500)
-                                .end();
-                        }
-                        return false;
-                    }))
-                    .endHandler(ignore -> sink.tryEmitComplete());
-
                 body = MultiPart
-                    .parse(getSpringHttpHeaders(), sink.asFlux())
+                    .parse(getSpringHttpHeaders(), buffer.flux())
                     .doOnNext(this::setMultiPart)
                     .thenReturn(Unpooled.EMPTY_BUFFER)
                     .cache();
             } else {
-                body = Mono
-                    .<ByteBuf>create(sink -> {
-                        if (this.httpServerRequest.isEnded()) {
-                            sink.success();
-                        } else {
-                            this.httpServerRequest
-                                .bodyHandler(buffer -> {
-                                    sink.success(buffer.getByteBuf());
-                                });
-                        }
-                    })
-                    .cache();
+                body = buffer;
             }
-            body
-                .doOnError(err -> {
-                    response
-                        .putHeader("X-Server-Error", err.getMessage())
-                        .setStatusCode(500)
-                        .end();
-                })
-                .subscribe();
+
         }
     }
 
@@ -228,7 +200,7 @@ public class VertxHttpExchange implements HttpExchange, HttpResponse, HttpReques
                 setResponseDefaultLength(buf.length());
                 response.write(buf, v -> {
                     sink.success();
-                    if(!(buffer instanceof UnpooledHeapByteBuf)){
+                    if (!(buffer instanceof UnpooledHeapByteBuf)) {
                         ReferenceCountUtil.safeRelease(buffer);
                     }
                 });

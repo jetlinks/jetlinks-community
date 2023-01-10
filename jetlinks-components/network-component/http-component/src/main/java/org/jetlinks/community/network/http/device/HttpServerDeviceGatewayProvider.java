@@ -3,6 +3,7 @@ package org.jetlinks.community.network.http.device;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.network.http.server.HttpServer;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.session.DeviceSessionManager;
@@ -14,7 +15,6 @@ import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
-import org.jetlinks.community.network.http.server.HttpServer;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -67,14 +67,10 @@ public class HttpServerDeviceGatewayProvider implements DeviceGatewayProvider {
         return DefaultTransport.HTTP;
     }
 
-    public NetworkType getNetworkType() {
-        return DefaultNetworkType.HTTP_SERVER;
-    }
-
     @Override
     public Mono<DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties) {
         return networkManager
-            .<HttpServer>getNetwork(getNetworkType(), properties.getChannelId())
+            .<HttpServer>getNetwork(DefaultNetworkType.HTTP_SERVER, properties.getChannelId())
             .map(server -> {
                 String protocol = properties.getProtocol();
                 return new HttpServerDeviceGateway(properties.getId(),
