@@ -190,7 +190,7 @@ public abstract class AbstractQueryOperations implements QueryOperations {
     public Mono<PagerResult<ThingEvent>> queryEventPage(@Nonnull String eventId,
                                                         @Nonnull QueryParamEntity param,
                                                         boolean format) {
-        Query<?, QueryParamEntity> query = param.toNestQuery();
+        Query<?, QueryParamEntity> query = param.toNestQuery(this::applyQuery);
         String metric;
         if (settings.getEvent().eventIsAllInOne()) {
             metric = metricBuilder.createEventAllInOneMetric(thingType, thingTemplateId, thingId);
@@ -213,7 +213,7 @@ public abstract class AbstractQueryOperations implements QueryOperations {
     @Nonnull
     @Override
     public final Flux<ThingEvent> queryEvent(@Nonnull String eventId, @Nonnull QueryParamEntity param, boolean format) {
-        Query<?, QueryParamEntity> query = param.toNestQuery();
+        Query<?, QueryParamEntity> query = param.toNestQuery(this::applyQuery);
         String metric;
         if (settings.getEvent().eventIsAllInOne()) {
             metric = metricBuilder.createEventAllInOneMetric(thingType, thingTemplateId, thingId);
