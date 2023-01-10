@@ -1,5 +1,6 @@
 package org.jetlinks.community.rule.engine.executor;
 
+import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -232,11 +233,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
             if (!CollectionUtils.isEmpty(properties)) {
                 message.setProperties(
-                    properties
-                        .entrySet()
-                        .stream()
-                        .map(prop -> Tuples.of(prop.getKey(), ExpressionUtils.analytical(String.valueOf(prop.getValue()), ctx, "spel")))
-                        .collect(Collectors.toMap(Tuple2::getT1, Tuple2::getT2))
+                    Maps.transformValues(properties, v -> VariableSource.of(v).resolveStatic(ctx))
                 );
             }
 
