@@ -62,6 +62,6 @@ JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发,
 
 ## 文档
 
-[快速开始](http://doc.jetlinks.cn/basics-guide/quick-start.html) 
-[开发文档](http://doc.jetlinks.cn/dev-guide/start.html) 
-[常见问题](http://doc.jetlinks.cn/common-problems/network-components.html) 
+[快速开始](http://doc.v1.jetlinks.cn/basics-guide/quick-start.html) 
+[开发文档](http://doc.v1.jetlinks.cn/dev-guide/start.html) 
+[常见问题](http://doc.v1.jetlinks.cn/common-problems/network-components.html) 
