@@ -2,7 +2,9 @@ package org.jetlinks.community.network.manager.service;
 
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
+import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.network.NetworkConfigManager;
+import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkProperties;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.manager.entity.NetworkConfigEntity;
@@ -13,36 +15,56 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nonnull;
+
 /**
  * @author zhouhao
  * @since 1.0
  **/
 @Service
-public class NetworkConfigService extends GenericReactiveCrudService<NetworkConfigEntity, String> implements NetworkConfigManager {
+public class NetworkConfigService extends GenericReactiveCrudService<NetworkConfigEntity, String>  {
 
-    @Override
-    public Mono<NetworkProperties> getConfig(NetworkType networkType, String id) {
-        return findById(id)
-                .map(NetworkConfigEntity::toNetworkProperties);
+    private final NetworkManager networkManager;
+
+    public NetworkConfigService(NetworkManager networkManager) {
+        this.networkManager = networkManager;
     }
 
     @Override
-    public Mono<SaveResult> save(Publisher<NetworkConfigEntity> entityPublisher) {
-        return super.save(
-            Flux.from(entityPublisher)
-                .doOnNext(entity -> {
-                    if (StringUtils.isEmpty(entity.getId())) {
-                        entity.setState(NetworkConfigState.disabled);
-                    } else {
-                        entity.setState(null);
-                    }
-                }));
+    public Mono<Integer> deleteById(Publisher<String> idPublisher) {
+        return this
+            .findById(Flux.from(idPublisher))
+            .flatMap(config -> networkManager
+                .destroy(config.lookupNetworkType(), config.getId())
+                .thenReturn(config.getId()))
+            .as(super::deleteById)
+            ;
     }
 
-    @Override
-    public Mono<Integer> insert(Publisher<NetworkConfigEntity> entityPublisher) {
-        return super.insert(
-                Flux.from(entityPublisher)
-                        .doOnNext(entity -> entity.setState(NetworkConfigState.disabled)));
+
+    public Mono<Void> start(String id) {
+        return this
+            .findById(id)
+            .switchIfEmpty(Mono.error(() -> new NotFoundException("error.configuration_does_not_exist", id)))
+            .flatMap(conf -> this
+                .createUpdate()
+                .set(NetworkConfigEntity::getState, NetworkConfigState.enabled)
+                .where(conf::getId)
+                .execute()
+                .thenReturn(conf))
+            .flatMap(conf -> networkManager.reload(conf.lookupNetworkType(), id));
+    }
+
+    public Mono<Void> shutdown(String id) {
+        return this
+            .findById(id)
+            .switchIfEmpty(Mono.error(() -> new NotFoundException("error.configuration_does_not_exist",id)))
+            .flatMap(conf -> this
+                .createUpdate()
+                .set(NetworkConfigEntity::getState, NetworkConfigState.disabled)
+                .where(conf::getId)
+                .execute()
+                .thenReturn(conf))
+            .flatMap(conf -> networkManager.shutdown(conf.lookupNetworkType(), id));
     }
 }

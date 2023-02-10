@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.jetlinks.community</groupId>
         <artifactId>jetlinks-manager</artifactId>
-        <version>1.20.0-SNAPSHOT</version>
+        <version>2.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>network-manager</artifactId>
@@ -74,7 +74,23 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>http-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>protocol-component</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-semconv</artifactId>
+            <version>1.12.0-alpha</version>
+        </dependency>
     </dependencies>
 
 </project>

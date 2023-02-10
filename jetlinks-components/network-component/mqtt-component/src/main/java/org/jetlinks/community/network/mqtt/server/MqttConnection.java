@@ -2,6 +2,7 @@ package org.jetlinks.community.network.mqtt.server;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import org.jetlinks.core.message.codec.MqttMessage;
+import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.mqtt.MqttAuth;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,7 +29,7 @@ import java.util.function.Consumer;
  * @version 1.0
  * @since 1.0
  */
-public interface MqttConnection {
+public interface MqttConnection extends ClientConnection {
 
     /**
      * 获取MQTT客户端ID
@@ -121,6 +122,8 @@ public interface MqttConnection {
     long getLastPingTime();
 
     void keepAlive();
+
+    Duration getKeepAliveTimeout();
 
     void setKeepAliveTimeout(Duration duration);
 

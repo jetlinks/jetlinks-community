@@ -1,41 +1,57 @@
 package org.jetlinks.community.network;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
- * 网络服务管理器
- * <p>
- * 管理所有的网络组件
+ * 网络组件管理器，用于统一管理网络组件
  *
  * @author zhouhao
+ * @see NetworkProvider
  * @since 1.0
  */
 public interface NetworkManager {
 
     /**
-     * 根据ID获取网络组件，否则根据type和id创建网络组件并返回
+     * 根据组件类型和ID获取网络组件
      *
-     * @param type 网络类型
-     * @param id   网络组件id
-     * @param <T>  NetWork子类泛型
-     * @return 网络组件
+     * @param type 类型
+     * @param id   ID
+     * @param <T>  网络组件类型
+     * @return Network
      */
     <T extends Network> Mono<T> getNetwork(NetworkType type, String id);
 
     /**
-     * 获取所有的网络组件支持提供商
+     * 获取全部网络组件
      *
-     * @return 网络组件支持提供商
+     * @return 网络组件
+     */
+    Flux<Network> getNetworks();
+
+    /**
+     * 获取全部网络组件提供商
+     *
+     * @return 提供商列表
      */
     List<NetworkProvider<?>> getProviders();
 
     /**
+     * 根据类型获取提供商
+     *
+     * @param type 类型
+     * @return 提供商
+     */
+    Optional<NetworkProvider<?>> getProvider(String type);
+
+    /**
      * 重新加载网络组件
      *
-     * @param type 网络类型
-     * @param id   网络组件ID
+     * @param type 网络组件类型
+     * @param id   ID
      * @return void
      */
     Mono<Void> reload(NetworkType type, String id);
@@ -43,9 +59,19 @@ public interface NetworkManager {
     /**
      * 停止网络组件
      *
-     * @param type 网络类型
-     * @param id   网络组件ID
+     * @param type 网络组件类型
+     * @param id   ID
      * @return void
      */
     Mono<Void> shutdown(NetworkType type, String id);
+
+    /**
+     * 销毁网络组件
+     *
+     * @param type 网络组件类型
+     * @param id   ID
+     * @return void
+     */
+    Mono<Void> destroy(NetworkType type, String id);
+
 }

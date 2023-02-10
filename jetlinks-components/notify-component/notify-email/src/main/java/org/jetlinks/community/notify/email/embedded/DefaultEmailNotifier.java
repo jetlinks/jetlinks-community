@@ -1,34 +1,36 @@
 package org.jetlinks.community.notify.email.embedded;
 
-import com.alibaba.fastjson.JSONObject;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
-import org.hswebframework.web.utils.ExpressionUtils;
-import org.hswebframework.web.utils.TemplateParser;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.core.Values;
 import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
+import org.jetlinks.core.Values;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.springframework.core.io.*;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.util.StringUtils;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -40,10 +42,10 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * 使用javax.mail进行邮件发送
@@ -70,17 +72,19 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     @Setter
     private boolean enableFileSystemAttachment = Boolean.getBoolean("email.attach.local-file.enabled");
 
-    private final FileManager fileManager;
+    public static Scheduler scheduler = Schedulers.boundedElastic();
 
-    public static Scheduler scheduler = Schedulers.elastic();
+
+    private final FileManager fileManager;
 
     public DefaultEmailNotifier(NotifierProperties properties,
                                 TemplateManager templateManager,
                                 FileManager fileManager) {
         this(properties.getId(),
-             new JSONObject(properties.getConfiguration()).toJavaObject(DefaultEmailProperties.class),
-             templateManager,
-             fileManager);
+            FastBeanCopier.copy(properties.getConfiguration(), new DefaultEmailProperties()),
+            templateManager,
+            fileManager);
+
     }
 
     public DefaultEmailNotifier(String id,
@@ -105,8 +109,8 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     @Override
     public Mono<Void> send(@Nonnull EmailTemplate template, @Nonnull Values context) {
         return Mono.just(template)
-                   .map(temp -> convert(temp, context.getAllValues()))
-                   .flatMap(this::doSend);
+            .flatMap(temp -> convert(temp, context.getAllValues()))
+            .flatMap(this::doSend);
     }
 
     @Nonnull
@@ -176,7 +180,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
                 .get()
                 .uri(resource)
                 .accept(MediaType.APPLICATION_OCTET_STREAM)
-                .exchangeToMono(res->res.bodyToMono(Resource.class));
+                .exchangeToMono(res -> res.bodyToMono(Resource.class));
         } else if (resource.startsWith("data:") && resource.contains(";base64,")) {
             String base64 = resource.substring(resource.indexOf(";base64,") + 8);
             return Mono.just(
@@ -190,80 +194,88 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
             return fileManager
                 .read(resource)
                 .as(DataBufferUtils::join)
-                .map(dataBuffer -> new ByteArrayResource(dataBuffer.asByteBuffer().array()))
-                .onErrorResume(e-> Mono.error(()-> new UnsupportedOperationException("不支持的文件地址:" + resource)))
-                .switchIfEmpty(Mono.error(()-> new UnsupportedOperationException("不支持的文件地址:" + resource)));
+                .map(dataBuffer -> {
+                    try {
+                        ByteBuf buf = dataBuffer instanceof NettyDataBuffer
+                            ? ((NettyDataBuffer) dataBuffer).getNativeBuffer()
+                            : Unpooled.wrappedBuffer(dataBuffer.asByteBuffer());
+                        return new ByteArrayResource(ByteBufUtil.getBytes(buf));
+                    } finally {
+                        DataBufferUtils.release(dataBuffer);
+                    }
+                })
+                .onErrorMap(error -> new UnsupportedOperationException("不支持的文件地址:" + resource, error))
+                .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("不支持的文件地址:" + resource)));
         }
     }
 
 
-    public static ParsedEmailTemplate convert(EmailTemplate template, Map<String, Object> context) {
-        List<String> sendTo = template.getSendTo()
-                                      .stream()
-                                      .map(s -> render(s, context))
-                                      .collect(Collectors.toList());
-        String subject = template.getSubject();
-        String text = template.getText();
-        if (StringUtils.isEmpty(subject) || StringUtils.isEmpty(text)) {
-            throw new BusinessException("模板内容错误，text 或者 subject 不能为空.");
-        }
-        String sendText = render(text, context,true);
-        List<EmailTemplate.Attachment> tempAttachments = template.getAttachments();
-        Map<String, String> attachments = new HashMap<>();
+    public static Mono<ParsedEmailTemplate> convert(EmailTemplate template, Map<String, Object> context) {
+        return template
+            .getSendTo(context)
+            .flatMapMany(Flux::fromIterable)
+            .map(receiver -> template.render(receiver, context))
+            .collectList()
+            .map(sendToList -> {
+                String subject = template.getSubject();
+                String text = template.getText();
+                if (CollectionUtils.isEmpty(sendToList) || ObjectUtils.isEmpty(subject) || ObjectUtils.isEmpty(text)) {
+                    throw new BusinessException("模板内容错误，sendTo, text 或者 subject 不能为空.");
+                }
 
-        if (tempAttachments != null) {
-            List<EmailTemplate.Attachment> distinctAttachment = tempAttachments
-                .stream()
-                .distinct()
-                .collect(Collectors.toList());
-            for (EmailTemplate.Attachment tempAttachment : distinctAttachment) {
-                attachments.put(tempAttachment.getName(), render(tempAttachment.getLocation(), context));
-            }
-        }
+                String sendText = template.render(text, context);
+                List<EmailTemplate.Attachment> tempAttachments = template.getAttachments();
 
+                Map<String, String> attachments = new LinkedHashMap<>();
 
-        return ParsedEmailTemplate
-            .builder()
-            .attachments(attachments)
-            .images(extractSendTextImage(sendText))
-            .text(sendText)
-            .subject(render(subject, context))
-            .sendTo(sendTo)
-            .build();
+                if (tempAttachments != null) {
+                    int index = 0;
+                    for (EmailTemplate.Attachment tempAttachment : tempAttachments) {
+                        index++;
+
+                        String name = template.render(tempAttachment.getName(), context);
+
+                        String location = template.get(tempAttachment.getLocation(), EmailTemplate.Attachment.locationKey(index), context);
+
+                        attachments.put(name, location);
+                    }
+                }
+
+                Map<String, String> images = new HashMap<>();
+
+                sendText = extractSendTextImage(sendText, images);
+
+                return ParsedEmailTemplate
+                    .builder()
+                    .attachments(attachments)
+                    .images(images)
+                    .text(sendText)
+                    .subject(template.render(subject, context))
+                    .sendTo(sendToList)
+                    .build();
+            });
     }
 
 
-    private static Map<String, String> extractSendTextImage(String sendText) {
-        Map<String, String> images = new HashMap<>();
+    private static String extractSendTextImage(String sendText, Map<String, String> images) {
+        if (!sendText.contains("<")) {
+            return sendText;
+        }
+        boolean anyImage = false;
+
         Document doc = Jsoup.parse(sendText);
         for (Element src : doc.getElementsByTag("img")) {
             String s = src.attr("src");
             if (s.startsWith("http")) {
                 continue;
             }
+            anyImage = true;
             String tempKey = IDGenerator.MD5.generate();
             src.attr("src", "cid:".concat(tempKey));
             images.put(tempKey, s);
         }
-        return images;
+        return anyImage ? doc.html() : sendText;
     }
 
-    private static String render(String str, Map<String, Object> context) {
-        return render(str, context, false);
-    }
-
-    private static String render(String str, Map<String, Object> context, boolean html) {
-        if (StringUtils.isEmpty(str)) {
-            return "";
-        }
-        if (html) {
-            return TemplateParser.parse(str, expr ->
-                ExpressionUtils.analytical("${" + Jsoup
-                    .parse(expr)
-                    .text() + "}", context, "spel"));
-        }
-
-        return ExpressionUtils.analytical(str, context, "spel");
-    }
 
 }

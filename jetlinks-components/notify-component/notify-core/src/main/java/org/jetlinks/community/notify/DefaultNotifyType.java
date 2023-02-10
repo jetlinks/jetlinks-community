@@ -12,10 +12,9 @@ public enum DefaultNotifyType implements NotifyType {
     voice("语音"),
     dingTalk("钉钉"),
     weixin("微信"),
+    webhook("WebHook");
 
-    ;
-
-    private String name;
+    private final String name;
 
     @Override
     public String getId() {

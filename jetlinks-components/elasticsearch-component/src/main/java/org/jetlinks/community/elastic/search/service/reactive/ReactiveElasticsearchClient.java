@@ -28,5 +28,4 @@ public interface ReactiveElasticsearchClient extends
     Mono<AcknowledgedResponse> updateTemplate(PutIndexTemplateRequest request);
 
     Version serverVersion();
-
 }

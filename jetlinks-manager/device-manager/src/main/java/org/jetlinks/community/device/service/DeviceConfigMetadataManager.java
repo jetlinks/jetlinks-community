@@ -4,10 +4,7 @@ import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.message.codec.Transport;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.ConfigPropertyMetadata;
-import org.jetlinks.core.metadata.ConfigScope;
-import org.jetlinks.core.metadata.DeviceMetadataType;
+import org.jetlinks.core.metadata.*;
 import reactor.core.publisher.Flux;
 
 
@@ -77,5 +74,7 @@ public interface DeviceConfigMetadataManager {
                                                   String metadataId,
                                                   String typeId,
                                                   ConfigScope... scopes);
+
+    Flux<Feature> getProductFeatures(String productId);
 
 }

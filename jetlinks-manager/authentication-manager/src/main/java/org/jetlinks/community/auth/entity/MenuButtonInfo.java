@@ -20,6 +20,9 @@ public class MenuButtonInfo implements Serializable {
     @Schema(description = "按钮名称")
     private String name;
 
+    @Schema(description = "说明")
+    private String description;
+
     @Schema(description = "权限信息")
     private List<PermissionInfo> permissions;
 

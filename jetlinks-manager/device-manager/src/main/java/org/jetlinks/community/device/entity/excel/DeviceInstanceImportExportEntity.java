@@ -12,7 +12,7 @@ public class DeviceInstanceImportExportEntity {
     @ExcelProperty("设备名称")
     private String name;
 
-    @ExcelProperty("设备型号")
+    @ExcelProperty("产品名称")
     private String productName;
 
     @ExcelProperty("描述")

@@ -24,18 +24,6 @@ public interface DeviceGateway {
     String getId();
 
     /**
-     * @return 传输协议
-     * @see org.jetlinks.core.message.codec.DefaultTransport
-     */
-    Transport getTransport();
-
-    /**
-     * @return 网络类型
-     * @see org.jetlinks.community.network.DefaultNetworkType
-     */
-    NetworkType getNetworkType();
-
-    /**
      * 订阅来自设备到消息,关闭网关时不会结束流.
      *
      * @return 设备消息流

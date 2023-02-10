@@ -21,14 +21,13 @@ public class DeviceMessageMeasurementProvider extends StaticMeasurementProvider 
 
     public DeviceMessageMeasurementProvider(EventBus eventBus,
                                             MeterRegistryManager registryManager,
-                                            DeviceRegistry deviceRegistry,
                                             TimeSeriesManager timeSeriesManager) {
         super(DeviceDashboardDefinition.instance, DeviceObjectDefinition.message);
 
         registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId(),
             "target", "msgType", "productId");
 
-        addMeasurement(new DeviceMessageMeasurement(eventBus, deviceRegistry, timeSeriesManager));
+        addMeasurement(new DeviceMessageMeasurement(eventBus, timeSeriesManager));
 
     }
 

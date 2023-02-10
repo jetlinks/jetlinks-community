@@ -1,0 +1,415 @@
+[
+  {
+    "id": "operator",
+    "name": "操作符",
+    "code": "",
+    "description": "",
+    "children": [
+      {
+        "id": "operator-1",
+        "name": "加",
+        "code": "+",
+        "description": "加",
+        "children": []
+      },
+      {
+        "id": "operator-2",
+        "name": "减",
+        "code": "-",
+        "description": "减",
+        "children": []
+      },
+      {
+        "id": "operator-3",
+        "name": "乘",
+        "code": "*",
+        "description": "乘",
+        "children": []
+      },
+      {
+        "id": "operator-4",
+        "name": "除",
+        "code": "/",
+        "description": "除",
+        "children": []
+      },
+      {
+        "id": "operator-5",
+        "name": "括号",
+        "code": "()",
+        "description": "括号",
+        "children": []
+      },
+      {
+        "id": "operator-6",
+        "name": "按位异或",
+        "code": "^",
+        "description": "按位异或",
+        "children": []
+      },
+      {
+        "id": "operator-7",
+        "name": "大于",
+        "code": ">",
+        "description": "大于",
+        "children": []
+      },
+      {
+        "id": "operator-8",
+        "name": "大于等于",
+        "code": ">=",
+        "description": "大于等于",
+        "children": []
+      },
+      {
+        "id": "operator-9",
+        "name": "等于",
+        "code": "=",
+        "description": "等于",
+        "children": []
+      },
+      {
+        "id": "operator-10",
+        "name": "小于等于",
+        "code": "<=",
+        "description": "小于等于",
+        "children": []
+      },
+      {
+        "id": "operator-11",
+        "name": "小于",
+        "code": "<",
+        "description": "小于",
+        "children": []
+      },
+      {
+        "id": "operator-12",
+        "name": "不等于",
+        "code": "<>",
+        "description": "不等于",
+        "children": []
+      },
+      {
+        "id": "operator-13",
+        "name": "与",
+        "code": "&&",
+        "description": "与",
+        "children": []
+      },
+      {
+        "id": "operator-14",
+        "name": "或",
+        "code": "||",
+        "description": "或",
+        "children": []
+      },
+      {
+        "id": "operator-15",
+        "name": "非",
+        "code": "!",
+        "description": "非",
+        "children": []
+      },
+      {
+        "id": "operator-16",
+        "name": "按位与",
+        "code": "&",
+        "description": "按位与",
+        "children": []
+      },
+      {
+        "id": "operator-17",
+        "name": "按位或",
+        "code": "|",
+        "description": "按位或",
+        "children": []
+      },
+      {
+        "id": "operator-18",
+        "name": "按位取反",
+        "code": "~",
+        "description": "按位取反",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": "control",
+    "name": "控制语句",
+    "code": "",
+    "description": "",
+    "children": [
+      {
+        "id": "if",
+        "name": "if",
+        "code": "int i = 0;\nif (i < 5) {\n i++;\n} else {\n System.out.print(i);\n}",
+        "description": "### if\nif(条件) {\n 语句 #1\n 语句 #2\n ...\n} else {\n 语句 #3\n 语句 #4\n ...\n}\n### 举例:\n``` javascript\nif (myAttribute > 0) {\n return \"value1\"\n} else {\n return \"value2\"\n}\n```",
+        "children": []
+      },
+      {
+        "id": "for",
+        "name": "for",
+        "code": "for(int i = 0;i < 5;i++) {\n System.out.print(i);\n}",
+        "description": "### for\nfor(变量声明; 循环条件 ;循环变量变更语句) {\n 语句 #1\n 语句 #2\n …\n}\n### 举例:\n``` javascript\nsum = 0\nfor(int i = 0;i < 5;i++) {\n sum++;\n}\nreturn sum\n```",
+        "children": []
+      },
+      {
+        "id": "while",
+        "name": "while",
+        "code": "int i = 0;\nwhile(i < 10) {\n i++;\n}",
+        "description": "### while\nwhile(循环条件) {\n 语句 #1\n 语句 #2\n ...\n}\n### 举例:\n``` javascript\nsum = 0\ni = 0\nwhile(i < 10) {\n sum++\n i++\n}\nreturn sum\n```",
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": "function",
+    "name": "函数",
+    "code": "",
+    "description": "",
+    "children": [
+      {
+        "id": "in-function",
+        "name": "内置函数",
+        "code": "",
+        "description": "",
+        "children": [
+          {
+            "id": "$max()",
+            "name": "$max()",
+            "code": "$max()",
+            "description": "### $max()\n比较对象中最大的一个值，对象类型可以是数值型，字符串\n$max(T... objects)\n### 参数说明:\n该函数的参数个数不定，可以输入一个或任意多个，每一个都是参与最大值比较的元素\n### 举例:\n$max(1, 1.5, 2)\n返回 2",
+            "children": []
+          },
+          {
+            "id": "$min()",
+            "name": "$min()",
+            "code": "$min()",
+            "description": "### $min()\n比较对象中最小的一个值，对象类型可以是数值型，字符串\n$min(T... objects)\n### 参数说明:\n该函数的参数个数不定，可以输入一个或任意多个，每一个都是参与最小值比较的元素\n### 举例:\n$min(1, 1.5, 2)\n返回 1",
+            "children": []
+          },
+          {
+            "id": "$now()",
+            "name": "$now()",
+            "code": "$now()",
+            "description": "### $now()\n获取当前时间戳（距离1970-01-01 00:00:00的毫秒数）\n### 举例:\n如当前时间为2021-04-20 10:50:48\n执行$now()\n返回 1618887041850",
+            "children": []
+          },
+          {
+            "id": "$now(format)",
+            "name": "$now(format)",
+            "code": "$now(format)",
+            "description": "### $now(format)\n将当前时间戳(距离1970-01-01 00:00:00的毫秒数)转化成形式为\"yyyy-MM-dd HH:mm:ss\"的字符串。\n### 参数说明\nformat:格式化表达式\n$now(\"yyyy-MM-dd HH:mm:ss\")\nyyyy:年\nMM:月\ndd:日\nHH:时\nmm:分\nss:秒\n### 举例:\n执行$now(\"yyyy-MM-dd HH:mm:ss\")\n返回2021-04-20 10:55:35",
+            "children": []
+          },
+          {
+            "id": "$recent(property)",
+            "name": "$recent(property)",
+            "code": "$recent(property)",
+            "description": "### $recent(property)\n返回目标属性的当前有效值，参数为目标属性名。如果目标属性当前工况有值上报，则取上报值，反之则取目标属性上一个非空值，如果目标属性从未被赋值，则返回null。\n$recent(property)\n### 参数说明:\nproperty:属性名称\n### 举例:\n$recent(\"speed\")\n返回 speed属性的当前有效值",
+            "children": []
+          },
+          {
+            "id": "$recentTime()",
+            "name": "$recentTime()",
+            "code": "$recentTime()",
+            "description": "### $recentTime()\n返回最新上报数据的时间戳（距离1970-01-01 00:00:00的毫秒数）\n$recentTime()\n### 举例\n执行$recentTime()\n返回 1618887044981",
+            "children": []
+          },
+          {
+            "id": "$lastState(property)",
+            "name": "$lastState(property)",
+            "code": "$lastState(property)",
+            "description": "### $lastState(property)\n返回目标属性的最近数据\n$lastState(property)\n### 参数说明\nproperty:属性名称\n### 举例\n$lastState(\"temperature\")\n返回 temperature属性的最近数据",
+            "children": []
+          },
+          {
+            "id": "$first(property)",
+            "name": "$first(property)",
+            "code": "$first(property)",
+            "description": "### $first(property)\n返回目标属性的首次数据\n$first(property)\n### 参数说明\nproperty:属性名称\n### 举例\n$first(\"temperature\")\n返回 temperature属性的首次数据",
+            "children": []
+          },
+          {
+            "id": "$firstTime()",
+            "name": "$firstTime()",
+            "code": "$firstTime()",
+            "description": "### $firstTime()\n返回首次上报数据的时间戳（距离1970-01-01 00:00:00的毫秒数）\n$firstTime()\n### 举例\n执行$firstTime()\n返回 1618887044981",
+            "children": []
+          },
+          {
+            "id": "print(value)",
+            "name": "print(value)",
+            "code": "print(value)",
+            "description": "### print(value)\n用于在表达式试运行中调试打印属性值\n### 参数说明:\nvalue:传入需要调试的属性值\n### 举例:\n``` javascript\nvar variable = 123\nprint(variable)\n```\n打印输出 123",
+            "children": []
+          },
+          {
+            "id": "printf(format,values)",
+            "name": "printf(format,values)",
+            "code": "printf(format,values)",
+            "description": "### printf(format,values)\n用于在表达式试运行中调试打印格式化后的属性值\n### 参数说明:\nformat:格式化表达式\nvalues:传入需要调试的一个或多个属性值\n### 举例:\n``` javascript\nvar variable1 = 20\nvar variable2 = 20\nprintf(\"%d,%x\",variable1,variable2)\n```\n(%d:十进制->字符串，%x:十六进制->字符串)\n打印输出 20,14",
+            "children": []
+          },
+          {
+            "id": "$sum()",
+            "name": "$sum()",
+            "code": "$sum()",
+            "description": "### $sum()\n累加不特定多数个浮点数，得到一个浮点数（整形会自动转换为浮点数）\n$sum(double... addends)\n### 参数说明:\n该函数的参数个数不定，可以输入一个或任意多个，每一个都是参与求和的浮点数\n### 举例:\n$sum(1, 1.5, 2)\n返回 4.5",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "math-function",
+        "name": "数值计算函数",
+        "code": "",
+        "description": "",
+        "children": [
+          {
+            "id": "Math.round()",
+            "name": "Math.round()",
+            "code": "Math.round()",
+            "description": "### Math.round()\n四舍五入取整\nMath.round(double a)\n### 参数说明:\na 需要取整的浮点数\n### 举例:\nMath.round(1.8)\n返回 2.0",
+            "children": []
+          },
+          {
+            "id": "Math.floor()",
+            "name": "Math.floor()",
+            "code": "Math.floor()",
+            "description": "### Math.floor()\n向下取整\nMath.floor(double a)\n### 参数说明:\na 需要取整的浮点数\n### 举例:\nMath.floor(1.8)\n返回 1.0",
+            "children": []
+          },
+          {
+            "id": "Math.ceil()",
+            "name": "Math.ceil()",
+            "code": "Math.ceil()",
+            "description": "### Math.ceil()\n四舍五入取整\nMath.ceil(double a)\n### 参数说明:\na 需要取整的浮点数\n### 举例:\nMath.ceil(1.4)\n返回 2.0",
+            "children": []
+          },
+          {
+            "id": "Math.power()",
+            "name": "Math.power()",
+            "code": "Math.power()",
+            "description": "### Math.power()\n幂次计算\nMath.power(double a, double b)\n### 参数说明:\na 需要做幂次计算的底数\nb 幂次计算的次方数\n### 举例:\nMath.power(2, 3)\n返回 8.0",
+            "children": []
+          },
+          {
+            "id": "Math.log()",
+            "name": "Math.log()",
+            "code": "Math.log()",
+            "description": "### Math.log()\n以自然底数为底取对数\nMath.log(double a)\n### 参数说明:\na 需要取对数的浮点数\n### 举例:\nMath.log(2)\n返回 0.6931471805599453",
+            "children": []
+          },
+          {
+            "id": "Math.abs()",
+            "name": "Math.abs()",
+            "code": "Math.abs()",
+            "description": "### Math.abs()\n计算绝对值\nMath.abs(double a)\n### 参数说明:\na 需要取绝对值的浮点数\n### 举例:\nMath.abs(-2)\n返回 2\nMath.abs(2)\n返回 2",
+            "children": []
+          },
+          {
+            "id": "Math.sin()",
+            "name": "Math.sin()",
+            "code": "Math.sin()",
+            "description": "### Math.sin()\n正弦函数\nMath.sin(double a)\n### 参数说明:\na 需要计算正弦函数的输入，取弧度值，而非角度值\n### 举例:\nMath.sin(Math.PI / 2)\n返回 1.0",
+            "children": []
+          },
+          {
+            "id": "Math.cos()",
+            "name": "Math.cos()",
+            "code": "Math.cos()",
+            "description": "### Math.cos()\n余弦函数\nMath.cos(double a)\n### 参数说明:\na 需要计算余弦函数的输入，取弧度值，而非角度值\n### 举例:\nMath.cos(Math.PI / 2)\n返回 0.0",
+            "children": []
+          },
+          {
+            "id": "Math.tan()",
+            "name": "Math.tan()",
+            "code": "Math.tan()",
+            "description": "### Math.tan()\n正切函数\nMath.tan(double a)\n### 参数说明:\na 需要计算正切函数的输入，取弧度值，而非角度值\n### 举例:\nMath.tan(Math.PI / 4)\n返回 1.0",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "string-function",
+        "name": "字符串处理函数",
+        "code": "",
+        "description": "",
+        "children": [
+          {
+            "id": "contains()",
+            "name": "contains()",
+            "code": "contains()",
+            "description": "### contains()\n目标字符串是否包含子串s\ncontains(String s)\n### 参数说明:\ns 需要查找的子串\n### 举例:\nString target = \"strstr\"\ntarget.contains(\"str\")\n返回 true",
+            "children": []
+          },
+          {
+            "id": "indexOf()",
+            "name": "indexOf()",
+            "code": "indexOf()",
+            "description": "### indexOf()\n目标字符串中第一次出现子串s的下标\nindexOf(String s)\n### 参数说明:\ns 需要查找的子串\n### 举例:\nString target = \"strstr\"\ntarget.indexOf(\"tr\")\n返回 1\ntarget.indexOf(\"x\")\n返回 -1 (不存在)",
+            "children": []
+          },
+          {
+            "id": "lastIndexOf()",
+            "name": "lastIndexOf()",
+            "code": "lastIndexOf()",
+            "description": "### lastIndexOf()\n目标字符串中最后一次出现子串s的下标\nlastIndexOf(String s)\n### 参数说明:\ns 需要查找的子串\n### 举例:\nString target = \"strstr\"\ntarget.lastIndexOf(\"tr\")\n返回 4\ntarget.lastIndexOf(\"x\")\n返回 -1 (不存在)",
+            "children": []
+          },
+          {
+            "id": "substring()",
+            "name": "substring()",
+            "code": "substring()",
+            "description": "### substring()\n1. substring(int beginIndex)\n从下标beginIndex开始，截取目标字符串中的子串\n#### 参数说明:\nbeginIndex 子串截取的起始下标\n#### 举例:\nString target = \"strstr\"\ntarget.substring(1)\n返回 \"trstr\"\ntarget.substring(3)\n返回 \"str\"\n\n2. substring(int beginIndex, int endIndex)\n从下标beginIndex（含）开始至endIndex（不含），截取目标字符串中的子串\n#### 参数说明:\nbeginIndex 子串截取的起始下标（结果包含该字符）\nendIndex 子串截取的终止下标（结果不包含该字符）\n#### 举例:\nString target = \"strstr\"\n target.substring(1, 4)\n 返回 \"trs\"",
+            "children": []
+          },
+          {
+            "id": "startsWith()",
+            "name": "startsWith()",
+            "code": "startsWith()",
+            "description": "### startsWith()\n检查目标字符串是否以prefix字符串开头\nstartsWith(String prefix)\n### 参数说明:\nprefix 用于验证开头的子串\n### 举例:\nString target = \"strstr\"\ntarget.startsWith(\"str\")\n返回 true",
+            "children": []
+          },
+          {
+            "id": "endsWith()",
+            "name": "endsWith()",
+            "code": "endsWith()",
+            "description": "### endsWith()\n检查目标字符串是否以suffix字符串结尾\nendsWith(String suffix)\n### 参数说明:\nsuffix 用于验证结尾的子串\n### 举例:\nString target = \"strstr\"\ntarget.endsWith(\"tr\")\n返回 true",
+            "children": []
+          },
+          {
+            "id": "toLowerCase()",
+            "name": "toLowerCase()",
+            "code": "toLowerCase()",
+            "description": "### toLowerCase()\n将目标字符串全转为小写\n### 举例:\nString target = \"STR\"\ntarget.toLowerCase()\n返回 \"str\"",
+            "children": []
+          },
+          {
+            "id": "toUpperCase()",
+            "name": "toUpperCase()",
+            "code": "toUpperCase()",
+            "description": "### toUpperCase()\n将目标字符串全转为小写\n### 举例:\nString target = \"strstr\"\ntarget.toUpperCase()\n返回 \"STRSTR\"",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "in-var",
+    "name": "内置变量",
+    "code": "",
+    "description": "",
+    "children": [
+      {
+        "id": "__timestamp__",
+        "name": "__timestamp__",
+        "code": "",
+        "description": "### __timestamp__\n该变量表示当前工况的时间戳，是以长整型表示的timestamp",
+        "children": []
+      }
+    ]
+  }
+]

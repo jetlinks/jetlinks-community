@@ -1,8 +1,8 @@
 package org.jetlinks.community.network.tcp.parser.strateies;
 
 import io.vertx.core.parsetools.RecordParser;
-import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
+import org.jetlinks.community.ValueObject;
 
 import java.util.function.Supplier;
 

@@ -1,18 +1,17 @@
 package org.jetlinks.community.notify.voice.aliyun;
 
-import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hswebframework.web.validator.ValidatorUtils;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.notify.*;
-import org.jetlinks.community.notify.template.TemplateManager;
-import org.jetlinks.community.notify.template.TemplateProperties;
-import org.jetlinks.community.notify.template.TemplateProvider;
-import org.jetlinks.community.notify.voice.VoiceProvider;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.notify.template.TemplateManager;
+import org.jetlinks.community.notify.template.TemplateProperties;
+import org.jetlinks.community.notify.template.TemplateProvider;
+import org.jetlinks.community.notify.voice.VoiceProvider;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
@@ -62,7 +61,8 @@ public class AliyunNotifierProvider implements NotifierProvider, TemplateProvide
 
     @Override
     public Mono<AliyunVoiceTemplate> createTemplate(TemplateProperties properties) {
-        return Mono.fromCallable(() -> ValidatorUtils.tryValidate(JSON.parseObject(properties.getTemplate(), AliyunVoiceTemplate.class)));
+        return Mono.fromCallable(() -> new AliyunVoiceTemplate().with(properties).validate())
+            .as(LocaleUtils::transform);
     }
 
     @Nonnull
@@ -74,6 +74,7 @@ public class AliyunNotifierProvider implements NotifierProvider, TemplateProvide
     @Nonnull
     @Override
     public Mono<AliyunVoiceNotifier> createNotifier(@Nonnull NotifierProperties properties) {
-        return Mono.fromSupplier(() -> new AliyunVoiceNotifier(properties, templateManager));
+        return Mono.fromSupplier(() -> new AliyunVoiceNotifier(properties, templateManager))
+            .as(LocaleUtils::transform);
     }
 }

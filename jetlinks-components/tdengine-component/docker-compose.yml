@@ -1,0 +1,11 @@
+version: "2"
+services:
+  tdengine:
+    image: tdengine/tdengine:3.0.0.1
+    ports:
+      - "6030-6040:6030-6040/udp"
+      - "6030:6030"
+      - "6035:6035"
+      - "6041:6041"
+    environment:
+      TZ: CST-8

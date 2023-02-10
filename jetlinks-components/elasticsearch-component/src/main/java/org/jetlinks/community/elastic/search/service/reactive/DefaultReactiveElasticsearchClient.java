@@ -60,17 +60,19 @@ import org.elasticsearch.client.indices.GetFieldMappingsRequest;
 import org.elasticsearch.client.indices.GetFieldMappingsResponse;
 import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.client.indices.IndexTemplatesExistRequest;
+import org.elasticsearch.client.tasks.TaskSubmissionResponse;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.*;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
+import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -84,16 +86,17 @@ import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.suggest.Suggest;
 import org.elasticsearch.tasks.TaskId;
+import org.elasticsearch.xcontent.*;
 import org.reactivestreams.Publisher;
 import org.springframework.data.elasticsearch.client.ClientLogger;
 import org.springframework.data.elasticsearch.client.ElasticsearchHost;
 import org.springframework.data.elasticsearch.client.NoReachableHostException;
 import org.springframework.data.elasticsearch.client.reactive.HostProvider;
-import org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient;
 import org.springframework.data.elasticsearch.client.reactive.RequestCreator;
 import org.springframework.data.elasticsearch.client.util.NamedXContents;
 import org.springframework.data.elasticsearch.client.util.RequestConverters;
 import org.springframework.data.elasticsearch.client.util.ScrollState;
+import org.springframework.data.elasticsearch.core.ResponseConverter;
 import org.springframework.data.elasticsearch.core.query.ByQueryResponse;
 import org.springframework.data.util.Lazy;
 import org.springframework.http.HttpHeaders;
@@ -107,12 +110,11 @@ import org.springframework.web.reactive.function.BodyExtractors;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.function.Function3;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -130,7 +132,7 @@ import static org.springframework.data.elasticsearch.client.util.RequestConverte
 
 @Slf4j
 @Generated
-public class DefaultReactiveElasticsearchClient implements org.jetlinks.community.elastic.search.service.reactive.ReactiveElasticsearchClient,
+public class DefaultReactiveElasticsearchClient implements ReactiveElasticsearchClient,
     org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient.Cluster {
     private final HostProvider<?> hostProvider;
     private final RequestCreator requestCreator;
@@ -342,12 +344,8 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
                                                                                                    .flatMap(Flux::fromIterable);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient#scroll(org.springframework.http.HttpHeaders, org.elasticsearch.action.search.SearchRequest)
-     */
-    @Override
-    public Flux<SearchHit> scroll(HttpHeaders headers, SearchRequest searchRequest) {
+    @Override@Nonnull
+    public Flux<SearchHit> scroll(@Nonnull HttpHeaders headers, SearchRequest searchRequest) {
 
         TimeValue scrollTimeout = searchRequest.scroll() != null ? searchRequest.scroll().keepAlive()
             : TimeValue.timeValueMinutes(1);
@@ -356,60 +354,31 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
             searchRequest.scroll(scrollTimeout);
         }
 
-        EmitterProcessor<ActionRequest> outbound = EmitterProcessor.create(false);
-        FluxSink<ActionRequest> request = outbound.sink();
+        return Flux
+            .usingWhen(Mono.fromSupplier(ScrollState::new),
+                       state -> this
+                           .sendRequest(searchRequest, requestCreator.search(), SearchResponse.class, headers)
+                           .expand(searchResponse -> {
 
-        EmitterProcessor<SearchResponse> inbound = EmitterProcessor.create(false);
+                               state.updateScrollId(searchResponse.getScrollId());
+                               if (isEmpty(searchResponse.getHits())) {
+                                   return Mono.empty();
+                               }
 
-        Flux<SearchResponse> exchange = outbound.startWith(searchRequest).flatMap(it -> {
+                               return this
+                                   .sendRequest(new SearchScrollRequest(searchResponse.getScrollId()).scroll(scrollTimeout),
+                                                requestCreator.scroll(),
+                                                SearchResponse.class,
+                                                headers);
 
-            if (it instanceof SearchRequest) {
-                return sendRequest((SearchRequest) it, requestCreator.search(), SearchResponse.class, headers);
-            } else if (it instanceof SearchScrollRequest) {
-                return sendRequest((SearchScrollRequest) it, requestCreator.scroll(), SearchResponse.class, headers);
-            } else if (it instanceof ClearScrollRequest) {
-                return sendRequest((ClearScrollRequest) it, requestCreator.clearScroll(), ClearScrollResponse.class, headers)
-                    .flatMap(discard -> Flux.empty());
-            }
-
-            throw new IllegalArgumentException(
-                String.format("Cannot handle '%s'. Please make sure to use a 'SearchRequest' or 'SearchScrollRequest'.", it));
-        });
-
-        return Flux.usingWhen(Mono.fromSupplier(ScrollState::new),
-
-                              scrollState -> {
-
-                                  Flux<SearchHit> searchHits = inbound
-                                      .<SearchResponse>handle((searchResponse, sink) -> {
-
-                                          scrollState.updateScrollId(searchResponse.getScrollId());
-                                          if (isEmpty(searchResponse.getHits())) {
-
-                                              inbound.onComplete();
-                                              outbound.onComplete();
-
-                                          } else {
-
-                                              sink.next(searchResponse);
-
-                                              SearchScrollRequest searchScrollRequest = new SearchScrollRequest(scrollState.getScrollId())
-                                                  .scroll(scrollTimeout);
-                                              request.next(searchScrollRequest);
-                                          }
-
-                                      })
-                                      .map(SearchResponse::getHits) //
-                                      .flatMap(Flux::fromIterable);
-
-                                  return searchHits.doOnSubscribe(ignore -> exchange.subscribe(inbound));
-
-                              },
-                              state -> cleanupScroll(headers, state), //
-                              (state, error) -> cleanupScroll(headers, state), //
-                              state -> cleanupScroll(headers, state)); //
+                           }),
+                       state -> cleanupScroll(headers, state),
+                       (state, ex) -> cleanupScroll(headers, state),
+                       state -> cleanupScroll(headers, state))
+            .filter(it -> !isEmpty(it.getHits()))
+            .map(SearchResponse::getHits)
+            .flatMapIterable(Function.identity());
     }
-
     private static boolean isEmpty(@Nullable SearchHits hits) {
         return hits != null && hits.getHits() != null && hits.getHits().length == 0;
     }
@@ -442,7 +411,7 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
     public Mono<ByQueryResponse> updateBy(HttpHeaders headers, UpdateByQueryRequest updateRequest) {
         return sendRequest(updateRequest, requestCreator.updateByQuery(), BulkByScrollResponse.class, headers)
             .next()
-            .map(ByQueryResponse::of);
+            .map(ResponseConverter::byQueryResponseOf);
     }
 
     static XContentType enforceSameContentType(IndexRequest indexRequest, @Nullable XContentType xContentType) {
@@ -605,6 +574,17 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
                                                                                         .publishNext();
     }
 
+    @Override
+    public Mono<BulkByScrollResponse> reindex(HttpHeaders headers, ReindexRequest reindexRequest) {
+        return sendRequest(reindexRequest, requestCreator.reindex(), BulkByScrollResponse.class, headers).next();
+    }
+
+    @Override
+    public Mono<String> submitReindex(HttpHeaders headers, ReindexRequest reindexRequest) {
+        return sendRequest(reindexRequest, requestCreator.submitReindex(), TaskSubmissionResponse.class, headers).next()
+                                                                                                                 .map(TaskSubmissionResponse::getTask);
+    }
+
     // --> INDICES
 
     /*
@@ -712,9 +692,23 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
     @Override
     public Mono<Boolean> putMapping(HttpHeaders headers, org.elasticsearch.client.indices.PutMappingRequest putMappingRequest) {
 
-        return sendRequest(putMappingRequest, requestCreator.putMappingRequest(), AcknowledgedResponse.class, headers)
+        return sendRequest(putMappingRequest, this::createPutMapping, AcknowledgedResponse.class, headers)
             .map(AcknowledgedResponse::isAcknowledged)
             .next();
+    }
+
+    private Request createPutMapping(org.elasticsearch.client.indices.PutMappingRequest putMappingRequest) {
+        Request request = requestCreator.putMappingRequest().apply(putMappingRequest);
+        Request newReq = new Request(request.getMethod(), request.getEndpoint());
+
+        Params params = new Params(newReq)
+            .withTimeout(putMappingRequest.timeout())
+            .withMasterTimeout(putMappingRequest.masterNodeTimeout());
+        if (serverVersion().before(Version.V_7_0_0)) {
+            params.putParam("include_type_name", "false");
+        }
+        newReq.setEntity(request.getEntity());
+        return newReq;
     }
 
     /*
@@ -1167,7 +1161,7 @@ public class DefaultReactiveElasticsearchClient implements org.jetlinks.communit
     @Override
     public Mono<GetMappingsResponse> getMapping(HttpHeaders headers, GetMappingsRequest getMappingsRequest) {
         return sendRequest(getMappingsRequest, requestCreator.getMapping(),
-                           org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse.class, headers).next();
+                           GetMappingsResponse.class, headers).next();
     }
 
     @Override

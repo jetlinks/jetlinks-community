@@ -17,10 +17,22 @@ public interface PropertyConstants {
     Key<String> orgId = Key.of("orgId");
 
     Key<String> deviceName = Key.of("deviceName");
+    //产品名称
+    Key<String> productName = Key.of("productName");
 
     Key<String> productId = Key.of("productId");
     Key<String> uid = Key.of("_uid");
+    //设备创建者
+    Key<String> creatorId = Key.of("creatorId");
 
+    //设备接入网关ID
+    Key<String> accessId = Key.of("accessId");
+
+    /**
+     * 设备接入方式
+     * @see org.jetlinks.community.gateway.supports.DeviceGatewayProvider#getId
+     */
+    Key<String> accessProvider = Key.of("accessProvider");
 
     @SuppressWarnings("all")
     static <T> Optional<T> getFromMap(ConfigKey<T> key, Map<String, Object> map) {

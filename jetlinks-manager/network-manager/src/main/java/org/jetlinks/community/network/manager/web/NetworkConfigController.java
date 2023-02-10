@@ -2,29 +2,32 @@ package org.jetlinks.community.network.manager.web;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Generated;
 import org.hswebframework.ezorm.rdb.operator.dml.query.SortOrder;
+import org.hswebframework.web.api.crud.entity.QueryOperation;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
-import org.hswebframework.web.exception.NotFoundException;
-import org.jetlinks.community.network.DefaultNetworkType;
-import org.jetlinks.community.network.NetworkManager;
-import org.jetlinks.community.network.NetworkProvider;
+import org.hswebframework.web.exception.I18nSupportException;
+import org.jetlinks.community.network.*;
+import org.jetlinks.community.network.channel.ChannelInfo;
 import org.jetlinks.community.network.manager.entity.NetworkConfigEntity;
 import org.jetlinks.community.network.manager.enums.NetworkConfigState;
+import org.jetlinks.community.network.manager.service.NetworkChannelProvider;
 import org.jetlinks.community.network.manager.service.NetworkConfigService;
 import org.jetlinks.community.network.manager.web.response.NetworkTypeInfo;
-import org.springframework.util.StringUtils;
+import org.jetlinks.community.reference.DataReferenceManager;
 import org.springframework.web.bind.annotation.*;
+import reactor.bool.BooleanUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 /**
  * @author zhouhao
@@ -35,17 +38,18 @@ import reactor.core.publisher.Mono;
 @Resource(id = "network-config", name = "网络组件配置")
 @Authorize
 @Tag(name = "网络组件管理")
+@AllArgsConstructor
 public class NetworkConfigController implements ReactiveServiceCrudController<NetworkConfigEntity, String> {
 
     private final NetworkConfigService configService;
 
     private final NetworkManager networkManager;
 
-    public NetworkConfigController(NetworkConfigService configService, NetworkManager networkManager) {
-        this.configService = configService;
-        this.networkManager = networkManager;
-    }
+    private final DataReferenceManager referenceManager;
 
+    private final NetworkChannelProvider channelProvider;
+
+    @Generated
     @Override
     public NetworkConfigService getService() {
         return configService;
@@ -54,57 +58,68 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
 
     @GetMapping("/{networkType}/_detail")
     @QueryAction
-    @Operation(summary = "获取指定类型下所有网络组件信息")
-    public Flux<NetworkConfigInfo> getNetworkInfo(@PathVariable
-                                                  @Parameter(description = "网络组件类型") String networkType) {
+    @Operation(summary = "获取指定类型下全部的网络组件信息")
+    public Flux<ChannelInfo> getNetworkInfo(@PathVariable
+                                            @Parameter(description = "网络组件类型") String networkType) {
+        NetworkProvider<?> provider = networkManager
+            .getProvider(networkType)
+            .orElseThrow(() -> new I18nSupportException("error.unsupported_network_type", networkType));
 
-
-        return configService
+        return  configService
             .createQuery()
             .where(NetworkConfigEntity::getType, networkType)
             .orderBy(SortOrder.desc(NetworkConfigEntity::getId))
             .fetch()
-            .flatMap(config -> {
-                Mono<NetworkConfigInfo> def = Mono.just(NetworkConfigInfo.of(config.getId(), config.getName(), ""));
-                if (config.getState() == NetworkConfigState.enabled) {
-                    return networkManager.getNetwork(DefaultNetworkType.valueOf(networkType.toUpperCase()), config.getId())
-                        .map(server -> NetworkConfigInfo.of(config.getId(), config.getName(),""))
-                        .onErrorResume(err -> def)
-                        .switchIfEmpty(def);
-                }
-                return def;
-            });
+            .flatMap(entity -> toConfigInfo(entity, provider));
     }
 
-    @Getter
-    @Setter
-    @AllArgsConstructor(staticName = "of")
-    public static class NetworkConfigInfo {
-        @Schema(description = "网络组件ID")
-        private String id;
+    /**
+     * 获取指定类型下可用的网络组件信息
+     * <pre>{@code
+     * POST /network/config/{networkType}/_alive?include=
+     * }</pre>
+     */
+    @GetMapping("/{networkType}/_alive")
+    @QueryAction
+    @QueryOperation(summary = "获取指定类型下可用的网络组件信息")
+    public Flux<ChannelInfo> getAliveNetworkInfo(@PathVariable
+                                                 @Parameter(description = "网络组件类型") String networkType,
+                                                 @Parameter(description = "包含指定的网络组件ID")
+                                                 @RequestParam(required = false) String include,
+                                                 @Parameter(hidden = true) QueryParamEntity query) {
+        NetworkProvider<?> provider = networkManager
+            .getProvider(networkType)
+            .orElseThrow(() -> new I18nSupportException("error.unsupported_network_type", networkType));
 
-        @Schema(description = "名称")
-        private String name;
+        return configService
+            .createQuery()
+            .setParam(query)
+            .where(NetworkConfigEntity::getType, networkType)
+            .and(NetworkConfigEntity::getState, NetworkConfigState.enabled)
+            .orderBy(SortOrder.desc(NetworkConfigEntity::getId))
+            .fetch()
+            .filterWhen(config -> {
+                if (provider.isReusable() || Objects.equals(config.getId(), include)) {
+                    return Mono.just(true);
+                }
+                //判断是否已经被使用
+                return referenceManager
+                    .isReferenced(DataReferenceManager.TYPE_NETWORK, config.getId())
+                    .as(BooleanUtils::not);
+            })
+            .flatMap(entity -> toConfigInfo(entity, provider));
+    }
 
-        @Schema(description = "地址")
-        private String address;
-
-        @Schema(description = "详情")
-        public String getDetail() {
-            if (StringUtils.hasText(address)) {
-                return name + "(" + address + ")";
-            }
-            return name;
-        }
+    private Mono<ChannelInfo> toConfigInfo(NetworkConfigEntity entity, NetworkProvider<?> provider) {
+        return channelProvider.toChannelInfo(entity);
     }
 
     @GetMapping("/supports")
     @Operation(summary = "获取支持的网络组件类型")
     public Flux<NetworkTypeInfo> getSupports() {
-        return Flux.fromIterable(networkManager
-            .getProviders())
-            .map(NetworkProvider::getType)
-            .map(NetworkTypeInfo::of);
+        return Flux.fromIterable(networkManager.getProviders())
+                   .map(NetworkProvider::getType)
+                   .map(NetworkTypeInfo::of);
     }
 
     @PostMapping("/{id}/_start")
@@ -112,14 +127,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
     @Operation(summary = "启动网络组件")
     public Mono<Void> start(@PathVariable
                             @Parameter(description = "网络组件ID") String id) {
-        return configService.findById(id)
-            .switchIfEmpty(Mono.error(() -> new NotFoundException("配置[" + id + "]不存在")))
-            .flatMap(conf -> configService.createUpdate()
-                .set(NetworkConfigEntity::getState, NetworkConfigState.enabled)
-                .where(conf::getId)
-                .execute()
-                .thenReturn(conf))
-            .flatMap(conf -> networkManager.reload(conf.lookupNetworkType(), id));
+        return configService.start(id);
     }
 
     @PostMapping("/{id}/_shutdown")
@@ -127,14 +135,7 @@ public class NetworkConfigController implements ReactiveServiceCrudController<Ne
     @Operation(summary = "停止网络组件")
     public Mono<Void> shutdown(@PathVariable
                                @Parameter(description = "网络组件ID") String id) {
-        return configService.findById(id)
-            .switchIfEmpty(Mono.error(() -> new NotFoundException("配置[" + id + "]不存在")))
-            .flatMap(conf -> configService.createUpdate()
-                .set(NetworkConfigEntity::getState, NetworkConfigState.disabled)
-                .where(conf::getId)
-                .execute()
-                .thenReturn(conf))
-            .flatMap(conf -> networkManager.shutdown(conf.lookupNetworkType(), id));
+        return configService.shutdown(id);
     }
 
 }

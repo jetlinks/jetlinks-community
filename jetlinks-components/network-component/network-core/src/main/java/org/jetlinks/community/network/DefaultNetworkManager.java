@@ -1,22 +1,26 @@
 package org.jetlinks.community.network;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.cache.ReactiveCacheContainer;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.function.Function3;
 
+import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -26,12 +30,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 @Slf4j
-public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor {
+public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor, CommandLineRunner {
 
     private final NetworkConfigManager configManager;
 
-
-    private final Map<String, Map<String, Network>> store = new ConcurrentHashMap<>();
+    private final Map<String, ReactiveCacheContainer<String, Network>> store = new ConcurrentHashMap<>();
 
     private final Map<String, NetworkProvider<Object>> providerSupport = new ConcurrentHashMap<>();
 
@@ -39,91 +42,81 @@ public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor 
         this.configManager = configManager;
     }
 
-    @Override
-    public Mono<Void> reload(NetworkType type, String id) {
-        return Mono.justOrEmpty(getNetworkStore(type)
-            .get(id))
-            .doOnNext(Network::shutdown)
-            .then(getNetwork(type, id))
-            .then();
-    }
-
-    @PostConstruct
-    public void start() {
-        Flux.interval(Duration.ofSeconds(10))
-            .subscribe(t -> this.checkNetwork());
-    }
-
-    /**
-     * 检查网络 把需要加载的网络组件启动起来
-     */
     protected void checkNetwork() {
-        // 获取并过滤所有停止的网络组件
-        // 重新加载启动状态的网络组件
         Flux.fromIterable(store.values())
-            .flatMapIterable(Map::values)
+            .flatMapIterable(ReactiveCacheContainer::valuesNow)
             .filter(i -> !i.isAlive())
             .flatMap(network -> {
                 NetworkProvider<Object> provider = providerSupport.get(network.getType().getId());
                 if (provider == null || !network.isAutoReload()) {
                     return Mono.empty();
                 }
-                return configManager.getConfig(network.getType(), network.getId())
+                return configManager
+                    .getConfig(network.getType(), network.getId())
                     .filter(NetworkProperties::isEnabled)
                     .flatMap(provider::createConfig)
-                    .map(conf -> this.doCreate(provider, network.getId(), conf))
-                    .onErrorContinue((err, res) -> log.warn("reload network [{}] error", network, err));
+                    .flatMap(conf -> this.createOrUpdate(provider, network.getId(), conf))
+                    .onErrorResume((err) -> {
+                        log.warn("reload network [{}] error", network, err);
+                        return Mono.empty();
+                    });
             })
             .subscribe(net -> log.info("reloaded network :{}", net));
     }
 
-    private Map<String, Network> getNetworkStore(String type) {
-        return store.computeIfAbsent(type, _id -> new ConcurrentHashMap<>());
+    private ReactiveCacheContainer<String, Network> getNetworkStore(String type) {
+        return store.computeIfAbsent(type, _id -> ReactiveCacheContainer.create());
     }
 
-    private Map<String, Network> getNetworkStore(NetworkType type) {
+    private ReactiveCacheContainer<String, Network> getNetworkStore(NetworkType type) {
         return getNetworkStore(type.getId());
+    }
+
+    private <T extends Network> Mono<T> getNetwork(String type, String id) {
+        ReactiveCacheContainer<String, Network> networkMap = getNetworkStore(type);
+        return networkMap
+            .computeIfAbsent(id, (key) -> handleConfig(NetworkType.of(type), key, this::doCreate))
+            .map(n -> (T) n);
     }
 
     @Override
     public <T extends Network> Mono<T> getNetwork(NetworkType type, String id) {
-        Map<String, Network> networkMap = getNetworkStore(type);
-        return Mono.justOrEmpty(networkMap.get(id))
-            .filter(Network::isAlive)
-            .switchIfEmpty(Mono.defer(() -> createNetwork(type, id)))
-            .map(n -> (T) n);
+        return getNetwork(type.getId(), id);
     }
 
-    /**
-     * 如果store中不存在网络组件就创建，存在就重新加载
-     *
-     * @param provider   网络组件支持提供商
-     * @param id         网络组件唯一标识
-     * @param properties 网络组件配置
-     * @return 网络组件
-     */
-    public Network doCreate(NetworkProvider<Object> provider, String id, Object properties) {
-        return getNetworkStore(provider.getType()).compute(id, (s, network) -> {
+    @Override
+    public Flux<Network> getNetworks() {
+        return Flux.fromIterable(store.values())
+                   .flatMapIterable(ReactiveCacheContainer::valuesNow);
+    }
+
+    public Mono<Network> createOrUpdate(NetworkProvider<Object> provider, String id, Object properties) {
+        ReactiveCacheContainer<String, Network> networkStore = getNetworkStore(provider.getType());
+        return networkStore.compute(id, (key, network) -> {
             if (network == null) {
-                network = provider.createNetwork(properties);
-            } else {
-                //单例，已经存在则重新加载
-                provider.reload(network, properties);
+                return provider.createNetwork(properties);
             }
-            return network;
+            return provider.reload(network, properties);
         });
     }
 
-    public Mono<Network> createNetwork(NetworkType type, String id) {
-        return Mono.justOrEmpty(providerSupport.get(type.getId()))
-            .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("不支持的类型:" + type.getName())))
-            .flatMap(provider -> configManager
-                .getConfig(type, id)
-                .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("网络[" + type.getName() + "]配置[" + id + "]不存在")))
-                .filter(NetworkProperties::isEnabled)
-                .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("网络[" + type.getName() + "]配置[" + id + "]已禁用")))
-                .flatMap(provider::createConfig)
-                .map(config -> doCreate(provider, id, config)));
+    public Mono<Network> doCreate(NetworkProvider<Object> provider, String id, Object properties) {
+        return provider.createNetwork(properties);
+    }
+
+    private Mono<Network> handleConfig(NetworkType type,
+                                       String id,
+                                       Function3<NetworkProvider<Object>, String, Object, Mono<Network>> handler) {
+        @SuppressWarnings("all")
+        NetworkProvider<Object> networkProvider = (NetworkProvider) this
+            .getProvider(type.getId())
+            .orElseThrow(() -> new UnsupportedOperationException("不支持的类型:" + type.getName()));
+
+        return configManager
+            .getConfig(type, id)
+            .filter(NetworkProperties::isEnabled)
+            .flatMap(networkProvider::createConfig)
+            .flatMap(config -> handler.apply(networkProvider, id, config));
     }
 
     public void register(NetworkProvider<Object> provider) {
@@ -131,7 +124,7 @@ public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor 
     }
 
     @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+    public Object postProcessAfterInitialization(@Nonnull Object bean, @Nonnull String beanName) throws BeansException {
         if (bean instanceof NetworkProvider) {
             register(((NetworkProvider) bean));
         }
@@ -143,19 +136,71 @@ public class DefaultNetworkManager implements NetworkManager, BeanPostProcessor 
         return new ArrayList<>(providerSupport.values());
     }
 
-
     @Override
-    public Mono<Void> shutdown(NetworkType type, String id) {
+    public Optional<NetworkProvider<?>> getProvider(String type) {
+        return Optional.ofNullable(providerSupport.get(type));
+    }
 
-        return Mono.justOrEmpty(getNetworkStore(type).get(id))
+    private Mono<Void> doReload(String type, String id) {
+        return handleConfig(NetworkType.of(type), id, this::createOrUpdate)
+            .then();
+
+//        Optional.ofNullable(getNetworkStore(type).getNow(id))
+//                .ifPresent(Network::shutdown);
+//
+//        return this
+//            .getNetwork(type, id)
+//            .then();
+    }
+
+    public Mono<Void> doShutdown(String type, String id) {
+        return Mono
+            .justOrEmpty(getNetworkStore(type).getNow(id))
             .doOnNext(Network::shutdown)
             .then();
     }
+
+    public Mono<Void> doDestroy(String type, String id) {
+        return Mono
+            .justOrEmpty(getNetworkStore(type).remove(id))
+            .doOnNext(Network::shutdown)
+            .then();
+    }
+
+    @Override
+    public Mono<Void> reload(NetworkType type, String id) {
+        return doReload(type.getId(), id);
+
+    }
+
+    @Override
+    public Mono<Void> shutdown(NetworkType type, String id) {
+        return this
+            .doShutdown(type.getId(), id)
+            .then();
+    }
+
+    @Override
+    public Mono<Void> destroy(NetworkType type, String id) {
+        return this
+            .doDestroy(type.getId(), id)
+            .then();
+    }
+
+
+    @Override
+    public void run(String... args) {
+        //定时检查网络组件状态
+        Flux.interval(Duration.ofSeconds(10))
+            .subscribe(t -> this.checkNetwork());
+    }
+
 
     @Getter
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
+    @Generated
     public static class Synchronization implements Serializable {
         private NetworkType type;
 

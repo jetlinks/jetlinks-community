@@ -6,9 +6,7 @@ import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.types.DateTimeType;
-import org.jetlinks.core.metadata.types.GeoPoint;
-import org.jetlinks.core.metadata.types.GeoType;
+import org.jetlinks.core.metadata.types.*;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -22,7 +20,9 @@ public class ElasticSearchConverter {
         return QueryParamTranslator.convertSearchSourceBuilder(queryParam, metadata);
     }
 
-    public static Map<String, Object> convertDataToElastic(Map<String, Object> data, List<PropertyMetadata> properties) {
+    public static Map<String, Object> convertDataToElastic(Map<String, Object> data,
+                                                           List<PropertyMetadata> properties) {
+        Map<String, Object> newValue = new HashMap<>(data);
         for (PropertyMetadata property : properties) {
             DataType type = property.getValueType();
             Object val = data.get(property.getId());
@@ -32,37 +32,52 @@ public class ElasticSearchConverter {
             //处理地理位置类型
             if (type instanceof GeoType) {
                 GeoPoint point = ((GeoType) type).convert(val);
+
                 Map<String, Object> geoData = new HashMap<>();
                 geoData.put("lat", point.getLat());
                 geoData.put("lon", point.getLon());
-                data.put(property.getId(), geoData);
+
+                newValue.put(property.getId(), geoData);
+            } else if (type instanceof GeoShapeType) {
+                GeoShape shape = ((GeoShapeType) type).convert(val);
+                if (shape == null) {
+                    throw new UnsupportedOperationException("不支持的GeoShape格式:" + val);
+                }
+                Map<String, Object> geoData = new HashMap<>();
+                geoData.put("type", shape.getType().name());
+                geoData.put("coordinates", shape.getCoordinates());
+                newValue.put(property.getId(), geoData);
             } else if (type instanceof DateTimeType) {
                 Date date = ((DateTimeType) type).convert(val);
-                data.put(property.getId(), date.getTime());
+                newValue.put(property.getId(), date.getTime());
             } else if (type instanceof Converter) {
-                data.put(property.getId(), ((Converter<?>) type).convert(val));
+                newValue.put(property.getId(), ((Converter<?>) type).convert(val));
             }
         }
-        return data;
+        return newValue;
     }
 
-    public static Map<String, Object> convertDataFromElastic(Map<String, Object> data, List<PropertyMetadata> properties) {
+    public static Map<String, Object> convertDataFromElastic(Map<String, Object> data,
+                                                             List<PropertyMetadata> properties) {
+        Map<String, Object> newData = new HashMap<>(data);
         for (PropertyMetadata property : properties) {
             DataType type = property.getValueType();
-            Object val = data.get(property.getId());
+            Object val = newData.get(property.getId());
             if (val == null) {
                 continue;
             }
             //处理地理位置类型
             if (type instanceof GeoType) {
-                data.put(property.getId(), ((GeoType) type).convertToMap(val));
-            } else if (type instanceof DateTimeType) {
+                newData.put(property.getId(), ((GeoType) type).convertToMap(val));
+            }else if (type instanceof GeoShapeType) {
+                newData.put(property.getId(),GeoShape.of(val).toMap());
+            }  else if (type instanceof DateTimeType) {
                 Date date = ((DateTimeType) type).convert(val);
-                data.put(property.getId(), date);
+                newData.put(property.getId(), date);
             } else if (type instanceof Converter) {
-                data.put(property.getId(), ((Converter<?>) type).convert(val));
+                newData.put(property.getId(), ((Converter<?>) type).convert(val));
             }
         }
-        return data;
+        return newData;
     }
 }

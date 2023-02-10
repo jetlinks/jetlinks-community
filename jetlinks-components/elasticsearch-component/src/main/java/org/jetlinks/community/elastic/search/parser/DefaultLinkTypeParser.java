@@ -4,6 +4,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.hswebframework.ezorm.core.param.Term;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -15,10 +16,13 @@ import java.util.function.Consumer;
 @Component
 public class DefaultLinkTypeParser implements LinkTypeParser {
 
-    private TermTypeParser parser = new DefaultTermTypeParser();
+    private final TermTypeParser parser = new DefaultTermTypeParser();
 
     @Override
     public BoolQueryBuilder process(Term term, Consumer<Term> consumer, BoolQueryBuilder queryBuilders) {
+        if (term.getValue() == null && CollectionUtils.isEmpty(term.getTerms())) {
+            return queryBuilders;
+        }
         if (term.getType() == Term.Type.or) {
             handleOr(queryBuilders, term, consumer);
         } else {
