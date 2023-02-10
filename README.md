@@ -1,6 +1,6 @@
 # JetLinks 物联网基础平台
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/jetlinks/jetlinks-community/Auto%20Deploy%20Docker?label=docker)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jetlinks/jetlinks-community/maven.yml?branch=master)
 ![Version](https://img.shields.io/badge/version-2.0--RELEASE-brightgreen)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jetlinks/jetlinks-community/maven.yml?branch=master)
 ![Version](https://img.shields.io/badge/version-1.20--RELEASE-brightgreen)
