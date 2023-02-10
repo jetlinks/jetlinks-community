@@ -19,15 +19,15 @@
         <spring.boot.version>2.7.3</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.15-SNAPSHOT</hsweb.framework.version>
-        <easyorm.version>4.1.0-SNAPSHOT</easyorm.version>
+        <hsweb.framework.version>4.0.15</hsweb.framework.version>
+        <easyorm.version>4.1.0</easyorm.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
+        <jetlinks.version>1.2.0</jetlinks.version>
         <r2dbc.version>Borca-SR2</r2dbc.version>
         <netty.version>4.1.82.Final</netty.version>
         <elasticsearch.version>7.17.5</elasticsearch.version>
-        <reactor.excel.version>1.0.4-SNAPSHOT</reactor.excel.version>
-        <reactor.ql.version>1.0.15-SNAPSHOT</reactor.ql.version>
+        <reactor.excel.version>1.0.4</reactor.excel.version>
+        <reactor.ql.version>1.0.15</reactor.ql.version>
         <californium.version>3.7.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
         <reactor.version>2020.0.22</reactor.version>
