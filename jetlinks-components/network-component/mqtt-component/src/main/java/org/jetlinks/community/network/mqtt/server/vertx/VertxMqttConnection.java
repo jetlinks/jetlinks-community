@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
+import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.util.ReferenceCountUtil;
 import io.vertx.core.buffer.Buffer;
@@ -24,6 +25,7 @@ import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.SimpleMqttMessage;
 import org.jetlinks.core.server.mqtt.MqttAuth;
+import org.jetlinks.core.utils.Reactors;
 import reactor.core.publisher.*;
 
 import javax.annotation.Nonnull;
@@ -42,7 +44,9 @@ class VertxMqttConnection implements MqttConnection {
     private long keepAliveTimeoutMs;
     @Getter
     private long lastPingTime = System.currentTimeMillis();
-    private volatile boolean closed = false, accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = true;
+    private volatile boolean closed = false, accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = false;
+    private int messageIdCounter;
+
     private static final MqttAuth emptyAuth = new MqttAuth() {
         @Override
         public String getUsername() {
@@ -54,19 +58,9 @@ class VertxMqttConnection implements MqttConnection {
             return "";
         }
     };
-    private final Sinks.Many<MqttPublishing> messageProcessor = Sinks
-        .many()
-        .multicast()
-        .onBackpressureBuffer(Integer.MAX_VALUE);
-
-    private final Sinks.Many<MqttSubscription> subscription = Sinks
-        .many()
-        .multicast()
-        .onBackpressureBuffer(Integer.MAX_VALUE);
-    private final Sinks.Many<MqttUnSubscription> unsubscription = Sinks
-        .many()
-        .multicast()
-        .onBackpressureBuffer(Integer.MAX_VALUE);
+    private final Sinks.Many<MqttPublishing> messageProcessor = Reactors.createMany(Integer.MAX_VALUE, false);
+    private final Sinks.Many<MqttSubscription> subscription = Reactors.createMany(Integer.MAX_VALUE, false);
+    private final Sinks.Many<MqttUnSubscription> unsubscription = Reactors.createMany(Integer.MAX_VALUE, false);
 
 
     public VertxMqttConnection(MqttEndpoint endpoint) {
@@ -83,6 +77,11 @@ class VertxMqttConnection implements MqttConnection {
     };
 
     private Consumer<MqttConnection> disconnectConsumer = defaultListener;
+
+    @Override
+    public Duration getKeepAliveTimeout() {
+        return Duration.ofMillis(keepAliveTimeoutMs);
+    }
 
     @Override
     public void onClose(Consumer<MqttConnection> listener) {
@@ -179,7 +178,7 @@ class VertxMqttConnection implements MqttConnection {
                     publishing.acknowledge();
                 }
                 if (hasDownstream) {
-                    this.messageProcessor.tryEmitNext(publishing);
+                    this.messageProcessor.emitNext(publishing, Reactors.emitFailureHandler());
                 }
             })
             //QoS 1 PUBACK
@@ -212,7 +211,7 @@ class VertxMqttConnection implements MqttConnection {
                     subscription.acknowledge();
                 }
                 if (hasDownstream) {
-                    this.subscription.tryEmitNext(subscription);
+                    this.subscription.emitNext(subscription, Reactors.emitFailureHandler());
                 }
             })
             .unsubscribeHandler(msg -> {
@@ -223,7 +222,7 @@ class VertxMqttConnection implements MqttConnection {
                     unSubscription.acknowledge();
                 }
                 if (hasDownstream) {
-                    this.unsubscription.tryEmitNext(unSubscription);
+                    this.unsubscription.emitNext(unSubscription, Reactors.emitFailureHandler());
                 }
             });
     }
@@ -263,6 +262,7 @@ class VertxMqttConnection implements MqttConnection {
     @Override
     public Mono<Void> publish(MqttMessage message) {
         ping();
+        int messageId = message.getMessageId() <= 0 ? nextMessageId() : message.getMessageId();
         return Mono
             .<Void>create(sink -> {
                 ByteBuf buf = message.getPayload();
@@ -273,6 +273,8 @@ class VertxMqttConnection implements MqttConnection {
                     MqttQoS.valueOf(message.getQosLevel()),
                     message.isDup(),
                     message.isRetain(),
+                    messageId,
+                    message.getProperties(),
                     result -> {
                         if (result.succeeded()) {
                             sink.success();
@@ -296,6 +298,30 @@ class VertxMqttConnection implements MqttConnection {
     public Flux<MqttUnSubscription> handleUnSubscribe(boolean autoAck) {
         autoAckUnSub = autoAck;
         return unsubscription.asFlux();
+    }
+
+    @Override
+    public InetSocketAddress address() {
+        return getClientAddress();
+    }
+
+    @Override
+    public Mono<Void> sendMessage(EncodedMessage message) {
+        if (message instanceof MqttMessage) {
+            return publish(((MqttMessage) message));
+        }
+        return Mono.empty();
+    }
+
+    @Override
+    public Flux<EncodedMessage> receiveMessage() {
+        return handleMessage()
+            .cast(EncodedMessage.class);
+    }
+
+    @Override
+    public void disconnect() {
+        close().subscribe();
     }
 
     @Override
@@ -385,6 +411,11 @@ class VertxMqttConnection implements MqttConnection {
         }
 
         @Override
+        public MqttProperties getProperties() {
+            return message.properties();
+        }
+
+        @Override
         public MqttMessage getMessage() {
             return this;
         }
@@ -466,6 +497,11 @@ class VertxMqttConnection implements MqttConnection {
         public String getPassword() {
             return endpoint.auth().getPassword();
         }
+    }
+
+    private int nextMessageId() {
+        this.messageIdCounter = ((this.messageIdCounter % 65535) != 0) ? this.messageIdCounter + 1 : 1;
+        return this.messageIdCounter;
     }
 
     @Override

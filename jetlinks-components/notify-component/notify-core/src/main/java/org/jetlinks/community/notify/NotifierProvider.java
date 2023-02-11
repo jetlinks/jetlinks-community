@@ -1,7 +1,8 @@
 package org.jetlinks.community.notify;
 
-import org.jetlinks.community.notify.template.Template;
+import org.jetlinks.community.notify.template.TemplateProvider;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.community.notify.template.Template;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
@@ -11,7 +12,7 @@ import javax.annotation.Nullable;
  * 通知服务提供商
  *
  * @author zhouhao
- * @see org.jetlinks.community.notify.template.TemplateProvider
+ * @see TemplateProvider
  * @see NotifierManager
  * @since 1.0
  */

@@ -1,5 +1,8 @@
 package org.jetlinks.community.network.tcp.parser;
 
+import org.jetlinks.community.network.tcp.parser.strateies.DelimitedPayloadParserBuilder;
+import org.jetlinks.community.network.tcp.parser.strateies.FixLengthPayloadParserBuilder;
+import org.jetlinks.community.network.tcp.parser.strateies.ScriptPayloadParserBuilder;
 import org.jetlinks.community.ValueObject;
 
 import java.util.function.Supplier;
@@ -9,9 +12,9 @@ import java.util.function.Supplier;
  *
  * @author zhouhao
  * @since 1.0
- * @see org.jetlinks.community.network.tcp.parser.strateies.FixLengthPayloadParserBuilder
- * @see org.jetlinks.community.network.tcp.parser.strateies.DelimitedPayloadParserBuilder
- * @see org.jetlinks.community.network.tcp.parser.strateies.ScriptPayloadParserBuilder
+ * @see FixLengthPayloadParserBuilder
+ * @see DelimitedPayloadParserBuilder
+ * @see ScriptPayloadParserBuilder
  */
 public interface PayloadParserBuilderStrategy {
     /**

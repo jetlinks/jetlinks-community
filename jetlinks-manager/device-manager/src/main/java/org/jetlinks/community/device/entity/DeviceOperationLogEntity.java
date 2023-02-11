@@ -1,15 +1,17 @@
 package org.jetlinks.community.device.entity;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.annotation.JSONField;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.device.enums.DeviceLogType;
+import org.jetlinks.community.things.data.ThingMessageLog;
+import org.springframework.util.StringUtils;
 
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author bsetfeng
@@ -19,7 +21,9 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Generated
 public class DeviceOperationLogEntity {
+    private static final long serialVersionUID = -6849794470754667710L;
 
     @Schema(description = "日志ID")
     private String id;
@@ -39,23 +43,36 @@ public class DeviceOperationLogEntity {
     @Schema(description = "日志内容")
     private Object content;
 
+    @Schema(description = "消息ID")
+    private String messageId;
+
     @Hidden
     private String orgId;
 
     @Schema(description = "数据时间")
     private long timestamp;
 
-    @Schema(description = "消息ID")
-    private String messageId;
+    public static DeviceOperationLogEntity of(ThingMessageLog log) {
+        DeviceOperationLogEntity messageLog = FastBeanCopier.copy(log, new DeviceOperationLogEntity());
+        messageLog.setDeviceId(log.getThingId());
+        return messageLog;
+    }
 
     public Map<String, Object> toSimpleMap() {
-        Map<String, Object> result = (Map) JSON.toJSON(this);
+        Map<String, Object> result = FastBeanCopier.copy(this, HashMap::new);
         result.put("type", type.getValue());
-        if (getContent() instanceof String) {
-            result.put("content", getContent());
+        if (content instanceof String) {
+            result.put("content", content);
         } else {
             result.put("content", JSON.toJSONString(getContent()));
         }
         return result;
+    }
+
+    public DeviceOperationLogEntity generateId() {
+        if (StringUtils.isEmpty(id)) {
+            setId(DigestUtils.md5Hex(String.join("", deviceId, type.getValue(), String.valueOf(timestamp))));
+        }
+        return this;
     }
 }

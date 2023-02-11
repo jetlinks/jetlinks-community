@@ -6,15 +6,20 @@ import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.api.crud.entity.RecordModifierEntity;
+import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.validator.CreateGroup;
-import org.jetlinks.community.device.enums.DeviceFeature;
-import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.core.config.ConfigKey;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceInfo;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.MergeOption;
+import org.jetlinks.community.PropertyConstants;
+import org.jetlinks.community.device.enums.DeviceFeature;
+import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -37,7 +42,9 @@ import java.util.stream.Stream;
     @Index(name = "idx_dev_parent_id", columnList = "parent_id"),
     @Index(name = "idx_dev_state", columnList = "state")
 })
-public class DeviceInstanceEntity extends GenericEntity<String> implements RecordCreationEntity {
+@Comment("设备信息表")
+@EnableEntityEvent
+public class DeviceInstanceEntity extends GenericEntity<String> implements RecordCreationEntity, RecordModifierEntity {
 
     @Override
     @GeneratedValue(generator = Generators.SNOW_FLAKE)
@@ -47,49 +54,54 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         return super.getId();
     }
 
-    @Comment("设备实例名称")
+    @Column(name = "photo_url", length = 2048)
+    @Schema(description = "图片地址")
+    private String photoUrl;
+
     @Column(name = "name")
     @NotBlank(message = "设备名称不能为空", groups = CreateGroup.class)
     @Schema(description = "设备名称")
     private String name;
+
+    @Column
+    @ColumnType(javaType = String.class)
+    @EnumCodec
+    @Schema(description = "设备类型")
+    private DeviceType deviceType;
 
     @Comment("说明")
     @Column(name = "describe")
     @Schema(description = "说明")
     private String describe;
 
-    @Comment("产品id")
     @Column(name = "product_id", length = 64)
     @NotBlank(message = "产品ID不能为空", groups = CreateGroup.class)
     @Schema(description = "产品ID")
     private String productId;
 
-    @Comment("产品名称")
     @Column(name = "product_name")
     @NotBlank(message = "产品名称不能为空", groups = CreateGroup.class)
     @Schema(description = "产品名称")
     private String productName;
 
-    @Comment("其他配置")
     @Column(name = "configuration")
-    @ColumnType(jdbcType = JDBCType.CLOB)
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR)
     @JsonCodec
     @Schema(description = "配置信息")
     private Map<String, Object> configuration;
 
-    @Comment("派生元数据,有的设备的属性，功能，事件可能会动态的添加")
     @Column(name = "derive_metadata")
-    @ColumnType(jdbcType = JDBCType.CLOB)
-    @Schema(description = "派生物模型(预留)")
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR)
+    @Schema(description = "派生(独立)物模型")
     private String deriveMetadata;
 
-    @Column(name = "state",length = 16)
+    @Column(name = "state", length = 16)
     @EnumCodec
     @ColumnType(javaType = String.class)
     @DefaultValue("notActive")
     @Schema(
         description = "状态(只读)"
-        //,accessMode = Schema.AccessMode.READ_ONLY
+        , accessMode = Schema.AccessMode.READ_ONLY
         , defaultValue = "notActive"
     )
     private DeviceState state;
@@ -97,14 +109,14 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @Column(name = "creator_id", updatable = false)
     @Schema(
         description = "创建者ID(只读)"
-//        ,accessMode = Schema.AccessMode.READ_ONLY
+        , accessMode = Schema.AccessMode.READ_ONLY
     )
     private String creatorId;
 
     @Column(name = "creator_name", updatable = false)
     @Schema(
         description = "创建者名称(只读)"
-        // ,accessMode = Schema.AccessMode.READ_ONLY
+        , accessMode = Schema.AccessMode.READ_ONLY
     )
     private String creatorName;
 
@@ -112,22 +124,23 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @DefaultValue(generator = Generators.CURRENT_TIME)
     @Schema(
         description = "创建时间(只读)"
-        //, accessMode = Schema.AccessMode.READ_ONLY
+        , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
 
-    @Comment("激活时间")
     @Column(name = "registry_time")
-    @Schema(description = "激活时间", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "激活时间"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
     private Long registryTime;
 
     @Column(name = "org_id", length = 64)
-    @Comment("所属机构ID")
-    @Schema(description = "机构ID")
+    @Schema(description = "机构ID", hidden = true)
+    //已弃用,机构和设备存在多对多关系,已由资产功能统一管理
+    @Deprecated
     private String orgId;
 
     @Column(name = "parent_id", length = 64)
-    @Comment("父级设备ID")
     @Schema(description = "父级设备ID")
     private String parentId;
 
@@ -139,32 +152,72 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @DefaultValue("0")
     private DeviceFeature[] features;
 
+    @Column
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    @Schema(
+        description = "修改时间"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private Long modifyTime;
+
+    @Column(length = 64)
+    @Schema(
+        description = "修改人ID"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String modifierId;
+
+    @Column(length = 64)
+    @Schema(
+        description = "修改人名称"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String modifierName;
+
+    public Optional<Object> getConfiguration(String key) {
+        if (configuration == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(configuration.get(key));
+    }
+
+    public <T> Optional<T> getConfiguration(ConfigKey<T> key) {
+        return this
+            .getConfiguration(key.getKey())
+            .map(key.getType()::cast);
+    }
+
     public DeviceInfo toDeviceInfo() {
-        DeviceInfo info = org.jetlinks.core.device.DeviceInfo
+        DeviceInfo info = DeviceInfo
             .builder()
             .id(this.getId())
             .productId(this.getProductId())
-            .build()
-            .addConfig(DeviceConfigKey.parentGatewayId, this.getParentId());
-        info.addConfig("deviceName", name);
-        info.addConfig("productName", productName);
-        info.addConfig("orgId", orgId);
+            .build();
 
-        if (hasFeature(DeviceFeature.selfManageState)) {
-            info.addConfig(DeviceConfigKey.selfManageState, true);
-        }
         if (!CollectionUtils.isEmpty(configuration)) {
             info.addConfigs(configuration);
         }
         if (StringUtils.hasText(deriveMetadata)) {
             info.addConfig(DeviceConfigKey.metadata, deriveMetadata);
         }
+        info.addConfig(DeviceConfigKey.parentGatewayId, this.getParentId());
+        info.addConfig(PropertyConstants.deviceName, name);
+        info.addConfig(PropertyConstants.productName, productName);
+        info.addConfig(PropertyConstants.orgId, orgId);
+        info.addConfig(PropertyConstants.creatorId,creatorId);
+        if (hasFeature(DeviceFeature.selfManageState)) {
+            info.addConfig(DeviceConfigKey.selfManageState, true);
+        }
+
         return info;
     }
 
-    public void mergeConfiguration(Map<String, Object> configuration) {
+    public void mergeConfiguration(Map<String, Object> configuration, boolean ignoreExists) {
         if (this.configuration == null) {
             this.configuration = new HashMap<>();
+        }
+        if (configuration == null) {
+            return;
         }
         Map<String, Object> newConf = new HashMap<>(configuration);
         //状态自管理，单独设置到feature中
@@ -181,18 +234,15 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         if (null != metadata) {
             setDeriveMetadata(String.valueOf(metadata));
         }
-
-        this.configuration.putAll(newConf);
+        if (ignoreExists) {
+            newConf.forEach(this.configuration::putIfAbsent);
+        } else {
+            this.configuration.putAll(newConf);
+        }
     }
 
-    public void removeFeature(DeviceFeature... features) {
-        if (this.features != null) {
-            List<DeviceFeature> featureList = new ArrayList<>(Arrays.asList(this.features));
-            for (DeviceFeature feature : features) {
-                featureList.remove(feature);
-            }
-            this.features = featureList.toArray(new DeviceFeature[0]);
-        }
+    public void mergeConfiguration(Map<String, Object> configuration) {
+        mergeConfiguration(configuration, false);
     }
 
     public Mono<String> mergeMetadata(String metadata) {
@@ -220,7 +270,6 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
             .doOnNext(this::setDeriveMetadata);
     }
 
-
     public void addFeature(DeviceFeature... features) {
         if (this.features == null) {
             this.features = features;
@@ -232,10 +281,25 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         }
     }
 
+    public void removeFeature(DeviceFeature... features) {
+        if (this.features != null) {
+            List<DeviceFeature> featureList = new ArrayList<>(Arrays.asList(this.features));
+            for (DeviceFeature feature : features) {
+                featureList.remove(feature);
+            }
+            this.features = featureList.toArray(new DeviceFeature[0]);
+        }
+    }
+
+
     public boolean hasFeature(DeviceFeature feature) {
         if (this.features == null) {
             return false;
         }
         return EnumDict.in(feature, this.features);
+    }
+
+    public void validateId() {
+        tryValidate(DeviceInstanceEntity::getId, CreateGroup.class);
     }
 }

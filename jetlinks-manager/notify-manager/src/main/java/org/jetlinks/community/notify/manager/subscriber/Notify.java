@@ -15,4 +15,14 @@ public class Notify {
     private String dataId;
 
     private long notifyTime;
+
+
+    private String code;
+
+    private Object detail;
+
+
+    public static Notify of(String message, String dataId, long timestamp) {
+        return new Notify(message, dataId, timestamp, null,null);
+    }
 }

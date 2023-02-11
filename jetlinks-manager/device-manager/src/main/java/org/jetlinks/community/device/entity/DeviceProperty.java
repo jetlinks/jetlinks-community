@@ -2,23 +2,34 @@ package org.jetlinks.community.device.entity;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.Setter;
-import org.jetlinks.community.timeseries.TimeSeriesData;
-import org.jetlinks.community.timeseries.query.AggregationData;
+import lombok.*;
+import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.utils.DigestUtils;
 import org.jetlinks.core.message.property.ReportPropertyMessage;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.types.GeoPoint;
-import org.jetlinks.core.metadata.types.NumberType;
-import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.UnitSupported;
+import org.jetlinks.core.metadata.types.*;
+import org.jetlinks.core.metadata.unit.ValueUnit;
+import org.jetlinks.community.things.data.ThingPropertyDetail;
+import org.jetlinks.community.timeseries.TimeSeriesData;
+import org.jetlinks.community.timeseries.query.AggregationData;
+import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
+import java.util.Date;
+import java.util.Optional;
+import java.util.function.Function;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class DeviceProperty implements Serializable {
+    private static final long serialVersionUID = -1L;
+
     @Schema(description = "ID")
     private String id;
 
@@ -34,11 +45,20 @@ public class DeviceProperty implements Serializable {
     @Schema(description = "类型")
     private String type;
 
+    @Schema(description = "单位")
+    private String unit;
+
     @Hidden
     private Object numberValue;
 
     @Hidden
     private Object objectValue;
+
+    @Hidden
+    private Date timeValue;
+
+    @Hidden
+    private String stringValue;
 
     @Hidden
     private GeoPoint geoValue;
@@ -88,20 +108,41 @@ public class DeviceProperty implements Serializable {
             DataType type = metadata.getValueType();
             Object value = this.getValue();
             try {
-                if (type instanceof Converter) {
+                if (type instanceof NumberType) {
+                    NumberType<?> numberType = ((NumberType<?>) type);
+
+                    Number numberValue = NumberType
+                        .convertScaleNumber(value,
+                                            numberType.getScale(),
+                                            numberType.getRound(),
+                                            Function.identity());
+
+                    if (numberValue != null) {
+                        this.setValue(value = numberValue);
+                    }
+                    this.setNumberValue(numberValue);
+                } else if (type instanceof Converter) {
                     value = ((Converter<?>) type).convert(value);
                     this.setValue(value);
-                }
-                if (type instanceof NumberType) {
-                    setNumberValue(value);
                 }
                 if (type instanceof ObjectType) {
                     setObjectValue(value);
                 }
-
+                if (type instanceof GeoType && value instanceof GeoPoint) {
+                    setGeoValue(((GeoPoint) value));
+                }
+                if (type instanceof DateTimeType && value instanceof Date) {
+                    setTimeValue(((Date) value));
+                }
                 this.setFormatValue(type.format(value));
             } catch (Exception ignore) {
 
+            }
+            if (type instanceof UnitSupported) {
+                UnitSupported unitSupported = (UnitSupported) type;
+                this.setUnit(Optional.ofNullable(unitSupported.getUnit())
+                                     .map(ValueUnit::getSymbol)
+                                     .orElse(null));
             }
             this.setType(type.getType());
         }
@@ -142,5 +183,18 @@ public class DeviceProperty implements Serializable {
         property.setTimestamp(timeSeriesData.getTimestamp());
         return property.withProperty(metadata);
 
+    }
+
+    public static DeviceProperty of(ThingPropertyDetail detail) {
+        DeviceProperty deviceProperty = FastBeanCopier.copy(detail, new DeviceProperty());
+        deviceProperty.setDeviceId(detail.getThingId());
+        return deviceProperty;
+    }
+
+    public DeviceProperty generateId() {
+        if (StringUtils.isEmpty(id)) {
+            setId(DigestUtils.md5Hex(String.join("", deviceId, property, String.valueOf(timestamp))));
+        }
+        return this;
     }
 }

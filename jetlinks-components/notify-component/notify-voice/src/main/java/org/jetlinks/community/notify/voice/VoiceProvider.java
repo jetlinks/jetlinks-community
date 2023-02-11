@@ -11,7 +11,7 @@ public enum VoiceProvider implements Provider {
     aliyun("阿里云")
     ;
 
-    private String name;
+    private final String name;
 
     @Override
     public String getId() {

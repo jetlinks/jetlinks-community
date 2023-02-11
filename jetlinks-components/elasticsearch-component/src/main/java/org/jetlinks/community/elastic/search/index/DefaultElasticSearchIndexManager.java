@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-@Component
 @ConfigurationProperties(prefix = "elasticsearch.index")
 public class DefaultElasticSearchIndexManager implements ElasticSearchIndexManager {
 

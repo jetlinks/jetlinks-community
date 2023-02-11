@@ -1,103 +1,146 @@
 package org.jetlinks.community.gateway.supports;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.DeviceGatewayManager;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.stereotype.Component;
+import org.jetlinks.community.network.channel.ChannelInfo;
+import org.jetlinks.community.network.channel.ChannelProvider;
+import org.jetlinks.core.cache.ReactiveCacheContainer;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-/**
- * 设备网关管理器
- * <p>
- * TCP   UDP   MQTT  CoAP
- *
- * @author zhouhao
- */
-@Component
-public class DefaultDeviceGatewayManager implements DeviceGatewayManager, BeanPostProcessor {
+@Slf4j
+public class DefaultDeviceGatewayManager implements DeviceGatewayManager {
 
     private final DeviceGatewayPropertiesManager propertiesManager;
 
-    /**
-     * TCP MQTT的设备网关服务提供者
-     */
     private final Map<String, DeviceGatewayProvider> providers = new ConcurrentHashMap<>();
 
-    /**
-     * 启动状态的设备网关
-     */
-    private final Map<String, DeviceGateway> store = new ConcurrentHashMap<>();
+    private final ReactiveCacheContainer<String, DeviceGateway> store = ReactiveCacheContainer.create();
+
+    private final Map<String, ChannelProvider> channels = new ConcurrentHashMap<>();
+
+    public void addChannelProvider(ChannelProvider provider) {
+        channels.put(provider.getChannel(), provider);
+    }
+
+    public void addGatewayProvider(DeviceGatewayProvider provider) {
+        providers.put(provider.getId(), provider);
+    }
 
     public DefaultDeviceGatewayManager(DeviceGatewayPropertiesManager propertiesManager) {
         this.propertiesManager = propertiesManager;
     }
 
-    /**
-     * 获取设备网关，有则返回，没有就创建返回
-     *
-     * @param id 网关ID
-     * @return 设备网关
-     */
     private Mono<DeviceGateway> doGetGateway(String id) {
-        if (store.containsKey(id)) {
-            return Mono.just(store.get(id));
+        if (null == id) {
+            return Mono.empty();
         }
+        return store
+            .computeIfAbsent(id, this::createGateway);
+    }
 
-        // 数据库查 DeviceGatewayEntity 转换成 DeviceGatewayProperties
-        // BeanMap中找provider 找不到就是不支持
-        // 创建设备网关
-        // double check 防止重复创建
+
+    protected Mono<DeviceGateway> createGateway(String id) {
         return propertiesManager
             .getProperties(id)
             .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("网关配置[" + id + "]不存在")))
-            .flatMap(properties -> Mono
-                .justOrEmpty(providers.get(properties.getProvider()))
-                .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("不支持的网络服务[" + properties.getProvider() + "]")))
-                .flatMap(provider -> provider
-                    .createDeviceGateway(properties)
-                    .flatMap(gateway -> {
-                        if (store.containsKey(id)) {
-                            return gateway
-                                .shutdown()
-                                .thenReturn(store.get(id));
-                        }
-                        store.put(id, gateway);
-                        return Mono.justOrEmpty(gateway);
-                    })));
+            .flatMap(properties -> getProviderNow(properties.getProvider()).createDeviceGateway(properties));
+
+    }
+
+    public Mono<Void> doShutdown(String gatewayId) {
+        return Mono.justOrEmpty(store.remove(gatewayId))
+                   .flatMap(DeviceGateway::shutdown)
+                   .doOnSuccess(nil -> log.debug("shutdown device gateway {}", gatewayId))
+                   .doOnError(err -> log.error("shutdown device gateway {} error", gatewayId, err));
     }
 
     @Override
     public Mono<Void> shutdown(String gatewayId) {
-        return Mono.justOrEmpty(store.remove(gatewayId))
-            .flatMap(DeviceGateway::shutdown);
+        return doShutdown(gatewayId);
+    }
+
+    public Mono<Void> doStart(String id) {
+        return this
+            .getGateway(id)
+            .flatMap(DeviceGateway::startup)
+            .doOnSuccess(nil -> log.debug("started device gateway {}", id))
+            .doOnError(err -> log.error("start device gateway {} error", id, err));
+    }
+
+    @Override
+    public Mono<Void> start(String gatewayId) {
+        return this
+            .doStart(gatewayId);
     }
 
     @Override
     public Mono<DeviceGateway> getGateway(String id) {
-        return Mono
-            .justOrEmpty(store.get(id))
-            .switchIfEmpty(doGetGateway(id));
+        return doGetGateway(id);
+    }
+
+    @Override
+    public Mono<Void> reload(String gatewayId) {
+        return this
+            .doReload(gatewayId);
+    }
+
+    private Mono<Void> doReload(String gatewayId) {
+        return propertiesManager
+            .getProperties(gatewayId)
+            .flatMap(prop -> {
+
+                DeviceGatewayProvider provider = this.getProviderNow(prop.getProvider());
+                return store
+                    .compute(gatewayId, (id, gateway) -> {
+                        if (gateway != null) {
+                            log.debug("reload device gateway {} {}:{}", prop.getName(), prop.getProvider(), prop.getId());
+                            return provider
+                                .reloadDeviceGateway(gateway, prop)
+                                .cast(DeviceGateway.class);
+                        }
+                        log.debug("create device gateway {} {}:{}", prop.getName(), prop.getProvider(), prop.getId());
+                        return provider
+                            .createDeviceGateway(prop)
+                            .flatMap(newer -> newer.startup().thenReturn(newer));
+                    });
+            })
+            .then();
     }
 
     @Override
     public List<DeviceGatewayProvider> getProviders() {
-        return new ArrayList<>(providers.values());
+        return providers
+            .values()
+            .stream()
+            .sorted(Comparator.comparingInt(DeviceGatewayProvider::getOrder))
+            .collect(Collectors.toList());
     }
 
     @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean instanceof DeviceGatewayProvider) {
-            DeviceGatewayProvider provider = ((DeviceGatewayProvider) bean);
-            providers.put(provider.getId(), provider);
-        }
-        return bean;
+    public Optional<DeviceGatewayProvider> getProvider(String provider) {
+        return Optional.ofNullable(providers.get(provider));
     }
 
+    public DeviceGatewayProvider getProviderNow(String provider) {
+        return DeviceGatewayProviders.getProviderNow(provider);
+    }
+
+    @Override
+    public Mono<ChannelInfo> getChannel(String channel, String channelId) {
+        if (!StringUtils.hasText(channel) || !StringUtils.hasText(channel)) {
+            return Mono.empty();
+        }
+        return Mono.justOrEmpty(channels.get(channel))
+                   .flatMap(provider -> provider.getChannelInfo(channelId));
+    }
 
 }

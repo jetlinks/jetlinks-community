@@ -2,7 +2,6 @@ package org.jetlinks.community.network.tcp.parser.strateies;
 
 import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
-import org.jetlinks.community.network.utils.BytesUtils;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -21,9 +20,9 @@ class PipePayloadParserTest {
         parser.fixed(4)
                 .handler((buffer,p) -> {
                     int len = buffer.getInt(0);
-                    parser.fixed(len);
+                    p.fixed(len);
                 })
-                .handler((buffer,p)  -> parser.result(buffer).complete());
+                .handler((buffer,p)  -> p.result(buffer).complete());
 
 
         parser.handlePayload()

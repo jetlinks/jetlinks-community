@@ -1,5 +1,10 @@
 package org.jetlinks.community.network.mqtt.gateway.device;
 
+import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.session.DeviceSessionManager;
+import org.jetlinks.core.message.codec.DefaultTransport;
+import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProperties;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
@@ -7,14 +12,10 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.mqtt.client.MqttClient;
-import org.jetlinks.core.ProtocolSupports;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 @Component
@@ -51,33 +52,50 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
         return "MQTT Broker接入";
     }
 
-    @Override
     public NetworkType getNetworkType() {
         return DefaultNetworkType.MQTT_CLIENT;
     }
 
+    public Transport getTransport() {
+        return DefaultTransport.MQTT;
+    }
+
     @Override
     public Mono<DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties) {
-        return networkManager
-            .<MqttClient>getNetwork(getNetworkType(), properties.getNetworkId())
-            .map(mqttClient -> {
 
-                String protocol = (String) properties.getConfiguration().get("protocol");
-                String topics = (String) properties.getConfiguration().get("topics");
-                int qos = properties.getInt("qos").orElse(0);
-                Objects.requireNonNull(topics, "topics");
+        return networkManager
+            .<MqttClient>getNetwork(getNetworkType(), properties.getChannelId())
+            .map(mqttClient -> {
+                String protocol = properties.getProtocol();
 
                 return new MqttClientDeviceGateway(properties.getId(),
                                                    mqttClient,
                                                    registry,
-                                                   protocolSupports,
-                                                   protocol,
+                                                   Mono.defer(() -> protocolSupports.getProtocol(protocol)),
                                                    sessionManager,
-                                                   clientMessageHandler,
-                                                   Arrays.asList(topics.split("[,;\n]")),
-                                                   qos
+                                                   clientMessageHandler
                 );
 
             });
+    }
+
+    @Override
+    public Mono<? extends DeviceGateway> reloadDeviceGateway(DeviceGateway gateway, DeviceGatewayProperties properties) {
+        MqttClientDeviceGateway deviceGateway = ((MqttClientDeviceGateway) gateway);
+
+        String networkId = properties.getChannelId();
+        //网络组件发生了变化
+        if (!Objects.equals(networkId, deviceGateway.mqttClient.getId())) {
+            return gateway
+                .shutdown()
+                .then(this
+                          .createDeviceGateway(properties)
+                          .flatMap(gate -> gate.startup().thenReturn(gate)));
+        }
+        //更新协议包
+        deviceGateway.setProtocol(protocolSupports.getProtocol(properties.getProtocol()));
+        return deviceGateway
+            .reload()
+            .thenReturn(deviceGateway);
     }
 }

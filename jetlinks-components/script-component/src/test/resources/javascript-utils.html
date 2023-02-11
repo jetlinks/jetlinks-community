@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="javascript-utils.js" type="application/javascript"></script>
+</head>
+<body>
+
+<div class="container">
+
+</div>
+
+</body>
+</html>
+
+<script type="text/javascript">
+    var nodes = {
+        CallExpression:{
+            render:function (json){
+                return `<span class="CallExpression">
+                          <div class="expression">
+                          <span>执行函数</span><span class="callee">${render(json.callee)}</span></div>
+                          <span>参数</span><span>${renderList(arguments)}</span>
+                        </span>`
+            }
+        },
+        ExpressionStatement:{
+            render:function (json){
+                return `<span class="ExpressionStatement">
+                          <div class="expression">${render(json.expression)}</div>
+                        </span>`
+            }
+        },
+        ThisExpression:{
+            render:function (json){
+                return "this";
+            }
+        }
+        ,
+        MemberExpression:{
+            render:function (json){
+                return `<span class="MemberExpression">
+                          <span class="member-object">${render(json.object)}</span><span class="member-property">.${json.property}</span>
+                        </span>`
+            }
+        },
+        Identifier:{
+            render:function (json){
+                return json.name;
+            }
+        },
+        VariableDeclaration: {
+            render: function (json) {
+                return `<span class="VariableDeclaration">
+                         <span>声明变量</span>
+                         <span class="var-name"><input value="${render(json.id)}"></span>
+                         <span class="var-is">值为</span>
+                         <span class="var-init">${render(json.init)}</span>
+                       </span>`
+            }
+        }
+    }
+
+
+
+    function render(json) {
+        let type = nodes[json.type];
+        if(!type){
+            return "";
+        }
+        return type.render(json);
+    }
+
+    function renderList(json) {
+        let list = [];
+        for(let i=0;i<json.length;i++){
+            list[i] = render(json[i]);
+        }
+        return list.join("");
+    }
+
+    function parse(json){
+        let container = document.getElementsByClassName('container')[0];
+
+        for(let i=0;i<json.length;i++){
+            container.innerHTML=render(json[i]);
+        }
+
+    }
+
+</script>

@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <configuration>
-    <appender name="LOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender" />
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <property name="LOG_FILE" value="./logs/jetlinks-pro.log"/>
+
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+    <appender name="LOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender"/>
 
     <appender name="ErrorLOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -8,8 +14,39 @@
         </filter>
     </appender>
 
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>${FILE_LOG_CHARSET}</charset>
+        </encoder>
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGBACK_ROLLINGPOLICY_FILE_NAME_PATTERN:-${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz}</fileNamePattern>
+            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START:-false}</cleanHistoryOnStart>
+            <maxFileSize>${LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE:-10MB}</maxFileSize>
+            <totalSizeCap>${LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP:-0}</totalSizeCap>
+            <maxHistory>${LOGBACK_ROLLINGPOLICY_MAX_HISTORY:-7}</maxHistory>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+
+    <!--控制台使用异步打印，防止阻塞-->
+    <appender name="AsyncConsoleAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 队列的深度，该值会影响性能，默认 256 -->
+        <queueSize>256</queueSize>
+        <!-- 设为 0 表示队列达到 80%，也不丢弃任务-->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 日志上下文关闭后，AsyncAppender 继续执行写任务的时间，单位毫秒 -->
+        <maxFlushTime>1000</maxFlushTime>
+        <!-- 队列满了是否直接丢弃要写的消息，false、丢弃，true、不丢弃 -->
+        <neverBlock>true</neverBlock>
+        <!--是否记录调用栈-->
+        <includeCallerData>true</includeCallerData>
+        <!--One and only one appender may be attached to AsyncAppender，添加多个的话后面的会被忽略-->
+        <appender-ref ref="CONSOLE"/>
+    </appender>
 
     <springProfile name="dev">
 
@@ -18,21 +55,24 @@
         </logger>
 
         <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="AsyncConsoleAppender"/>
             <appender-ref ref="ErrorLOGEventPublisher"/>
         </root>
     </springProfile>
 
     <springProfile name="test">
         <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="ErrorLOGEventPublisher"/>
+            <appender-ref ref="AsyncConsoleAppender"/>
+            <appender-ref ref="FILE"/>
         </root>
     </springProfile>
 
     <springProfile name="prod">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="LOGEventPublisher"/>
+        <root level="INFO">
+            <appender-ref ref="AsyncConsoleAppender"/>
+            <appender-ref ref="LOGEventPublisher"/>
+            <appender-ref ref="FILE"/>
+        </root>
     </springProfile>
 
 </configuration>

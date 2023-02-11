@@ -24,7 +24,7 @@ public class CertificateService
                 .fetchOne()
                 .map(entity -> {
                     DefaultCertificate defaultCertificate = new DefaultCertificate(entity.getId(), entity.getName());
-                    return entity.getInstance().init(defaultCertificate, entity.getConfigs());
+                    return entity.getFormat().init(defaultCertificate, entity.getConfigs());
                 });
     }
 }

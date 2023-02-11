@@ -1,15 +1,18 @@
 package org.jetlinks.community.network.tcp.parser;
 
 import io.vertx.core.buffer.Buffer;
+import org.jetlinks.community.network.tcp.parser.strateies.DelimitedPayloadParserBuilder;
+import org.jetlinks.community.network.tcp.parser.strateies.FixLengthPayloadParserBuilder;
+import org.jetlinks.community.network.tcp.parser.strateies.PipePayloadParser;
 import reactor.core.publisher.Flux;
 
 /**
  * 用于处理TCP粘拆包的解析器,通常一个客户端对应一个解析器.
  *
  * @author zhouhao
- * @see org.jetlinks.community.network.tcp.parser.strateies.PipePayloadParser
- * @see org.jetlinks.community.network.tcp.parser.strateies.FixLengthPayloadParserBuilder
- * @see org.jetlinks.community.network.tcp.parser.strateies.DelimitedPayloadParserBuilder
+ * @see PipePayloadParser
+ * @see FixLengthPayloadParserBuilder
+ * @see DelimitedPayloadParserBuilder
  * @since 1.0
  */
 public interface PayloadParser {

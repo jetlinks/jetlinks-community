@@ -2,21 +2,22 @@ package org.jetlinks.community.network.tcp.server;
 
 import io.vertx.core.net.NetServer;
 import io.vertx.core.net.NetSocket;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import org.jetlinks.community.network.tcp.client.TcpClient;
 import org.jetlinks.community.network.tcp.client.VertxTcpClient;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Sinks;
 
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -26,14 +27,25 @@ import java.util.function.Supplier;
 @Slf4j
 public class VertxTcpServer implements TcpServer {
 
-    @Getter
-    private final String id;
-    private final EmitterProcessor<TcpClient> processor = EmitterProcessor.create(false);
-    private final FluxSink<TcpClient> sink = processor.sink(FluxSink.OverflowStrategy.BUFFER);
     Collection<NetServer> tcpServers;
+
     private Supplier<PayloadParser> parserSupplier;
+
     @Setter
     private long keepAliveTimeout = Duration.ofMinutes(10).toMillis();
+
+    @Getter
+    private final String id;
+
+
+    private final Sinks.Many<TcpClient> sink = Reactors.createMany(Integer.MAX_VALUE,false);
+
+    @Getter
+    @Setter
+    private String lastError;
+
+    @Setter(AccessLevel.PACKAGE)
+    private InetSocketAddress bind;
 
     public VertxTcpServer(String id) {
         this.id = id;
@@ -41,8 +53,7 @@ public class VertxTcpServer implements TcpServer {
 
     @Override
     public Flux<TcpClient> handleConnection() {
-        return processor
-            .map(Function.identity());
+        return sink.asFlux();
     }
 
     private void execute(Runnable runnable) {
@@ -53,15 +64,15 @@ public class VertxTcpServer implements TcpServer {
         }
     }
 
+    @Override
+    public InetSocketAddress getBindAddress() {
+        return bind;
+    }
+
     public void setParserSupplier(Supplier<PayloadParser> parserSupplier) {
         this.parserSupplier = parserSupplier;
     }
 
-    /**
-     * 为每个NetServer添加connectHandler
-     *
-     * @param servers 创建的所有NetServer
-     */
     public void setServer(Collection<NetServer> servers) {
         if (this.tcpServers != null && !this.tcpServers.isEmpty()) {
             shutdown();
@@ -74,35 +85,21 @@ public class VertxTcpServer implements TcpServer {
 
     }
 
-    /**
-     * TCP连接处理逻辑
-     *
-     * @param socket socket
-     */
     protected void acceptTcpConnection(NetSocket socket) {
-        if (!processor.hasDownstreams()) {
+        if (sink.currentSubscriberCount() == 0) {
             log.warn("not handler for tcp client[{}]", socket.remoteAddress());
             socket.close();
             return;
         }
-        // 客户端连接处理
-        VertxTcpClient client = new VertxTcpClient(id + "_" + socket.remoteAddress(), true);
+        VertxTcpClient client = new VertxTcpClient(id + "_" + socket.remoteAddress());
         client.setKeepAliveTimeoutMs(keepAliveTimeout);
         try {
-            // TCP异常和关闭处理
             socket.exceptionHandler(err -> {
                 log.error("tcp server client [{}] error", socket.remoteAddress(), err);
-            }).closeHandler((nil) -> {
-                log.debug("tcp server client [{}] closed", socket.remoteAddress());
-                client.shutdown();
             });
-            // 这个地方是在TCP服务初始化的时候设置的 parserSupplier
-            // set方法 org.jetlinks.community.network.tcp.server.VertxTcpServer.setParserSupplier
-            // 调用坐标 org.jetlinks.community.network.tcp.server.TcpServerProvider.initTcpServer
             client.setRecordParser(parserSupplier.get());
             client.setSocket(socket);
-            // client放进了发射器
-            sink.next(client);
+            sink.emitNext(client, Reactors.emitFailureHandler());
             log.debug("accept tcp client [{}] connection", socket.remoteAddress());
         } catch (Exception e) {
             log.error("create tcp server client error", e);
@@ -118,6 +115,7 @@ public class VertxTcpServer implements TcpServer {
     @Override
     public void shutdown() {
         if (null != tcpServers) {
+            log.debug("close tcp server :[{}]", id);
             for (NetServer tcpServer : tcpServers) {
                 execute(tcpServer::close);
             }

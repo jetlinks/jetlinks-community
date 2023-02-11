@@ -1,12 +1,8 @@
 package org.jetlinks.community.rule.engine.executor;
 
-import com.cronutils.model.Cron;
-import com.cronutils.model.CronType;
-import com.cronutils.model.definition.CronDefinitionBuilder;
-import com.cronutils.model.time.ExecutionTime;
-import com.cronutils.parser.CronParser;
 import lombok.AllArgsConstructor;
-import org.jetlinks.community.ValueObject;
+import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.TimerSpec;
 import org.jetlinks.rule.engine.api.RuleConstants;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
 import org.jetlinks.rule.engine.api.task.Task;
@@ -17,19 +13,26 @@ import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 @Component
 @AllArgsConstructor
 public class TimerTaskExecutorProvider implements TaskExecutorProvider {
 
-    private final Scheduler scheduler;
+    private final Scheduler scheduler = Schedulers.parallel();
 
     @Override
     public String getExecutor() {
@@ -44,6 +47,10 @@ public class TimerTaskExecutorProvider implements TaskExecutorProvider {
     class TimerTaskExecutor extends AbstractTaskExecutor {
 
         Supplier<Duration> nextDelay;
+
+        TimerSpec spec;
+
+        Predicate<LocalDateTime> filter;
 
         public TimerTaskExecutor(ExecutionContext context) {
             super(context);
@@ -68,11 +75,25 @@ public class TimerTaskExecutorProvider implements TaskExecutorProvider {
             }
             return this.disposable =
                 Mono.delay(nextTime, scheduler)
-                    .flatMap(t -> context.getOutput().write(Mono.just(context.newRuleData(t))))
-                    .then(context.fireEvent(RuleConstants.Event.complete, context.newRuleData(System.currentTimeMillis())).thenReturn(1))
+                    .flatMap(t -> {
+                        if (!this.filter.test(LocalDateTime.now())) {
+                            return Mono.empty();
+                        }
+                        Map<String, Object> data = new HashMap<>();
+                        long currentTime = System.currentTimeMillis();
+                        data.put("timestamp", currentTime);
+                        data.put("_now", currentTime);
+                        return context
+                            .getOutput()
+                            .write(Mono.just(context.newRuleData(data)))
+                            .then(context
+                                      .fireEvent(RuleConstants.Event.complete, context.newRuleData(System.currentTimeMillis()))
+                                      .thenReturn(1));
+
+                    })
                     .onErrorResume(err -> context.onError(err, null).then(Mono.empty()))
                     .doFinally(s -> {
-                        if(getState()== Task.State.running){
+                        if (getState() == Task.State.running && s != SignalType.CANCEL) {
                             execute();
                         }
                     })
@@ -82,10 +103,7 @@ public class TimerTaskExecutorProvider implements TaskExecutorProvider {
         @Override
         public void reload() {
             nextDelay = createNextDelay();
-            if (disposable != null) {
-                disposable.dispose();
-            }
-            doStart();
+            disposable = doStart();
         }
 
         @Override
@@ -94,39 +112,19 @@ public class TimerTaskExecutorProvider implements TaskExecutorProvider {
         }
 
         private Supplier<Duration> createNextDelay() {
-            ValueObject config = ValueObject.of(context.getJob().getConfiguration());
-
-            CronParser parser = new CronParser(CronDefinitionBuilder.instanceDefinitionFor(CronType.QUARTZ));
-            Cron cron = config.getString("cron")
-                .map(parser::parse)
-                .orElseThrow(() -> new IllegalArgumentException("cron配置不存在"));
-            ExecutionTime executionTime = ExecutionTime.forCron(cron);
-
-            return () -> executionTime.timeToNextExecution(ZonedDateTime.now()).orElse(Duration.ofSeconds(10));
+            TimerSpec spec = FastBeanCopier.copy(context.getJob().getConfiguration(), new TimerSpec());
+            Function<ZonedDateTime, Duration> builder = spec.nextDurationBuilder();
+            this.filter = spec.createTimeFilter();
+            return () -> builder.apply(ZonedDateTime.now());
 
         }
 
     }
 
     public static Flux<ZonedDateTime> getLastExecuteTimes(String cronExpression, Date from, long times) {
-        return Flux.create(sink -> {
-            CronParser parser = new CronParser(CronDefinitionBuilder.instanceDefinitionFor(CronType.QUARTZ));
-            Cron cron = parser.parse(cronExpression);
-            ExecutionTime executionTime = ExecutionTime.forCron(cron);
-            ZonedDateTime dateTime = ZonedDateTime.ofInstant(from.toInstant(), ZoneId.systemDefault());
-
-            for (long i = 0; i < times; i++) {
-                dateTime = executionTime.nextExecution(dateTime)
-                    .orElse(null);
-                if (dateTime != null) {
-                    sink.next(dateTime);
-                } else {
-                    break;
-                }
-            }
-            sink.complete();
-
-
-        });
+        return Flux.defer(() -> Flux
+            .fromIterable(TimerSpec
+                              .cron(cronExpression)
+                              .getNextExecuteTimes(ZonedDateTime.ofInstant(from.toInstant(), ZoneId.systemDefault()), times)));
     }
 }

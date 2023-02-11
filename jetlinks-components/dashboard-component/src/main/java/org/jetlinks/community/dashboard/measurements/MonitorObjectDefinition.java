@@ -9,9 +9,10 @@ import org.jetlinks.community.dashboard.ObjectDefinition;
 public enum MonitorObjectDefinition implements ObjectDefinition {
 
     cpu("CPU"),
-    memory("内存");
+    memory("内存"),
+    stats("运行状态");
 
-    private String name;
+    private final String name;
 
     @Override
     public String getId() {
