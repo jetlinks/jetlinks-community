@@ -24,4 +24,4 @@ jobs:
         path: ~/.m2
         key: jetlinks-community-maven-repository
     - name: Build with Maven
-      run: ./mvnw package -Dmaven.test.skip=true -Pbuild
+      run: ./mvnw package -P qa -Dmaven.test.skip=true -Pbuild
