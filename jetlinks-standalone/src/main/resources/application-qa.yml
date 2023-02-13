@@ -16,7 +16,7 @@ spring:
     resources:
       static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
   redis:
-    host: 10.0.0.247
+    host: localhost
     port: 6379
     lettuce:
       pool:
@@ -26,7 +26,7 @@ spring:
   #        max-wait: 10s
   r2dbc:
     # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
-    url: r2dbc:postgresql://10.0.0.247:5432/jetlinks
+    url: r2dbc:postgresql://localhost:5432/jetlinks
     #    url: r2dbc:mysql://localhost:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
     username: postgres
     password: jetlinks
@@ -39,7 +39,7 @@ spring:
     debug-agent:
       enabled: false
   elasticsearch:
-    uris: 10.0.0.247:9200
+    uris: localhost:9200
     socket-timeout: 10s
     connection-timeout: 15s
     webclient:
