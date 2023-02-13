@@ -153,6 +153,7 @@
                         <include>**/*Tests.java</include>
                         <include>**/*TestCase.java</include>
                     </includes>
+                    <!--suppress UnresolvedMavenProperty -->
                     <argLine>-Dfile.encoding=UTF-8 ${jacocoArgLine}</argLine>
                 </configuration>
             </plugin>
