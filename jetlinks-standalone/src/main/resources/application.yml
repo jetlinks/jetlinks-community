@@ -1,6 +1,8 @@
 spring:
-  profiles:
-    active: "@profileActive@"
+  config:
+    activate:
+      on-profile:
+        - "@profileActive@"
   application:
     name: jetlinks-platform
 
