@@ -1,14 +1,10 @@
 package org.jetlinks.community.script.jsr223;
 
-import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jetlinks.community.script.AbstractScriptFactory;
-import org.jetlinks.community.script.CompiledScript;
-import org.jetlinks.community.script.Script;
+import org.jetlinks.community.script.*;
 import org.jetlinks.community.script.context.ExecutionContext;
 import org.jetlinks.reactor.ql.utils.CastUtils;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.script.Compilable;
@@ -17,7 +13,6 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,10 +37,13 @@ public abstract class Jsr223ScriptFactory extends AbstractScriptFactory {
 
         ExecutionContext ctx = ExecutionContext.create();
 
-        ctx.setAttribute("console", new Jsr223ScriptFactory.Console(
-                             LoggerFactory.getLogger("org.jetlinks.community.script." + script.getName())),
-                         ScriptContext.ENGINE_SCOPE);
-        ctx.setAttribute("utils", getUtils(), ScriptContext.ENGINE_SCOPE);
+        ScriptLogger logger = script.getLogger();
+        if (logger == null) {
+            logger = new Slf4jScriptLogger(LoggerFactory.getLogger("org.jetlinks.pro.script." + script.getName()));
+        }
+
+        ctx.setAttribute("_$console", logger, ScriptContext.ENGINE_SCOPE);
+        ctx.setAttribute("_$utils", getUtils(), ScriptContext.ENGINE_SCOPE);
 
         ctx.setAttribute("engine", null, ScriptContext.ENGINE_SCOPE);
 
@@ -57,6 +55,7 @@ public abstract class Jsr223ScriptFactory extends AbstractScriptFactory {
                   ExecutionContext.compose(ctx, context),
                   convert);
     }
+
 
     @SneakyThrows
     private Object eval(javax.script.CompiledScript script,
@@ -73,35 +72,15 @@ public abstract class Jsr223ScriptFactory extends AbstractScriptFactory {
         return context;
     }
 
-    @AllArgsConstructor
-    public static class Console {
-        private final Logger logger;
-
-        public void trace(String text, Object... args) {
-            logger.trace(text, args);
-        }
-
-        public void warn(String text, Object... args) {
-            logger.warn(text, args);
-        }
-
-        public void log(String text, Object... args) {
-            logger.debug(text, args);
-        }
-
-        public void error(String text, Object... args) {
-            logger.error(text, args);
-        }
-    }
 
     @Override
     @SuppressWarnings("all")
-    public final <T> T bind(Script script, Class<T> interfaceType) {
+    public final <T> T bind(Script script, Class<T> interfaceType,ExecutionContext context) {
         String returns = createFunctionMapping(interfaceType.getDeclaredMethods());
         String content = script.getContent() + "\n return " + returns + ";";
 
         CompiledScript compiledScript = compile(script.content(content), false);
-        Object source = compiledScript.call(Collections.emptyMap());
+        Object source = compiledScript.call(context);
         Set<Method> ignoreMethods = new HashSet<>();
 
         return (T) Proxy.newProxyInstance(
@@ -120,6 +99,8 @@ public abstract class Jsr223ScriptFactory extends AbstractScriptFactory {
                         log.info("method [{}] undefined in script", method, e);
                         //脚本未定义方法
                         ignoreMethods.add(method);
+                    }else {
+                        throw e;
                     }
                 }
                 return convertValue(method, null);
