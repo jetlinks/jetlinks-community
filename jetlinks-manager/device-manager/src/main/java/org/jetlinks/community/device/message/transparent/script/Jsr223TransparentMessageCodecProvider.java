@@ -1,18 +1,15 @@
 package org.jetlinks.community.device.message.transparent.script;
 
 import org.hswebframework.web.exception.ValidationException;
-import org.jetlinks.community.OperationSource;
 import org.jetlinks.community.device.message.transparent.SimpleTransparentMessageCodec;
 import org.jetlinks.community.device.message.transparent.TransparentMessageCodec;
 import org.jetlinks.community.device.message.transparent.TransparentMessageCodecProvider;
 import org.jetlinks.community.script.Script;
 import org.jetlinks.community.script.Scripts;
-import org.jetlinks.community.script.context.ExecutionContext;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -36,8 +33,7 @@ public class Jsr223TransparentMessageCodecProvider implements TransparentMessage
         SimpleTransparentMessageCodec.Codec codec = Scripts
             .getFactory(lang)
             .bind(Script.of("jsr223-transparent", script),
-                  SimpleTransparentMessageCodec.Codec.class,
-                  ExecutionContext.create(Collections.singletonMap("codec", context)));
+                  SimpleTransparentMessageCodec.Codec.class);
 
         if (context.encoder == null && codec != null) {
             context.onDownstream(codec::encode);
