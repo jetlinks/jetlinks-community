@@ -1,3 +1,5 @@
+
+
 package org.jetlinks.community.script;
 
 import lombok.*;
