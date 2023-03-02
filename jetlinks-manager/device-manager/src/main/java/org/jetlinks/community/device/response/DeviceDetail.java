@@ -16,10 +16,7 @@ import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
-import org.jetlinks.core.metadata.ConfigPropertyMetadata;
-import org.jetlinks.core.metadata.DeviceMetadata;
-import org.jetlinks.core.metadata.Feature;
-import org.jetlinks.core.metadata.SimpleFeature;
+import org.jetlinks.core.metadata.*;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -230,7 +227,19 @@ public class DeviceDetail {
                     (_1, _2) -> StringUtils.hasText(_1.getValue()) ? _1 : _2));
 
         this.tags = new ArrayList<>(map.values());
-        this.tags.sort(Comparator.comparing(DeviceTagEntity::getCreateTime));
+
+        DeviceMetadata deviceMetadata = decodeMetadata();
+        if (null != deviceMetadata) {
+            this.tags.sort(Comparator
+                               .comparingLong(tag -> {
+                                   PropertyMetadata tagMetadata = deviceMetadata.getTagOrNull(tag.getKey());
+                                   return tagMetadata == null
+                                       ? tag.getCreateTime().getTime()
+                                       : deviceMetadata.getTags().indexOf(tagMetadata);
+                               }));
+        } else {
+            this.tags.sort(Comparator.comparing(DeviceTagEntity::getCreateTime));
+        }
 
         if (StringUtils.hasText(id)) {
             for (DeviceTagEntity tag : getTags()) {
