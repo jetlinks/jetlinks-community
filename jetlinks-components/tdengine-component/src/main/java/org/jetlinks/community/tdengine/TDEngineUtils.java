@@ -35,7 +35,10 @@ public class TDEngineUtils {
     public static void checkExecuteResult(String sql, JSONObject result) {
         if (result.getInteger("code") != 0) {
             String error = result.getString("desc");
-            if (sql != null && sql.startsWith("describe") && error.contains("does not exist")) {
+            if (sql != null && (sql.startsWith("describe")
+                || sql.startsWith("select")
+                || sql.startsWith("SELECT"))
+                && error.contains("does not exist")) {
                 return;
             }
             if (sql != null) {
