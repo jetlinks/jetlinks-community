@@ -38,7 +38,7 @@ public class DeviceExcelInfo {
     private String state;
 
     public void config(String key, Object value) {
-        if (value == null) {
+        if (value == null || value instanceof String && !StringUtils.hasText((String) value)) {
             return;
         }
         configuration.put(key, value);
