@@ -273,6 +273,18 @@ public abstract class JavaScriptFactoryTest {
 
     }
 
+    @Test
+    @SneakyThrows
+    void testLog() {
+        {
+            JavaScriptFactory factory = getFactory();
+
+            factory.compile(Script.of("test","console.log(123)"))
+                .call();
+
+        }
+    }
+
     public interface Api {
         int add(int a, int b);
 
