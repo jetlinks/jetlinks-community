@@ -63,7 +63,11 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
         return createUpdate()
             .set(DeviceProductEntity::getState, DeviceProductState.unregistered.getValue())
             .where(DeviceProductEntity::getId, id)
-            .execute();
+            .execute()
+            .flatMap(integer ->
+                         registry
+                             .unregisterProduct(id)
+                             .thenReturn(integer));
 
     }
 

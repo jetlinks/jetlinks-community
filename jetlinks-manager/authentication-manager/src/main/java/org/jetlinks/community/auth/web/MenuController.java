@@ -15,8 +15,10 @@ import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
 import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
+import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultPermissionService;
+import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.auth.configuration.MenuProperties;
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.MenuView;
@@ -24,6 +26,7 @@ import org.jetlinks.community.auth.service.DefaultMenuService;
 import org.jetlinks.community.auth.service.MenuGrantService;
 import org.jetlinks.community.auth.service.request.MenuGrantRequest;
 import org.jetlinks.community.auth.web.request.AuthorizationSettingDetail;
+import org.jetlinks.community.web.response.ValidationResult;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -261,6 +264,31 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
             .then(
                 this.save(menus)
             );
+    }
+
+
+    @GetMapping("/code/_validate")
+    @QueryAction
+    @Operation(summary = "验证菜单编码是否合法", description = "同一所有者的相同应用下的菜单，编码不能重复")
+    public Mono<ValidationResult> codeValidate(@RequestParam @Parameter(description = "菜单编码") String code,
+                                               @RequestParam(required = false)
+                                               @Parameter(description = "外部菜单所属应用ID") String appId,
+                                               @RequestParam @Parameter(description = "菜单所有者") String owner) {
+        return LocaleUtils.currentReactive()
+                          .flatMap(locale -> {
+                              MenuEntity entity = new MenuEntity();
+                              entity.setCode(code);
+                              entity.setOwner(owner);
+                              entity.tryValidate("code", CreateGroup.class);
+
+                              return defaultMenuService
+                                  .findById(entity.getId())
+                                  .map(menu -> ValidationResult
+                                      .error(LocaleUtils.resolveMessage("error.id_already_exists", locale)));
+                          })
+                          .defaultIfEmpty(ValidationResult.success())
+                          .onErrorResume(ValidationException.class, e -> Mono.just(e.getI18nCode())
+                                                                             .map(ValidationResult::error));
     }
 
     private Mono<AuthorizationSettingDetail> getAuthorizationSettingDetail(Flux<MenuView> menus) {

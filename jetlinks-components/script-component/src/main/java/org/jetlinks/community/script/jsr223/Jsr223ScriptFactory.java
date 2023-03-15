@@ -42,10 +42,10 @@ public abstract class Jsr223ScriptFactory extends AbstractScriptFactory {
 
         ExecutionContext ctx = ExecutionContext.create();
 
-        ctx.setAttribute("console", new Jsr223ScriptFactory.Console(
+        ctx.setAttribute("_$console", new Jsr223ScriptFactory.Console(
                              LoggerFactory.getLogger("org.jetlinks.community.script." + script.getName())),
                          ScriptContext.ENGINE_SCOPE);
-        ctx.setAttribute("utils", getUtils(), ScriptContext.ENGINE_SCOPE);
+        ctx.setAttribute("_$utils", getUtils(), ScriptContext.ENGINE_SCOPE);
 
         ctx.setAttribute("engine", null, ScriptContext.ENGINE_SCOPE);
 
