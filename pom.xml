@@ -42,18 +42,6 @@
     </properties>
 
 
-    <profiles>
-        <profile>
-            <id>build</id>
-            <repositories>
-                <repository>
-                    <id>maven-central</id>
-                    <name>central</name>
-                    <url>https://repo1.maven.org/maven2/</url>
-                </repository>
-            </repositories>
-        </profile>
-    </profiles>
 
     <build>
         <finalName>${project.artifactId}</finalName>
@@ -626,12 +614,26 @@
         </profile>
         <profile>
             <id>qa</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <name>central</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+            </repositories>
             <properties>
                 <profileActive>qa</profileActive>
             </properties>
         </profile>
         <profile>
             <id>prod</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <name>central</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+            </repositories>
             <properties>
                 <profileActive>production</profileActive>
             </properties>
