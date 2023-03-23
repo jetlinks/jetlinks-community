@@ -162,9 +162,16 @@
             <artifactId>spring-boot-starter-data-r2dbc</artifactId>
         </dependency>
 
+<!--        <dependency>-->
+<!--            <groupId>dev.miku</groupId>-->
+<!--            <artifactId>r2dbc-mysql</artifactId>-->
+<!--        </dependency>-->
+
+        <!-- https://github.com/mirromutth/r2dbc-mysql/issues/251 -->
         <dependency>
-            <groupId>dev.miku</groupId>
+            <groupId>io.asyncer</groupId>
             <artifactId>r2dbc-mysql</artifactId>
+            <version>0.9.1</version>
         </dependency>
 
         <dependency>
