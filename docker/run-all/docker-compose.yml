@@ -1,12 +1,25 @@
 version: '2'
 services:
+  emqx:
+    image: emqx/emqx:latest
+    container_name: jetlinks-ce-emqx
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "8084:8084"
+      - "8080:8080"
+      - "18083:18083"
+      - "4369:4369"
+      - "6000-7000:6000-7000"
+    volumes:
+      - "/mydata/data/emqx:/emqx"
   redis:
     image: redis:5.0.4
     container_name: jetlinks-ce-redis
     #    ports:
     #      - "6379:6379"
     volumes:
-      - "./data/redis:/data"
+      - "/mydata/data/redis:/data"
     command: redis-server --appendonly yes --requirepass "JetLinks@redis"
     environment:
       - TZ=Asia/Shanghai
@@ -20,11 +33,11 @@ services:
       bootstrap.memory_lock: "true"
       discovery.zen.minimum_master_nodes: 1
       discovery.zen.ping.unicast.hosts: elasticsearch
-  #  volumes:
-  #    - ./data/elasticsearch:/usr/share/elasticsearch/data
-  #    ports:
-  #      - "9200:9200"
-  #      - "9300:9300"
+    volumes:
+      - /mydata/elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
   kibana:
     image: kibana:6.8.11
     container_name: jetlinks-ce-kibana
@@ -40,7 +53,7 @@ services:
     image: postgres:11-alpine
     container_name: jetlinks-ce-postgres
     volumes:
-      - "./data/postgres:/var/lib/postgresql/data"
+      - "/mydata/pg:/var/lib/postgresql/data"
     ports:
       - "5432:5432"
     environment:
@@ -48,30 +61,30 @@ services:
       POSTGRES_DB: jetlinks
       TZ: Asia/Shanghai
   ui:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-pro:2.0.0
+    image: registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks-ui:2.0.0
     container_name: jetlinks-ce-ui
     ports:
       - 9000:80
     environment:
-      - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
+      - "API_BASE_PATH=http://jetlinks:8844/" #API根路径
     volumes:
-      - "./data/jetlinks-ui:/usr/share/nginx/html/upload"
+      - "/mydata/jetlinks-ui:/usr/share/nginx/html/upload"
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:2.0.0-SNAPSHOT
+    image: registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:2.0.0-SNAPSHOT
     container_name: jetlinks-ce
 
     ports:
-      - "8848:8848" # API端口
+      - "8844:8844" # API端口
       - "1883-1890:1883-1890" # 预留
       - "8800-8810:8800-8810" # 预留
       - "5060-5061:5060-5061" # 预留
     volumes:
-      - "./data/jetlinks:/application/static/upload"  # 持久化上传的文件
-      - "./data/jetlinks/:/application/data/files"
-      - "./data/jetlinks/:/application/data/protocols"
-      - "./entrypoint.sh:/entrypoint.sh"
+      - "/mydata/jetlinks:/application/static/upload"  # 持久化上传的文件
+      - "/mydata/jetlinks/:/application/data/files"
+      - "/mydata/jetlinks/:/application/data/protocols"
+      - "/mydata/entrypoint.sh:/entrypoint.sh"
     #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
     environment:
      # - "SLEEP_SECOND=4"

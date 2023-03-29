@@ -109,7 +109,7 @@ file:
     storage-base-path: ./data/files
 api:
   # 访问api接口的根地址
-  base-path: http://127.0.0.1:${server.port}
+  base-path: http://10.0.0.207:${server.port}
 
 jetlinks:
   server-id: ${spring.application.name}:${server.port} #设备服务网关服务ID,不同服务请设置不同的ID

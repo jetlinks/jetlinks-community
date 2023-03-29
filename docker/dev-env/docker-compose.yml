@@ -57,7 +57,7 @@ services:
       - "4369:4369"
       - "6000-7000:6000-7000"
     volumes:
-      - "./data/emqx:/data"
+      - "./mydata/emqx:/emqx"
 
 volumes:
   postgres-volume:

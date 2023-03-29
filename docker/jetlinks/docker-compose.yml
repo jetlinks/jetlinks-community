@@ -16,8 +16,6 @@ services:
     container_name: jetlinks-ce
     ports:
       - "8844:8844" # API端口
-      - "8800-8810:8800-8810" # 预留
-      - "5060-5061:5060-5061" # 预留
     volumes:
       - "./mydata/jetlinks:/application/static/upload"  # 持久化上传的文件
       - "./mydata/jetlinks/:/application/data/files"
@@ -33,14 +31,13 @@ services:
       - "spring.r2dbc.url=r2dbc:postgresql://10.0.0.207:5432/jetlinks" #数据库连接地址
       - "spring.r2dbc.username=postgres"
       - "spring.r2dbc.password=jetlinks"
-      - "spring.elasticsearch.uris=elasticsearch:9200"
+      - "spring.elasticsearch.uris= 10.0.0.207:9200"
       #        - "spring.elasticsearch.username=admin"
       #        - "spring.elasticsearch.password=admin"
       #        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
       - "spring.redis.host=10.0.0.207"
       - "spring.redis.port=6379"
       - "file.manager.storage-base-path=/application/data/files"
-      - "spring.redis.password=JetLinks@redis"
       - "logging.level.io.r2dbc=warn"
       - "logging.level.org.springframework.data=warn"
       - "logging.level.org.springframework=warn"
