@@ -23,6 +23,9 @@ jobs:
 #        path: ~/.m2
 #        key: jetlinks-community-maven-repository
 
+    - name: Clean Maven
+      run: mvn clean
+
     - name: Build Maven
       run:
         mvn package -P qa,!dev -Dmaven.test.skip=true
