@@ -48,8 +48,8 @@ import static org.jetlinks.community.rule.engine.scene.SceneRule.createBranchAct
 
 /**
  * @see org.jetlinks.community.rule.engine.executor.TimerTaskExecutorProvider
- * @see org.jetlinks.community.rule.engine.executor.DelayTaskExecutorProvider
- * @see org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider
+ * @see DelayTaskExecutorProvider
+ * @see DeviceMessageSendTaskExecutorProvider
  */
 @Getter
 @Setter

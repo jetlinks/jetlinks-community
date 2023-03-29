@@ -1,7 +1,7 @@
 version: '2'
 services:
   emqx:
-    image: emqx/emqx:latest
+    image: emqx:latest
     container_name: jetlinks-ce-emqx
     ports:
       - "1883:1883"

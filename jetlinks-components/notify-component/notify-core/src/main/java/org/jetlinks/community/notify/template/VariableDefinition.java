@@ -40,9 +40,9 @@ public class VariableDefinition {
 
     /**
      * @see DataType#getId()
-     * @see org.jetlinks.core.metadata.types.DoubleType
+     * @see DoubleType
      * @see DateTimeType
-     * @see org.jetlinks.core.metadata.types.FileType
+     * @see FileType
      */
     @Schema(description = "类型")
     private String type;

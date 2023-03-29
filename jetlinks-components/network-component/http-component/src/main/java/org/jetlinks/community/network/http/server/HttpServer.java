@@ -32,7 +32,7 @@ public interface HttpServer extends ServerNetwork {
      *
      * </pre>
      *
-     * @param method     请求方法: {@link org.springframework.http.HttpMethod}
+     * @param method     请求方法: {@link HttpMethod}
      * @param urlPattern url
      * @return HttpExchange
      */

@@ -66,7 +66,7 @@ public class SceneRule implements Serializable {
     private Trigger trigger;
 
     /**
-     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
+     * @see TermColumn
      * @see org.jetlinks.community.reactorql.term.TermType
      * @see org.jetlinks.community.rule.engine.scene.value.TermValue
      */

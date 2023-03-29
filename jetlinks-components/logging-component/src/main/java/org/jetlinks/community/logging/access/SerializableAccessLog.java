@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @see org.hswebframework.web.logging.AccessLoggerInfo
+ * @see AccessLoggerInfo
  */
 @Setter
 @Getter

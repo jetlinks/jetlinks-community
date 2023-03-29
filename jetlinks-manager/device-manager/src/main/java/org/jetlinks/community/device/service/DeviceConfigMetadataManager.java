@@ -41,7 +41,7 @@ public interface DeviceConfigMetadataManager {
      *
      * @param deviceId 产品ID
      * @return 配置信息
-     * @see org.jetlinks.core.metadata.DeviceConfigScope#device
+     * @see DeviceConfigScope#device
      */
     Flux<ConfigMetadata> getDeviceConfigMetadata(String deviceId);
 

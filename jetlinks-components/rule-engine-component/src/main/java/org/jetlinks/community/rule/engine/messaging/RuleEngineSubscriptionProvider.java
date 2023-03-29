@@ -37,7 +37,7 @@ public class RuleEngineSubscriptionProvider implements SubscriptionProvider {
     public Flux<Message> subscribe(SubscribeRequest request) {
         String subscriber=request.getId();
 
-        org.jetlinks.core.event.Subscription subscription = org.jetlinks.core.event.Subscription.of(subscriber,request.getTopic(), org.jetlinks.core.event.Subscription.Feature.local, Subscription.Feature.broker);
+        Subscription subscription = Subscription.of(subscriber,request.getTopic(), Subscription.Feature.local, Subscription.Feature.broker);
 
         return eventBus
             .subscribe(subscription)

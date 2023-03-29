@@ -11,63 +11,6 @@ import java.util.stream.Collectors;
 
 public interface Topics {
 
-    static String creator(String creatorId, String topic) {
-        return StringBuilderUtils.buildString(creatorId, topic, Topics::creator);
-    }
-
-    static void creator(String creatorId, String topic, StringBuilder builder) {
-        builder.append("/user/").append(creatorId);
-        if (topic.charAt(0) != '/') {
-            builder.append('/');
-        }
-        builder.append(topic);
-    }
-
-    /**
-     * 根据绑定信息构造topic
-     *
-     * @param bindings 绑定信息
-     * @param topic    topic
-     * @return topic
-     */
-    static List<String> bindings(List<Map<String, Object>> bindings, String topic) {
-        List<String> topics = new ArrayList<>(bindings.size());
-        for (Map<String, Object> binding : bindings) {
-            topics.add(binding(String.valueOf(binding.get("type")), String.valueOf(binding.get("id")), topic));
-        }
-        return topics;
-    }
-
-    static void binding(String type, String id, String topic, StringBuilder builder) {
-        builder.append('/')
-               .append(type)
-               .append('/')
-               .append(id);
-        if (topic.charAt(0) != '/') {
-            builder.append('/');
-        }
-        builder.append(topic);
-    }
-
-    static String binding(String type, String id, String topic) {
-        return StringBuilderUtils.buildString(type, id, topic, Topics::binding);
-    }
-
-    @Deprecated
-    static String tenantMember(String memberId, String topic) {
-        if (!topic.startsWith("/")) {
-            topic = "/" + topic;
-        }
-        return String.join("", "/member/", memberId, topic);
-    }
-
-    @Deprecated
-    static List<String> tenantMembers(List<String> members, String topic) {
-        return members
-            .stream()
-            .map(id -> tenantMember(id, topic))
-            .collect(Collectors.toList());
-    }
 
     String allDeviceRegisterEvent = "/_sys/registry-device/*/register";
     String allDeviceUnRegisterEvent = "/_sys/registry-device/*/unregister";

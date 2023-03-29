@@ -1,6 +1,8 @@
 package org.jetlinks.community.script;
 
+import jdk.nashorn.internal.objects.Global;
 import lombok.SneakyThrows;
+import lombok.extern.java.Log;
 import org.jetlinks.community.script.jsr223.JavaScriptFactory;
 import org.junit.jupiter.api.Test;
 

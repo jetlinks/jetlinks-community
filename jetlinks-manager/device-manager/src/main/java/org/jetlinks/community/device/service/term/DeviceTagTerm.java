@@ -102,7 +102,7 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
         return fragments;
     }
 
-    static DeviceTagTerm.WhereBuilder builder = new DeviceTagTerm.WhereBuilder();
+    static WhereBuilder builder = new WhereBuilder();
 
     static class WhereBuilder extends AbstractTermsFragmentBuilder<RDBColumnMetadata> {
 

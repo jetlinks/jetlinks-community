@@ -36,10 +36,10 @@ public class DeviceMessageSubscriptionProvider implements SubscriptionProvider {
     public Flux<Message> subscribe(SubscribeRequest request) {
         return eventBus
             .subscribe(
-                org.jetlinks.core.event.Subscription.of(
+                Subscription.of(
                     "DeviceMessageSubscriptionProvider:" + request.getAuthentication().getUser().getId(),
                     new String[]{request.getTopic()},
-                    org.jetlinks.core.event.Subscription.Feature.local,
+                    Subscription.Feature.local,
                     Subscription.Feature.broker
                 ))
             .map(topicMessage -> Message.success(request.getId(), topicMessage.getTopic(), topicMessage.decode()));
