@@ -22,6 +22,7 @@ spring:
       pool:
         max-active: 1024
     timeout: 20s
+    password: JetLinks@redis
   #    database: 3
   #        max-wait: 10s
   r2dbc:

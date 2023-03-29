@@ -10,7 +10,6 @@ services:
       - "8080:8080"
       - "18083:18083"
       - "4369:4369"
-      - "6000-7000:6000-7000"
     volumes:
       - "/mydata/data/emqx:/emqx"
   redis:
@@ -20,7 +19,7 @@ services:
     #      - "6379:6379"
     volumes:
       - "/mydata/data/redis:/data"
-    command: redis-server --appendonly yes --requirepass "JetLinks@redis"
+    command: redis-server --appendonly no --requirepass "JetLinks@redis"
     environment:
       - TZ=Asia/Shanghai
   elasticsearch:
@@ -77,9 +76,6 @@ services:
 
     ports:
       - "8844:8844" # API端口
-      - "1883-1890:1883-1890" # 预留
-      - "8800-8810:8800-8810" # 预留
-      - "5060-5061:5060-5061" # 预留
     volumes:
       - "/mydata/jetlinks:/application/static/upload"  # 持久化上传的文件
       - "/mydata/jetlinks/:/application/data/files"
