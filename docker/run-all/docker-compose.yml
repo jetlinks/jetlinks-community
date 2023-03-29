@@ -11,7 +11,7 @@ services:
       - "18083:18083"
       - "4369:4369"
     volumes:
-      - "/mydata/data/emqx:/emqx"
+      - "/mydata/data/emqx:/opt/emqx"
   redis:
     image: redis:5.0.4
     container_name: jetlinks-ce-redis
@@ -33,7 +33,7 @@ services:
       discovery.zen.minimum_master_nodes: 1
       discovery.zen.ping.unicast.hosts: elasticsearch
     volumes:
-      - /mydata/elasticsearch:/usr/share/elasticsearch/data
+      - /mydata/data/elasticsearch:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -52,7 +52,7 @@ services:
     image: postgres:11-alpine
     container_name: jetlinks-ce-postgres
     volumes:
-      - "/mydata/pg:/var/lib/postgresql/data"
+      - "/mydata/data/pg:/var/lib/postgresql/data"
     ports:
       - "5432:5432"
     environment:
