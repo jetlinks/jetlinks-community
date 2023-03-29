@@ -60,7 +60,7 @@
         </root>
     </springProfile>
 
-    <springProfile name="test">
+    <springProfile name="qa">
         <root level="INFO">
             <appender-ref ref="AsyncConsoleAppender"/>
             <appender-ref ref="FILE"/>
