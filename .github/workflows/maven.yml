@@ -17,11 +17,11 @@ jobs:
         username: "${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }}" # 引用GitHub repo设置的镜像容器服务用户名
         password: "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" # 引用GitHub repo设置的镜像容器服务密码
       #  缓存 Maven 本地仓库
-    - name: Cache Maven packages
-      uses: actions/cache@v2
-      with:
-        path: ~/.m2
-        key: jetlinks-community-maven-repository
+#    - name: Cache Maven packages
+#      uses: actions/cache@v2
+#      with:
+#        path: ~/.m2
+#        key: jetlinks-community-maven-repository
 
     - name: Build Maven
       run:
