@@ -29,7 +29,7 @@ jobs:
 
 
     - name: Build Maven
-      run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pbuild -Denv=dev && cd jetlinks-standalone && docker build -t  registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
+      run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pqa -Denv=qa && cd jetlinks-standalone && docker build -t  registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
 
     - name: Build  Docker Image
       run: ls && cd jetlinks-standalone && docker build -t registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) -f ./Dockerfile  ../jetlinks-standalone
