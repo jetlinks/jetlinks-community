@@ -42,6 +42,18 @@
     </properties>
 
 
+    <profiles>
+        <profile>
+            <id>build</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <name>central</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
 
     <build>
         <finalName>${project.artifactId}</finalName>
@@ -154,7 +166,6 @@
                         <include>**/*Tests.java</include>
                         <include>**/*TestCase.java</include>
                     </includes>
-                    <!--suppress UnresolvedMavenProperty -->
                     <argLine>-Dfile.encoding=UTF-8 ${jacocoArgLine}</argLine>
                 </configuration>
             </plugin>
@@ -601,28 +612,4 @@
             <url>https://maven.aliyun.com/nexus/content/groups/public/</url>
         </pluginRepository>
     </pluginRepositories>
-
-    <profiles>
-        <profile>
-            <id>dev</id>
-            <properties>
-                <profileActive>dev</profileActive>
-            </properties>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-        </profile>
-        <profile>
-            <id>qa</id>
-            <properties>
-                <profileActive>qa</profileActive>
-            </properties>
-        </profile>
-        <profile>
-            <id>prod</id>
-            <properties>
-                <profileActive>production</profileActive>
-            </properties>
-        </profile>
-    </profiles>
 </project>

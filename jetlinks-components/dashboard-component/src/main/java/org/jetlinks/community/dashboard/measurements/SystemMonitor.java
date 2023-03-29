@@ -62,7 +62,7 @@ public enum SystemMonitor {
             } catch (Exception ignore) {
             }
         }
-        GlobalMemory memory = new SystemInfo()
+        GlobalMemory memory = new oshi.SystemInfo()
             .getHardware()
             .getMemory();
         {

@@ -1,8 +1,6 @@
 spring:
-  resources:
-    static-locations: file:./index/, file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
   redis:
-    host: 10.0.0.247
+    host: 127.0.0.1
     port: 6379
     lettuce:
       pool:
@@ -15,11 +13,14 @@ spring:
     pool:
       max-size: 32
   elasticsearch:
-    uris: 10.0.0.247:9201
+    uris: localhost:9201
     socket-timeout: 10s
     connection-timeout: 15s
     webclient:
       max-in-memory-size: 100MB
+  web:
+    resources:
+      static-locations: file:./index/, file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
 easyorm:
   default-schema: PUBLIC # 数据库默认的schema
   dialect: h2 #数据库方言
