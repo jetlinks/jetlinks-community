@@ -17,17 +17,17 @@ jobs:
         username: "${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }}" # 引用GitHub repo设置的镜像容器服务用户名
         password: "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" # 引用GitHub repo设置的镜像容器服务密码
       #  缓存 Maven 本地仓库
-#    - name: Cache Maven packages
-#      uses: actions/cache@v2
-#      with:
-#        path: ~/.m2
-#        key: jetlinks-community-maven-repository
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: jetlinks-community-maven-repository
 
     - name: Clean Maven
       run: mvn clean
 
     - name: Build Maven
-      run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pbuild -Denv=qa && cd jetlinks-standalone && docker build -t  registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
+      run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pbuild -Denv=dev && cd jetlinks-standalone && docker build -t  registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
 
     - name: Build  Docker Image
       run: ls && cd jetlinks-standalone && docker build -t registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) -f ./Dockerfile  ../jetlinks-standalone
