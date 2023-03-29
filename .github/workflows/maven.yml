@@ -28,7 +28,7 @@ jobs:
 
     - name: Build Maven
       run:
-        mvn package -P dev,!dev -Dmaven.test.skip=true
+        mvn package -P qa, -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")"  -Dmaven.test.skip=true
     - name: Build  Docker Image
       run: ls && cd jetlinks-standalone && docker build -t registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) -f ./Dockerfile  ../jetlinks-standalone
     - name: tag Docker Repo

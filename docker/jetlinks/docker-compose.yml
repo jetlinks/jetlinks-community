@@ -22,8 +22,8 @@ services:
       - "./mydata/jetlinks:/application/static/upload"  # 持久化上传的文件
       - "./mydata/jetlinks/:/application/data/files"
       - "./mydata/jetlinks/:/application/data/protocols"
-      - "./entrypoint.sh:/entrypoint.sh"
-    #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
+      - "./mydata/jetlinks/entrypoint.sh:/entrypoint.sh"
+#    entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
     environment:
       # - "SLEEP_SECOND=4"
       - "JAVA_OPTS=-Duser.language=zh -XX:+UseG1GC"
