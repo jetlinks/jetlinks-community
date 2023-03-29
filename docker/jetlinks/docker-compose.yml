@@ -1,0 +1,61 @@
+version: '2'
+services:
+  ui:
+    image: registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks-ui:2.0.0
+    container_name: jetlinks-ce-ui
+    ports:
+      - 9000:80
+    environment:
+      - "API_BASE_PATH=http://jetlinks:8844/" #API根路径
+    volumes:
+      - "./data/jetlinks-ui:/usr/share/nginx/html/upload"
+    links:
+      - jetlinks:jetlinks
+  jetlinks:
+    image: registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:2.0.0-SNAPSHOT
+    container_name: jetlinks-ce
+    ports:
+      - "8844:8844" # API端口
+      - "8800-8810:8800-8810" # 预留
+      - "5060-5061:5060-5061" # 预留
+    volumes:
+      - "./mydata/jetlinks:/application/static/upload"  # 持久化上传的文件
+      - "./mydata/jetlinks/:/application/data/files"
+      - "./mydata/jetlinks/:/application/data/protocols"
+      - "./entrypoint.sh:/entrypoint.sh"
+    #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
+    environment:
+      # - "SLEEP_SECOND=4"
+      - "JAVA_OPTS=-Duser.language=zh -XX:+UseG1GC"
+      - "TZ=Asia/Shanghai"
+      - "hsweb.file.upload.static-location=http://127.0.0.1:8844/upload"  #上传的静态文件访问根地址,为ui的地址.
+      - "spring.r2dbc.url=r2dbc:postgresql://10.0.0.207:5432/jetlinks" #数据库连接地址
+      - "spring.r2dbc.username=postgres"
+      - "spring.r2dbc.password=jetlinks"
+      - "spring.elasticsearch.uris=elasticsearch:9200"
+      #        - "spring.elasticsearch.username=admin"
+      #        - "spring.elasticsearch.password=admin"
+      #        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
+      - "spring.redis.host=10.0.0.207"
+      - "spring.redis.port=6379"
+      - "file.manager.storage-base-path=/application/data/files"
+      - "spring.redis.password=JetLinks@redis"
+      - "logging.level.io.r2dbc=warn"
+      - "logging.level.org.springframework.data=warn"
+      - "logging.level.org.springframework=warn"
+      - "logging.level.org.jetlinks=warn"
+      - "logging.level.org.hswebframework=warn"
+      - "logging.level.org.springframework.data.r2dbc.connectionfactory=warn"
+      - "network.resources[0]=0.0.0.0:8800-8810/tcp"
+#      - "network.resources[1]=0.0.0.0:1883-1890"
+      - "hsweb.cors.enable=true"
+      - "hsweb.cors.configs[0].path=/**"
+      - "hsweb.cors.configs[0].allowed-credentials=true"
+      - "hsweb.cors.configs[0].allowed-headers=*"
+      - "hsweb.cors.configs[0].allowed-origins=*"
+      - "hsweb.cors.configs[0].allowed-methods[0]=GET"
+      - "hsweb.cors.configs[0].allowed-methods[1]=POST"
+      - "hsweb.cors.configs[0].allowed-methods[2]=PUT"
+      - "hsweb.cors.configs[0].allowed-methods[3]=PATCH"
+      - "hsweb.cors.configs[0].allowed-methods[4]=DELETE"
+      - "hsweb.cors.configs[0].allowed-methods[5]=OPTIONS"
