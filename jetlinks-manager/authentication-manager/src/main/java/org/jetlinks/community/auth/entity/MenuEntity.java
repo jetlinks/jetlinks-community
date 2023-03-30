@@ -5,11 +5,15 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hibernate.validator.constraints.Length;
-import org.hswebframework.ezorm.rdb.mapping.annotation.*;
+import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
+import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
+import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
+import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.utils.DigestUtils;
 import org.hswebframework.web.validator.CreateGroup;
 
 import javax.persistence.Column;
@@ -117,6 +121,23 @@ public class MenuEntity
         , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
+
+    @Override
+    public String getId() {
+        if (super.getId() == null) {
+            generateId();
+        }
+        return super.getId();
+    }
+
+    public void generateId() {
+        String id = generateHexId(code, owner);
+        setId(id);
+    }
+
+    public static String generateHexId(String boardId, String owner) {
+        return DigestUtils.md5Hex(String.join(boardId, "|", owner));
+    }
 
     public boolean isSupportDataAccess() {
         return false;
