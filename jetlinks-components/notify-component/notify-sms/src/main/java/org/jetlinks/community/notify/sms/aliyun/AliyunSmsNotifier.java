@@ -32,7 +32,10 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -164,24 +167,49 @@ public class AliyunSmsNotifier extends AbstractNotifier<AliyunSmsTemplate> {
      * @return 短信签名集合
      */
     public Flux<SmsSign> getSmsSigns() {
-        return Mono
-            .fromCallable(() -> client.getAcsResponse(new QuerySmsSignListRequest()))
-            .flatMapIterable(QuerySmsSignListResponse::getSmsSignList)
+        return doQuerySmsSigns(new AtomicInteger(0), 50)
+            .flatMapIterable(Function.identity())
             .map(SmsSign::of)
             .as(FluxTracer.create("/aliyun/sms/sign"))
             .onErrorResume(err -> Mono.empty());
     }
 
-    /**
-     * @return 短信模板集合
-     */
+
+
     public Flux<SmsTemplate> getSmsTemplates() {
-        return Mono
-            .fromCallable(() -> client.getAcsResponse(new QuerySmsTemplateListRequest()))
-            .flatMapIterable(QuerySmsTemplateListResponse::getSmsTemplateList)
+        return doQuerySmsTemplates(new AtomicInteger(0), 50)
+            .flatMapIterable(Function.identity())
             .map(SmsTemplate::of)
             .as(FluxTracer.create("/aliyun/sms/template"))
             .onErrorResume(err -> Mono.empty());
+    }
 
+
+    public Flux<List<QuerySmsSignListResponse.QuerySmsSignDTO>> doQuerySmsSigns(AtomicInteger pageIndex, int pageSize) {
+        QuerySmsSignListRequest request = new QuerySmsSignListRequest();
+        request.setPageSize(pageSize);
+        request.setPageIndex(pageIndex.incrementAndGet());
+        return Mono
+            .fromCallable(() -> client.getAcsResponse(request).getSmsSignList())
+            .expand(dtos -> {
+                if (dtos.size() == pageSize){
+                    return doQuerySmsSigns(pageIndex, pageSize);
+                }
+                return Flux.empty();
+            });
+    }
+
+    public Flux<List<QuerySmsTemplateListResponse.SmsStatsResultDTO>> doQuerySmsTemplates(AtomicInteger pageIndex, int pageSize) {
+        QuerySmsTemplateListRequest request = new QuerySmsTemplateListRequest();
+        request.setPageSize(pageSize);
+        request.setPageIndex(pageIndex.incrementAndGet());
+        return Mono
+            .fromCallable(() -> client.getAcsResponse(request).getSmsTemplateList())
+            .expand(dtos -> {
+                if (dtos.size() == pageSize){
+                    return doQuerySmsTemplates(pageIndex, pageSize);
+                }
+                return Flux.empty();
+            });
     }
 }
