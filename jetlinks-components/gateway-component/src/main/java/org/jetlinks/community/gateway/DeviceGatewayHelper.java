@@ -1,6 +1,7 @@
 package org.jetlinks.community.gateway;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -35,8 +36,11 @@ import java.util.function.Supplier;
 @AllArgsConstructor
 public class DeviceGatewayHelper {
 
+    @Getter
     private final DeviceRegistry registry;
+    @Getter
     private final DeviceSessionManager sessionManager;
+    @Getter
     private final DecodedClientMessageHandler messageHandler;
 
     public static Consumer<DeviceSession> applySessionKeepaliveTimeout(DeviceMessage msg, Supplier<Duration> timeoutSupplier) {
@@ -136,6 +140,7 @@ public class DeviceGatewayHelper {
                         }
                     }));
 
+
             //子设备注册
             if (isDoRegister(children)) {
                 return this
@@ -182,7 +187,7 @@ public class DeviceGatewayHelper {
                     if (l == 0) {
                         return registry
                             .getDevice(deviceId)
-                            .flatMap(device -> messageHandler.handleMessage(device, message));
+                            .flatMap(device -> handleMessage(device, message));
                     }
                     return Mono.empty();
                 })
@@ -196,28 +201,22 @@ public class DeviceGatewayHelper {
                 .orElse(false);
         }
 
-        //忽略会话管理,比如一个设备存在多种接入方式时,其中一种接入方式收到的消息设置忽略会话来防止会话冲突
-        if (message.getHeaderOrDefault(Headers.ignoreSession)) {
-            return registry
-                .getDevice(deviceId)
-                .flatMap(device -> {
-                    if (!isDoRegister(message)) {
-                        return messageHandler
-                            .handleMessage(device, message)
-                            .thenReturn(device);
-                    }
-                    return Mono.just(device);
-                });
-
-        }
-
         if (then == null) {
             then = registry.getDevice(deviceId);
         }
 
+        //忽略会话管理,比如一个设备存在多种接入方式时,其中一种接入方式收到的消息设置忽略会话来防止会话冲突
+        if (message.getHeaderOrDefault(Headers.ignoreSession)) {
+            if (!isDoRegister(message)) {
+                return handleMessage(null, message)
+                    .then(then);
+            }
+            return then;
+
+        }
+
         if (doHandle) {
-            then = messageHandler
-                .handleMessage(null, message)
+            then = handleMessage(null, message)
                 .then(then);
         }
 
@@ -227,6 +226,13 @@ public class DeviceGatewayHelper {
             .then(then)
             .contextWrite(Context.of(DeviceMessage.class, message));
 
+    }
+
+    private Mono<Void> handleMessage(DeviceOperator device, Message message) {
+        return messageHandler
+            .handleMessage(device, message)
+            //转换为empty,减少触发discard
+            .flatMap(ignore -> Mono.empty());
     }
 
     private Mono<DeviceSession> createOrUpdateSession(String deviceId,
@@ -256,7 +262,7 @@ public class DeviceGatewayHelper {
                              () -> {
                                  //设备注册
                                  if (isDoRegister(message)) {
-                                     return messageHandler
+                                     return this
                                          .handleMessage(null, message)
                                          //延迟2秒后尝试重新获取设备并上线
                                          .then(Mono.delay(Duration.ofSeconds(2)))
