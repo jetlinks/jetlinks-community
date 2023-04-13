@@ -41,7 +41,7 @@ public class AliyunSmsController {
 
     @GetMapping("/{configId}/templates")
     @QueryAction
-    @Operation(summary = "获取短信标签列表")
+    @Operation(summary = "获取短信模板列表")
     public Flux<SmsTemplate> getAliyunSmsTemplates(@PathVariable String configId) {
         return notifierManager
             .getNotifier(DefaultNotifyType.sms, configId)
