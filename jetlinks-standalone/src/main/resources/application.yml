@@ -26,8 +26,8 @@ spring:
   #        max-wait: 10s
   r2dbc:
     # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
-    url: r2dbc:postgresql://localhost:5432/jetlinks
-    #    url: r2dbc:mysql://localhost:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
+    url: r2dbc:postgresql://127.0.0.1:5432/jetlinks
+    #    url: r2dbc:mysql://127.0.0.1:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
     username: postgres
     password: jetlinks
     pool:
@@ -39,7 +39,7 @@ spring:
     debug-agent:
       enabled: false
   elasticsearch:
-    uris: localhost:9200
+    uris: 127.0.0.1:9200
     socket-timeout: 10s
     connection-timeout: 15s
     webclient:
@@ -52,7 +52,7 @@ tdengine:
   database: jetlinks
   restful:
     endpoints:
-      - http://localhost:6041/
+      - http://127.0.0.1:6041/
     username: root
     password: taosdata
 elasticsearch:
@@ -88,7 +88,7 @@ hsweb:
   file:
     upload:
       static-file-path: ./static/upload
-      static-location: http://localhost:8848/upload
+      static-location: http://127.0.0.1:8848/upload
   webflux:
     response-wrapper:
       enabled: true #开启响应包装器(将返回值包装为ResponseMessage)
@@ -176,7 +176,7 @@ system:
         properties:
           - key: base-path
             name: 接口根路径
-            default-value: http://localhost:9000/api
+            default-value: http://127.0.0.1:9000/api
       - id: amap
         name: 高德地图配置
         public-access: false
