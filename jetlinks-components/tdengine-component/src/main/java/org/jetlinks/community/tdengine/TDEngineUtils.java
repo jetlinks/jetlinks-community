@@ -3,11 +3,21 @@ package org.jetlinks.community.tdengine;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 public class TDEngineUtils {
+
+    public static final DateTimeFormatter format = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
+
+    public static String formatTime(long timestamp) {
+        return new DateTime(timestamp).toString(format);
+    }
 
 
     public static Mono<JSONObject> checkExecuteResult(ClientResponse response) {

@@ -11,6 +11,7 @@ import org.hswebframework.utils.time.DefaultDateFormatter;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.exception.BusinessException;
+import org.jetlinks.community.tdengine.TDEngineUtils;
 import org.jetlinks.community.tdengine.term.TDengineQueryConditionBuilder;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
@@ -114,9 +115,9 @@ class TDengineThingDataHelper implements Disposable {
 
     public static Object prepareTimestampValue(Object value, String type) {
 
-        return ConverterUtils.tryConvertToList(value,v->{
+        return ConverterUtils.tryConvertToList(value, v -> {
             Date date = CastUtils.castDate(v);
-            return date.getTime();
+            return TDEngineUtils.formatTime(date.getTime());
         });
     }
 
