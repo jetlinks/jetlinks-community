@@ -31,6 +31,9 @@ public class DeviceGatewayProperties implements ValueObject {
 
     private String protocol;
 
+    private String transport;
+
+
     private Map<String,Object> configuration=new HashMap<>();
 
     @Override

@@ -5,6 +5,7 @@ import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
+import org.jetlinks.community.gateway.supports.DeviceGatewayPropertiesManager;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.message.codec.Transport;
@@ -31,6 +32,8 @@ public class DefaultDeviceConfigMetadataSupplier implements DeviceConfigMetadata
     private final LocalDeviceProductService productService;
 
     private final ProtocolSupports protocolSupports;
+
+    private final DeviceGatewayPropertiesManager gatewayPropertiesManager;
 
     @Override
     @SuppressWarnings("all")
@@ -77,6 +80,17 @@ public class DefaultDeviceConfigMetadataSupplier implements DeviceConfigMetadata
             .computeDeviceProtocol(productId, (protocol, transport) ->
                 protocol.getMetadataExpandsConfig(transport, metadataType, metadataId, typeId))
             .flatMapMany(Function.identity());
+    }
+
+    @Override
+    public Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId,
+                                                                   String accessId) {
+        return gatewayPropertiesManager
+            .getProperties(accessId)
+            .flatMapMany(properties -> protocolSupports
+                .getProtocol(properties.getProtocol())
+                .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, properties.getProtocol()))
+                .flatMap(support -> support.getConfigMetadata(Transport.of(properties.getTransport()))));
     }
 
     private Flux<ConfigMetadata> getProductConfigMetadata0(String productId) {
