@@ -146,4 +146,9 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
         }
         return Mono.just(options);
     }
+
+    @Override
+    public boolean isReusable() {
+        return true;
+    }
 }
