@@ -140,4 +140,9 @@ public class DefaultHttpServerProvider implements NetworkProvider<HttpServerConf
         }
         return Mono.just(options);
     }
+
+    @Override
+    public boolean isReusable() {
+        return true;
+    }
 }
