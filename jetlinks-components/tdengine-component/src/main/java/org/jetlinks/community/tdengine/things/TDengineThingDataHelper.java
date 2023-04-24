@@ -11,17 +11,18 @@ import org.hswebframework.utils.time.DefaultDateFormatter;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.exception.BusinessException;
-import org.jetlinks.community.tdengine.term.TDengineQueryConditionBuilder;
-import org.jetlinks.core.metadata.Converter;
-import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.tdengine.Point;
+import org.jetlinks.community.tdengine.TDEngineUtils;
 import org.jetlinks.community.tdengine.TDengineOperations;
+import org.jetlinks.community.tdengine.term.TDengineQueryConditionBuilder;
 import org.jetlinks.community.things.data.MetricMetadataManager;
 import org.jetlinks.community.things.data.PropertyAggregation;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.utils.ConverterUtils;
 import org.jetlinks.community.utils.ObjectMappers;
+import org.jetlinks.core.metadata.Converter;
+import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -33,7 +34,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.function.Predicate3;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -114,9 +118,9 @@ class TDengineThingDataHelper implements Disposable {
 
     public static Object prepareTimestampValue(Object value, String type) {
 
-        return ConverterUtils.tryConvertToList(value,v->{
+        return ConverterUtils.tryConvertToList(value, v -> {
             Date date = CastUtils.castDate(v);
-            return date.getTime();
+            return TDEngineUtils.formatTime(date.getTime());
         });
     }
 

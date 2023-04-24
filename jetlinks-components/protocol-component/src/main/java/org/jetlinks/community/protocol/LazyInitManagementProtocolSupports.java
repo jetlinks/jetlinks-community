@@ -79,7 +79,7 @@ public class LazyInitManagementProtocolSupports extends StaticProtocolSupports i
                     consumer.accept(e);
                 })
                 .onErrorResume((e) -> {
-                    log.error("{} protocol[{}] error: {}", operation, definition.getId(), e);
+                    log.error("{} protocol[{}] error: {}", operation, definition.getId(), e.getLocalizedMessage());
                     return Mono.empty();
                 })
                 .then();

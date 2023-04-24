@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.metadata.*;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
+@Slf4j
 public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataManager, BeanPostProcessor {
 
     private final List<DeviceConfigMetadataSupplier> suppliers = new CopyOnWriteArrayList<>();
@@ -55,11 +57,27 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
                                                          String typeId,
                                                          ConfigScope... scopes) {
         return Flux.fromIterable(suppliers)
-                   .flatMap(supplier -> supplier.getMetadataExpandsConfig(productId, metadataType, metadataId, typeId))
-                   .sort(Comparator.comparing(ConfigMetadata::getName))
-                   .filter(metadata -> metadata.hasAnyScope(scopes))
-                   .map(metadata -> metadata.copy(scopes))
-                   .filter(meta -> org.apache.commons.collections4.CollectionUtils.isNotEmpty(meta.getProperties()));
+            .flatMap(supplier -> supplier.getMetadataExpandsConfig(productId, metadataType, metadataId, typeId))
+            .sort(Comparator.comparing(ConfigMetadata::getName))
+            .filter(metadata -> metadata.hasAnyScope(scopes))
+            .map(metadata -> metadata.copy(scopes))
+            .filter(meta -> org.apache.commons.collections4.CollectionUtils.isNotEmpty(meta.getProperties()));
+    }
+
+
+    @Override
+    public Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId,
+                                                                   String accessId) {
+        return Flux.fromIterable(suppliers)
+            .flatMap(supplier -> supplier
+                .getProductConfigMetadataByAccessId(productId, accessId)
+                .onErrorResume(e -> {
+                    log.error("get product config metatada by gateway error", e);
+                    return Flux.empty();
+                }))
+            .map(config -> config.copy(DeviceConfigScope.product))
+            .filter(config -> !CollectionUtils.isEmpty(config.getProperties()))
+            .sort(Comparator.comparing(ConfigMetadata::getName));
     }
 
     @Override

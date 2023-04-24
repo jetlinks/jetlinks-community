@@ -41,12 +41,20 @@ public interface DeviceConfigMetadataSupplier {
         return Flux.empty();
     }
 
+    /**
+     * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getProductConfigMetadataByAccessId(String, String)
+     */
+    @Generated
+    default Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId, String accessId) {
+        return Flux.empty();
+    }
+
 
     /**
      * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getProductFeatures(String)
      */
     @Generated
-    default Flux<Feature> getProductFeatures(String productId){
+    default Flux<Feature> getProductFeatures(String productId) {
         return Flux.empty();
     }
 }

@@ -97,6 +97,16 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
         return configMetadataManager.getProductConfigMetadata(id);
     }
 
+    @GetMapping("/{id:.+}/{accessId:.+}/config-metadata")
+    @QueryAction
+    @Operation(summary = "根据指定的接入方式获取产品需要的配置定义信息")
+    public Flux<ConfigMetadata> getProductConfigMetadataByAccessId(@PathVariable @Parameter(description = "产品ID") String id,
+                                                                   @PathVariable
+                                                                   @Parameter(description = "接入方式ID") String accessId) {
+        return configMetadataManager.getProductConfigMetadataByAccessId(id, accessId);
+    }
+
+
     @GetMapping("/{id:.+}/config-metadata/{metadataType}/{metadataId}/{typeId}")
     @QueryAction
     @Operation(summary = "获取产品物模型的拓展配置定义")

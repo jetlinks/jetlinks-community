@@ -12,17 +12,18 @@ import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.exception.ValidationException;
 import org.jctools.maps.NonBlockingHashMap;
-import org.jetlinks.core.device.DeviceConfigKey;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.event.Subscription;
-import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.DirectDeviceMessage;
-import org.jetlinks.core.message.Headers;
-import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
 import org.jetlinks.community.OperationSource;
 import org.jetlinks.community.device.entity.TransparentMessageCodecEntity;
+import org.jetlinks.community.gateway.DeviceGatewayHelper;
 import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.core.device.DeviceConfigKey;
+import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.session.DeviceSessionManager;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.message.*;
+import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.CommandLineRunner;
@@ -45,14 +46,19 @@ public class TransparentDeviceMessageConnector implements CommandLineRunner, Dev
 
     private final Map<CacheKey, TransparentMessageCodec> codecs = new NonBlockingHashMap<>();
 
+    private final DeviceGatewayHelper gatewayHelper;
+
     public TransparentDeviceMessageConnector(@SuppressWarnings("all")
-                                                 ReactiveRepository<TransparentMessageCodecEntity, String> repository,
+                                             ReactiveRepository<TransparentMessageCodecEntity, String> repository,
                                              DecodedClientMessageHandler messageHandler,
+                                             DeviceSessionManager sessionManager,
+                                             DeviceRegistry registry,
                                              EventBus eventBus,
                                              ObjectProvider<TransparentMessageCodecProvider> providers) {
         this.repository = repository;
         this.messageHandler = messageHandler;
         this.eventBus = eventBus;
+        this.gatewayHelper = new DeviceGatewayHelper(registry, sessionManager, messageHandler);
         for (TransparentMessageCodecProvider provider : providers) {
             TransparentMessageCodecProviders.addProvider(provider);
         }
@@ -69,8 +75,22 @@ public class TransparentDeviceMessageConnector implements CommandLineRunner, Dev
         }
         return codec
             .decode(message)
-            .flatMap(msg -> messageHandler.handleMessage(null, msg))
+            .flatMap(this::handleMessage)
             .then();
+    }
+
+    private Mono<Void> handleMessage(DeviceMessage msg) {
+        if (msg instanceof ChildDeviceMessage || msg instanceof ChildDeviceMessageReply) {
+            msg.addHeader(Headers.ignoreSession, true);
+            return gatewayHelper
+                .handleDeviceMessage(
+                    msg,
+                    device -> null
+                )
+                .then();
+        }
+
+        return messageHandler.handleMessage(null, msg).then();
     }
 
     private TransparentMessageCodec getCodecOrNull(String productId, String deviceId) {
@@ -94,7 +114,7 @@ public class TransparentDeviceMessageConnector implements CommandLineRunner, Dev
                     msg.addHeader("encodeBy", message.getMessageType().name());
                     //所有透传消息都设置为异步
                     msg.addHeader(Headers.async, true);
-                   // msg.addHeader(Headers.sendAndForget, true);
+                    // msg.addHeader(Headers.sendAndForget, true);
                 })
             )
             .defaultIfEmpty(message);
@@ -110,7 +130,7 @@ public class TransparentDeviceMessageConnector implements CommandLineRunner, Dev
         return provider
             .createCodec(entity.getConfiguration())
             .doOnNext(codec -> codecs.put(key, codec))
-            .contextWrite(OperationSource.ofContext(entity.getId(),null,entity))
+            .contextWrite(OperationSource.ofContext(entity.getId(), null, entity))
             .switchIfEmpty(Mono.fromRunnable(() -> codecs.remove(key)))
             .then();
     }
