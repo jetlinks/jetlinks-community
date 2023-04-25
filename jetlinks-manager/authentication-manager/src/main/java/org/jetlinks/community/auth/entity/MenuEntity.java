@@ -122,10 +122,6 @@ public class MenuEntity
     )
     private Long createTime;
 
-    public static String generateHexId(String boardId, String owner) {
-        return DigestUtils.md5Hex(String.join(boardId, "|", owner));
-    }
-
     @Override
     public String getId() {
         if (super.getId() == null) {
@@ -137,6 +133,10 @@ public class MenuEntity
     public void generateId() {
         String id = generateHexId(code, owner);
         setId(id);
+    }
+
+    public static String generateHexId(String boardId, String owner) {
+        return DigestUtils.md5Hex(String.join(boardId, "|", owner));
     }
 
     public boolean isSupportDataAccess() {

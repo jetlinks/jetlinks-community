@@ -51,12 +51,12 @@ public class DeviceCategoryTerm extends AbstractTermFragmentBuilder {
 
         sqlFragments.addSql("and exists(select 1 from dev_product_category g where g.id = prod.classified_id and ");
         sqlFragments.addSql(
-                idList
-                    .stream()
-                    .map(r -> "path like (select concat(path,'%') from dev_product_category g2 where g2.id = ?)")
-                    .collect(Collectors.joining(" or ", "(", ")"))
-                , ")")
-            .addParameter(idList);
+            idList
+                .stream()
+                .map(r -> "path like (select concat(path,'%') from dev_product_category g2 where g2.id = ?)")
+                .collect(Collectors.joining(" or ", "(", ")"))
+            , ")")
+                    .addParameter(idList);
 
         sqlFragments.addSql(")");
 

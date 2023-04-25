@@ -25,12 +25,12 @@ public class DeviceTypeTerm extends AbstractTermFragmentBuilder {
             sqlFragments.addSql("not");
         }
         sqlFragments
-            .addSql("exists(select 1 from ", getTableName("dev_product", column), " _product where _product.id = " + columnFullName);
+            .addSql("exists(select 1 from ",getTableName("dev_product",column)," _product where _product.id = " + columnFullName);
         sqlFragments
             .addSql(" and _product.device_type in(");
         sqlFragments.addSql(idList.stream().map(str -> "?").collect(Collectors.joining(",")))
-            .addParameter(idList)
-            .addSql("))");
+                    .addParameter(idList)
+                    .addSql("))");
 
         return sqlFragments;
     }

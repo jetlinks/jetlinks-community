@@ -39,7 +39,6 @@ import java.util.List;
 public class DeviceInstanceTerm extends AbstractTermFragmentBuilder {
 
     public static final String termType = "dev-instance";
-    static DeviceTermsBuilder builder = new DeviceTermsBuilder();
 
     public DeviceInstanceTerm() {
         super(termType, "根据设备信息查询");
@@ -70,6 +69,9 @@ public class DeviceInstanceTerm extends AbstractTermFragmentBuilder {
         sqlFragments.addSql(")");
         return sqlFragments;
     }
+
+
+    static DeviceTermsBuilder builder = new DeviceTermsBuilder();
 
     static class DeviceTermsBuilder extends AbstractTermsFragmentBuilder<TableOrViewMetadata> {
 

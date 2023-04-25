@@ -24,7 +24,7 @@ public class DeviceProtocolTerm extends AbstractTermFragmentBuilder {
             sqlFragments.addSql("not");
         }
         sqlFragments
-            .addSql("exists(select 1 from ", getTableName("dev_product", column), " _product where _product.id = " + columnFullName);
+            .addSql("exists(select 1 from ",getTableName("dev_product",column)," _product where _product.id = " + columnFullName);
         sqlFragments
             .addSql(" and _product.message_protocol = ?");
         sqlFragments.addSql(")").addParameter(idList);

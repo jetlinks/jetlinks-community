@@ -41,7 +41,7 @@ public interface DeviceConfigMetadataManager {
      *
      * @param deviceId 产品ID
      * @return 配置信息
-     * @see DeviceConfigScope#device
+     * @see org.jetlinks.core.metadata.DeviceConfigScope#device
      */
     Flux<ConfigMetadata> getDeviceConfigMetadata(String deviceId);
 
@@ -88,7 +88,7 @@ public interface DeviceConfigMetadataManager {
      * 当配置来自协议包时，可根据accessId关联的协议查询
      *
      * @param productId 产品ID
-     * @param accessId  网关ID
+     * @param accessId 网关ID
      * @return 配置信息
      */
     Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId,

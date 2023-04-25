@@ -142,15 +142,15 @@ public class NotificationDispatcher implements CommandLineRunner {
             unregister(entity);
         }
         return Flux.fromIterable(entities)
-            .flatMap(e -> eventBus.publish("/_sys/notify-channel/unregister", e))
-            .then();
+                   .flatMap(e -> eventBus.publish("/_sys/notify-channel/unregister", e))
+                   .then();
     }
 
     private Mono<Void> register(List<NotifyChannelEntity> entities) {
         return Flux.fromIterable(entities)
-            .flatMap(e -> register(e)
-                .then(eventBus.publish("/_sys/notify-channel/register", e)))
-            .then();
+                   .flatMap(e -> register(e)
+                       .then(eventBus.publish("/_sys/notify-channel/register", e)))
+                   .then();
 
     }
 

@@ -9,6 +9,7 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.validator.CreateGroup;
+//import org.jetlinks.community.authorize.AuthenticationSpec;
 import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
 import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannelProvider;

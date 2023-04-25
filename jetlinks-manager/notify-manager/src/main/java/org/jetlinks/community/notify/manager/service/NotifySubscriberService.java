@@ -7,13 +7,14 @@ import org.hswebframework.web.crud.events.*;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.core.cluster.ClusterManager;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.notify.manager.entity.Notification;
 import org.jetlinks.community.notify.manager.entity.NotifySubscriberEntity;
 import org.jetlinks.community.notify.manager.enums.SubscribeState;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
-import org.jetlinks.core.event.EventBus;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,6 +25,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +46,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
                                    ObjectProvider<SubscriberProvider> providers,
                                    ApplicationEventPublisher eventPublisher) {
         this.eventBus = eventBus;
-        this.eventPublisher = eventPublisher;
+        this.eventPublisher=eventPublisher;
         for (SubscriberProvider provider : providers) {
             this.providers.put(provider.getId(), provider);
             SubscriberProviders.register(provider);
@@ -134,7 +136,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
         //取消订阅
         if (entity.getState() == SubscribeState.disabled) {
             Optional.ofNullable(subscribers.remove(entity.getId()))
-                .ifPresent(Disposable::dispose);
+                    .ifPresent(Disposable::dispose);
             log.debug("unsubscribe:{}({}),{}", entity.getTopicProvider(), entity.getTopicName(), entity.getId());
             return;
         }
@@ -144,20 +146,20 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
 
         Disposable old = subscribers
             .put(entity.getId(),
-                Mono
-                    .zip(ReactiveAuthenticationHolder.get(entity.getSubscriber()), Mono.justOrEmpty(getProvider(entity.getTopicProvider())))
-                    .flatMap(tp2 -> tp2.getT2().createSubscriber(entity.getId(), tp2.getT1(), entity.getTopicConfig()))
-                    .flatMap(subscriber ->
-                        subscriber
-                            .subscribe(entity.toLocale())
-                            .map(template::copyWithMessage)
-                            .doOnNext(eventPublisher::publishEvent)
-                            .onErrorResume((err) -> {
-                                log.error(err.getMessage(), err);
-                                return Mono.empty();
-                            })
-                            .then())
-                    .subscribe()
+                 Mono
+                     .zip(ReactiveAuthenticationHolder.get(entity.getSubscriber()), Mono.justOrEmpty(getProvider(entity.getTopicProvider())))
+                     .flatMap(tp2 -> tp2.getT2().createSubscriber(entity.getId(), tp2.getT1(), entity.getTopicConfig()))
+                     .flatMap(subscriber ->
+                                  subscriber
+                                      .subscribe(entity.toLocale())
+                                      .map(template::copyWithMessage)
+                                      .doOnNext(eventPublisher::publishEvent)
+                                      .onErrorResume((err) -> {
+                                          log.error(err.getMessage(), err);
+                                          return Mono.empty();
+                                      })
+                                      .then())
+                     .subscribe()
             );
         log.debug("subscribe :{}({})", template.getTopicProvider(), template.getTopicName());
 

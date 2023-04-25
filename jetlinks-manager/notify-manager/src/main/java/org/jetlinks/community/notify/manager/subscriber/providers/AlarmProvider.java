@@ -20,6 +20,7 @@ import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.utils.FluxUtils;
 import org.springframework.stereotype.Component;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,6 +28,7 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 @Component
 @Slf4j
@@ -52,20 +54,6 @@ public class AlarmProvider implements SubscriberProvider {
     public ConfigMetadata getConfigMetadata() {
         return new DefaultConfigMetadata()
             .add("alarmConfigId", "告警规则", "告警规则,支持通配符:*", StringType.GLOBAL);
-    }
-
-    private static String getNotifyMessage(Locale locale, JSONObject json) {
-
-        String message;
-        TargetType targetType = TargetType.of(json.getString("targetType"));
-        String targetName = json.getString("targetName");
-        String alarmName = json.getString("alarmConfigName");
-        if (targetType == TargetType.other) {
-            message = String.format("[%s]发生告警:[%s]!", targetName, alarmName);
-        } else {
-            message = String.format("%s[%s]发生告警:[%s]!", targetType.getText(), targetName, alarmName);
-        }
-        return LocaleUtils.resolveMessage("message.alarm.notify." + targetType.name(), locale, message, targetName, alarmName);
     }
 
     @Override
@@ -101,6 +89,21 @@ public class AlarmProvider implements SubscriberProvider {
                         json
                     );
                 }));
+    }
+
+
+    private static String getNotifyMessage(Locale locale, JSONObject json) {
+
+        String message;
+        TargetType targetType = TargetType.of(json.getString("targetType"));
+        String targetName = json.getString("targetName");
+        String alarmName = json.getString("alarmConfigName");
+        if (targetType == TargetType.other) {
+            message = String.format("[%s]发生告警:[%s]!", targetName, alarmName);
+        } else {
+            message = String.format("%s[%s]发生告警:[%s]!", targetType.getText(), targetName, alarmName);
+        }
+        return LocaleUtils.resolveMessage("message.alarm.notify." + targetType.name(), locale, message, targetName, alarmName);
     }
 
     @Override

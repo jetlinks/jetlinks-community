@@ -80,6 +80,22 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
             .sort(Comparator.comparing(ConfigMetadata::getName));
     }
 
+
+    @Override
+    public Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId,
+                                                                   String accessId) {
+        return Flux.fromIterable(suppliers)
+                   .flatMap(supplier -> supplier
+                       .getProductConfigMetadataByAccessId(productId, accessId)
+                       .onErrorResume(e -> {
+                           log.error("get product config metatada by gateway error", e);
+                           return Flux.empty();
+                       }))
+                   .map(config -> config.copy(DeviceConfigScope.product))
+                   .filter(config -> !CollectionUtils.isEmpty(config.getProperties()))
+                   .sort(Comparator.comparing(ConfigMetadata::getName));
+    }
+
     @Override
     public Object postProcessAfterInitialization(@Nonnull Object bean, @Nonnull String beanName) {
         if (bean instanceof DeviceConfigMetadataSupplier) {

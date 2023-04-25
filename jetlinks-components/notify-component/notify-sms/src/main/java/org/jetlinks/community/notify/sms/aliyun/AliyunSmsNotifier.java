@@ -19,12 +19,13 @@ import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.sms.SmsProvider;
+import org.jetlinks.core.Values;
+import org.jetlinks.core.trace.FluxTracer;
+import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.sms.aliyun.expansion.AliyunSmsExpansion;
 import org.jetlinks.community.notify.sms.aliyun.expansion.SmsSign;
 import org.jetlinks.community.notify.sms.aliyun.expansion.SmsTemplate;
 import org.jetlinks.community.notify.template.TemplateManager;
-import org.jetlinks.core.Values;
-import org.jetlinks.core.trace.FluxTracer;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -193,7 +194,7 @@ public class AliyunSmsNotifier extends AbstractNotifier<AliyunSmsTemplate> {
         return Mono
             .fromCallable(() -> client.getAcsResponse(request).getSmsSignList())
             .expand(dtos -> {
-                if (dtos.size() == pageSize) {
+                if (dtos.size() == pageSize){
                     return doQuerySmsSigns(pageIndex, pageSize);
                 }
                 return Flux.empty();
@@ -207,7 +208,7 @@ public class AliyunSmsNotifier extends AbstractNotifier<AliyunSmsTemplate> {
         return Mono
             .fromCallable(() -> client.getAcsResponse(request).getSmsTemplateList())
             .expand(dtos -> {
-                if (dtos.size() == pageSize) {
+                if (dtos.size() == pageSize){
                     return doQuerySmsTemplates(pageIndex, pageSize);
                 }
                 return Flux.empty();

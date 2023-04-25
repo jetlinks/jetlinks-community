@@ -21,27 +21,27 @@ import java.util.List;
 public class DeviceProductInfoTermBuilder extends AbstractTermFragmentBuilder {
 
     public static final String termType = "product-info";
-    static ProductTermBuilder builder = new ProductTermBuilder();
-
 
     public DeviceProductInfoTermBuilder() {
         super(termType, "根据产品信息查询设备数据");
     }
+
 
     @SuppressWarnings("all")
     public static List<Term> convertTerms(Object value) {
         return ConverterUtils.convertTerms(value);
     }
 
+
     @Override
     public SqlFragments createFragments(String columnFullName, RDBColumnMetadata column, Term term) {
         List<Term> terms = convertTerms(term.getValue());
         PrepareSqlFragments sqlFragments = PrepareSqlFragments.of();
-        if (term.getOptions().contains("not")) {
+        if(term.getOptions().contains("not")){
             sqlFragments.addSql("not");
         }
         sqlFragments
-            .addSql("exists(select 1 from ", getTableName("dev_product", column), " _product where _product.id = ", columnFullName);
+            .addSql("exists(select 1 from ",getTableName("dev_product",column)," _product where _product.id = ", columnFullName);
 
         RDBTableMetadata metadata = column
             .getOwner()
@@ -52,11 +52,14 @@ public class DeviceProductInfoTermBuilder extends AbstractTermFragmentBuilder {
         SqlFragments where = builder.createTermFragments(metadata, terms);
         if (!where.isEmpty()) {
             sqlFragments.addSql("and")
-                .addFragments(where);
+                     .addFragments(where);
         }
         sqlFragments.addSql(")");
         return sqlFragments;
     }
+
+
+    static ProductTermBuilder builder = new ProductTermBuilder();
 
     static class ProductTermBuilder extends AbstractTermsFragmentBuilder<TableOrViewMetadata> {
 
