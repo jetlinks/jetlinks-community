@@ -26,11 +26,12 @@ services:
     image: elasticsearch:6.8.11
     container_name: jetlinks-ce-elasticsearch
     environment:
-      ES_JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Xms1g -Xmx1g
+      ES_JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Xms2g -Xmx2g
       transport.host: 0.0.0.0
       discovery.type: single-node
       bootstrap.memory_lock: "true"
       discovery.zen.minimum_master_nodes: 1
+      node.max_local_storage_nodes: 1
       discovery.zen.ping.unicast.hosts: elasticsearch
     volumes:
       - /mydata/data/elasticsearch:/usr/share/elasticsearch/data
@@ -77,10 +78,14 @@ services:
     ports:
       - "8844:8844" # API端口
     volumes:
-      - "/mydata/jetlinks:/application/static/upload"  # 持久化上传的文件
-      - "/mydata/jetlinks/:/application/data/files"
-      - "/mydata/jetlinks/:/application/data/protocols"
-      - "/mydata/entrypoint.sh:/entrypoint.sh"
+      - "/mydata/jetlinks/application/data/files:/application/data/files"
+      - "/mydata/jetlinks/application/data/protocols:/application/data/protocols"
+      - "/mydata/jetlinks/application/docker-entrypoint.sh:/application/docker-entrypoint.sh"
+      - "/mydata/jetlinks/application/logs:/application/logs"
+      - "/mydata/jetlinks/application/org:/application/org"
+      - "/mydata/jetlinks/application/static:/application/static"
+      - "/mydata/jetlinks/application/BOOT-INF:/application/BOOT-INF"
+      - "/mydata/jetlinks/application/META-INF:/application/META-INF"
     #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
     environment:
      # - "SLEEP_SECOND=4"
