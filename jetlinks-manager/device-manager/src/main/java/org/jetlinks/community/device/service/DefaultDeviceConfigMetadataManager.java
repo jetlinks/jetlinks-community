@@ -1,18 +1,18 @@
 package org.jetlinks.community.device.service;
 
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.ConfigScope;
-import org.jetlinks.core.metadata.DeviceConfigScope;
-import org.jetlinks.core.metadata.DeviceMetadataType;
+import org.jetlinks.core.metadata.*;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
@@ -63,6 +63,25 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
                    .filter(metadata -> metadata.hasAnyScope(scopes))
                    .map(metadata -> metadata.copy(scopes))
                    .filter(meta -> org.apache.commons.collections4.CollectionUtils.isNotEmpty(meta.getProperties()));
+    }
+
+    @Override
+    public Mono<Set<String>> getProductConfigMetadataProperties(String productId) {
+        return this
+            .getProductConfigMetadata(productId)
+            .collectList()
+            .flatMap(list -> {
+                Set<String> keys = new HashSet<>();
+                for (ConfigMetadata configMetadata : list) {
+                    if (CollectionUtils.isEmpty(configMetadata.getProperties())) {
+                        continue;
+                    }
+                    for (ConfigPropertyMetadata configPropertyMetadata : configMetadata.getProperties()) {
+                        keys.add(configPropertyMetadata.getProperty());
+                    }
+                }
+                return Mono.just(keys);
+            });
     }
 
     @Override

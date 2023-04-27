@@ -9,6 +9,9 @@ import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.ConfigScope;
 import org.jetlinks.core.metadata.DeviceMetadataType;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Set;
 
 
 /**
@@ -78,4 +81,11 @@ public interface DeviceConfigMetadataManager {
                                                   String typeId,
                                                   ConfigScope... scopes);
 
+    /**
+     * 根据产品ID获取产品所需配置信息
+     *
+     * @param productId 产品ID
+     * @return 配置property集合
+     */
+    Mono<Set<String>> getProductConfigMetadataProperties(String productId);
 }

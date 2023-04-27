@@ -18,6 +18,7 @@ import org.jetlinks.community.device.enums.DeviceFeature;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.DeviceDeployResult;
 import org.jetlinks.community.device.response.DeviceDetail;
+import org.jetlinks.community.device.response.ResetDeviceConfigurationResult;
 import org.jetlinks.community.utils.ErrorUtils;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
@@ -81,6 +82,46 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                    .as(super::save);
     }
 
+    private Flux<DeviceInstanceEntity> findByProductId(String productId) {
+        return createQuery()
+            .and(DeviceInstanceEntity::getProductId, productId)
+            .fetch();
+    }
+
+    private Set<String> getProductConfigurationProperties(DeviceProductEntity product) {
+        if (MapUtils.isNotEmpty(product.getConfiguration())) {
+            return product.getConfiguration()
+                          .keySet();
+        }
+        return new HashSet<>();
+    }
+
+    private Mono<Map<String, Object>> resetConfiguration(DeviceProductEntity product, DeviceInstanceEntity device) {
+        return metadataManager
+            .getProductConfigMetadataProperties(product.getId())
+            .defaultIfEmpty(getProductConfigurationProperties(product))
+            .flatMap(set -> {
+                if (set.size() > 0) {
+                    if (MapUtils.isNotEmpty(device.getConfiguration())) {
+                        set.forEach(device.getConfiguration()::remove);
+                    }
+                    //重置注册中心里的配置
+                    return registry
+                        .getDevice(device.getId())
+                        .flatMap(opts -> opts.removeConfigs(set))
+                        .then();
+                }
+                return Mono.empty();
+            })
+            .then(
+                //更新数据库
+                createUpdate()
+                    .set(device::getConfiguration)
+                    .where(device::getId)
+                    .execute()
+            )
+            .then(Mono.fromSupplier(device::getConfiguration));
+    }
 
     /**
      * 重置设备配置
@@ -96,31 +137,37 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .flatMap(tp2 -> {
                 DeviceProductEntity product = tp2.getT2();
                 DeviceInstanceEntity device = tp2.getT1();
-                return Mono
-                    .defer(() -> {
-                        if (MapUtils.isNotEmpty(product.getConfiguration())) {
-                            if (MapUtils.isNotEmpty(device.getConfiguration())) {
-                                product.getConfiguration()
-                                       .keySet()
-                                       .forEach(device.getConfiguration()::remove);
-                            }
-                            //重置注册中心里的配置
-                            return registry.getDevice(deviceId)
-                                           .flatMap(opts -> opts.removeConfigs(product.getConfiguration().keySet()))
-                                           .then();
-                        }
-                        return Mono.empty();
-                    }).then(
-                        //更新数据库
-                        createUpdate()
-                            .set(device::getConfiguration)
-                            .where(device::getId)
-                            .execute()
-                    )
-                    .thenReturn(device.getConfiguration());
+                return resetConfiguration(product, device);
             })
-            .defaultIfEmpty(Collections.emptyMap())
-            ;
+            .defaultIfEmpty(Collections.emptyMap());
+    }
+
+    public Mono<Long> resetConfiguration(Flux<String> payload) {
+        return payload
+            .flatMap(deviceId -> resetConfiguration(deviceId)).count();
+    }
+
+    /**
+     * 重置设备配置信息(根据产品批量重置，性能欠佳，慎用)
+     *
+     * @param productId 产品ID
+     * @return 数量
+     */
+    public Flux<ResetDeviceConfigurationResult> resetConfigurationByProductId(String productId) {
+        return deviceProductService
+            .findById(productId)
+            .flatMapMany(product -> this
+                .findByProductId(productId)
+                .flatMap(device -> {
+                    return resetConfiguration(product, device)
+                        .thenReturn(ResetDeviceConfigurationResult
+                            .success(SaveResult.of(0, 1)))
+                        .onErrorResume(throwable -> {
+                            String message = device.getId() + ":" + throwable.getMessage();
+                            return Mono.just(ResetDeviceConfigurationResult.error(message));
+                        });
+                })
+            );
     }
 
     /**
