@@ -4,12 +4,14 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.notify.manager.enums.NotificationState;
+import org.jetlinks.community.utils.ObjectMappers;
 
 import javax.persistence.Column;
 import javax.persistence.Index;
@@ -58,6 +60,16 @@ public class NotificationEntity extends GenericEntity<String> {
     @Schema(description = "通知时间")
     private Long notifyTime;
 
+    @Column(length = 128)
+    @Schema(description = "通知编码")
+    private String code;
+
+    @Column
+    @Schema(description = "详情")
+    @ColumnType(jdbcType = JDBCType.CLOB, javaType = String.class)
+    private String detailJson;
+
+
     @Column(length = 32)
     @EnumCodec
     @DefaultValue("unread")
@@ -69,7 +81,15 @@ public class NotificationEntity extends GenericEntity<String> {
     @Schema(description = "说明")
     private String description;
 
+    @SneakyThrows
     public static NotificationEntity from(Notification notification) {
-        return FastBeanCopier.copy(notification, new NotificationEntity());
+        NotificationEntity entity = FastBeanCopier.copy(notification, new NotificationEntity());
+        Object detail = notification.getDetail();
+
+        entity.setCode(notification.getCode());
+        if (detail != null) {
+            entity.setDetailJson(ObjectMappers.JSON_MAPPER.writeValueAsString(detail));
+        }
+        return entity;
     }
 }

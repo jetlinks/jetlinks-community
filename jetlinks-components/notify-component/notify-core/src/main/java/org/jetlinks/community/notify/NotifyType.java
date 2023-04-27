@@ -12,4 +12,8 @@ public interface NotifyType {
     String getId();
 
     String getName();
+
+    static NotifyType of(String id) {
+        return DefaultNotifyType.valueOf(id);
+    }
 }

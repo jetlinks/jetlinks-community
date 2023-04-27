@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+org.jetlinks.community.notify.configuration.NotifierAutoConfiguration,\
+org.jetlinks.community.notify.configuration.RuleEngineNotifierConfiguration

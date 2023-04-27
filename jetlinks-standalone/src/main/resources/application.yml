@@ -12,8 +12,9 @@ spring:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: true
     default-property-inclusion: non_null
-  resources:
-    static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
+  web:
+    resources:
+      static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
   redis:
     host: 127.0.0.1
     port: 6379
@@ -21,13 +22,12 @@ spring:
       pool:
         max-active: 1024
     timeout: 20s
-    serializer: jdk # 设置fst时,redis key使用string序列化,value使用 fst序列化.
-#    database: 3
+  #    database: 3
   #        max-wait: 10s
   r2dbc:
     # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
-    url: r2dbc:postgresql://localhost:5432/jetlinks
-#    url: r2dbc:mysql://localhost:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
+    url: r2dbc:postgresql://127.0.0.1:5432/jetlinks
+    #    url: r2dbc:mysql://127.0.0.1:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
     username: postgres
     password: jetlinks
     pool:
@@ -38,17 +38,23 @@ spring:
   reactor:
     debug-agent:
       enabled: false
-  data:
-    elasticsearch:
-      client:
-        reactive:
-          endpoints: localhost:9200
-          max-in-memory-size: 100MB
-          socket-timeout: 5000
-          connection-timeout: 8000
+  elasticsearch:
+    uris: 127.0.0.1:9200
+    socket-timeout: 10s
+    connection-timeout: 15s
+    webclient:
+      max-in-memory-size: 100MB
 easyorm:
   default-schema: public # 数据库默认的schema
   dialect: postgres #数据库方言
+tdengine:
+  enabled: false
+  database: jetlinks
+  restful:
+    endpoints:
+      - http://127.0.0.1:6041/
+    username: root
+    password: taosdata
 elasticsearch:
   embedded:
     enabled: false # 为true时使用内嵌的elasticsearch,不建议在生产环境中使用
@@ -64,7 +70,7 @@ device:
   message:
     writer:
       time-series:
-        enabled: true #写出设备消息数据到elasticsearch
+        enabled: true #对设备数据进行持久化
 captcha:
   enabled: false # 开启验证码
   ttl: 2m #验证码过期时间,2分钟
@@ -74,16 +80,15 @@ hsweb:
     configs:
       - path: /**
         allowed-headers: "*"
-        allowed-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-        allowed-origins: ["*"]
-#        allow-credentials: true
+        allowed-methods: [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ]
+        allowed-origins: [ "*" ] ## 生产环境请替换为具体的域名端口如: http://xxxxx
         max-age: 1800
   dict:
     enum-packages: org.jetlinks
   file:
     upload:
       static-file-path: ./static/upload
-      static-location: http://localhost:8848/upload
+      static-location: http://127.0.0.1:8848/upload
   webflux:
     response-wrapper:
       enabled: true #开启响应包装器(将返回值包装为ResponseMessage)
@@ -110,7 +115,7 @@ file:
   manager:
     storage-base-path: ./data/files
 api:
-   # 访问api接口的根地址
+  # 访问api接口的根地址
   base-path: http://127.0.0.1:${server.port}
 
 jetlinks:
@@ -137,14 +142,14 @@ logging:
     org.springframework: warn
     org.jetlinks.community.device.message.writer: warn
     org.jetlinks.community.timeseries.micrometer: warn
-    org.jetlinks.community.elastic.search.service: trace
     org.jetlinks.community.elastic.search.service.reactive: trace
     org.jetlinks.community.network: warn
     io.vertx.mqtt.impl: warn
-    #    org.springframework.data.elasticsearch.client: trace
-    #    org.elasticsearch: error
+    org.jetlinks.supports.scalecube.rpc: warn
+    "org.jetlinks.community.buffer": debug
     org.elasticsearch: error
-    org.elasticsearch.deprecation.search.aggregations.bucket.histogram: error
+    org.elasticsearch.deprecation: off
+    "io.vertx.core.impl.ContextImpl": off
   config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds
@@ -159,6 +164,25 @@ micrometer:
     metrics:
       default:
         step: 30s
+system:
+  config:
+    scopes:
+      - id: front
+        name: 前端配置
+        public-access: true
+      - id: paths
+        name: 访问路径配置
+        public-access: true
+        properties:
+          - key: base-path
+            name: 接口根路径
+            default-value: http://127.0.0.1:9000/api
+      - id: amap
+        name: 高德地图配置
+        public-access: false
+        properties:
+          - key: apiKey # 配置id
+            name: 高德地图ApiKey # 名称
 management:
   health:
     elasticsearch:
@@ -197,3 +221,8 @@ springdoc:
         - org.jetlinks.community.logging.controller
   cache:
     disabled: false
+network:
+  resources:
+    - 1883-1890
+    - 8800-8810
+    - 5060-5061

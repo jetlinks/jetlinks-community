@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
 import org.jetlinks.core.metadata.*;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -16,6 +17,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
+@Slf4j
 public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataManager, BeanPostProcessor {
 
     private final List<DeviceConfigMetadataSupplier> suppliers = new CopyOnWriteArrayList<>();
@@ -65,6 +67,22 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
                    .filter(meta -> org.apache.commons.collections4.CollectionUtils.isNotEmpty(meta.getProperties()));
     }
 
+
+    @Override
+    public Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId,
+                                                                   String accessId) {
+        return Flux.fromIterable(suppliers)
+                   .flatMap(supplier -> supplier
+                       .getProductConfigMetadataByAccessId(productId, accessId)
+                       .onErrorResume(e -> {
+                           log.error("get product config metatada by gateway error", e);
+                           return Flux.empty();
+                       }))
+                   .map(config -> config.copy(DeviceConfigScope.product))
+                   .filter(config -> !CollectionUtils.isEmpty(config.getProperties()))
+                   .sort(Comparator.comparing(ConfigMetadata::getName));
+    }
+
     @Override
     public Mono<Set<String>> getProductConfigMetadataProperties(String productId) {
         return this
@@ -90,5 +108,13 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
             register(((DeviceConfigMetadataSupplier) bean));
         }
         return bean;
+    }
+
+    @Override
+    public Flux<Feature> getProductFeatures(String productId) {
+        return Flux
+            .fromIterable(suppliers)
+            .flatMap(supplier -> supplier.getProductFeatures(productId))
+            .distinct(Feature::getId);
     }
 }

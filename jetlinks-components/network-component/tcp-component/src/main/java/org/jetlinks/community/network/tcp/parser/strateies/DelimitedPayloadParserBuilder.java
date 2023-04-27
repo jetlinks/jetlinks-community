@@ -5,8 +5,8 @@ import io.vertx.core.parsetools.RecordParser;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.text.StringEscapeUtils;
-import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParserType;
+import org.jetlinks.community.ValueObject;
 
 import java.util.function.Supplier;
 

@@ -3,17 +3,23 @@ package org.jetlinks.community.network.mqtt.gateway.device.session;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.network.mqtt.client.MqttClient;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSession;
+import org.jetlinks.community.network.mqtt.client.MqttClient;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
+/**
+ * MQTT Client设备会话
+ *
+ * @author zhouhao
+ * @since 1.0
+ */
 public class MqttClientSession implements DeviceSession {
     @Getter
     private final String id;
@@ -40,7 +46,7 @@ public class MqttClientSession implements DeviceSession {
         this.id = id;
         this.operator = operator;
         this.client = client;
-        this.monitor=monitor;
+        this.monitor = monitor;
     }
 
     @Override

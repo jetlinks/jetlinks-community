@@ -2,16 +2,16 @@ package org.jetlinks.community.rule.engine.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.hswebframework.web.dict.EnumDict;
+import org.hswebframework.web.dict.I18nEnumDict;
 
 @AllArgsConstructor
 @Getter
-public enum AlarmState implements EnumDict<String> {
+public enum AlarmState implements I18nEnumDict<String> {
 
-    running("运行中"),
-    stopped("已停止");
+    disabled("禁用"),
+    enabled("正常");
 
-    private String text;
+    private final String text;
 
     @Override
     public String getValue() {

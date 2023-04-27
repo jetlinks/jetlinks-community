@@ -5,7 +5,7 @@
     <parent>
         <artifactId>notify-component</artifactId>
         <groupId>org.jetlinks.community</groupId>
-        <version>1.20.0-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -35,11 +35,28 @@
             <artifactId>common-component</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <dependency>
-            <groupId>org.jetlinks.community</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>gateway-component</artifactId>
             <version>${project.version}</version>
-            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>rule-engine-component</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>relation-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
         </dependency>
 
     </dependencies>

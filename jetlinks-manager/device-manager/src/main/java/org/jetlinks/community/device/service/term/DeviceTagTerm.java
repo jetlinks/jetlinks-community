@@ -86,7 +86,7 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
 
         PrepareSqlFragments fragments = PrepareSqlFragments.of();
 
-        fragments.addSql("exists(select 1 from dev_device_tags d where d.device_id =", columnFullName);
+        fragments.addSql("exists(select 1 from ",getTableName("dev_device_tags",column)," d where d.device_id =", columnFullName);
         Object value = term.getValue();
         boolean and = term.getOptions().contains("and");
         if (value instanceof Map) {

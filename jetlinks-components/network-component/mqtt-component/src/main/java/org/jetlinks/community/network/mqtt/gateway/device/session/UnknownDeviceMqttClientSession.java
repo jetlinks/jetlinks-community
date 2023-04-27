@@ -1,25 +1,34 @@
 package org.jetlinks.community.network.mqtt.gateway.device.session;
 
 import lombok.Getter;
-import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSession;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
+import org.jetlinks.community.network.mqtt.client.MqttClient;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 public class UnknownDeviceMqttClientSession implements DeviceSession {
     @Getter
-    private String id;
+    private final String id;
 
-    private MqttClient client;
+    private final MqttClient client;
+
+    private final DeviceGatewayMonitor monitor;
+    private Duration keepAliveTimeout;
 
     public UnknownDeviceMqttClientSession(String id,
-                                          MqttClient client) {
+                                          MqttClient client,
+                                          DeviceGatewayMonitor monitor) {
         this.id = id;
         this.client = client;
+        this.monitor=monitor;
     }
 
     @Override
@@ -43,9 +52,21 @@ public class UnknownDeviceMqttClientSession implements DeviceSession {
     }
 
     @Override
+    public void setKeepAliveTimeout(Duration keepAliveTimeout) {
+        this.keepAliveTimeout = keepAliveTimeout;
+    }
+
+    @Override
+    public Duration getKeepAliveTimeout() {
+        return keepAliveTimeout;
+    }
+
+    @Override
     public Mono<Boolean> send(EncodedMessage encodedMessage) {
         if (encodedMessage instanceof MqttMessage) {
-            return client.publish(((MqttMessage) encodedMessage))
+            return client
+                .publish(((MqttMessage) encodedMessage))
+                .doOnSuccess(ignore->monitor.sentMessage())
                 .thenReturn(true);
         }
         return Mono.error(new UnsupportedOperationException("unsupported message type:" + encodedMessage.getClass()));

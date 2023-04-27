@@ -1,5 +1,6 @@
 package org.jetlinks.community.logging.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.hswebframework.web.api.crud.entity.PagerResult;
@@ -10,9 +11,7 @@ import org.hswebframework.web.authorization.annotation.Resource;
 import org.jetlinks.community.logging.service.SystemLoggerService;
 import org.jetlinks.community.logging.system.SerializableSystemLog;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 /**
@@ -33,6 +32,14 @@ public class SystemLoggerController {
     @QueryOperation(summary = "查询系统日志")
     public Mono<PagerResult<SerializableSystemLog>> getSystemLogger(@Parameter(hidden = true) QueryParamEntity queryParam) {
         return loggerService.getSystemLogger(queryParam);
+    }
+
+    @PostMapping("/_query")
+    @QueryAction
+    @Operation(summary = "(POST)查询系统日志")
+    public Mono<PagerResult<SerializableSystemLog>> getSystemLogger(@RequestBody Mono<QueryParamEntity> queryMono) {
+        return queryMono
+            .flatMap(queryParam -> loggerService.getSystemLogger(queryParam));
     }
 
 

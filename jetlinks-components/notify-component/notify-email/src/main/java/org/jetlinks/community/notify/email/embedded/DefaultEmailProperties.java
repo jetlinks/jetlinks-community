@@ -1,9 +1,12 @@
 package org.jetlinks.community.notify.email.embedded;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 @Getter
@@ -12,6 +15,8 @@ public class DefaultEmailProperties {
     private String host;
 
     private int port;
+
+    private boolean ssl;
 
     private String username;
 
@@ -23,6 +28,8 @@ public class DefaultEmailProperties {
 
     @Getter
     @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class ConfigProperty {
 
         private String name;
@@ -35,13 +42,15 @@ public class DefaultEmailProperties {
     public Properties createJavaMailProperties() {
 
         Properties properties = new Properties();
-
         if (this.properties != null) {
             for (ConfigProperty property : this.properties) {
                 properties.put(property.getName(), property.getValue());
             }
         }
-
+        if(ssl){
+            properties.putIfAbsent("mail.smtp.auth","true");
+            properties.putIfAbsent("mail.smtp.ssl.enable","true");
+        }
         return properties;
     }
 

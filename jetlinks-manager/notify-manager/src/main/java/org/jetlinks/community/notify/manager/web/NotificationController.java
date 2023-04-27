@@ -52,11 +52,19 @@ public class NotificationController {
         return Authentication
             .currentReactive()
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> query.toNestQuery(q -> q
-                .where(NotifySubscriberEntity::getSubscriberType, "user")
-                .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId()))
+            .flatMap(auth -> query
+                .toNestQuery(q -> q
+                    .where(NotifySubscriberEntity::getSubscriberType, "user")
+                    .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId()))
                 .execute(subscriberService::queryPager));
 
+    }
+
+    @PostMapping("/subscriptions/_query")
+    @Authorize(ignore = true)
+    @Operation(summary = "POST查询当前用户订阅信息")
+    public Mono<PagerResult<NotifySubscriberEntity>> querySubscription(@RequestBody Mono<QueryParamEntity> query) {
+        return query.flatMap(this::querySubscription);
     }
 
     @PutMapping("/subscription/{id}/_{state}")
@@ -127,12 +135,20 @@ public class NotificationController {
         return Authentication
             .currentReactive()
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> query.toNestQuery(q -> q
-                .where(NotificationEntity::getSubscriberType, "user")
-                .and(NotificationEntity::getSubscriber, auth.getUser().getId()))
+            .flatMap(auth -> query
+                .toNestQuery(q -> q
+                    .where(NotificationEntity::getSubscriberType, "user")
+                    .and(NotificationEntity::getSubscriber, auth.getUser().getId()))
                 .execute(notificationService::queryPager)
                 .defaultIfEmpty(PagerResult.empty()));
 
+    }
+
+    @PostMapping("/_query")
+    @Authorize(ignore = true)
+    @Operation(summary = "使用POST方式查询通知记录")
+    public Mono<PagerResult<NotificationEntity>> queryMyNotifications(@RequestBody Mono<QueryParamEntity> query) {
+        return query.flatMap(this::queryMyNotifications);
     }
 
     @GetMapping("/{id}/read")
@@ -142,7 +158,8 @@ public class NotificationController {
         return Authentication
             .currentReactive()
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> QueryParamEntity.newQuery()
+            .flatMap(auth -> QueryParamEntity
+                .newQuery()
                 .where(NotificationEntity::getSubscriberType, "user")
                 .and(NotificationEntity::getSubscriber, auth.getUser().getId())
                 .and(NotificationEntity::getId, id)
@@ -161,8 +178,9 @@ public class NotificationController {
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
             .flatMap(auth -> idList
                 .filter(CollectionUtils::isNotEmpty)
-                .flatMap(list-> notificationService.createUpdate()
-                    .set(NotificationEntity::getState,state)
+                .flatMap(list -> notificationService
+                    .createUpdate()
+                    .set(NotificationEntity::getState, state)
                     .where(NotificationEntity::getSubscriberType, "user")
                     .and(NotificationEntity::getSubscriber, auth.getUser().getId())
                     .in(NotificationEntity::getId, list)
@@ -187,5 +205,4 @@ public class NotificationController {
             return info;
         }
     }
-
 }

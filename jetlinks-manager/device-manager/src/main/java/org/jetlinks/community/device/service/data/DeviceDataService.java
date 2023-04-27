@@ -11,6 +11,7 @@ import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
 import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.core.config.ConfigKey;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.EventMetadata;
@@ -33,6 +34,9 @@ import java.util.Map;
  */
 public interface DeviceDataService {
 
+
+    ConfigKey<String> STORE_POLICY_CONFIG_KEY = ConfigKey.of("storePolicy", "存储策略", String.class);
+
     /**
      * 注册设备物模型信息
      *
@@ -42,6 +46,8 @@ public interface DeviceDataService {
      */
     Mono<Void> registerMetadata(@Nonnull String productId,
                                 @Nonnull DeviceMetadata metadata);
+
+    Mono<Void> reloadMetadata(@Nonnull String productId, @Nonnull DeviceMetadata metadata);
 
     /**
      * 批量保存消息

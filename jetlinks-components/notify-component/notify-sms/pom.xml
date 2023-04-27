@@ -5,7 +5,7 @@
     <parent>
         <artifactId>notify-component</artifactId>
         <groupId>org.jetlinks.community</groupId>
-        <version>1.20.0-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -20,8 +20,14 @@
         <dependency>
             <groupId>com.aliyun</groupId>
             <artifactId>aliyun-java-sdk-core</artifactId>
-            <version>4.5.2</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.tencentcloudapi/tencentcloud-sdk-java -->
+<!--        <dependency>-->
+<!--            <groupId>com.tencentcloudapi</groupId>-->
+<!--            <artifactId>tencentcloud-sdk-java</artifactId>-->
+<!--            <version>3.1.65</version>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>org.hswebframework.web</groupId>
@@ -34,14 +40,16 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context-indexer</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.jetlinks.community</groupId>
             <artifactId>notify-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-dysmsapi</artifactId>
+            <version>2.2.1</version>
+        </dependency>
+
     </dependencies>
 </project>

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.jetlinks.community</groupId>
     <artifactId>jetlinks-community</artifactId>
-    <version>1.20.0-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
     <modules>
         <module>jetlinks-components</module>
         <module>jetlinks-manager</module>
@@ -14,29 +16,48 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.5.13</spring.boot.version>
+        <spring.boot.version>2.7.10</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <hsweb.framework.version>4.0.15-SNAPSHOT</hsweb.framework.version>
-        <easyorm.version>4.1.0-SNAPSHOT</easyorm.version>
+        <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
+        <hsweb.framework.version>4.0.16-SNAPSHOT</hsweb.framework.version>
+        <easyorm.version>4.1.1-SNAPSHOT</easyorm.version>
+        <jetlinks.version>1.2.1-SNAPSHOT</jetlinks.version>
+        <reactor.excel.version>1.0.4</reactor.excel.version>
+        <reactor.ql.version>1.0.16-SNAPSHOT</reactor.ql.version>
+
+        <!-- 第三方依赖版本 -->
+        <r2dbc.version>Borca-SR2</r2dbc.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <jetlinks.version>1.2.0-SNAPSHOT</jetlinks.version>
-        <r2dbc.version>Borca-SR1</r2dbc.version>
-        <netty.version>4.1.77.Final</netty.version>
-        <elasticsearch.version>7.11.2</elasticsearch.version>
-        <reactor.excel.version>1.0.3</reactor.excel.version>
-        <reactor.ql.version>1.0.14</reactor.ql.version>
-        <californium.version>3.3.1</californium.version>
+        <netty.version>4.1.89.Final</netty.version>
+        <elasticsearch.version>7.17.5</elasticsearch.version>
+        <californium.version>3.7.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <reactor.version>2020.0.18</reactor.version>
-        <vertx.version>4.3.0</vertx.version>
-        <log4j.version>2.17.1</log4j.version>
-        <logback.version>1.2.9</logback.version>
-        <springdoc.version>1.6.6</springdoc.version>
-        <jackson.version>2.13.2.20220328</jackson.version>
-        <opentelemetry.version>1.13.0</opentelemetry.version>
+        <reactor.version>2020.0.31</reactor.version>
+        <vertx.version>4.3.7</vertx.version>
+        <log4j.version>2.18.0</log4j.version>
+        <logback.version>1.2.11</logback.version>
+        <springdoc.version>1.6.11</springdoc.version>
+        <jackson.version>2.13.5</jackson.version>
+        <opentelemetry.version>1.17.0</opentelemetry.version>
+        <swagger.version>2.2.8</swagger.version>
+        <jna.version>5.12.1</jna.version>
+        <aliyun.sdk.core>4.5.2</aliyun.sdk.core>
     </properties>
 
+
+    <profiles>
+        <profile>
+            <id>build</id>
+            <repositories>
+                <repository>
+                    <id>maven-central</id>
+                    <name>central</name>
+                    <url>https://repo1.maven.org/maven2/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
 
     <build>
         <finalName>${project.artifactId}</finalName>
@@ -161,6 +182,36 @@
         <dependencies>
 
             <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>${jna.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna-platform</artifactId>
+                <version>${jna.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.32</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>20230227</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jsoup</groupId>
+                <artifactId>jsoup</artifactId>
+                <version>1.15.3</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
                 <version>2.1.210</version>
@@ -206,7 +257,7 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.69</version>
+                <version>1.70</version>
             </dependency>
 
             <dependency>
@@ -402,6 +453,25 @@
                 </exclusions>
             </dependency>
 
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>1.10.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.aliyun</groupId>
+                <artifactId>aliyun-java-sdk-core</artifactId>
+                <version>${aliyun.sdk.core}</version>
+            </dependency>
+
+
         </dependencies>
     </dependencyManagement>
 
@@ -410,7 +480,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
-            <version>1.10.0</version>
         </dependency>
 
         <dependency>
@@ -446,14 +515,14 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.17.2</version>
+            <version>1.17.4</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.17.2</version>
+            <version>1.17.4</version>
             <scope>test</scope>
         </dependency>
 

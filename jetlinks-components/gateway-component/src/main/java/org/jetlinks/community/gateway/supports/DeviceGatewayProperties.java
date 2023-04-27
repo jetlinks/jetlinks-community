@@ -21,11 +21,20 @@ public class DeviceGatewayProperties implements ValueObject {
 
     private String id;
 
+    private String name;
+
+    private String description;
+
     private String provider;
 
-    private String networkId;
+    private String channelId;
 
-    private Map<String, Object> configuration = new HashMap<>();
+    private String protocol;
+
+    private String transport;
+
+
+    private Map<String,Object> configuration=new HashMap<>();
 
     @Override
     public Map<String, Object> values() {

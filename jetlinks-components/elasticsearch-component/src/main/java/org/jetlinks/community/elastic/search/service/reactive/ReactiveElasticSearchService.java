@@ -14,18 +14,19 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.WriteRequest;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.xcontent.XContentType;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.utils.time.DateFormatter;
 import org.hswebframework.utils.time.DefaultDateFormatter;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.core.utils.SerializeUtils;
 import org.jetlinks.community.buffer.BufferProperties;
 import org.jetlinks.community.buffer.BufferSettings;
 import org.jetlinks.community.buffer.MemoryUsage;
@@ -38,11 +39,9 @@ import org.jetlinks.community.elastic.search.utils.QueryParamTranslator;
 import org.jetlinks.community.utils.ErrorUtils;
 import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.community.utils.SystemUtils;
-import org.jetlinks.core.utils.SerializeUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClientException;
@@ -73,12 +72,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @DependsOn("reactiveElasticsearchClient")
 @ConfigurationProperties(prefix = "elasticsearch")
-@Service
 public class ReactiveElasticSearchService implements ElasticSearchService {
-
-    @Getter
-    @Setter
-    private BufferConfig buffer = new BufferConfig();
 
     @Getter
     private final ReactiveElasticsearchClient restClient;
@@ -96,10 +90,21 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
 
     private PersistenceBuffer<Buffer> writer;
 
+    @Getter
+    @Setter
+    private ElasticSearchBufferProperties buffer;
+
     public ReactiveElasticSearchService(ReactiveElasticsearchClient restClient,
                                         ElasticSearchIndexManager indexManager) {
+        this(restClient, indexManager, new ElasticSearchBufferProperties());
+    }
+
+    public ReactiveElasticSearchService(ReactiveElasticsearchClient restClient,
+                                        ElasticSearchIndexManager indexManager,
+                                        ElasticSearchBufferProperties buffer) {
         this.restClient = restClient;
         this.indexManager = indexManager;
+        this.buffer = buffer;
         init();
     }
 
@@ -269,6 +274,10 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
     }
 
     private boolean checkWritable(String index) {
+//        if (SystemUtils.memoryIsOutOfWatermark()) {
+//            SystemUtils.printError("JVM内存不足,elasticsearch无法处理更多索引[%s]请求!", index);
+//            return false;
+//        }
         return true;
     }
 
@@ -323,6 +332,7 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
     public void shutdown() {
         writer.dispose();
     }
+
 
     @Getter
     @Setter
@@ -468,7 +478,7 @@ public class ReactiveElasticSearchService implements ElasticSearchService {
             .flatMap(lst -> {
                 BulkRequest request = new BulkRequest();
                 request.timeout(TimeValue.timeValueSeconds(9));
-                if (buffer.refreshWhenWrite) {
+                if (buffer.isRefreshWhenWrite()) {
                     request.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                 }
                 lst.forEach(request::add);

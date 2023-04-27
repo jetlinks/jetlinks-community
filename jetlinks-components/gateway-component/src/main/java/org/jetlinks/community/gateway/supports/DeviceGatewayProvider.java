@@ -1,5 +1,7 @@
 package org.jetlinks.community.gateway.supports;
 
+import org.jetlinks.core.Wrapper;
+import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.network.NetworkType;
 import reactor.core.publisher.Mono;
@@ -12,14 +14,64 @@ import reactor.core.publisher.Mono;
  * @see DeviceGateway
  * @since 1.0
  */
-public interface DeviceGatewayProvider {
+public interface DeviceGatewayProvider extends Wrapper {
 
+    String CHANNEL_NETWORK = "network";
+
+    /**
+     * @return 唯一标识
+     */
     String getId();
 
+    /**
+     * @return 名称
+     */
     String getName();
 
-    NetworkType getNetworkType();
+    /**
+     * @return 接入说明
+     */
+    default String getDescription() {
+        return null;
+    }
 
-    Mono<DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties);
+    /**
+     * 接入通道,如: network,modbus
+     *
+     * @return 通道
+     */
+    default String getChannel() {
+        return CHANNEL_NETWORK;
+    }
 
+    /**
+     * @return 排序。从小到大排序
+     */
+    default int getOrder() {
+        return Integer.MAX_VALUE;
+    }
+
+    /**
+     * @return 传输协议
+     */
+    Transport getTransport();
+
+    /**
+     * 使用配置信息创建设备网关
+     *
+     * @param properties 配置
+     * @return void
+     */
+    Mono<? extends DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties);
+
+    /**
+     * 重新加载网关
+     *
+     * @param gateway    网关
+     * @param properties 配置信息
+     * @return void
+     */
+    default Mono<? extends DeviceGateway> reloadDeviceGateway(DeviceGateway gateway, DeviceGatewayProperties properties) {
+        return Mono.just(gateway);
+    }
 }

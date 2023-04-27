@@ -7,8 +7,8 @@ import org.hswebframework.web.dict.EnumDict;
 @Getter
 @AllArgsConstructor
 public enum SubscribeState implements EnumDict<String> {
-    enabled("订阅中"),
-    disabled("已停止");
+    enabled("正常"),
+    disabled("禁用");
 
     private final String text;
 

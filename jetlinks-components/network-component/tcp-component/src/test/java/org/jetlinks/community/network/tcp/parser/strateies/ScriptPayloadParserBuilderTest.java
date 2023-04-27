@@ -3,8 +3,8 @@ package org.jetlinks.community.network.tcp.parser.strateies;
 import io.vertx.core.buffer.Buffer;
 import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
-import org.jetlinks.community.network.utils.BytesUtils;
 import org.jetlinks.core.Values;
+import org.jetlinks.core.utils.BytesUtils;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -21,38 +21,41 @@ class ScriptPayloadParserBuilderTest {
         ScriptPayloadParserBuilder builder = new ScriptPayloadParserBuilder();
         Map<String, Object> config = new HashMap<>();
         config.put("script", "\n" +
-                "var BytesUtils = org.jetlinks.community.network.utils.BytesUtils;\n" +
-                "parser.fixed(4)\n" +
-                "       .handler(function(buffer){\n" +
-                "            var len = BytesUtils.highBytesToInt(buffer.getBytes());\n" +
-                "            parser.fixed(len);\n" +
-                "        })\n" +
-                "       .handler(function(buffer){\n" +
-                "            parser.result(buffer.toString(\"UTF-8\"))\n" +
-                "                   .complete();\n" +
-                "        });");
+            "parser.fixed(4)\n" +
+            "       .handler(function(buffer,parser){\n" +
+            "            var len = buffer.getShort(2);\n" +
+            "            parser.fixed(len).result(buffer);\n" +
+            "        })\n" +
+            "       .handler(function(buffer,parser){\n" +
+            "            parser.result(buffer)\n" +
+            "                   .complete();\n" +
+            "        });");
         config.put("lang", "javascript");
+        System.out.println(config.get("script"));
         PayloadParser parser = builder.build(ValueObject.of(config));
 
         parser.handlePayload()
-                .doOnSubscribe(sb -> {
-                    Mono.delay(Duration.ofMillis(100))
-                            .subscribe(r -> {
-                                Buffer buffer = Buffer.buffer(BytesUtils.toHighBytes(5));
-                                buffer.appendString("1234");
-                                parser.handle(buffer);
-                                parser.handle(Buffer.buffer("5"));
+              .doOnSubscribe(sb -> {
+                  Mono.delay(Duration.ofMillis(100))
+                      .subscribe(r -> {
+                          Buffer buffer = Buffer.buffer();
+                          buffer.appendBytes(BytesUtils.shortToBe((short) 5));
+                          buffer.appendString("1234");
+                          parser.handle(Buffer.buffer(new byte[]{0, 0}));
+                          parser.handle(buffer);
+                          parser.handle(Buffer.buffer("5"));
 
-                                parser.handle(Buffer.buffer(new byte[]{5, 0}));
-                                parser.handle(Buffer.buffer(new byte[]{0, 0}).appendString("12"));
-                                parser.handle(Buffer.buffer("345"));
-                            });
-                })
-                .take(2)
-                .map(bf -> bf.toString(StandardCharsets.UTF_8))
-                .as(StepVerifier::create)
-                .expectNext("12345", "12345")
-                .verifyComplete();
+                          parser.handle(Buffer.buffer(new byte[]{0, 0}));
+                          parser.handle(Buffer.buffer(BytesUtils.shortToBe((short) 5)).appendString("12"));
+                          parser.handle(Buffer.buffer("345"));
+                      });
+              })
+              .take(2)
+              .map(bf -> bf.toString(StandardCharsets.UTF_8))
+              .doOnNext(System.out::println)
+              .as(StepVerifier::create)
+              .expectNext("\u0000\u0000\u0000\u000512345", "\u0000\u0000\u0000\u000512345")
+              .verifyComplete();
     }
 
     @Test
@@ -60,13 +63,14 @@ class ScriptPayloadParserBuilderTest {
         ScriptPayloadParserBuilder builder = new ScriptPayloadParserBuilder();
         Map<String, Object> config = new HashMap<>();
         config.put("script", "\n" +
-            "var cache = parser.newBuffer();\n" +
+            "var cache = parser.newBuffer();" +
+            "var p = parser;\n" +
             "parser.direct(function(buffer){\n" +
             "            cache.appendBuffer(buffer);\n" +
             "            if(cache.length()>=16){\n" +
             "               var result = cache;\n" +
-            "               cache = parser.newBuffer(); \n" +
-            "               parser.result(result)\n" +
+            "               cache = p.newBuffer(); \n" +
+            "               p.result(result)\n" +
             "                     .complete(); \n" +
             "             }\n" +
             "             return null;\n" +

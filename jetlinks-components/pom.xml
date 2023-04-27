@@ -5,7 +5,7 @@
     <parent>
         <artifactId>jetlinks-community</artifactId>
         <groupId>org.jetlinks.community</groupId>
-        <version>1.20.0-SNAPSHOT</version>
+        <version>2.1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -23,6 +23,11 @@
         <module>logging-component</module>
         <module>rule-engine-component</module>
         <module>configure-component</module>
+        <module>things-component</module>
+        <module>script-component</module>
+        <module>protocol-component</module>
+        <module>relation-component</module>
+        <module>tdengine-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>
