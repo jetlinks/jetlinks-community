@@ -1,6 +1,7 @@
 package org.jetlinks.community.notify.sms.aliyun;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Maps;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetlinks.core.metadata.types.StringType;
@@ -64,7 +65,10 @@ public class AliyunSmsTemplate extends AbstractTemplate<AliyunSmsTemplate> {
     }
 
     public String createTtsParam(Map<String, Object> ctx) {
-        return JSON.toJSONString(ctx);
+        Map<String, VariableDefinition> variables = getVariables();
+        return JSON.toJSONString(Maps.filterEntries(
+            renderMap(ctx),
+            e -> variables.containsKey(e.getKey())));
     }
 
     @Override
