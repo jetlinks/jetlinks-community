@@ -48,7 +48,7 @@ services:
       POSTGRES_DB: jetlinks
       TZ: Asia/Shanghai
   ui:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-pro:2.0.0
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-vue:2.1.0-SNAPSHOT
     container_name: jetlinks-ce-ui
     ports:
       - 9000:80
@@ -59,7 +59,7 @@ services:
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:2.0.0-SNAPSHOT
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:2.1.0-SNAPSHOT
     container_name: jetlinks-ce
 
     ports:

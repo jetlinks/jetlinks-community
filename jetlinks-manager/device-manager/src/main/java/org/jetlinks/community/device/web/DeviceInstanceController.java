@@ -31,6 +31,7 @@ import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.DeviceDeployResult;
 import org.jetlinks.community.device.response.DeviceDetail;
 import org.jetlinks.community.device.response.ImportDeviceInstanceResult;
+import org.jetlinks.community.device.response.ResetDeviceConfigurationResult;
 import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
@@ -203,6 +204,23 @@ public class DeviceInstanceController implements
     @Operation(summary = "重置设备配置信息")
     public Mono<Map<String, Object>> resetConfiguration(@PathVariable @Parameter(description = "设备ID") String deviceId) {
         return service.resetConfiguration(deviceId);
+    }
+
+    @PutMapping("/configuration/_reset/ids")
+    @SaveAction
+    @Operation(summary = "重置设备配置信息(根据设备ID批量重置，性能欠佳，慎用)")
+    public Mono<Long> resetConfigurationBatch(@RequestBody Flux<String> payload) {
+        return service.resetConfiguration(payload);
+    }
+
+    @GetMapping(value = "/configuration/_reset/{productId:.+}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResourceAction(
+        id = "batchResetConf",
+        name = "批量重置设备配置信息"
+    )
+    @Operation(summary = "重置设备配置信息(根据产品批量重置，性能欠佳，慎用)")
+    public Flux<ResetDeviceConfigurationResult> resetConfigurationBatch(@PathVariable @Parameter(description = "产品ID") String productId) {
+        return service.resetConfigurationByProductId(productId);
     }
 
     //批量激活设备
