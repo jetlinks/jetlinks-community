@@ -148,11 +148,11 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
             }
             //从会话管理器里监听会话注册,转发为设备上线消息
             if (event.getType() == DeviceSessionEvent.Type.unregister) {
-                return handleSessionMessage(new DeviceOnlineMessage(),event.getSession());
+                return handleSessionMessage(new DeviceOfflineMessage(),event.getSession());
             }
             //从会话管理器里监听会话注销,转发为设备离线消息
             if (event.getType() == DeviceSessionEvent.Type.register) {
-                return handleSessionMessage(new DeviceOfflineMessage(),event.getSession());
+                return handleSessionMessage(new DeviceOnlineMessage(),event.getSession());
             }
             return Mono.empty();
         });
