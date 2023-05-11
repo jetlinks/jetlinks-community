@@ -16,7 +16,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.7.10</spring.boot.version>
+        <spring.boot.version>2.7.11</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
@@ -34,11 +34,11 @@
         <californium.version>3.7.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
         <reactor.version>2020.0.31</reactor.version>
-        <vertx.version>4.3.7</vertx.version>
+        <vertx.version>4.3.8</vertx.version>
         <log4j.version>2.18.0</log4j.version>
         <logback.version>1.2.11</logback.version>
         <springdoc.version>1.6.11</springdoc.version>
-        <jackson.version>2.13.5</jackson.version>
+        <jackson.version>2.14.3</jackson.version>
         <opentelemetry.version>1.17.0</opentelemetry.version>
         <swagger.version>2.2.8</swagger.version>
         <jna.version>5.12.1</jna.version>
