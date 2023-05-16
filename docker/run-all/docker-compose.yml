@@ -1,17 +1,5 @@
 version: '2'
 services:
-  emqx:
-    image: emqx:latest
-    container_name: jetlinks-ce-emqx
-    ports:
-      - "1883:1883"
-      - "8083:8083"
-      - "8084:8084"
-      - "8080:8080"
-      - "18083:18083"
-      - "4369:4369"
-    volumes:
-      - "/mydata/data/emqx:/opt/emqx"
   redis:
     image: redis:5.0.4
     container_name: jetlinks-ce-redis
@@ -78,14 +66,10 @@ services:
     ports:
       - "8844:8844" # API端口
     volumes:
-      - "/mydata/jetlinks/application/data/files:/application/data/files"
-      - "/mydata/jetlinks/application/data/protocols:/application/data/protocols"
-      - "/mydata/jetlinks/application/docker-entrypoint.sh:/application/docker-entrypoint.sh"
-      - "/mydata/jetlinks/application/logs:/application/logs"
-      - "/mydata/jetlinks/application/org:/application/org"
-      - "/mydata/jetlinks/application/static:/application/static"
-      - "/mydata/jetlinks/application/BOOT-INF:/application/BOOT-INF"
-      - "/mydata/jetlinks/application/META-INF:/application/META-INF"
+      - "/mydata/jetlinks:/application/static/upload"  # 持久化上传的文件
+      - "/mydata/jetlinks/:/application/data/files"
+      - "/mydata/jetlinks/:/application/data/protocols"
+      - "/mydata//jetlinks/jetlinksentrypoint.sh:/entrypoint.sh"
     #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
     environment:
      # - "SLEEP_SECOND=4"

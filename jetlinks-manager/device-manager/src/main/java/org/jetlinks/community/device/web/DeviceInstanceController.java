@@ -25,7 +25,6 @@ import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
-import org.jetlinks.community.PropertyMetric;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.DeviceDeployResult;
@@ -287,8 +286,8 @@ public class DeviceInstanceController implements
     public Mono<DeviceProperty> getDeviceLatestProperty(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                                         @PathVariable @Parameter(description = "属性ID") String property) {
         return deviceDataService.queryEachOneProperties(deviceId, QueryParamEntity.of(), property)
-                                .take(1)
-                                .singleOrEmpty()
+            .take(1)
+            .singleOrEmpty()
             ;
     }
 
@@ -375,10 +374,10 @@ public class DeviceInstanceController implements
     public Mono<Void> deleteDeviceTag(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                       @PathVariable @Parameter(description = "标签ID") String tagId) {
         return tagRepository.createDelete()
-                            .where(DeviceTagEntity::getDeviceId, deviceId)
-                            .and(DeviceTagEntity::getId, tagId)
-                            .execute()
-                            .then();
+            .where(DeviceTagEntity::getDeviceId, deviceId)
+            .and(DeviceTagEntity::getId, tagId)
+            .execute()
+            .then();
     }
 
     /**
@@ -449,8 +448,8 @@ public class DeviceInstanceController implements
     @Operation(summary = "获取设备全部标签数据")
     public Flux<DeviceTagEntity> getDeviceTags(@PathVariable @Parameter(description = "设备ID") String deviceId) {
         return tagRepository.createQuery()
-                            .where(DeviceTagEntity::getDeviceId, deviceId)
-                            .fetch();
+            .where(DeviceTagEntity::getDeviceId, deviceId)
+            .fetch();
     }
 
     //保存设备标签
@@ -791,8 +790,8 @@ public class DeviceInstanceController implements
             entity.setWhere(where);
             entity.includes("id");
             return service.query(entity)
-                          .flatMap(device -> registry.getDevice(device.getId()))
-                          .cache();
+                .flatMap(device -> registry.getDevice(device.getId()))
+                .cache();
         });
         return messages
             .flatMap(message -> {
@@ -859,11 +858,11 @@ public class DeviceInstanceController implements
             .getDevice(id)
             .flatMap(DeviceOperator::resetMetadata)
             .then(service
-                      .createUpdate()
-                      .setNull(DeviceInstanceEntity::getDeriveMetadata)
-                      .where(DeviceInstanceEntity::getId, id)
-                      .execute()
-                      .then());
+                .createUpdate()
+                .setNull(DeviceInstanceEntity::getDeriveMetadata)
+                .where(DeviceInstanceEntity::getId, id)
+                .execute()
+                .then());
     }
 
     //合并产品的物模型

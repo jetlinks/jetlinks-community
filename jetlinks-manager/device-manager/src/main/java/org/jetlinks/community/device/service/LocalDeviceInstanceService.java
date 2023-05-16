@@ -17,7 +17,16 @@ import org.hswebframework.web.exception.I18nSupportException;
 import org.hswebframework.web.exception.TraceSourceException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.device.entity.*;
+import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.community.device.events.DeviceDeployedEvent;
+import org.jetlinks.community.device.events.DeviceUnregisterEvent;
+import org.jetlinks.community.device.response.DeviceDeployResult;
 import org.jetlinks.community.device.response.DeviceDetail;
+import org.jetlinks.community.relation.RelationObjectProvider;
+import org.jetlinks.community.relation.service.RelationService;
+import org.jetlinks.community.relation.service.response.RelatedInfo;
+import org.jetlinks.community.utils.ErrorUtils;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
@@ -36,15 +45,6 @@ import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.MergeOption;
 import org.jetlinks.core.utils.CyclicDependencyChecker;
-import org.jetlinks.community.device.entity.*;
-import org.jetlinks.community.device.enums.DeviceState;
-import org.jetlinks.community.device.events.DeviceDeployedEvent;
-import org.jetlinks.community.device.events.DeviceUnregisterEvent;
-import org.jetlinks.community.device.response.DeviceDeployResult;
-import org.jetlinks.community.relation.RelationObjectProvider;
-import org.jetlinks.community.relation.service.RelationService;
-import org.jetlinks.community.relation.service.response.RelatedInfo;
-import org.jetlinks.community.utils.ErrorUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.reactivestreams.Publisher;
@@ -140,8 +140,8 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                         if (MapUtils.isNotEmpty(product.getConfiguration())) {
                             if (MapUtils.isNotEmpty(device.getConfiguration())) {
                                 product.getConfiguration()
-                                       .keySet()
-                                       .forEach(device.getConfiguration()::remove);
+                                    .keySet()
+                                    .forEach(device.getConfiguration()::remove);
                             }
                             //重置注册中心里的配置
                             return registry
@@ -262,10 +262,10 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                             I18nSupportException.tryGetLocalizedMessageReactive(err),
                             TraceSourceException.tryGetOperationLocalizedReactive(err).defaultIfEmpty(""),
                             (msg, opt) -> new DeviceDeployResult(all.size(),
-                                                                 false,
-                                                                 msg,
-                                                                 TraceSourceException.tryGetSource(err),
-                                                                 opt))
+                                false,
+                                msg,
+                                TraceSourceException.tryGetSource(err),
+                                opt))
                     )
                     .flatMap(res -> fallback.apply(err).thenReturn(res))
                 )
@@ -303,11 +303,11 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 .collectList()
                 .flatMap(devices -> DeviceUnregisterEvent.of(devices).publish(eventPublisher))
                 .then(this
-                          .createUpdate()
-                          .set(DeviceInstanceEntity::getState, DeviceState.notActive.getValue())
-                          .where().in(DeviceInstanceEntity::getId, list)
-                          .execute()
-                          .thenReturn(list)
+                    .createUpdate()
+                    .set(DeviceInstanceEntity::getState, DeviceState.notActive.getValue())
+                    .where().in(DeviceInstanceEntity::getId, list)
+                    .execute()
+                    .thenReturn(list)
                 ))
             .flatMapIterable(Function.identity())
             //再注销
@@ -327,12 +327,12 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     @Override
     public Mono<Integer> deleteById(Publisher<String> idPublisher) {
         return Flux.from(idPublisher)
-                   .collectList()
-                   .flatMap(list -> createDelete()
-                       .where()
-                       .in(DeviceInstanceEntity::getId, list)
-                       .and(DeviceInstanceEntity::getState, DeviceState.notActive)
-                       .execute());
+            .collectList()
+            .flatMap(list -> createDelete()
+                .where()
+                .in(DeviceInstanceEntity::getId, list)
+                .and(DeviceInstanceEntity::getState, DeviceState.notActive)
+                .execute());
     }
 
     private boolean hasContext(QueryParamEntity param, String key) {
@@ -350,10 +350,10 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .filter(e -> CollectionUtils.isNotEmpty(e.getData()))
             .flatMap(result -> this
                 .convertDeviceInstanceToDetail(result.getData(),
-                                               hasContext(entity, "includeTags"),
-                                               hasContext(entity, "includeBind"),
-                                               hasContext(entity, "includeRelations"),
-                                               hasContext(entity, "includeFirmwareInfos"))
+                    hasContext(entity, "includeTags"),
+                    hasContext(entity, "includeBind"),
+                    hasContext(entity, "includeRelations"),
+                    hasContext(entity, "includeFirmwareInfos"))
                 .collectList()
                 .map(detailList -> PagerResult.of(result.getTotal(), detailList, entity)))
             .defaultIfEmpty(PagerResult.empty());
@@ -366,10 +366,10 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .collectList()
             .flatMapMany(list -> this
                 .convertDeviceInstanceToDetail(list,
-                                               hasContext(entity, "includeTags"),
-                                               hasContext(entity, "includeBind"),
-                                               hasContext(entity, "includeRelations"),
-                                               hasContext(entity, "includeFirmwareInfos")));
+                    hasContext(entity, "includeTags"),
+                    hasContext(entity, "includeBind"),
+                    hasContext(entity, "includeRelations"),
+                    hasContext(entity, "includeFirmwareInfos")));
     }
 
     private Mono<Map<String, List<DeviceTagEntity>>> queryDeviceTagGroup(Collection<String> deviceIdList) {
@@ -528,16 +528,16 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     public Mono<DeviceState> getDeviceState(String deviceId) {
         return registry.getDevice(deviceId)
-                       .flatMap(DeviceOperator::checkState)
-                       .flatMap(state -> {
-                           DeviceState deviceState = DeviceState.of(state);
-                           return createUpdate()
-                               .set(DeviceInstanceEntity::getState, deviceState)
-                               .where(DeviceInstanceEntity::getId, deviceId)
-                               .execute()
-                               .thenReturn(deviceState);
-                       })
-                       .defaultIfEmpty(DeviceState.notActive);
+            .flatMap(DeviceOperator::checkState)
+            .flatMap(state -> {
+                DeviceState deviceState = DeviceState.of(state);
+                return createUpdate()
+                    .set(DeviceInstanceEntity::getState, deviceState)
+                    .where(DeviceInstanceEntity::getId, deviceId)
+                    .execute()
+                    .thenReturn(deviceState);
+            })
+            .defaultIfEmpty(DeviceState.notActive);
     }
 
     //获取设备属性
@@ -642,17 +642,17 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     public Mono<Map<String, Object>> readProperties(String deviceId, List<String> properties) {
 
         return registry.getDevice(deviceId)
-                       .switchIfEmpty(ErrorUtils.notFound("error.device_not_found_or_not_activated"))
-                       .map(DeviceOperator::messageSender)
-                       .flatMapMany((sender) -> sender.readProperty()
-                                                      .read(properties)
-                                                      .messageId(IDGenerator.SNOW_FLAKE_STRING.generate())
-                                                      .send())
-                       .flatMap(mapReply(ReadPropertyMessageReply::getProperties))
-                       .reduceWith(LinkedHashMap::new, (main, map) -> {
-                           main.putAll(map);
-                           return main;
-                       });
+            .switchIfEmpty(ErrorUtils.notFound("error.device_not_found_or_not_activated"))
+            .map(DeviceOperator::messageSender)
+            .flatMapMany((sender) -> sender.readProperty()
+                .read(properties)
+                .messageId(IDGenerator.SNOW_FLAKE_STRING.generate())
+                .send())
+            .flatMap(mapReply(ReadPropertyMessageReply::getProperties))
+            .reduceWith(LinkedHashMap::new, (main, map) -> {
+                main.putAll(map);
+                return main;
+            });
     }
 
     private static <R extends DeviceMessageReply, T> Function<R, Mono<T>> mapReply(Function<R, T> function) {
@@ -735,18 +735,18 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
         return Mono
             .zip(this.findById(deviceId)
-                     .flatMap(device -> {
-                         if (StringUtils.hasText(device.getDeriveMetadata())) {
-                             return Mono.just(device.getDeriveMetadata());
-                         } else {
-                             return deviceProductService
-                                 .findById(device.getProductId())
-                                 .map(DeviceProductEntity::getMetadata);
-                         }
-                     })
-                     .flatMap(JetLinksDeviceMetadataCodec.getInstance()::decode),
-                 Mono.just(metadata),
-                 (older, newer) -> older.merge(newer, options)
+                    .flatMap(device -> {
+                        if (StringUtils.hasText(device.getDeriveMetadata())) {
+                            return Mono.just(device.getDeriveMetadata());
+                        } else {
+                            return deviceProductService
+                                .findById(device.getProductId())
+                                .map(DeviceProductEntity::getMetadata);
+                        }
+                    })
+                    .flatMap(JetLinksDeviceMetadataCodec.getInstance()::decode),
+                Mono.just(metadata),
+                (older, newer) -> older.merge(newer, options)
             )
             .flatMap(JetLinksDeviceMetadataCodec.getInstance()::encode)
             .flatMap(newMetadata -> createUpdate()
@@ -809,8 +809,8 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     @Override
     public Mono<Integer> insertBatch(Publisher<? extends Collection<DeviceInstanceEntity>> entityPublisher) {
         return Flux.from(entityPublisher)
-                   .flatMapIterable(Function.identity())
-                   .as(this::insert);
+            .flatMapIterable(Function.identity())
+            .as(this::insert);
     }
 
     private Mono<DeviceInstanceEntity> handleCreateBefore(DeviceInstanceEntity instanceEntity) {
