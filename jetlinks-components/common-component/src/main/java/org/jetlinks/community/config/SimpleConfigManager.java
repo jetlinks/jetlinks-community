@@ -73,17 +73,11 @@ public class SimpleConfigManager implements ConfigManager, ConfigScopeManager {
 
     @Override
     public Mono<Void> setProperties(String scope, Map<String, Object> values) {
-        return Flux
-            .fromIterable(values.entrySet())
-            .map(e -> {
-                ConfigEntity entity = new ConfigEntity();
-                entity.setProperties(values);
-                entity.setScope(scope);
-                entity.getId();
-                return entity;
-            })
-            .as(repository::save)
-            .then();
+        ConfigEntity entity = new ConfigEntity();
+        entity.setProperties(values);
+        entity.setScope(scope);
+        entity.getId();
+        return repository.save(entity).then();
     }
 
 }

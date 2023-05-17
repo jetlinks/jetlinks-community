@@ -7,11 +7,14 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -65,21 +68,28 @@ public class DefaultDeviceConfigMetadataManager implements DeviceConfigMetadataM
     }
 
 
-
-
     @Override
     public Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId,
                                                                    String accessId) {
         return Flux.fromIterable(suppliers)
-                   .flatMap(supplier -> supplier
-                       .getProductConfigMetadataByAccessId(productId, accessId)
-                       .onErrorResume(e -> {
-                           log.error("get product config metatada by gateway error", e);
-                           return Flux.empty();
-                       }))
-                   .map(config -> config.copy(DeviceConfigScope.product))
-                   .filter(config -> !CollectionUtils.isEmpty(config.getProperties()))
-                   .sort(Comparator.comparing(ConfigMetadata::getName));
+            .flatMap(supplier -> supplier
+                .getProductConfigMetadataByAccessId(productId, accessId)
+                .onErrorResume(e -> {
+                    log.error("get product config metatada by gateway error", e);
+                    return Flux.empty();
+                }))
+            .map(config -> config.copy(DeviceConfigScope.product))
+            .filter(config -> !CollectionUtils.isEmpty(config.getProperties()))
+            .sort(Comparator.comparing(ConfigMetadata::getName));
+    }
+
+    @Override
+    public Mono<Set<String>> getProductConfigMetadataProperties(String productId) {
+        return this
+            .getProductConfigMetadata(productId)
+            .flatMapIterable(ConfigMetadata::getProperties)
+            .map(ConfigPropertyMetadata::getProperty)
+            .collect(Collectors.toSet());
     }
 
     @Override

@@ -1,6 +1,6 @@
 name: Auto Deploy Docker
 
-on: 
+on:
   push:
     branches: [ "master","2.0" ]
 jobs:
@@ -9,32 +9,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Login to Aliyun Container Registry (ACR)
-      uses: aliyun/acr-login@v1 # 使用阿里云镜像服务action
-      with:
-        login-server: registry.cn-hangzhou.aliyuncs.com # 务必正确填写镜像容器服务的登录地址
-        username: "${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }}" # 引用GitHub repo设置的镜像容器服务用户名
-        password: "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" # 引用GitHub repo设置的镜像容器服务密码
-    - name: Set up JDK 1.8
-      uses: actions/setup-java@v1
-      with:
-        java-version: 1.8
-      #  缓存 Maven 本地仓库
-    - name: Cache Maven packages
-      uses: actions/cache@v2
-      with:
-        path: ~/.m2
-        key: jetlinks-community-maven-repository
-
-
-    - name: Build Maven
-      run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pbuild && cd jetlinks-standalone && docker build -t  registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
-
-    - name: Build  Docker Image
-      run: ls && cd jetlinks-standalone && docker build -t registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) -f ./Dockerfile  ../jetlinks-standalone
-    - name: tag Docker Repo
-      run: docker tag registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-    - name: Push Docker Repo
-      run: docker push registry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Cache Maven Repository
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+      - name: Build with Maven
+        run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pbuild && cd jetlinks-standalone && docker build -tregistry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
+      - name: Login Docker Repo
+        run: echo "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" | docker login registry.cn-shenzhen.aliyuncs.com -u ${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }} --password-stdin
+      - name: Push Docker
+        run: docker pushregistry.cn-hangzhou.aliyuncs.com/sky-devops/jetlinks:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
