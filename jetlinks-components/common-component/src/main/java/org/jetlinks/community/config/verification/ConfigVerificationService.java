@@ -6,7 +6,13 @@ import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
+import java.net.UnknownHostException;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author bestfeng
@@ -25,30 +31,40 @@ public class ConfigVerificationService {
             .build();
     }
 
-    @GetMapping(PATH_VERIFICATION_URI)
+    @GetMapping(value = PATH_VERIFICATION_URI)
     @Operation(description = "basePath配置验证接口")
-    public Mono<Void> basePathValidate() {
+    public Mono<Void> basePathValidate(ServerWebExchange response) {
+        response.getResponse().getHeaders().set("auth", PATH_VERIFICATION_URI);
         return Mono.empty();
     }
 
 
-
     public Mono<Void> doBasePathValidate(Object basePath) {
-        if (basePath == null){
+        if (basePath == null) {
             return Mono.empty();
         }
         return webClient
             .get()
             .uri(CastUtils.castString(basePath).concat(PATH_VERIFICATION_URI))
             .exchangeToMono(cr -> {
-                if (cr.statusCode().is2xxSuccessful()) {
+                if (cr.statusCode().is2xxSuccessful()
+                    && Objects.equals(cr.headers().asHttpHeaders().getFirst("auth"), PATH_VERIFICATION_URI)) {
                     return Mono.empty();
                 }
                 return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_error")));
             })
-            .onErrorResume(err-> Mono.defer(() -> Mono.error(new BusinessException("error.base_path_error"))))
+            .timeout(Duration.ofSeconds(3), Mono.error(TimeoutException::new))
+            .onErrorResume(err -> {
+                while (err != null) {
+                    if (err instanceof TimeoutException) {
+                        return Mono.error(() -> new BusinessException("error.base_path_validate_request_timeout"));
+                    } else if (err instanceof UnknownHostException) {
+                        return Mono.error(() -> new BusinessException("error.base_path_DNS_resolution_failed"));
+                    }
+                    err = err.getCause();
+                }
+                return Mono.error(() -> new BusinessException("error.base_path_error"));
+            })
             .then();
     }
-
-
 }
