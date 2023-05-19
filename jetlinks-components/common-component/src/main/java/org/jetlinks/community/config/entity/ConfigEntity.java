@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
+import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.utils.DigestUtils;
 import org.springframework.util.StringUtils;
 
@@ -20,6 +21,7 @@ import java.util.Map;
 })
 @Getter
 @Setter
+@EnableEntityEvent
 public class ConfigEntity extends GenericEntity<String> {
 
     @Column(length = 64, nullable = false, updatable = false)

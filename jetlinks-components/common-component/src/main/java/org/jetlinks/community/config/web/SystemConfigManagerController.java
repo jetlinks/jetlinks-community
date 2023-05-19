@@ -98,6 +98,7 @@ public class SystemConfigManagerController {
     @Operation(description = "批量保存配置")
     @Transactional
     public Mono<Void> saveConfig(@RequestBody Flux<Scope> scope) {
+
         return scope
             .flatMap(scopeConfig -> configManager.setProperties(scopeConfig.getScope(), scopeConfig.getProperties()))
             .then();
