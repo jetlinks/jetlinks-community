@@ -3,6 +3,8 @@ package org.jetlinks.community.network.tcp.server;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.NetServer;
 import io.vertx.core.net.NetServerOptions;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
@@ -17,6 +19,7 @@ import org.jetlinks.community.network.security.CertificateManager;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilder;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -33,6 +36,7 @@ import java.util.function.Supplier;
  */
 @Slf4j
 @Component
+@ConfigurationProperties(prefix = "jetlinks.network.tcp-server")
 public class DefaultTcpServerProvider implements NetworkProvider<TcpServerProperties> {
 
     private final CertificateManager certificateManager;
@@ -41,10 +45,16 @@ public class DefaultTcpServerProvider implements NetworkProvider<TcpServerProper
 
     private final PayloadParserBuilder payloadParserBuilder;
 
+    @Getter
+    @Setter
+    private NetServerOptions template = new NetServerOptions();
+
+
     public DefaultTcpServerProvider(CertificateManager certificateManager, Vertx vertx, PayloadParserBuilder payloadParserBuilder) {
         this.certificateManager = certificateManager;
         this.vertx = vertx;
         this.payloadParserBuilder = payloadParserBuilder;
+        template.setTcpKeepAlive(true);
     }
 
     @Nonnull
@@ -129,10 +139,9 @@ public class DefaultTcpServerProvider implements NetworkProvider<TcpServerProper
     }
 
     private Mono<NetServerOptions> convert(TcpServerProperties properties) {
-        NetServerOptions options = new NetServerOptions();
+        NetServerOptions options = new NetServerOptions(template);
         options.setPort(properties.getPort());
-        options.setTcpKeepAlive(true);
-
+        options.setHost(properties.getHost());
         if (properties.isSecure()) {
             options.setSsl(true);
             return certificateManager
