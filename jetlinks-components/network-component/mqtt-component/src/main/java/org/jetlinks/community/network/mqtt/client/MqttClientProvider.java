@@ -3,6 +3,8 @@ package org.jetlinks.community.network.mqtt.client;
 import io.vertx.core.Vertx;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
@@ -14,6 +16,7 @@ import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -29,6 +32,7 @@ import javax.annotation.Nullable;
  */
 @Component
 @Slf4j
+@ConfigurationProperties(prefix = "jetlinks.network.mqtt-client")
 public class MqttClientProvider implements NetworkProvider<MqttClientProperties> {
 
     private final Vertx vertx;
@@ -37,12 +41,21 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 
     private final Environment environment;
 
+    @Getter
+    @Setter
+    private MqttClientOptions template = new MqttClientOptions();
+
+
     public MqttClientProvider(CertificateManager certificateManager,
                               Vertx vertx,
                               Environment environment) {
         this.vertx = vertx;
         this.certificateManager = certificateManager;
         this.environment = environment;
+        template.setTcpKeepAlive(true);
+//        options.setReconnectAttempts(10);
+        template.setAutoKeepAlive(true);
+        template.setKeepAliveInterval(180);
     }
 
     @Nonnull
@@ -119,11 +132,7 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 
 
     private Mono<MqttClientOptions> convert(MqttClientProperties config) {
-        MqttClientOptions options = FastBeanCopier.copy(config, MqttClientOptions.class);
-        options.setTcpKeepAlive(true);
-//        options.setReconnectAttempts(10);
-        options.setAutoKeepAlive(true);
-        options.setKeepAliveInterval(180);
+        MqttClientOptions options = FastBeanCopier.copy(config, new MqttClientOptions(template));
 
         String clientId = String.valueOf(config.getClientId());
 

@@ -4,6 +4,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import lombok.Generated;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
@@ -16,6 +18,7 @@ import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -33,15 +36,21 @@ import java.util.List;
  */
 @Component
 @Slf4j
+@ConfigurationProperties(prefix = "jetlinks.network.http-server")
 public class DefaultHttpServerProvider implements NetworkProvider<HttpServerConfig> {
 
     private final CertificateManager certificateManager;
 
     private final Vertx vertx;
 
+    @Getter
+    @Setter
+    private HttpServerOptions template = new HttpServerOptions();
+
     public DefaultHttpServerProvider(CertificateManager certificateManager, Vertx vertx) {
         this.certificateManager = certificateManager;
         this.vertx = vertx;
+        template.setHandle100ContinueAutomatically(true);
     }
 
     @Nonnull
@@ -125,8 +134,7 @@ public class DefaultHttpServerProvider implements NetworkProvider<HttpServerConf
 
 
     private Mono<HttpServerOptions> convert(HttpServerConfig config) {
-        HttpServerOptions options = new HttpServerOptions();
-        options.setHandle100ContinueAutomatically(true);
+        HttpServerOptions options = new HttpServerOptions(template);
         options.setHost(config.getHost());
         options.setPort(config.getPort());
         if (config.isSecure()) {

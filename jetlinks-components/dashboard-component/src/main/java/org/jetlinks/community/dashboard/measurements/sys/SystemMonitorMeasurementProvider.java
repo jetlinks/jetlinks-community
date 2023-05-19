@@ -114,10 +114,14 @@ public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider 
 
     private final SystemMonitorService monitorService = new SystemMonitorServiceImpl();
 
-    static final TimeSeriesMetric metric = TimeSeriesMetric.of(System.getProperty("monitor.system.collector.metric", "system_monitor"));
     private final Duration collectInterval = TimeUtils.parse(System.getProperty("monitor.system.collector.interval", "1m"));
+
     private final Scheduler scheduler;
+
     private final TimeSeriesManager timeSeriesManager;
+
+    static final TimeSeriesMetric metric = TimeSeriesMetric.of(System.getProperty("monitor.system.collector.metric", "system_monitor"));
+
     private final Disposable.Composite disposable = Disposables.composite();
 
 
