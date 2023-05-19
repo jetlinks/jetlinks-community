@@ -16,7 +16,6 @@ import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.config.ConfigManager;
 import org.jetlinks.community.config.ConfigPropertyDef;
 import org.jetlinks.community.config.ConfigScope;
-import org.jetlinks.community.config.verification.ConfigVerificationService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -25,7 +24,6 @@ import reactor.core.publisher.Mono;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 
 @RestController
@@ -36,8 +34,6 @@ import java.util.Objects;
 public class SystemConfigManagerController {
 
     private final ConfigManager configManager;
-
-    private final ConfigVerificationService configVerificationService;
 
     @GetMapping("/scopes")
     @QueryAction
@@ -104,15 +100,7 @@ public class SystemConfigManagerController {
     public Mono<Void> saveConfig(@RequestBody Flux<Scope> scope) {
 
         return scope
-            .flatMap(scopeConfig -> {
-                //base-path校验
-                if (Objects.equals(scopeConfig.getScope(), "paths")) {
-                    return configVerificationService
-                        .doBasePathValidate(scopeConfig.getProperties().get("base-path"))
-                        .then(configManager.setProperties(scopeConfig.getScope(), scopeConfig.getProperties()));
-                }
-                return configManager.setProperties(scopeConfig.getScope(), scopeConfig.getProperties());
-            })
+            .flatMap(scopeConfig -> configManager.setProperties(scopeConfig.getScope(), scopeConfig.getProperties()))
             .then();
     }
 
