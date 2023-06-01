@@ -317,7 +317,17 @@ public class DeviceInstanceController implements
     public Mono<PagerResult<DeviceProperty>> queryDeviceProperties(@PathVariable @Parameter(description = "设备ID") String deviceId,
                                                                    @PathVariable @Parameter(description = "属性ID") String property,
                                                                    @Parameter(hidden = true) QueryParamEntity entity) {
-        return deviceDataService.queryPropertyPage(deviceId, property, entity);
+        return deviceDataService.queryPropertyPage(deviceId, entity, property.split(","));
+    }
+
+    //查询属性列表
+    @PostMapping("/{deviceId:.+}/property/{property}/_query")
+    @QueryAction
+    @Operation(summary = "(POST)查询设备指定属性列表")
+    public Mono<PagerResult<DeviceProperty>> queryDeviceProperties(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                                   @PathVariable @Parameter(description = "属性ID") String property,
+                                                                   @RequestBody Mono<QueryParamEntity> queryParam) {
+        return queryParam.flatMap(param -> deviceDataService.queryPropertyPage(deviceId, param, property.split(",")));
     }
 
     //查询属性列表

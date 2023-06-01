@@ -157,6 +157,20 @@ public interface DeviceDataService {
                                                         @Nonnull String property,
                                                         @Nonnull QueryParamEntity query);
 
+
+    /**
+     * 分页查询属性
+     *
+     * @param deviceId 设备ID
+     * @param query    查询条件
+     * @return 分页查询结果
+     * @since 1.9
+     */
+    @Nonnull
+    Mono<PagerResult<DeviceProperty>> queryPropertyPage(@Nonnull String deviceId,
+                                                        @Nonnull QueryParamEntity query,
+                                                        @Nonnull String... property);
+
     /**
      * 分页查询设备日志
      *
