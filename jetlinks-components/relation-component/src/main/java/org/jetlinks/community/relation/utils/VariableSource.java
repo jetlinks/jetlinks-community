@@ -111,7 +111,7 @@ public class VariableSource implements Serializable {
                                 ConfigKey<?> propertyPath) {
         validate();
         if (getSource() == VariableSource.Source.fixed) {
-            return value == null ? Flux.empty() : CastUtils.flatStream(Flux.just(value));
+            return CastUtils.flatStream(Flux.just(value));
         }
         if (getSource() == VariableSource.Source.upper) {
             return Mono
