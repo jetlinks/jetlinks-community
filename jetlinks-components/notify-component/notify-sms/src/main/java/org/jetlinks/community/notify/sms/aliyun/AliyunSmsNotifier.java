@@ -175,7 +175,9 @@ public class AliyunSmsNotifier extends AbstractNotifier<AliyunSmsTemplate> {
     }
 
 
-
+    /**
+     * @return 短信模板集合
+     */
     public Flux<SmsTemplate> getSmsTemplates() {
         return doQuerySmsTemplates(new AtomicInteger(0), 50)
             .flatMapIterable(Function.identity())
