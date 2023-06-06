@@ -11,6 +11,9 @@ import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
 import org.jetlinks.community.auth.dimension.OrgDimensionType;
+import org.jetlinks.community.auth.enums.DefaultUserEntityType;
+import org.jetlinks.community.auth.enums.UserEntityType;
+import org.jetlinks.community.auth.enums.UserEntityTypes;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 
 import java.util.List;
@@ -31,7 +34,7 @@ public class UserDetail {
     private String password;
 
     @Schema(hidden = true)
-    private String type;
+    private UserEntityType type;
 
     @Schema(description = "用户状态。1启用，0禁用")
     private Byte status;
@@ -83,6 +86,7 @@ public class UserDetail {
         }
         this.setUsername(entity.getUsername());
         this.setStatus(entity.getStatus());
+        this.setType(UserEntityTypes.getType(entity.getType()));
         return this;
     }
 
@@ -120,7 +124,10 @@ public class UserDetail {
         userEntity.setName(name);
         userEntity.setUsername(username);
         userEntity.setPassword(password);
-        userEntity.setType(type);
+        // 默认设置类型为普通用户
+        if (type == null && !username.equals("admin")) {
+            userEntity.setType(DefaultUserEntityType.USER.getId());
+        }
         return userEntity;
     }
 
