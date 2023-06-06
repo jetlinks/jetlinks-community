@@ -13,6 +13,7 @@ import org.hswebframework.web.system.authorization.api.PasswordValidator;
 import org.hswebframework.web.system.authorization.api.UsernameValidator;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultReactiveUserService;
+import org.jetlinks.community.auth.enums.DefaultUserEntityType;
 import org.jetlinks.community.web.response.ValidationResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -123,7 +124,12 @@ public class WebFluxUserController extends org.hswebframework.web.system.authori
                     //如果不是新创建用户,则判断是否有权限修改
                     before = assertUserPermission(user.getId());
                 } else {
-                    before = Mono.empty();
+                    before = Mono.fromRunnable(() -> {
+                        // 新建用户时，默认设置类型为普通用户
+                        if (StringUtils.isEmpty(user.getType()) && !user.getUsername().equals("admin")) {
+                            user.setType(DefaultUserEntityType.USER.getId());
+                        }
+                    });
                 }
                 return before
                     .then(super.saveUser(Mono.just(user)))
