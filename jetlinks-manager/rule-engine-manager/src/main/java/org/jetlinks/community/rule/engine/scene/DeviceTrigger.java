@@ -13,6 +13,7 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.types.StringType;
@@ -470,7 +471,17 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
 
         config.setProductId(productId);
         config.setMessage(operation.toMessageTemplate());
-        config.setSelectorSpec(FastBeanCopier.copy(this, new DeviceSelectorSpec()));
+
+        if (DeviceSelectorProviders.isFixed(this)) {
+            config.setSelectorSpec(FastBeanCopier.copy(this, new DeviceSelectorSpec()));
+        } else {
+            config.setSelectorSpec(
+                DeviceSelectorProviders.composite(
+                    //先选择产品下的设备
+                    DeviceSelectorProviders.product(this.productId),
+                    FastBeanCopier.copy(this, new DeviceSelectorSpec())
+                ));
+        }
         config.validate();
 
         deviceNode.setConfiguration(config.toMap());
