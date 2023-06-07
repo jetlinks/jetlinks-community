@@ -67,6 +67,8 @@ TCP/UDP/MQTT/HTTP、TLS/DTLS、不同厂商、不同设备、不同报文、统�
 
 ## 文档
 
-[快速开始](http://doc.jetlinks.cn/install-deployment/start-with-source.html) 
-[开发文档](http://doc.jetlinks.cn/dev-guide/start.html) 
-[常见问题](http://doc.jetlinks.cn/common-problems/install.html) 
+
+[产品文档](https://hanta.yuque.com/px7kg1/yfac2l)
+[快速开始](https://hanta.yuque.com/px7kg1/ryf1pd/zz0o7hc51ys6al05)
+[开发文档](https://hanta.yuque.com/px7kg1/nn1gdr) 
+

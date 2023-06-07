@@ -1,6 +1,5 @@
 package org.jetlinks.community.auth.service;
 
-import lombok.AllArgsConstructor;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
@@ -14,6 +13,8 @@ import org.hswebframework.web.system.authorization.api.service.reactive.Reactive
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.auth.entity.UserDetail;
 import org.jetlinks.community.auth.entity.UserDetailEntity;
+import org.jetlinks.community.auth.enums.DefaultUserEntityType;
+import org.jetlinks.community.auth.enums.UserEntityTypes;
 import org.jetlinks.community.auth.service.request.SaveUserDetailRequest;
 import org.jetlinks.community.auth.service.request.SaveUserRequest;
 import org.springframework.context.event.EventListener;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,7 +39,6 @@ import java.util.stream.Collectors;
  * @since 1.3
  */
 @Service
-@AllArgsConstructor
 public class UserDetailService extends GenericReactiveCrudService<UserDetailEntity, String> {
 
     private final ReactiveUserService userService;
@@ -48,6 +49,19 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
     private final ReactiveAuthenticationManager authenticationManager;
 
     private final static UserDetailEntity emptyDetail = new UserDetailEntity();
+
+    public UserDetailService(ReactiveUserService userService,
+                             RoleService roleService,
+                             OrganizationService organizationService,
+                             ReactiveAuthenticationManager authenticationManager) {
+        this.userService = userService;
+        this.roleService = roleService;
+        this.organizationService = organizationService;
+        this.authenticationManager = authenticationManager;
+        // 注册默认用户类型
+        UserEntityTypes.register(Arrays.asList(DefaultUserEntityType.values()));
+
+    }
 
     /**
      * 根据用户id获取用户详情
