@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
+import java.io.InputStream;
+import java.util.List;
+
 public class ObjectMappers {
 
     public static final ObjectMapper JSON_MAPPER;
@@ -54,8 +57,43 @@ public class ObjectMappers {
 
 
     @SneakyThrows
-    public static String toJsonString(Object data){
+    public static String toJsonString(Object data) {
         return JSON_MAPPER.writeValueAsString(data);
+    }
+
+    @SneakyThrows
+    public static byte[] toJsonBytes(Object data) {
+        return JSON_MAPPER.writeValueAsBytes(data);
+    }
+
+    @SneakyThrows
+    public static <T> T parseJson(byte[] data, Class<T> type) {
+        return JSON_MAPPER.readValue(data, type);
+    }
+
+    @SneakyThrows
+    public static <T> T parseJson(InputStream data, Class<T> type) {
+        return JSON_MAPPER.readValue(data, type);
+    }
+
+    @SneakyThrows
+    public static <T> T parseJson(String data, Class<T> type) {
+        return JSON_MAPPER.readValue(data, type);
+    }
+
+    @SneakyThrows
+    public static <T> List<T> parseJsonArray(InputStream data, Class<T> type) {
+        return JSON_MAPPER.readerForListOf(type).readValue(data);
+    }
+
+    @SneakyThrows
+    public static <T> List<T> parseJsonArray(byte[] data, Class<T> type) {
+        return JSON_MAPPER.readerForListOf(type).readValue(data);
+    }
+
+    @SneakyThrows
+    public static <T> T parseJsonArray(String data, Class<T> type) {
+        return JSON_MAPPER.readerForListOf(type).readValue(data);
     }
 
 }
