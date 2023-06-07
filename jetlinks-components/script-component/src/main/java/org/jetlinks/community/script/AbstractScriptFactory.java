@@ -1,5 +1,9 @@
 package org.jetlinks.community.script;
 
+import org.hswebframework.web.utils.DigestUtils;
+import org.jetlinks.community.utils.ObjectMappers;
+import org.jetlinks.reactor.ql.utils.CompareUtils;
+
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import java.io.File;
@@ -9,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -111,6 +116,97 @@ public abstract class AbstractScriptFactory implements ScriptFactory {
 
         public Object toJavaType(Object obj) {
             return AbstractScriptFactory.this.convertToJavaType(obj);
+        }
+
+        public long now() {
+            return System.currentTimeMillis();
+        }
+
+        public String now(String format) {
+            return LocalDateTime.now().format(DateTimeFormatter.ofPattern(format));
+        }
+
+        public byte[] newByteArray(int size) {
+            return new byte[size];
+        }
+
+        public int[] newIntArray(int size) {
+            return new int[size];
+        }
+
+        public long[] newLongArray(int size) {
+            return new long[size];
+        }
+
+        public Map<Object, Object> newMap() {
+            return new HashMap<>();
+        }
+
+        public List<Object> newList() {
+            return new ArrayList<>();
+        }
+
+        public String toJsonString(Object obj){
+            return ObjectMappers.toJsonString(toJavaType(obj));
+        }
+
+        public Object parseJson(String json){
+            return ObjectMappers.parseJson(json,Object.class);
+        }
+
+        public Object max(Object... params) {
+            Object max = null;
+            for (Object param : params) {
+                if (param instanceof Map) {
+                    param = ((Map<?, ?>) param).values();
+                }
+                if (param instanceof Collection) {
+                    param = max(((Collection<?>) param).toArray());
+                }
+                if (max == null) {
+                    max = param;
+                    continue;
+                }
+                if (CompareUtils.compare(max, param) < 0) {
+                    max = param;
+                }
+            }
+            return max;
+        }
+
+        public Object min(Object... params) {
+            Object min = null;
+            for (Object param : params) {
+
+                if (param instanceof Map) {
+                    param = ((Map<?, ?>) param).values();
+                }
+                if (param instanceof Collection) {
+                    param = min(((Collection<?>) param).toArray());
+                }
+                if (min == null) {
+                    min = param;
+                    continue;
+                }
+                if (CompareUtils.compare(min, param) > 0) {
+                    min = param;
+                }
+            }
+            return min;
+        }
+
+        public String sha1Hex(String obj) {
+            if (null == obj) {
+                return null;
+            }
+            return DigestUtils.sha1Hex(obj);
+        }
+
+        public String md5Hex(String obj) {
+            if (null == obj) {
+                return null;
+            }
+            return DigestUtils.md5Hex(obj);
         }
 
     }

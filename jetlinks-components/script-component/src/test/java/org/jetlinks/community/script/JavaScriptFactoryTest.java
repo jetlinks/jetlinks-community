@@ -230,6 +230,19 @@ public abstract class JavaScriptFactoryTest {
 
     }
 
+    @Test
+    void testJson() {
+        JavaScriptFactory factory = getFactory();
+
+        Object json = factory.compile(Script.of("testJson",
+                                                "return JSON.parse(JSON.stringify({'a':'1'}))"))
+                             .call();
+
+        assertEquals(Collections.singletonMap("a", "1"), json);
+
+
+    }
+
     public static class MyClazz extends TestExtend {
 
     }

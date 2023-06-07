@@ -30,10 +30,11 @@ public abstract class JavaScriptFactory extends Jsr223ScriptFactory {
                      "this.eval = function(e){};" +
                      "function readFully(){};" +
                      "function readLine(){};" +
-                     "const console=_$console;" +
-                     "const utils=_$utils;" +
-                     "const print = function(e){console.log(e)};" +
-                     "const echo = print;");
+                     "var console=_$console;" +
+                     "var utils=_$utils;" +
+                     "var print = function(e){console.log(e)};" +
+                     "var echo = print;" +
+                     "var JSON = {stringify:function(arg){return utils.toJsonString(arg)},parse:function(arg){return utils.parseJson(arg)}};");
 
         wrap.add("/*  script start */");
 
