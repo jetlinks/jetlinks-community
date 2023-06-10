@@ -131,9 +131,7 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService 
                 BufferSettings.create("./data/buffer", buffer),
                 Buffer::new,
                 this::doWrite)
-            .name("device-latest-data")
-            //最大缓冲10万条数据
-            .settings(setting -> setting.bufferSize(10_0000));
+            .name("device-latest-data");
 
         writer.start();
 
