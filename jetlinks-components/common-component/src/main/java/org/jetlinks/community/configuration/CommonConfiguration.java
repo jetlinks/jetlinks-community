@@ -7,6 +7,7 @@ import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.Interval;
+import org.jetlinks.community.JvmErrorException;
 import org.jetlinks.community.config.ConfigManager;
 import org.jetlinks.community.config.ConfigScopeCustomizer;
 import org.jetlinks.community.config.ConfigScopeProperties;
@@ -33,6 +34,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.util.unit.DataSize;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Hooks;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
@@ -111,6 +114,20 @@ public class CommonConfiguration {
                 return (T)((Long) CastUtils.castNumber(value).longValue());
             }
         }, Long.class);
+
+        //捕获jvm错误,防止Flux被挂起
+        Hooks.onOperatorError((err, val) -> {
+            if (Exceptions.isJvmFatal(err)) {
+                return new JvmErrorException(err);
+            }
+            return err;
+        });
+        Hooks.onNextError((err, val) -> {
+            if (Exceptions.isJvmFatal(err)) {
+                return new JvmErrorException(err);
+            }
+            return err;
+        });
     }
 
     @Bean
