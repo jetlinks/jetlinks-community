@@ -6,6 +6,7 @@ import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.exception.BusinessException;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.device.entity.ProtocolSupportEntity;
 import org.jetlinks.community.reference.DataReferenceManager;
 import org.jetlinks.core.ProtocolSupport;
@@ -66,7 +67,12 @@ public class ProtocolSupportHandler {
                 .load(def)
                 .doOnNext(ProtocolSupport::dispose)
                 .thenReturn(def))
-            .onErrorMap(err -> new BusinessException("error.unable_to_load_protocol", 500, err.getMessage()))
+            .as(LocaleUtils::transform)
+            .onErrorMap(err -> {
+                BusinessException e = new BusinessException("error.unable_to_load_protocol", 500, err.getLocalizedMessage());
+                e.addSuppressed(err);
+                return e;
+            })
             .flatMap(supportManager::save)
             .then();
     }

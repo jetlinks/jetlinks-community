@@ -13,6 +13,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Objects;
@@ -58,9 +59,18 @@ public class ConfigVerificationService {
         if (basePath == null) {
             return Mono.empty();
         }
+
+        URI uri = URI.create(CastUtils.castString(CastUtils.castString(basePath).concat(PATH_VERIFICATION_URI)));
+        if (Objects.equals(uri.getHost(), "127.0.0.1")){
+            return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_host_error", 500, "127.0.0.1")));
+        }
+        if (Objects.equals(uri.getHost(), "localhost")){
+            return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_host_error", 500, "localhost")));
+        }
+
         return webClient
             .get()
-            .uri(CastUtils.castString(basePath).concat(PATH_VERIFICATION_URI))
+            .uri(uri)
             .exchangeToMono(cr -> {
                 if (cr.statusCode().is2xxSuccessful()
                     && Objects.equals(cr.headers().asHttpHeaders().getFirst("auth"), PATH_VERIFICATION_URI)) {

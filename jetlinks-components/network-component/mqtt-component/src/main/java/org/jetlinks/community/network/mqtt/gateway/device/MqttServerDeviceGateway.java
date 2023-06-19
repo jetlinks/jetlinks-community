@@ -142,12 +142,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
 
     //处理连接，并进行认证
     private Mono<Tuple3<DeviceOperator, AuthenticationResponse, MqttConnection>> handleConnection(MqttConnection connection) {
-        //内存不够了
-        if (SystemUtils.memoryIsOutOfWatermark()) {
-            //直接拒绝,响应SERVER_UNAVAILABLE,不再处理此连接
-            connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
-            return Mono.empty();
-        }
+
         return Mono
             .justOrEmpty(connection.getAuth())
             .flatMap(auth -> {

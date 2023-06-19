@@ -22,6 +22,7 @@ import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -62,6 +63,7 @@ public class DeviceClusterConfiguration {
 
     @Bean(initMethod = "init", destroyMethod = "shutdown")
     @ConditionalOnBean(RpcManager.class)
+    @ConfigurationProperties(prefix = "device.session.persistence")
     public PersistenceDeviceSessionManager deviceSessionManager(RpcManager rpcManager) {
 
         return new PersistenceDeviceSessionManager(rpcManager);
