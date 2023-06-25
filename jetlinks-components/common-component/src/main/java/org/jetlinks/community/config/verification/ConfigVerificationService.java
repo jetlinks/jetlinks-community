@@ -62,10 +62,10 @@ public class ConfigVerificationService {
 
         URI uri = URI.create(CastUtils.castString(CastUtils.castString(basePath).concat(PATH_VERIFICATION_URI)));
         if (Objects.equals(uri.getHost(), "127.0.0.1")){
-            return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_host_error", 500, "127.0.0.1")));
+            return Mono.error(new BusinessException("error.base_path_host_error", 500, "127.0.0.1"));
         }
         if (Objects.equals(uri.getHost(), "localhost")){
-            return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_host_error", 500, "localhost")));
+            return Mono.error(new BusinessException("error.base_path_host_error", 500, "localhost"));
         }
 
         return webClient
