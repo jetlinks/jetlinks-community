@@ -64,6 +64,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.hswebframework.web</groupId>
+            <artifactId>hsweb-access-logging-aop</artifactId>
+            <version>${hsweb.framework.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.jetlinks.community</groupId>
             <artifactId>common-component</artifactId>
             <version>${project.version}</version>
