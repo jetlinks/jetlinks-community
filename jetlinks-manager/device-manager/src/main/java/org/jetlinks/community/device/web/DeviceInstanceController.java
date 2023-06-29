@@ -25,7 +25,6 @@ import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
-import org.jetlinks.community.PropertyMetric;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.DeviceDeployResult;
@@ -36,12 +35,15 @@ import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.device.web.excel.DeviceExcelImporter;
 import org.jetlinks.community.device.web.excel.DeviceExcelInfo;
 import org.jetlinks.community.device.web.excel.DeviceWrapper;
 import org.jetlinks.community.device.web.excel.PropertyMetadataExcelInfo;
 import org.jetlinks.community.device.web.excel.PropertyMetadataWrapper;
 import org.jetlinks.community.device.web.request.AggRequest;
+import org.jetlinks.community.io.excel.AbstractImporter;
 import org.jetlinks.community.io.excel.ImportExportService;
+import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.io.utils.FileUtils;
 import org.jetlinks.community.relation.RelationObjectProvider;
 import org.jetlinks.community.relation.service.RelationService;
@@ -65,11 +67,14 @@ import org.springframework.data.util.Lazy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.concurrent.Queues;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple4;
 import reactor.util.function.Tuples;
@@ -112,6 +117,11 @@ public class DeviceInstanceController implements
 
     private final RelationService relationService;
 
+    private final TransactionalOperator transactionalOperator;
+
+    private final FileManager fileManager;
+
+    private final WebClient webClient;
 
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
@@ -121,7 +131,10 @@ public class DeviceInstanceController implements
                                     ReactiveRepository<DeviceTagEntity, String> tagRepository,
                                     DeviceDataService deviceDataService,
                                     DeviceConfigMetadataManager metadataManager,
-                                    RelationService relationService) {
+                                    RelationService relationService,
+                                    TransactionalOperator transactionalOperator,
+                                    FileManager fileManager,
+                                    WebClient.Builder builder) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
@@ -130,6 +143,9 @@ public class DeviceInstanceController implements
         this.deviceDataService = deviceDataService;
         this.metadataManager = metadataManager;
         this.relationService = relationService;
+        this.transactionalOperator = transactionalOperator;
+        this.fileManager = fileManager;
+        this.webClient = builder.build();
     }
 
 
@@ -521,8 +537,10 @@ public class DeviceInstanceController implements
     @SaveAction
     @Operation(summary = "导入设备数据")
     public Flux<ImportDeviceInstanceResult> doBatchImportByProduct(@PathVariable @Parameter(description = "产品ID") String productId,
+                                                                   @RequestParam(defaultValue = "false") @Parameter(description = "自动启用") boolean autoDeploy,
                                                                    @RequestParam(required = false) @Parameter(description = "文件地址,支持csv,xlsx文件格式") String fileUrl,
-                                                                   @RequestParam(required = false) @Parameter(description = "文件Id") String fileId) {
+                                                                   @RequestParam(required = false) @Parameter(description = "文件Id") String fileId,
+                                                                   @RequestParam(defaultValue = "32") @Parameter int speed) {
         return Authentication
             .currentReactive()
             .flatMapMany(auth -> {
@@ -549,18 +567,78 @@ public class DeviceInstanceController implements
                         }
                         return Tuples.of(entity, info.getTags());
                     })
-                    .buffer(100)//每100条数据保存一次
-                    .publishOn(Schedulers.single())
-                    .concatMap(buffer ->
-                                   Mono.zip(
-                                       service.save(Flux.fromIterable(buffer).map(Tuple2::getT1)),
-                                       tagRepository
-                                           .save(Flux.fromIterable(buffer).flatMapIterable(Tuple2::getT2))
-                                           .defaultIfEmpty(SaveResult.of(0, 0))
-                                   ))
-                    .map(res -> ImportDeviceInstanceResult.success(res.getT1()))
-                    .onErrorResume(err -> Mono.just(ImportDeviceInstanceResult.error(err)));
+                    .as(flux -> handleImportDevice(flux, autoDeploy, speed));
             });
+    }
+
+    @GetMapping(value = "/{productId}/import/_withlog", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @SaveAction
+    @Operation(summary = "导入设备数据，并提供日志下载")
+    public Flux<ImportDeviceInstanceResult> doBatchImportByProductWithLog(
+        @PathVariable @Parameter(description = "产品ID") String productId,
+        @RequestParam(defaultValue = "false") @Parameter(description = "自动启用") boolean autoDeploy,
+        @RequestParam @Parameter(description = "文件地址,支持csv,xlsx文件格式") String fileUrl,
+        @RequestParam(defaultValue = "32") @Parameter int speed
+    ) {
+        return Authentication
+            .currentReactive()
+            .flatMapMany(auth -> this
+                .getDeviceProductDetail(productId)
+                .map(tp4 -> new DeviceExcelImporter(fileManager, webClient, tp4.getT1(), tp4.getT4(), auth))
+                .flatMapMany(importer -> importer
+                    .doImport(fileUrl)
+                    .groupBy(
+                        result -> result.isSuccess() && result.getType() == AbstractImporter.ImportResultType.data,
+                        Integer.MAX_VALUE
+                    )
+                    .flatMap(group -> {
+                        // 处理导入成功的设备
+                        if (group.key()) {
+                            return group
+                                .map(result -> Tuples.of(result.getData().getDevice(), result.getData().getTags()))
+                                .as(flux -> handleImportDevice(flux, autoDeploy, speed));
+                        }
+                        // 返回错误信息和导入结果详情文件地址
+                        return group
+                            .map(result -> {
+                                ImportDeviceInstanceResult response = new ImportDeviceInstanceResult();
+                                response.setSuccess(result.isSuccess());
+                                if (StringUtils.hasText(result.getMessage())) {
+                                    response.setMessage(String.format("第%d行：%s", result.getRow(), result.getMessage()));
+                                }
+                                response.setDetailFile(result.getDetailFile());
+                                return response;
+                            });
+                    })
+                )
+            );
+    }
+
+    private Flux<ImportDeviceInstanceResult> handleImportDevice(Flux<Tuple2<DeviceInstanceEntity, List<DeviceTagEntity>>> flux,
+                                                                boolean autoDeploy,
+                                                                int speed) {
+        return flux
+            .buffer(100)//每100条数据保存一次
+            .map(Flux::fromIterable)
+            .flatMap(buffer -> Mono
+                    .zip(buffer
+                            .map(Tuple2::getT1)
+                            .as(service::save)
+                            .flatMap(res -> {
+                                if (autoDeploy) {
+                                    return service
+                                        .deploy(buffer.map(Tuple2::getT1))
+                                        .then(Mono.just(res));
+                                }
+                                return Mono.just(res);
+                            }),
+                        tagRepository
+                            .save(buffer.flatMapIterable(Tuple2::getT2))
+                            .defaultIfEmpty(SaveResult.of(0, 0)))
+                    .as(transactionalOperator::transactional),
+                Math.min(speed, Queues.XS_BUFFER_SIZE))
+            .map(res -> ImportDeviceInstanceResult.success(res.getT1()))
+            .onErrorResume(err -> Mono.just(ImportDeviceInstanceResult.error(err)));
     }
 
     //获取导出模版
