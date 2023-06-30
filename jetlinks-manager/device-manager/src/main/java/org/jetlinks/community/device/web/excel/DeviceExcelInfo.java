@@ -1,12 +1,18 @@
 package org.jetlinks.community.device.web.excel;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.reactor.excel.CellDataType;
 import org.hswebframework.reactor.excel.ExcelHeader;
+import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.device.entity.DeviceInstanceEntity;
+import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
+import org.jetlinks.core.metadata.Jsonable;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.springframework.util.StringUtils;
 
@@ -15,11 +21,13 @@ import java.util.*;
 
 @Getter
 @Setter
-public class DeviceExcelInfo {
+public class DeviceExcelInfo implements Jsonable {
 
+    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "设备ID")
     @NotBlank(message = "设备ID不能为空")
     private String id;
 
+    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "设备名称")
     @NotBlank(message = "设备名称不能为空")
     private String name;
 
@@ -27,9 +35,16 @@ public class DeviceExcelInfo {
 
     private String productName;
 
+    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "父设备ID")
     private String parentId;
 
     private List<DeviceTagEntity> tags = new ArrayList<>();
+
+    private DeviceInstanceEntity device;
+
+    private Map<String, PropertyMetadata> tagMapping;
+
+    private Map<String, ConfigPropertyMetadata> configMapping;
 
     private Map<String, Object> configuration = new HashMap<>();
 
@@ -128,5 +143,52 @@ public class DeviceExcelInfo {
         mapping.put("父设备ID", "parentId");
 
         return mapping;
+    }
+
+    public DeviceExcelInfo initDeviceInstance(DeviceProductEntity product, Authentication auth) {
+        DeviceInstanceEntity entity = FastBeanCopier.copy(this, new DeviceInstanceEntity());
+
+        entity.setProductId(product.getId());
+        entity.setProductName(product.getName());
+
+        entity.setCreateTimeNow();
+        entity.setCreatorId(auth.getUser().getId());
+        entity.setCreatorName(auth.getUser().getName());
+
+        entity.setModifyTimeNow();
+        entity.setModifierId(auth.getUser().getId());
+        entity.setModifierName(auth.getUser().getName());
+
+        ValidatorUtils.tryValidate(entity);
+
+        this.device = entity;
+        return this;
+    }
+
+    @Override
+    public void fromJson(JSONObject json) {
+        Jsonable.super.fromJson(json);
+
+        for (Map.Entry<String, PropertyMetadata> entry : tagMapping.entrySet()) {
+            PropertyMetadata maybeTag = entry.getValue();
+            if (maybeTag != null) {
+                tag(
+                    maybeTag.getId(),
+                    entry.getKey(),
+                    Optional.of(json.getString(maybeTag.getId())).orElse(null),
+                    maybeTag.getValueType().getId()
+                );
+            }
+        }
+
+        for (Map.Entry<String, ConfigPropertyMetadata> entry : configMapping.entrySet()) {
+            ConfigPropertyMetadata maybeConfig = entry.getValue();
+            if (maybeConfig != null) {
+                config(
+                    maybeConfig.getProperty(),
+                    Optional.of(json.getString(maybeConfig.getProperty())).orElse(null)
+                );
+            }
+        }
     }
 }

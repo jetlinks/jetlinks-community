@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.response;
 
 import lombok.AllArgsConstructor;
+import lombok.Generated;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,14 +19,19 @@ public class ImportDeviceInstanceResult {
 
     private String message;
 
+    private String detailFile;
+
+    @Generated
     public static ImportDeviceInstanceResult success(SaveResult result) {
-        return new ImportDeviceInstanceResult(result, true, null);
+        return new ImportDeviceInstanceResult(result, true, null, null);
     }
 
+    @Generated
     public static ImportDeviceInstanceResult error(String message) {
-        return new ImportDeviceInstanceResult(null, false, message);
+        return new ImportDeviceInstanceResult(null, false, message, null);
     }
 
+    @Generated
     public static ImportDeviceInstanceResult error(Throwable message) {
         return error(message.getMessage());
     }
