@@ -98,9 +98,9 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
     public void shutdown() {
         super.shutdown();
         Flux.fromIterable(localSessions.values())
-            .flatMap(Function.identity())
-            .filter(session -> session.isWrapFrom(PersistentSession.class))
-            .map(session -> session.unwrap(PersistentSession.class))
+            .filter(ref -> ref.loaded != null)
+            .filter(ref -> ref.loaded.isWrapFrom(PersistentSession.class))
+            .map(ref -> ref.loaded.unwrap(PersistentSession.class))
             .as(this::tryPersistent)
             .block();
         repository.store.compactMoveChunks();
