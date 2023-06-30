@@ -29,8 +29,8 @@ public interface PropertyMetadataConstants {
 
         static boolean isManual(DeviceMessage message) {
             return message
-                .getHeader(PropertyMetadataConstants.Source.headerKey)
-                .map(PropertyMetadataConstants.Source.manual::equals)
+                .getHeader(Source.headerKey)
+                .map(Source.manual::equals)
                 .orElse(false);
         }
 

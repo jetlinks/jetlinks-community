@@ -65,5 +65,11 @@
             <version>${jetlinks.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>common-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
     </dependencies>
 </project>
