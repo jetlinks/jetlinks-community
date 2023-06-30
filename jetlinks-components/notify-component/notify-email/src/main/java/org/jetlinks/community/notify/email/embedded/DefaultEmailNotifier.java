@@ -67,6 +67,10 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
     private String sender;
 
     @Getter
+    @Setter
+    private String username;
+
+    @Getter
     private final String notifierId;
 
     @Setter
@@ -101,6 +105,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
         mailSender.setJavaMailProperties(properties.createJavaMailProperties());
         this.notifierId = id;
         this.sender = properties.getSender();
+        this.username = properties.getUsername();
         this.javaMailSender = mailSender;
         this.fileManager = fileManager;
     }
@@ -137,7 +142,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
                 MimeMessage mimeMessage = this.javaMailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "utf-8");
 
-                helper.setFrom(this.sender);
+                helper.setFrom(this.sender + '<' + this.username + '>');
                 helper.setTo(template.getSendTo().toArray(new String[0]));
                 helper.setSubject(template.getSubject());
                 helper.setText(new String(template.getText().getBytes(), StandardCharsets.UTF_8), true);
