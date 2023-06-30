@@ -9,12 +9,16 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.config.ConfigManager;
 import org.jetlinks.core.rpc.RpcManager;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.buffer.*;
 import org.springframework.http.codec.multipart.FilePart;
@@ -27,13 +31,31 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.function.Function;
 
-
+@Slf4j
 public class ClusterFileManager implements FileManager {
+
+    /**
+     * <pre>{@code
+     * system:
+     *   config:
+     *     scopes:
+     *       - id: paths
+     *         name: 访问路径配置
+     *         public-access: true
+     *         properties:
+     *           - key: base-path
+     *             name: 接口根路径
+     *             default-value: ${api.base-path}
+     * }</pre>
+     */
+    public static final String API_PATH_CONFIG_NAME = "paths";
+    public static final String API_PATH_CONFIG_KEY = "base-path";
 
     private final FileProperties properties;
 
@@ -43,19 +65,50 @@ public class ClusterFileManager implements FileManager {
 
     private final RpcManager rpcManager;
 
+    private final ConfigManager configManager;
+
     public ClusterFileManager(RpcManager rpcManager,
                               FileProperties properties,
-                              ReactiveRepository<FileEntity, String> repository) {
+                              ReactiveRepository<FileEntity, String> repository,
+                              ConfigManager configManager) {
         new File(properties.getStorageBasePath()).mkdirs();
         this.properties = properties;
         this.rpcManager = rpcManager;
         this.repository = repository;
+        this.configManager = configManager;
         rpcManager.registerService(new ServiceImpl());
+        if (!properties.getTempFilePeriod().isZero()) {
+            Duration duration = Duration.ofHours(1);
+            if (duration.toMillis() > properties.getTempFilePeriod().toMillis()) {
+                duration = properties.getTempFilePeriod();
+            }
+            Flux.interval(duration)
+                .onBackpressureDrop()
+                .concatMap(ignore -> repository
+                    .createDelete()
+                    .where(FileEntity::getServerNodeId, rpcManager.currentServerId())
+                    .lte(FileEntity::getCreateTime,
+                        System.currentTimeMillis() - properties.getTempFilePeriod().toMillis())
+                    .and(FileEntity::getOptions, "in$any", FileOption.tempFile)
+                    .execute()
+                    .onErrorResume(err -> {
+                        log.warn("delete temp file error", err);
+                        return Mono.empty();
+                    }))
+                .subscribe();
+        }
+
+    }
+
+    private Mono<String> getApiBasePath() {
+        return configManager
+            .getProperties(API_PATH_CONFIG_NAME)
+            .mapNotNull(val -> val.getString(API_PATH_CONFIG_KEY, null));
     }
 
     @Override
     public Mono<FileInfo> saveFile(FilePart filePart, FileOption... options) {
-        return saveFile(filePart.filename(), filePart.content());
+        return saveFile(filePart.filename(), filePart.content(), options);
     }
 
     private DataBuffer updateDigest(MessageDigest digest, DataBuffer dataBuffer) {
@@ -84,9 +137,9 @@ public class ClusterFileManager implements FileManager {
             .map(buffer -> updateDigest(md5, updateDigest(sha256, buffer)))
             .as(buf -> DataBufferUtils
                 .write(buf, path,
-                       StandardOpenOption.WRITE,
-                       StandardOpenOption.CREATE_NEW,
-                       StandardOpenOption.TRUNCATE_EXISTING))
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE_NEW,
+                    StandardOpenOption.TRUNCATE_EXISTING))
             .then(Mono.defer(() -> {
                 File savedFile = Paths.get(storageBasePath, storagePath).toFile();
                 if (!savedFile.exists()) {
@@ -101,7 +154,12 @@ public class ClusterFileManager implements FileManager {
                 FileEntity entity = FileEntity.of(fileInfo, storagePath, serverNodeId);
                 return repository
                     .insert(entity)
-                    .then(Mono.fromSupplier(entity::toInfo));
+                    .then(Mono.defer(() -> {
+                        FileInfo response = entity.toInfo();
+                        return this
+                            .getApiBasePath().doOnNext(response::withBasePath)
+                            .thenReturn(response);
+                    }));
             }));
     }
 
@@ -138,9 +196,9 @@ public class ClusterFileManager implements FileManager {
     private Flux<DataBuffer> readFile(String filePath, long position) {
         return DataBufferUtils
             .read(new FileSystemResource(Paths.get(properties.getStorageBasePath(), filePath)),
-                  position,
-                  bufferFactory,
-                  (int) properties.getReadBufferSize().toBytes())
+                position,
+                bufferFactory,
+                (int) properties.getReadBufferSize().toBytes())
             .onErrorMap(NoSuchFileException.class, e -> new NotFoundException());
     }
 
@@ -180,11 +238,25 @@ public class ClusterFileManager implements FileManager {
             .findById(id)
             .switchIfEmpty(Mono.error(NotFoundException::new))
             .flatMapMany(file -> {
-                DefaultReaderContext context = new DefaultReaderContext(file.toInfo(), 0);
-                return beforeRead
-                    .apply(context)
+                FileInfo fileInfo = file.toInfo();
+                DefaultReaderContext context = new DefaultReaderContext(fileInfo, 0);
+
+                return getApiBasePath()
+                    .doOnNext(fileInfo::withBasePath)
+                    .then(Mono.defer(() -> beforeRead.apply(context)))
                     .thenMany(Flux.defer(() -> readFile(file, context.position)));
             });
+    }
+
+    @EventListener
+    public void handleDeleteEvent(EntityDeletedEvent<FileEntity> event) {
+        for (FileEntity fileEntity : event.getEntity()) {
+            File file = Paths.get(properties.getStorageBasePath(), fileEntity.getStoragePath()).toFile();
+            if (file.exists()) {
+                log.debug("delete file: {}", file.getAbsolutePath());
+                file.delete();
+            }
+        }
     }
 
     @AllArgsConstructor
