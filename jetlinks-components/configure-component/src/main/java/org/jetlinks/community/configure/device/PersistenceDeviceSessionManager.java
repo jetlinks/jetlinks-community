@@ -138,11 +138,14 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
     }
 
     Mono<Void> resumeSession(PersistentSessionEntity entity) {
-        return entity
+    return entity
             .toSession(registry.get())
             .doOnNext(session -> {
                 log.debug("resume session[{}]", session.getDeviceId());
-                localSessions.putIfAbsent(session.getDeviceId(), Mono.just(session));
+                localSessions.putIfAbsent(session.getDeviceId(),
+                                          new DeviceSessionRef(session.getDeviceId(),
+                                                               this,
+                                                               session));
             })
             .onErrorResume((err) -> {
                 log.debug("resume session[{}] error", entity.getDeviceId(), err);
