@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
@@ -141,8 +142,11 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
             .fromCallable(() -> {
                 MimeMessage mimeMessage = this.javaMailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "utf-8");
-
-                helper.setFrom(this.sender + '<' + this.username + '>');
+                if (StringUtils.isNotBlank(this.username)) {
+                    helper.setFrom(this.sender + '<' + this.username + '>');
+                } else {
+                    helper.setFrom(this.sender);
+                }
                 helper.setTo(template.getSendTo().toArray(new String[0]));
                 helper.setSubject(template.getSubject());
                 helper.setText(new String(template.getText().getBytes(), StandardCharsets.UTF_8), true);
