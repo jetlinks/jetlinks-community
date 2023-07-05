@@ -38,9 +38,8 @@ public class ConfigVerificationService {
 
     @GetMapping(value = PATH_VERIFICATION_URI)
     @Operation(description = "basePath配置验证接口")
-    public Mono<Void> basePathValidate(ServerWebExchange response) {
-        response.getResponse().getHeaders().set("auth", PATH_VERIFICATION_URI);
-        return Mono.empty();
+    public Mono<String> basePathValidate() {
+        return Mono.just("auth:"+PATH_VERIFICATION_URI);
     }
 
 
@@ -72,9 +71,10 @@ public class ConfigVerificationService {
             .get()
             .uri(uri)
             .exchangeToMono(cr -> {
-                if (cr.statusCode().is2xxSuccessful()
-                    && Objects.equals(cr.headers().asHttpHeaders().getFirst("auth"), PATH_VERIFICATION_URI)) {
-                    return Mono.empty();
+                if (cr.statusCode().is2xxSuccessful()) {
+                    return cr.bodyToMono(String.class)
+                             .filter(r-> r.contains("auth:"+PATH_VERIFICATION_URI))
+                             .switchIfEmpty(Mono.error(()-> new BusinessException("error.base_path_error")));
                 }
                 return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_error")));
             })
