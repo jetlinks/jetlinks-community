@@ -69,6 +69,6 @@ TCP/UDP/MQTT/HTTP、TLS/DTLS、不同厂商、不同设备、不同报文、统�
 
 
 [产品文档](https://hanta.yuque.com/px7kg1/yfac2l)
-[快速开始](https://hanta.yuque.com/px7kg1/ryf1pd/zz0o7hc51ys6al05)
+[快速开始](https://hanta.yuque.com/px7kg1/yfac2l/raspyc4p1asfuxks)
 [开发文档](https://hanta.yuque.com/px7kg1/nn1gdr) 
 
