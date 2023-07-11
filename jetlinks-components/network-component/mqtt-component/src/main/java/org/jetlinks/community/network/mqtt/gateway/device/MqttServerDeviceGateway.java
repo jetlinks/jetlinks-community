@@ -3,6 +3,7 @@ package org.jetlinks.community.network.mqtt.gateway.device;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.StatusCode;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.gateway.AbstractDeviceGateway;
@@ -69,6 +70,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
     private final DeviceSessionManager sessionManager;
 
     //Mqtt 服务
+    @Getter
     private final MqttServer mqttServer;
 
     //解码后的设备消息处理器
