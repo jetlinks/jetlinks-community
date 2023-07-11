@@ -21,6 +21,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -62,15 +63,19 @@ public class ReactorQLDeviceSelectorBuilder implements DeviceSelectorBuilder {
                     .flatMap(registry::getDevice);
             };
         }
-        Function<Map<String, Object>, Mono<NestConditional<ReactiveQuery<DeviceInstanceEntity>>>> lazy = provider
-            .createLazy(spec,
-                        Lazy.of(() -> deviceRepository
-                            .createQuery()
-                            .select(DeviceInstanceEntity::getId)
-                            .nest()));
 
-        return context -> lazy
-            .apply(context)
+        BiFunction<NestConditional<ReactiveQuery<DeviceInstanceEntity>>,
+            Map<String, Object>,
+            Mono<NestConditional<ReactiveQuery<DeviceInstanceEntity>>>> function = provider
+            .createLazy(spec);
+
+        return context -> function
+            .apply(deviceRepository
+                       .createQuery()
+                       .select(DeviceInstanceEntity::getId)
+                       .nest(),
+                   context
+            )
             .flatMapMany(ctd -> ctd.end().fetch().map(DeviceInstanceEntity::getId))
             .flatMap(registry::getDevice);
     }
