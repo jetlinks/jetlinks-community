@@ -7,6 +7,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -24,10 +25,9 @@ public interface DeviceSelectorProvider extends Ordered {
                                                                        NestConditional<T> conditional);
 
 
-    default <T extends Conditional<T>> Function<Map<String, Object>, Mono<NestConditional<T>>> createLazy(
-        DeviceSelectorSpec source,
-        Supplier<NestConditional<T>> conditionalSupplier) {
-        return ctx -> applyCondition(source, ctx, conditionalSupplier.get());
+    default <T extends Conditional<T>> BiFunction<NestConditional<T>, Map<String, Object>, Mono<NestConditional<T>>> createLazy(
+        DeviceSelectorSpec source) {
+        return (condition, ctx) -> applyCondition(source, ctx, condition);
     }
 
     @Override

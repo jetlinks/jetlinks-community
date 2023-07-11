@@ -7,6 +7,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 public class CompositeDeviceSelectorProvider implements DeviceSelectorProvider {
 
@@ -48,5 +49,29 @@ public class CompositeDeviceSelectorProvider implements DeviceSelectorProvider {
             }
         }
         return handler == null ? Mono.just(conditional) : handler;
+    }
+
+    @Override
+    public <T extends Conditional<T>> BiFunction<
+        NestConditional<T>,
+        Map<String, Object>,
+        Mono<NestConditional<T>>> createLazy(DeviceSelectorSpec source) {
+
+        BiFunction<NestConditional<T>, Map<String, Object>, Mono<NestConditional<T>>> function = null;
+
+        for (SelectorValue selectorValue : source.getSelectorValues()) {
+            DeviceSelectorSpec spec = FastBeanCopier.copy(selectorValue.getValue(), new DeviceSelectorSpec());
+            DeviceSelectorProvider provider = DeviceSelectorProviders.getProviderNow(spec.getSelector());
+
+            BiFunction<NestConditional<T>, Map<String, Object>, Mono<NestConditional<T>>> that = provider.createLazy(spec);
+            if (function == null) {
+                function = that;
+            } else {
+                BiFunction<NestConditional<T>, Map<String, Object>, Mono<NestConditional<T>>> temp = function;
+
+                function = (condition, ctx) -> temp.apply(condition, ctx).flatMap(ctd -> that.apply(condition, ctx));
+            }
+        }
+        return function == null ? (condition, ignore) -> Mono.just(condition) : function;
     }
 }

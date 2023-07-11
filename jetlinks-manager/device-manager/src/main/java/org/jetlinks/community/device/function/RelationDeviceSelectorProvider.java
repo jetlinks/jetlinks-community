@@ -1,7 +1,7 @@
 package org.jetlinks.community.device.function;
 
 import lombok.AllArgsConstructor;
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.ezorm.core.Conditional;
 import org.hswebframework.ezorm.core.NestConditional;
 import org.jetlinks.core.things.relation.ObjectSpec;
@@ -81,8 +81,13 @@ public class RelationDeviceSelectorProvider implements DeviceSelectorProvider {
                 }))
             .map(RelationObject::getId)
             .collectList()
-            .filter(CollectionUtils::isNotEmpty)
-            .doOnNext(deviceIdList -> conditional.in(DeviceInstanceEntity::getId, deviceIdList))
+            .doOnNext(deviceIdList -> {
+                if (CollectionUtils.isNotEmpty(deviceIdList)){
+                    conditional.in(DeviceInstanceEntity::getId, deviceIdList);
+                }else {
+                    conditional.isNull(DeviceInstanceEntity::getId);
+                }
+            })
             .thenReturn(conditional);
     }
 }
