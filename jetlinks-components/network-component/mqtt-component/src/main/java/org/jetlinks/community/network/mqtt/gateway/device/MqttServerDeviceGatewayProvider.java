@@ -16,6 +16,8 @@ import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 @Component
 public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
 
@@ -78,5 +80,22 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
                 messageHandler,
                 Mono.empty()
             ));
+    }
+
+    @Override
+    public Mono<? extends DeviceGateway> reloadDeviceGateway(DeviceGateway gateway,
+                                                             DeviceGatewayProperties properties) {
+        MqttServerDeviceGateway deviceGateway = ((MqttServerDeviceGateway) gateway);
+
+        String networkId = properties.getChannelId();
+        //网络组件发生了变化
+        if (!Objects.equals(networkId, deviceGateway.getMqttServer().getId())) {
+            return gateway
+                .shutdown()
+                .then(this
+                    .createDeviceGateway(properties)
+                    .flatMap(gate -> gate.startup().thenReturn(gate)));
+        }
+        return Mono.just(gateway);
     }
 }
