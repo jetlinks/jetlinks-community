@@ -56,7 +56,7 @@ public class AlarmConfigEntity extends GenericEntity<String> implements RecordCr
     @Column(length = 32, nullable = false)
     @EnumCodec
     @ColumnType(javaType = String.class)
-    @DefaultValue("disabled")
+    @DefaultValue("enabled")
     @Schema(description = "状态")
     private AlarmState state;
 
