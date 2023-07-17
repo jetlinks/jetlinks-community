@@ -242,6 +242,13 @@ public class ImportHelper<T> {
 
         public String getErrorMessage() {
             //todo 更多异常信息判断
+            if (error instanceof NumberFormatException) {
+                String msg = error.getMessage();
+                if (msg.contains("\"")) {
+                    String ch = msg.substring(msg.indexOf("\"") + 1, msg.lastIndexOf("\""));
+                    return LocaleUtils.resolveMessage("error.number_format_error", "无法转换["+ch+"]为数字",ch);
+                }
+            }
             return error == null ? null : error.getLocalizedMessage();
         }
 
