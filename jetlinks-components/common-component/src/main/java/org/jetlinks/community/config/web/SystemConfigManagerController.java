@@ -37,14 +37,14 @@ public class SystemConfigManagerController {
 
     @GetMapping("/scopes")
     @QueryAction
-    @Operation(description = "获取配置作用域")
+    @Operation(summary = "获取配置作用域")
     public Flux<ConfigScope> getConfigScopes() {
         return configManager.getScopes();
     }
 
     @GetMapping("/{scope}")
     @Authorize(ignore = true)
-    @Operation(description = "获取作用域下的全部配置信息")
+    @Operation(summary = "获取作用域下的全部配置信息")
     public Mono<Map<String, Object>> getConfigs(@PathVariable String scope) {
         return Authentication
             .currentReactive()
@@ -63,7 +63,7 @@ public class SystemConfigManagerController {
 
     @GetMapping("/{scope}/_detail")
     @QueryAction
-    @Operation(description = "获取作用域下的配置信息")
+    @Operation(summary = "获取作用域下的配置信息")
     public Flux<ConfigPropertyValue> getConfigDetail(@PathVariable String scope) {
         return configManager
             .getProperties(scope)
@@ -75,7 +75,7 @@ public class SystemConfigManagerController {
 
     @PostMapping("/scopes")
     @QueryAction
-    @Operation(description = "获取作用域下的配置详情")
+    @Operation(summary = "获取作用域下的配置详情")
     public Flux<Scope> getConfigDetail(@RequestBody Mono<List<String>> scopeMono) {
         return scopeMono
             .flatMapMany(scopes -> Flux
@@ -86,7 +86,7 @@ public class SystemConfigManagerController {
 
     @PostMapping("/{scope}")
     @SaveAction
-    @Operation(description = "保存配置")
+    @Operation(summary = "保存配置")
     public Mono<Void> saveConfig(@PathVariable String scope,
                                  @RequestBody Mono<Map<String, Object>> properties) {
         return properties.flatMap(props -> configManager.setProperties(scope, props));
@@ -95,7 +95,7 @@ public class SystemConfigManagerController {
 
     @PostMapping("/scope/_save")
     @SaveAction
-    @Operation(description = "批量保存配置")
+    @Operation(summary = "批量保存配置")
     @Transactional
     public Mono<Void> saveConfig(@RequestBody Flux<Scope> scope) {
 
