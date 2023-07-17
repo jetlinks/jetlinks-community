@@ -99,6 +99,8 @@ public class UserLoginLogicInterceptor {
         String encId = event
             .getParameter("encryptId")
             .map(String::valueOf)
+            //防止伪造大长度id拉低redis性能
+            .filter(str -> str.length() <= 64)
             .orElseThrow(() -> new ValidationException("encryptId", "encryptId is required"));
         String redisKey = createEncRedisKey(encId);
         return redis
