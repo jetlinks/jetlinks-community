@@ -13,6 +13,7 @@ import org.hswebframework.web.authorization.exception.AccessDenyException;
 import org.hswebframework.web.authorization.exception.AuthenticationException;
 import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.id.IDGenerator;
+import org.hswebframework.web.id.RandomIdGenerator;
 import org.hswebframework.web.logging.RequestInfo;
 import org.hswebframework.web.utils.DigestUtils;
 import org.jetlinks.core.utils.Reactors;
@@ -52,15 +53,15 @@ public class UserLoginLogicInterceptor {
 
         if (properties.getEncrypt().isEnabled()) {
             jobs.add(getEncryptKey()
-                         .doOnNext(enc -> map.put("encrypt", enc))
-                         .then());
+                .doOnNext(enc -> map.put("encrypt", enc))
+                .then());
         } else {
             map.put("encrypt", Collections.singletonMap("enabled", false));
         }
         // TODO: 2023/6/25 其他配置
 
         return Flux.merge(jobs)
-                   .then(Mono.just(map));
+            .then(Mono.just(map));
     }
 
     @GetMapping("/authorize/encrypt-key")
@@ -95,11 +96,17 @@ public class UserLoginLogicInterceptor {
         }
     }
 
+    protected boolean isLegalEncryptId(String id) {
+        return RandomIdGenerator.timestampRangeOf(id, properties.getEncrypt().getKeyTtl());
+    }
+
     Mono<Void> doDecrypt(AuthorizationDecodeEvent event) {
         String encId = event
             .getParameter("encryptId")
             .map(String::valueOf)
-            .orElseThrow(() -> new ValidationException("encryptId", "encryptId is required"));
+            .filter(this::isLegalEncryptId)
+            //统一返回密码错误
+            .orElseThrow(() -> new AuthenticationException(AuthenticationException.ILLEGAL_PASSWORD));
         String redisKey = createEncRedisKey(encId);
         return redis
             .opsForValue()
@@ -108,7 +115,7 @@ public class UserLoginLogicInterceptor {
                 event.setPassword(
                     new String(
                         CryptoUtils.decryptRSA(Base64.getDecoder().decode(event.getPassword()),
-                                               CryptoUtils.decodeRSAPrivateKey(privateKey))
+                            CryptoUtils.decodeRSAPrivateKey(privateKey))
                     )
                 );
                 return true;
@@ -118,7 +125,7 @@ public class UserLoginLogicInterceptor {
                 return Reactors.ALWAYS_FALSE;
             })
             .defaultIfEmpty(false)
-            .then(redis.opsForValue().delete(redisKey))
+            .flatMap(ignore -> redis.opsForValue().delete(redisKey).thenReturn(ignore))
             .doOnSuccess(success -> {
                 if (!success) {
                     throw new AuthenticationException(AuthenticationException.ILLEGAL_PASSWORD);
@@ -136,6 +143,9 @@ public class UserLoginLogicInterceptor {
     }
 
     private Mono<Void> recordAuthFailed(AbstractAuthorizationEvent event) {
+        if (!properties.getBlock().isEnabled()) {
+            return Mono.empty();
+        }
         return createBlockRedisKey(event)
             .flatMap(key -> redis
                 .opsForValue()
