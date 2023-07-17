@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -66,7 +67,16 @@ public class DeviceEntityEventHandler {
                 })
                 .flatMap(device -> registry
                     .getDevice(device.getId())
-                    .flatMap(deviceOperator -> deviceOperator.setConfig(PropertyConstants.deviceName, device.getName())))
+                    .flatMap(deviceOperator -> {
+                        Map<String, Object> configuration = device.getConfiguration();
+                        if (configuration == null) {
+                            configuration = new HashMap<>();
+                        }
+                        if (StringUtils.hasText(device.getName())) {
+                            configuration.put(PropertyConstants.deviceName.getKey(), device.getName());
+                        }
+                        return deviceOperator.setConfigs(configuration);
+                    }))
         );
 
     }
