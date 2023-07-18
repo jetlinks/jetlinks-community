@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotBlank;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -93,34 +94,42 @@ public class DeviceExcelInfo implements Jsonable {
         return val;
     }
 
-    public static List<ExcelHeader> getTemplateHeaderMapping(List<PropertyMetadata> tags,
+    public static List<ExcelHeader> getTemplateHeaderMapping(DeviceExcelFilterColumns filterColumns,
+                                                             List<PropertyMetadata> tags,
                                                              List<ConfigPropertyMetadata> configs) {
-        List<ExcelHeader> arr = new ArrayList<>(Arrays.asList(
-            new ExcelHeader("id", "设备ID", CellDataType.STRING),
-            new ExcelHeader("name", "设备名称", CellDataType.STRING),
-            new ExcelHeader("orgName", "所属机构", CellDataType.STRING),
-            new ExcelHeader("parentId", "父设备ID", CellDataType.STRING)
-        ));
+        List<ExcelHeader> arr =
+            Arrays.stream(new ExcelHeader[]{
+                    new ExcelHeader("id", "设备ID", CellDataType.STRING),
+                    new ExcelHeader("name", "设备名称", CellDataType.STRING),
+                    new ExcelHeader("parentId", "父设备ID", CellDataType.STRING)
+                })
+                .filter(a-> !filterColumns.getColumns().contains(a.getKey()))
+                .collect(Collectors.toList());
         for (PropertyMetadata tag : tags) {
             arr.add(new ExcelHeader(tag.getId(), StringUtils.isEmpty(tag.getName()) ? tag.getId() : tag.getName(), CellDataType.STRING));
         }
 
         for (ConfigPropertyMetadata config : configs) {
-            arr.add(new ExcelHeader("configuration." + config.getProperty(), StringUtils.isEmpty(config.getName()) ? config.getProperty() : config.getName(), CellDataType.STRING));
+            arr.add(new ExcelHeader("configuration." + config.getProperty(), StringUtils.isEmpty(config.getName()) ? config
+                .getProperty() : config.getName(), CellDataType.STRING));
         }
         return arr;
     }
 
-    public static List<ExcelHeader> getExportHeaderMapping(List<PropertyMetadata> tags,
+    public static List<ExcelHeader> getExportHeaderMapping(DeviceExcelFilterColumns filterColumns,
+                                                           List<PropertyMetadata> tags,
                                                            List<ConfigPropertyMetadata> configs) {
-        List<ExcelHeader> arr = new ArrayList<>(Arrays.asList(
-            new ExcelHeader("id", "设备ID", CellDataType.STRING),
-            new ExcelHeader("name", "设备名称", CellDataType.STRING),
-            new ExcelHeader("productName", "设备型号", CellDataType.STRING),
-            new ExcelHeader("orgName", "所属机构", CellDataType.STRING),
-            new ExcelHeader("parentId", "父设备ID", CellDataType.STRING),
-            new ExcelHeader("state", "状态", CellDataType.STRING)
-        ));
+        List<ExcelHeader> arr =
+            Arrays.stream(new ExcelHeader[]{
+                    new ExcelHeader("id", "设备ID", CellDataType.STRING),
+                    new ExcelHeader("name", "设备名称", CellDataType.STRING),
+                    new ExcelHeader("productName", "产品名称", CellDataType.STRING),
+                    new ExcelHeader("parentId", "父设备ID", CellDataType.STRING),
+                    new ExcelHeader("state", "状态", CellDataType.STRING)
+                })
+                .filter(a-> !filterColumns.getColumns().contains(a.getKey()))
+                .collect(Collectors.toList());
+
         for (PropertyMetadata tag : tags) {
             arr.add(new ExcelHeader(tag.getId(), StringUtils.isEmpty(tag.getName()) ? tag.getId() : tag.getName(), CellDataType.STRING));
         }
@@ -139,7 +148,7 @@ public class DeviceExcelInfo implements Jsonable {
         mapping.put("设备名称", "name");
         mapping.put("名称", "name");
 
-        mapping.put("所属机构", "orgName");
+//        mapping.put("所属机构", "orgName");
         mapping.put("父设备ID", "parentId");
 
         return mapping;
@@ -175,7 +184,7 @@ public class DeviceExcelInfo implements Jsonable {
                 tag(
                     maybeTag.getId(),
                     entry.getKey(),
-                    Optional.of(json.getString(maybeTag.getId())).orElse(null),
+                    Optional.ofNullable(json.getString(maybeTag.getId())).orElse(null),
                     maybeTag.getValueType().getId()
                 );
             }
@@ -186,7 +195,7 @@ public class DeviceExcelInfo implements Jsonable {
             if (maybeConfig != null) {
                 config(
                     maybeConfig.getProperty(),
-                    Optional.of(json.getString(maybeConfig.getProperty())).orElse(null)
+                    Optional.ofNullable(json.getString(maybeConfig.getProperty())).orElse(null)
                 );
             }
         }
