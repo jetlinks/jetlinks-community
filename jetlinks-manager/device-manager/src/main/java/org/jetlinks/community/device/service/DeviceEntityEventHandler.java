@@ -70,7 +70,6 @@ public class DeviceEntityEventHandler {
         Map<String, DeviceInstanceEntity> olds = event
             .getBefore()
             .stream()
-            .filter(device -> StringUtils.hasText(device.getId()))
             .collect(Collectors.toMap(DeviceInstanceEntity::getId, Function.identity()));
 
         //更新设备时,自动更新注册中心里的名称
