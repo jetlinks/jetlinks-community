@@ -70,15 +70,12 @@ public class DeviceEntityEventHandler {
         Map<String, DeviceInstanceEntity> olds = event
             .getBefore()
             .stream()
+            .filter(device -> StringUtils.hasText(device.getId()))
             .collect(Collectors.toMap(DeviceInstanceEntity::getId, Function.identity()));
 
         //更新设备时,自动更新注册中心里的名称
         event.first(
             Flux.fromIterable(event.getAfter())
-                .filter(device -> {
-                    DeviceInstanceEntity old = olds.get(device.getId());
-                    return old != null && !Objects.equals(device.getName(), old.getName());
-                })
                 .flatMap(device -> registry
                     .getDevice(device.getId())
                     .flatMap(deviceOperator -> {
