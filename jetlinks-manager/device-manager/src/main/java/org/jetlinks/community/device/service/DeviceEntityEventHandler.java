@@ -59,6 +59,7 @@ public class DeviceEntityEventHandler {
                         if (StringUtils.hasText(device.getName())) {
                             configuration.put(PropertyConstants.deviceName.getKey(), device.getName());
                         }
+                        configuration.put(DeviceConfigKey.parentGatewayId.getKey(), device.getParentId());
                         return deviceOperator.setConfigs(configuration);
                     }))
         );
