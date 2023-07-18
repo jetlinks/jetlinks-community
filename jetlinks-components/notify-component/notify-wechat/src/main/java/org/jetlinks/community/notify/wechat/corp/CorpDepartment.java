@@ -44,7 +44,7 @@ public class CorpDepartment implements Comparable<CorpDepartment> {
     private String parentId;
 
     @Schema(description = "父部门id")
-    private int order;
+    private long order;
 
     private List<CorpDepartment> children;
 
@@ -57,6 +57,6 @@ public class CorpDepartment implements Comparable<CorpDepartment> {
 
     @Override
     public int compareTo(CorpDepartment target) {
-        return Integer.compare(this.order, target.getOrder());
+        return Long.compare(this.order, target.getOrder());
     }
 }
