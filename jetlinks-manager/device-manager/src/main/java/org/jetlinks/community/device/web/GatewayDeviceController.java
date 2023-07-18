@@ -135,10 +135,7 @@ public class GatewayDeviceController {
                     .set(DeviceInstanceEntity::getParentId, gatewayId)
                     .where(DeviceInstanceEntity::getId, deviceId)
                     .execute()
-                    .then(registry
-                              .getDevice(deviceId)
-                              .flatMap(operator -> operator.setConfig(DeviceConfigKey.parentGatewayId, gatewayId))
-                    ).then(registry.getDevice(gatewayId)
+                    .then(registry.getDevice(gatewayId)
                         .flatMap(gwOperator -> gwOperator.getProtocol()
                             .flatMap(protocolSupport -> protocolSupport.onChildBind(gwOperator,
                                 Flux.from(registry.getDevice(deviceId)))
@@ -169,13 +166,7 @@ public class GatewayDeviceController {
                 .where()
                 .in(DeviceInstanceEntity::getId, deviceIdList)
                 .execute()
-                .then(Flux
-                          .fromIterable(deviceIdList)
-                          .flatMap(id -> registry
-                              .getDevice(id)
-                              .flatMap(operator -> operator.setConfig(DeviceConfigKey.parentGatewayId, gatewayId)))
-                          .then()
-                ).then(registry.getDevice(gatewayId)
+                .then(registry.getDevice(gatewayId)
                     .flatMap(gwOperator -> gwOperator.getProtocol()
                         .flatMap(protocolSupport -> protocolSupport.onChildBind(gwOperator,
                             Flux.fromIterable(deviceIdList).flatMap(id -> registry.getDevice(id)))
@@ -197,9 +188,6 @@ public class GatewayDeviceController {
             .and(DeviceInstanceEntity::getParentId, gatewayId)
             .execute()
             .filter(i -> i > 0)
-            .flatMap(i -> registry
-                .getDevice(deviceId)
-                .flatMap(operator -> operator.removeConfig(DeviceConfigKey.parentGatewayId.getKey())))
             .then(registry.getDevice(gatewayId)
                 .flatMap(gwOperator -> gwOperator.getProtocol()
                     .flatMap(protocolSupport -> protocolSupport.onChildUnbind(gwOperator,

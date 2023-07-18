@@ -2,12 +2,15 @@ package org.jetlinks.community.device.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntityPrepareCreateEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.exception.BusinessException;
+import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.community.PropertyConstants;
@@ -21,6 +24,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -37,6 +41,8 @@ public class DeviceEntityEventHandler {
 
     private final ProtocolSupports supports;
 
+    private final LocalDeviceInstanceService deviceService;
+
     @EventListener
     public void handleDeviceEvent(EntitySavedEvent<DeviceInstanceEntity> event) {
         //保存设备时,自动更新注册中心里的名称
@@ -45,7 +51,17 @@ public class DeviceEntityEventHandler {
                 .filter(device -> StringUtils.hasText(device.getName()))
                 .flatMap(device -> registry
                     .getDevice(device.getId())
-                    .flatMap(deviceOperator -> deviceOperator.setConfig(PropertyConstants.deviceName, device.getName())))
+                    .flatMap(deviceOperator -> {
+                        Map<String, Object> configuration = device.getConfiguration();
+                        if (configuration == null) {
+                            configuration = new HashMap<>();
+                        }
+                        if (StringUtils.hasText(device.getName())) {
+                            configuration.put(PropertyConstants.deviceName.getKey(), device.getName());
+                        }
+                        configuration.put(DeviceConfigKey.parentGatewayId.getKey(), device.getParentId());
+                        return deviceOperator.setConfigs(configuration);
+                    }))
         );
     }
 
@@ -60,15 +76,43 @@ public class DeviceEntityEventHandler {
         //更新设备时,自动更新注册中心里的名称
         event.first(
             Flux.fromIterable(event.getAfter())
-                .filter(device -> {
-                    DeviceInstanceEntity old = olds.get(device.getId());
-                    return old != null && !Objects.equals(device.getName(), old.getName());
-                })
                 .flatMap(device -> registry
                     .getDevice(device.getId())
-                    .flatMap(deviceOperator -> deviceOperator.setConfig(PropertyConstants.deviceName, device.getName())))
+                    .flatMap(deviceOperator -> {
+                        Map<String, Object> configuration = device.getConfiguration();
+                        if (configuration == null) {
+                            configuration = new HashMap<>();
+                        }
+                        DeviceInstanceEntity old = olds.get(device.getId());
+                        if (old != null && !Objects.equals(device.getName(), old.getName())) {
+                            configuration.put(PropertyConstants.deviceName.getKey(), device.getName());
+                        }
+                        configuration.put(DeviceConfigKey.parentGatewayId.getKey(), device.getParentId());
+
+                        return deviceOperator.setConfigs(configuration);
+                    }))
         );
 
+    }
+
+    @EventListener
+    public void handleDeviceDeleteEvent(EntityDeletedEvent<DeviceInstanceEntity> event) {
+        event.async(
+            // 删除设备后，解绑子设备
+            Flux
+                .fromIterable(event.getEntity())
+                // 只处理网关设备
+                .filter(entity -> entity.getDeviceType() == DeviceType.gateway)
+                .map(DeviceInstanceEntity::getId)
+                .collectList()
+                .filter(CollectionUtils::isNotEmpty)
+                .flatMap(deviceIdList -> deviceService
+                    .createUpdate()
+                    .setNull(DeviceInstanceEntity::getParentId)
+                    .in(DeviceInstanceEntity::getParentId, deviceIdList)
+                    .execute())
+                .then()
+        );
     }
 
     @EventListener
