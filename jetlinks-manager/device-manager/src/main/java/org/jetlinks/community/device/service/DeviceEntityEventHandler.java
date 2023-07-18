@@ -51,7 +51,16 @@ public class DeviceEntityEventHandler {
                 .filter(device -> StringUtils.hasText(device.getName()))
                 .flatMap(device -> registry
                     .getDevice(device.getId())
-                    .flatMap(deviceOperator -> deviceOperator.setConfig(PropertyConstants.deviceName, device.getName())))
+                    .flatMap(deviceOperator -> {
+                        Map<String, Object> configuration = device.getConfiguration();
+                        if (configuration == null) {
+                            configuration = new HashMap<>();
+                        }
+                        if (StringUtils.hasText(device.getName())) {
+                            configuration.put(PropertyConstants.deviceName.getKey(), device.getName());
+                        }
+                        return deviceOperator.setConfigs(configuration);
+                    }))
         );
     }
 
