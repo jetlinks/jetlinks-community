@@ -5,6 +5,7 @@ import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.things.data.AggregationRequest;
+import org.jetlinks.community.things.data.operations.ColumnModeQueryOperations;
 import org.jetlinks.community.things.data.operations.SaveOperations;
 import org.jetlinks.core.device.DeviceThingType;
 import org.jetlinks.core.message.DeviceMessage;
@@ -217,6 +218,25 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
             .opsForTemplate(thingType, productId)
             .flatMap(opt -> opt.forQuery().queryEventPage(event, query, format))
             .map(page ->convertPage(page,DeviceEvent::new));
+    }
+
+
+    @Nonnull
+    @Override
+    public Flux<DeviceProperties> queryProperties(@Nonnull String deviceId, @Nonnull QueryParamEntity query) {
+        return repository
+            .opsForThing(thingType, deviceId)
+            .flatMapMany(opt -> opt.forQuery().unwrap(ColumnModeQueryOperations.class).queryAllProperties(query))
+            .map(DeviceProperties::new);
+    }
+
+    @Nonnull
+    @Override
+    public Mono<PagerResult<DeviceProperties>> queryPropertiesPageByProduct(@Nonnull String productId, @Nonnull QueryParamEntity query) {
+        return repository
+            .opsForTemplate(thingType, productId)
+            .flatMap(opt -> opt.forQuery().unwrap(ColumnModeQueryOperations.class).queryAllPropertiesPage(query))
+            .map(page -> convertPage(page,DeviceProperties::new));
     }
 
 }

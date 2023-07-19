@@ -238,6 +238,28 @@ public interface DeviceDataService {
         return queryEventPage(deviceId, event, query, false);
     }
 
+    /**
+     * 查询设备属性数据,但是不返回分页结果
+     *
+     * @param deviceId 设备ID
+     * @param query    查询条件
+     * @return 查询结果
+     */
+    @Nonnull
+    Flux<DeviceProperties> queryProperties(@Nonnull String deviceId,
+                                           @Nonnull QueryParamEntity query);
+
+    /**
+     * 根据产品分页查询属性数据,一个属性为一列,仅支持部分存储策略
+     *
+     * @param productId 产品ID
+     * @param query     查询条件
+     * @return 查询结果
+     */
+    @Nonnull
+    Mono<PagerResult<DeviceProperties>> queryPropertiesPageByProduct(@Nonnull String productId,
+                                                                     @Nonnull QueryParamEntity query);
+
 
     @Getter
     @Setter

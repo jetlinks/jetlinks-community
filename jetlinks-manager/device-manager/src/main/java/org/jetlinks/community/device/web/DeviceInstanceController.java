@@ -35,6 +35,12 @@ import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.device.service.data.DeviceProperties;
+import org.jetlinks.community.device.web.excel.DeviceExcelImporter;
+import org.jetlinks.community.device.web.excel.DeviceExcelInfo;
+import org.jetlinks.community.device.web.excel.DeviceWrapper;
+import org.jetlinks.community.device.web.excel.PropertyMetadataExcelInfo;
+import org.jetlinks.community.device.web.excel.PropertyMetadataWrapper;
 import org.jetlinks.community.device.web.excel.*;
 import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.io.excel.AbstractImporter;
@@ -834,6 +840,17 @@ public class DeviceInstanceController implements
                                                    .toArray(new DeviceDataService.DevicePropertyAggregation[0]))
             )
             .map(AggregationData::values);
+    }
+
+    //查询属性列表
+    @PostMapping("/{deviceId:.+}/properties/_query/no-paging")
+    @QueryAction
+    @Operation(summary = "不分页查询设备的全部属性(一个属性为一列)",
+        description = "设备使用列式存储模式才支持")
+    public Flux<DeviceProperties> queryDevicePropertiesNoPaging(@PathVariable
+                                                                @Parameter(description = "设备ID") String deviceId,
+                                                                @RequestBody Mono<QueryParamEntity> entity) {
+        return entity.flatMapMany(q -> deviceDataService.queryProperties(deviceId, q));
     }
 
     //发送设备指令

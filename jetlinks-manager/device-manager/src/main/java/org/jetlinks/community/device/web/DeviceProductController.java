@@ -10,6 +10,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.reactor.excel.ReactorExcel;
+import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.api.crud.entity.QueryOperation;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
@@ -20,6 +23,7 @@ import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.device.service.data.DeviceProperties;
 import org.jetlinks.community.device.web.excel.PropertyMetadataExcelInfo;
 import org.jetlinks.community.device.web.excel.PropertyMetadataWrapper;
 import org.jetlinks.community.device.web.request.AggRequest;
@@ -191,6 +195,17 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
                     request.getColumns().toArray(new DeviceDataService.DevicePropertyAggregation[0]))
             )
             .map(AggregationData::values);
+    }
+
+    //查询属性列表
+    @PostMapping("/{productId}/properties/_query")
+    @QueryAction
+    @QueryOperation(summary = "查询设备的全部属性(一个属性为一列)",
+        description = "产品使用列式存储模式才支持")
+    public Mono<PagerResult<DeviceProperties>> queryDevicePropertiesAll(@PathVariable
+                                                                        @Parameter(description = "产品ID") String productId,
+                                                                        @RequestBody Mono<QueryParamEntity> entity) {
+        return entity.flatMap(q -> deviceDataService.queryPropertiesPageByProduct(productId, q));
     }
 
     @Getter
