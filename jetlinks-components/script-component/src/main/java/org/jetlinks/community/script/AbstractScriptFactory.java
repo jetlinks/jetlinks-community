@@ -1,8 +1,11 @@
 package org.jetlinks.community.script;
 
+import io.netty.buffer.ByteBuf;
 import org.hswebframework.web.utils.DigestUtils;
 import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.reactor.ql.utils.CompareUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
@@ -12,6 +15,7 @@ import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -35,13 +39,16 @@ public abstract class AbstractScriptFactory implements ScriptFactory {
     };
 
     static Class<?>[] DEFAULT_ALLOWS = {
+        byte[].class,
         byte.class, short.class, int.class, long.class, char.class, float.class, double.class, boolean.class,
         Byte.class, Short.class, Integer.class, Long.class, Character.class, Float.class, Double.class, Boolean.class,
         BigDecimal.class, BigInteger.class,
         String.class,
         HashMap.class, ConcurrentHashMap.class, LinkedHashMap.class,
-        Date.class, LocalDateTime.class,
-        ArrayList.class,LinkedList.class
+        Date.class, LocalDateTime.class, LocalDate.class,
+        ArrayList.class, LinkedList.class,
+        Mono.class, Flux.class,
+        ByteBuf.class
     };
 
     private final Set<String> denies = new HashSet<>();
