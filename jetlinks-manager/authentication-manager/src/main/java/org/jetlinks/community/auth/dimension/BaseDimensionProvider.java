@@ -1,6 +1,7 @@
 package org.jetlinks.community.auth.dimension;
 
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveQuery;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
@@ -11,6 +12,7 @@ import org.hswebframework.web.authorization.DimensionType;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
+import org.hswebframework.web.crud.utils.TransactionUtils;
 import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntity;
 import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
@@ -18,16 +20,21 @@ import org.hswebframework.web.system.authorization.defaults.service.terms.Dimens
 import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.GenericTypeResolver;
+import org.springframework.transaction.reactive.TransactionSynchronization;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 public abstract class BaseDimensionProvider<T extends GenericEntity<String>> implements DimensionProvider {
 
     protected final ReactiveRepository<T, String> repository;
@@ -35,6 +42,8 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
     protected final ApplicationEventPublisher eventPublisher;
 
     protected final DefaultDimensionUserService dimensionUserService;
+
+    private Class<?> entityType;
 
     protected abstract DimensionType getDimensionType();
 
@@ -49,8 +58,7 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
         return DimensionTerm
             .inject(createQuery(), "id", getDimensionType().getId(), Collections.singletonList(s))
             .fetch()
-            .as(this::convertToDimension)
-            ;
+            .as(this::convertToDimension);
     }
 
     @Override
@@ -93,8 +101,24 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
         return Flux.just(getDimensionType());
     }
 
+    protected Class<?> getEntityType() {
+        return entityType == null
+            ? entityType = GenericTypeResolver.resolveTypeArgument(this.getClass(), BaseDimensionProvider.class)
+            : entityType;
+    }
+
+    private boolean isNotSameType(Class<?> type) {
+        Class<?> genType = getEntityType();
+
+        return genType == null || !genType.isAssignableFrom(type);
+    }
+
+
     @EventListener
     public void handleEvent(EntityDeletedEvent<T> event) {
+        if (isNotSameType(event.getEntityType())) {
+            return;
+        }
         event.async(
             clearUserAuthenticationCache(event.getEntity())
         );
@@ -102,6 +126,9 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
 
     @EventListener
     public void handleEvent(EntitySavedEvent<T> event) {
+        if (isNotSameType(event.getEntityType())) {
+            return;
+        }
         event.async(
             clearUserAuthenticationCache(event.getEntity())
         );
@@ -109,30 +136,61 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
 
     @EventListener
     public void handleEvent(EntityModifyEvent<T> event) {
+        if (isNotSameType(event.getEntityType())) {
+            return;
+        }
+        Map<String, T> beforeMap = event
+            .getBefore()
+            .stream()
+            .collect(Collectors.toMap(T::getId, Function.identity()));
+
+        List<T> readyToClear = event
+            .getAfter()
+            .stream()
+            .filter(after -> isChanged(beforeMap.get(after.getId()), after))
+            .collect(Collectors.toList());
+
+        if (readyToClear.isEmpty()) {
+            return;
+        }
         event.async(
-            clearUserAuthenticationCache(event.getAfter())
+            clearUserAuthenticationCache(readyToClear)
         );
     }
 
-    private Mono<Void> clearUserAuthenticationCache(Collection<T> roles) {
-        List<String> idList = roles
-            .stream()
-            .map(GenericEntity::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(idList)) {
-            return Mono.empty();
-        }
-        return dimensionUserService
-            .createQuery()
-            .where()
-            .in(DimensionUserEntity::getDimensionId, idList)
-            .and(DimensionUserEntity::getDimensionTypeId, getDimensionType().getId())
-            .fetch()
-            .map(DimensionUserEntity::getUserId)
-            .collectList()
-            .filter(CollectionUtils::isNotEmpty)
-            .flatMap(users->ClearUserAuthorizationCacheEvent.of(users).publish(eventPublisher));
+    protected boolean isChanged(T before, T after) {
+        return true;
+    }
+
+
+    private Mono<Void> clearUserAuthenticationCache0(Collection<T> entities) {
+        return Flux
+            .fromIterable(entities)
+            .mapNotNull(GenericEntity::getId)
+            .buffer(200)
+            .flatMap(list -> dimensionUserService
+                .createQuery()
+                .where()
+                .select(DimensionUserEntity::getUserId)
+                .in(DimensionUserEntity::getDimensionId, list)
+                .and(DimensionUserEntity::getDimensionTypeId, getDimensionType().getId())
+                .fetch()
+                .map(DimensionUserEntity::getUserId)
+                .collect(Collectors.toSet())
+                .filter(CollectionUtils::isNotEmpty)
+                .flatMap(users -> ClearUserAuthorizationCacheEvent.of(users).publish(eventPublisher)))
+            .then();
+    }
+
+    protected Mono<Void> clearUserAuthenticationCache(Collection<T> entities) {
+        return TransactionUtils
+            .registerSynchronization(new TransactionSynchronization() {
+                @Override
+                @Nonnull
+                public Mono<Void> afterCommit() {
+                    return clearUserAuthenticationCache0(entities);
+                }
+            }, TransactionSynchronization::afterCommit);
     }
 
 }
