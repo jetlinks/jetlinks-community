@@ -65,10 +65,27 @@ TCP/UDP/MQTT/HTTP、TLS/DTLS、不同厂商、不同设备、不同报文、统�
 ------|----simulator            # 设备模拟器
 ```
 
+
+## 服务支持
+
+我们提供了各种服务方式帮助您深入了解物联网平台和代码，通过产品文档、技术交流群、付费教学等方式，你将获得如下服务：
+
+
+| 服务项       | 服务内容              | 服务收费   | 服务方式   |
+|-----------|-----------------|--------|-------------|
+| 基础问题答疑    | 问题答疑  | 免费     | 技术交流群支持 [![QQ①群2021514](https://img.shields.io/badge/QQ①群-2021514-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=LGf0OPQqvLGdJIZST3VTcypdVWhdfAOG&jump_from=webapi) [![QQ②群324606263](https://img.shields.io/badge/QQ②群-324606263-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=IMas2cH-TNsYxUcY8lRbsXqPnA2sGHYQ&jump_from=webapi) [![QQ③群647954464](https://img.shields.io/badge/QQ③群-647954464-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=K5m27CkhDn3B_Owr-g6rfiTBC5DKEY59&jump_from=webapi) [![QQ④群780133058](https://img.shields.io/badge/QQ④群-780133058-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=Gj47w9kg7TlV5ceD5Bqew_M_O0PIjh_l&jump_from=webapi) |
+| 系统部署      | 系统部署     | 免费     | 文档自助。[源码部署](https://hanta.yuque.com/px7kg1/yfac2l/vvoa3u2ztymtp4oh) [Docker部署](https://hanta.yuque.com/px7kg1/yfac2l/mzq23z4iey5ev1a5)  |
+| 产品使用      | 教学产品各功能使用   | 免费     | 文档自助。[产品文档](https://hanta.yuque.com/px7kg1/yfac2l) |
+| 二次开发      | 教学平台源码开发过程、工具使用等；| 免费     | 文档自助。[开发文档](https://hanta.yuque.com/px7kg1/nn1gdr)  |
+| 系统部署      | 在客户指定的网络和硬件环境中完成社区版服务部署；提供**模拟**设备接入到平台中，并能完成正常设备上线、数据上下行 | 199元   | 线上部署支持   |
+| 技术支持      | 提供各类部署、功能使用中遇到的问题答疑  | 100    | 半小时内 线上远程支持|
+| 设备接入协议开发  | 根据提供的设备型号，编写并提供接入平台协议包的源码。| 3000+元 | 定制化开发  |
+| 硬件支持    |  提供JetLinks自有硬件邮寄到手（JetLinks DTU、报警器、温度传感器）；并提供完整的接入视频文档  | 699元  | 硬件包邮|
+| 其他服务 | 企业版源码购买；定制化开发；定制化时长、功能服务等 | 面议 | 面议 |
+
 ## 文档
 
 
 [产品文档](https://hanta.yuque.com/px7kg1/yfac2l)
 [快速开始](https://hanta.yuque.com/px7kg1/yfac2l/raspyc4p1asfuxks)
-[开发文档](https://hanta.yuque.com/px7kg1/nn1gdr) 
-
+[开发文档](https://hanta.yuque.com/px7kg1/nn1gdr)
