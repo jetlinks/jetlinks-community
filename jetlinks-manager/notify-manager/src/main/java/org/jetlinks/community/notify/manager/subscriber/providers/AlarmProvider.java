@@ -132,7 +132,6 @@ public class AlarmProvider implements SubscriberProvider {
     enum TargetType {
         device("设备"),
         product("产品"),
-        org("组织"),
         other("其它");
 
         private final String text;
