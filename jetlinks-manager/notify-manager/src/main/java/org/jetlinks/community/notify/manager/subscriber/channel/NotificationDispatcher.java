@@ -8,7 +8,8 @@ import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.notify.manager.entity.Notification;
-import org.jetlinks.community.notify.manager.entity.NotifyChannelEntity;
+import org.jetlinks.community.notify.manager.entity.NotifySubscriberChannelEntity;
+import org.jetlinks.community.notify.manager.entity.NotifySubscriberChannelEntity;
 import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.jetlinks.core.cache.ReactiveCacheContainer;
 import org.jetlinks.core.event.EventBus;
@@ -34,18 +35,17 @@ import java.util.Map;
 @Component
 @Slf4j
 public class NotificationDispatcher implements CommandLineRunner {
-
     private final EventBus eventBus;
 
     private final ReactiveCacheContainer<String, NotifyChannel> channels = ReactiveCacheContainer.create();
 
     private final Map<String, NotifyChannelProvider> providers = new HashMap<>();
 
-    private final ReactiveRepository<NotifyChannelEntity, String> channelRepository;
+    private final ReactiveRepository<NotifySubscriberChannelEntity, String> channelRepository;
 
     public NotificationDispatcher(EventBus eventBus,
                                   ObjectProvider<NotifyChannelProvider> providers,
-                                  ReactiveRepository<NotifyChannelEntity, String> channelRepository) {
+                                  ReactiveRepository<NotifySubscriberChannelEntity, String> channelRepository) {
         this.eventBus = eventBus;
         this.channelRepository = channelRepository;
         //默认支持站内信
@@ -77,7 +77,7 @@ public class NotificationDispatcher implements CommandLineRunner {
     }
 
     @EventListener
-    public void handleEvent(EntityCreatedEvent<NotifyChannelEntity> event) {
+    public void handleEvent(EntityCreatedEvent<NotifySubscriberChannelEntity> event) {
 
         event.async(
             register(event.getEntity())
@@ -85,7 +85,7 @@ public class NotificationDispatcher implements CommandLineRunner {
     }
 
     @EventListener
-    public void handleEvent(EntitySavedEvent<NotifyChannelEntity> event) {
+    public void handleEvent(EntitySavedEvent<NotifySubscriberChannelEntity> event) {
 
         event.async(
             register(event.getEntity())
@@ -93,7 +93,7 @@ public class NotificationDispatcher implements CommandLineRunner {
     }
 
     @EventListener
-    public void handleEvent(EntityModifyEvent<NotifyChannelEntity> event) {
+    public void handleEvent(EntityModifyEvent<NotifySubscriberChannelEntity> event) {
 
         event.async(
             register(event.getAfter())
@@ -101,19 +101,19 @@ public class NotificationDispatcher implements CommandLineRunner {
     }
 
     @EventListener
-    public void handleEvent(EntityDeletedEvent<NotifyChannelEntity> event) {
+    public void handleEvent(EntityDeletedEvent<NotifySubscriberChannelEntity> event) {
         event.async(
             unregister(event.getEntity())
         );
     }
 
     @Subscribe(value = "/_sys/notify-channel/unregister", features = Subscription.Feature.broker)
-    public void unregister(NotifyChannelEntity entity) {
+    public void unregister(NotifySubscriberChannelEntity entity) {
         channels.remove(entity.getId());
     }
 
     @Subscribe(value = "/_sys/notify-channel/register", features = Subscription.Feature.broker)
-    public Mono<Void> register(NotifyChannelEntity entity) {
+    public Mono<Void> register(NotifySubscriberChannelEntity entity) {
         if (entity.getState() == NotifyChannelState.disabled) {
             channels.remove(entity.getId());
         } else {
@@ -129,7 +129,7 @@ public class NotificationDispatcher implements CommandLineRunner {
         return Mono.empty();
     }
 
-    private Mono<NotifyChannel> createChannel(NotifyChannelEntity entity) {
+    private Mono<NotifyChannel> createChannel(NotifySubscriberChannelEntity entity) {
         NotifyChannelProvider provider = providers.get(entity.getChannelProvider());
         if (null == provider) {
             return Mono.empty();
@@ -137,8 +137,8 @@ public class NotificationDispatcher implements CommandLineRunner {
         return provider.createChannel(entity.getChannelConfiguration());
     }
 
-    private Mono<Void> unregister(List<NotifyChannelEntity> entities) {
-        for (NotifyChannelEntity entity : entities) {
+    private Mono<Void> unregister(List<NotifySubscriberChannelEntity> entities) {
+        for (NotifySubscriberChannelEntity entity : entities) {
             unregister(entity);
         }
         return Flux.fromIterable(entities)
@@ -146,7 +146,7 @@ public class NotificationDispatcher implements CommandLineRunner {
                    .then();
     }
 
-    private Mono<Void> register(List<NotifyChannelEntity> entities) {
+    private Mono<Void> register(List<NotifySubscriberChannelEntity> entities) {
         return Flux.fromIterable(entities)
                    .flatMap(e -> register(e)
                        .then(eventBus.publish("/_sys/notify-channel/register", e)))
@@ -158,7 +158,7 @@ public class NotificationDispatcher implements CommandLineRunner {
     public void run(String... args) throws Exception {
         channelRepository
             .createQuery()
-            .where(NotifyChannelEntity::getState, NotifyChannelState.enabled)
+            .where(NotifySubscriberChannelEntity::getState, NotifyChannelState.enabled)
             .fetch()
             .flatMap(e -> this
                 .register(e)

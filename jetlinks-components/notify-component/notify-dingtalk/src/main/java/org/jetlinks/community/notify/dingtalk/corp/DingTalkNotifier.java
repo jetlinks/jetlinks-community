@@ -9,6 +9,7 @@ import org.jetlinks.community.notify.Provider;
 import org.jetlinks.community.notify.dingtalk.DingTalkProvider;
 import org.jetlinks.community.notify.dingtalk.corp.request.ApiRequest;
 import org.jetlinks.community.notify.dingtalk.corp.request.GetAccessTokenRequest;
+import org.jetlinks.community.notify.dingtalk.corp.request.GetUserAccessTokenRequest;
 import org.jetlinks.community.notify.template.TemplateManager;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.command.Command;
@@ -85,6 +86,10 @@ public class DingTalkNotifier extends AbstractNotifier<DingTalkMessageTemplate> 
                 .retrieve()
                 .bodyToMono(ApiResponse.class))
             .then();
+    }
+
+    public Mono<AccessTokenResponse> getUserAccessToken(String code) {
+        return execute(new GetUserAccessTokenRequest(properties.getAppKey(), properties.getAppSecret(), code));
     }
 
     private Mono<String> getToken() {

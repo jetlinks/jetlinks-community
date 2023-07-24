@@ -188,6 +188,25 @@ public class NotificationController {
             );
     }
 
+    @PostMapping("/_{state}/provider")
+    @Authorize(ignore = true)
+    @QueryOperation(summary = "按订阅类型修改通知状态")
+    public Mono<Integer> readNotificationByType(@RequestBody Mono<List<String>> providerList,
+                                                @PathVariable NotificationState state) {
+        return Authentication
+            .currentReactive()
+            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+            .flatMap(auth -> providerList
+                .filter(CollectionUtils::isNotEmpty)
+                .flatMap(list -> notificationService.createUpdate()
+                                                    .set(NotificationEntity::getState, state)
+                                                    .where(NotificationEntity::getSubscriberType, "user")
+                                                    .and(NotificationEntity::getSubscriber, auth.getUser().getId())
+                                                    .in(NotificationEntity::getTopicProvider, list)
+                                                    .execute())
+            );
+    }
+
     @Getter
     @Setter
     public static class SubscriberProviderInfo {
