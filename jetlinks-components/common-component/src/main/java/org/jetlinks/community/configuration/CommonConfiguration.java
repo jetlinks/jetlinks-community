@@ -6,6 +6,7 @@ import io.netty.buffer.Unpooled;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.web.api.crud.entity.EntityFactory;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.JvmErrorException;
 import org.jetlinks.community.config.ConfigManager;
@@ -20,7 +21,9 @@ import org.jetlinks.community.resource.DefaultResourceManager;
 import org.jetlinks.community.resource.ResourceManager;
 import org.jetlinks.community.resource.ResourceProvider;
 import org.jetlinks.community.resource.initialize.PermissionResourceProvider;
+import org.jetlinks.community.service.DefaultUserBindService;
 import org.jetlinks.community.utils.TimeUtils;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.reactor.ql.feature.Feature;
 import org.jetlinks.reactor.ql.supports.DefaultReactorQLMetadata;
@@ -28,10 +31,13 @@ import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.http.MediaType;
 import org.springframework.util.unit.DataSize;
 import reactor.core.Exceptions;
@@ -180,5 +186,14 @@ public class CommonConfiguration {
         provider.forEach(referenceManager::addStrategy);
 
         return referenceManager;
+    }
+
+    @AutoConfiguration
+    @ConditionalOnClass(ReactiveRedisOperations.class)
+    static class DefaultUserBindServiceConfiguration {
+        @Bean
+        public DefaultUserBindService defaultUserBindService(ReactiveRedisOperations<Object, Object> redis) {
+            return new DefaultUserBindService(redis);
+        }
     }
 }

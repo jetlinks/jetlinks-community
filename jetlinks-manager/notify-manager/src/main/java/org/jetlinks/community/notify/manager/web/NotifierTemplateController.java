@@ -15,6 +15,7 @@ import org.jetlinks.community.notify.manager.service.NotifyConfigService;
 import org.jetlinks.community.notify.manager.service.NotifyTemplateService;
 import org.jetlinks.community.notify.manager.web.response.TemplateInfo;
 import org.jetlinks.community.notify.template.TemplateProvider;
+import org.jetlinks.community.notify.template.VariableDefinition;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -78,6 +79,35 @@ public class NotifierTemplateController implements ReactiveServiceCrudController
 
     }
 
+    @PostMapping("/{configId}/detail/_query")
+    @QueryAction
+    @Operation(summary = "根据配置ID查询通知模版详情列表")
+    public Flux<NotifyTemplateEntity> queryTemplatesDetailByConfigId(@PathVariable
+                                                                     @Parameter(description = "配置ID") String configId,
+                                                                     @RequestBody Mono<QueryParamEntity> query) {
+        return configService
+            .findById(configId)
+            .flatMapMany(conf -> query
+                .flatMapMany(param -> param
+                    .toNestQuery(nest -> nest
+                        //where type = ? and provider = ? and (config_id = ? or config_id is null or config_id = '')
+                        .is(NotifyTemplateEntity::getType, conf.getType())
+                        .is(NotifyTemplateEntity::getProvider, conf.getProvider())
+                        .nest()
+                        /**/.is(NotifyTemplateEntity::getConfigId, configId)
+                        /*  */.or()
+                        /**/.isNull(NotifyTemplateEntity::getConfigId)
+                        .isEmpty(NotifyTemplateEntity::getConfigId)
+                    )
+                    .noPaging()
+                    .execute(templateService::query)))
+            .flatMap(e -> this
+                .convertVariableDefinitions(e)
+                .doOnNext(e::setVariableDefinitions)
+                .thenReturn(e));
+
+    }
+
     @GetMapping("/{templateId}/detail")
     @QueryAction
     @Operation(summary = "获取模版详情信息")
@@ -116,6 +146,13 @@ public class NotifierTemplateController implements ReactiveServiceCrudController
             }
         }
         throw new ValidationException("error.unsupported_notify_provider");
+    }
+
+    private Mono<List<VariableDefinition>> convertVariableDefinitions(NotifyTemplateEntity templateEntity) {
+        return this
+            .getProvider(templateEntity.getType(), templateEntity.getProvider())
+            .createTemplate(templateEntity.toTemplateProperties())
+            .map(t -> new ArrayList<>(t.getVariables().values()));
     }
 
 }

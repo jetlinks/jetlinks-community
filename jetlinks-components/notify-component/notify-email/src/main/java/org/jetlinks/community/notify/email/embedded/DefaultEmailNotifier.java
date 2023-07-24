@@ -142,11 +142,8 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
             .fromCallable(() -> {
                 MimeMessage mimeMessage = this.javaMailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "utf-8");
-                if (StringUtils.isNotBlank(this.username)) {
-                    helper.setFrom(this.sender + '<' + this.username + '>');
-                } else {
-                    helper.setFrom(this.sender);
-                }
+
+                helper.setFrom(this.sender);
                 helper.setTo(template.getSendTo().toArray(new String[0]));
                 helper.setSubject(template.getSubject());
                 helper.setText(new String(template.getText().getBytes(), StandardCharsets.UTF_8), true);

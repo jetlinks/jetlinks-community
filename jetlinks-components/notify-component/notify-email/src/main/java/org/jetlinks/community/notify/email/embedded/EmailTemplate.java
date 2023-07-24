@@ -77,7 +77,7 @@ public class EmailTemplate extends AbstractTemplate<EmailTemplate> {
                     .id(SEND_TO_KEY)
                     .name("收件人")
                     .expand(NotifyVariableBusinessConstant.businessId,
-                        NotifyVariableBusinessConstant.NotifyVariableBusinessTypes.userType)
+                            NotifyVariableBusinessConstant.NotifyVariableBusinessTypes.userType)
                     .required(true)
                     .type(ArrayType.ID)
                     .build()
@@ -91,19 +91,18 @@ public class EmailTemplate extends AbstractTemplate<EmailTemplate> {
                 index++;
                 if (StringUtils.isNotEmpty(attachment.getName())
                     && StringUtils.isEmpty(attachment.getLocation())) {
-                    continue;
+                    variables.add(
+                        VariableDefinition
+                            .builder()
+                            .id(locationKey(index))
+                            .name(attachment.getName())
+                            .type(FileType.ID)
+                            .description(attachment.getName())
+                            .format(Variable.FileFormat.any)
+                            .required(true)
+                            .build()
+                    );
                 }
-                variables.add(
-                    VariableDefinition
-                        .builder()
-                        .id(locationKey(index))
-                        .name(attachment.getName())
-                        .type(FileType.ID)
-                        .description(attachment.getName())
-                        .format(Variable.FileFormat.any)
-                        .required(true)
-                        .build()
-                );
             }
         }
         return variables;

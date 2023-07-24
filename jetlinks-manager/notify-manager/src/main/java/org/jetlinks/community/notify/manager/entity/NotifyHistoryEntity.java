@@ -13,6 +13,7 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.generator.Generators;
 import org.jetlinks.community.notify.event.SerializableNotifierEvent;
 import org.jetlinks.community.notify.manager.enums.NotifyState;
+import org.jetlinks.community.notify.manager.service.NotifyHistory;
 
 import javax.persistence.Column;
 import javax.persistence.Index;
@@ -99,4 +100,7 @@ public class NotifyHistoryEntity extends GenericEntity<String> {
         return entity;
     }
 
+    public NotifyHistory toHistory(){
+        return FastBeanCopier.copy(this,new NotifyHistory());
+    }
 }

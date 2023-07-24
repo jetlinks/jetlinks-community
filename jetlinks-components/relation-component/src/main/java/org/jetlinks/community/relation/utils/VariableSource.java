@@ -14,9 +14,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 变量值来源描述
@@ -204,15 +203,28 @@ public class VariableSource implements Serializable {
 
         for (Map.Entry<String, Object> entry : def.entrySet()) {
             String key = entry.getKey();
-            VariableSource source = VariableSource.of(entry.getValue());
-            if (source.getSource() == VariableSource.Source.upper) {
-                //替换上游值,防止key冲突(source的key和上游的key一样)导致无法获取到真实到上游值
-                vars.put(key, VariableSource.fixed(VariableSource.getNestProperty(source.getUpperKey(), context)));
+            Object value = entry.getValue();
+            if (value instanceof Collection) {
+                List<VariableSource> sourceList = ((Collection<?>)value)
+                    .stream()
+                    .map(obj -> doWrap(obj, context))
+                    .collect(Collectors.toList());
+                vars.put(key, sourceList);
             } else {
+                VariableSource source = doWrap(value, context);
                 vars.put(key, source);
             }
         }
         return vars;
+    }
+
+    private static VariableSource doWrap(Object value, Map<String, Object> context) {
+        VariableSource source = VariableSource.of(value);
+        if (source.getSource() == Source.upper) {
+            //替换上游值,防止key冲突(source的key和上游的key一样)导致无法获取到真实到上游值
+            source = VariableSource.fixed(VariableSource.getNestProperty(source.getUpperKey(), context));
+        }
+        return source;
     }
 
     public enum Source {

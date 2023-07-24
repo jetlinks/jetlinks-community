@@ -8,11 +8,10 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
+import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.validator.CreateGroup;
-//import org.jetlinks.community.authorize.AuthenticationSpec;
 import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
-import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
-import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannelProvider;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
@@ -29,48 +28,28 @@ import java.util.Map;
  * @author zhouhao
  * @since 2.0
  */
-@Table(name = "notify_channel")
 @Getter
 @Setter
-@Schema(description = "通知通道(配置)")
-public class NotifyChannelEntity extends GenericEntity<String> {
+@Table(name = "notify_subscriber_channel")
+@Schema(description = "通知订阅通道")
+@EnableEntityEvent
+public class NotifySubscriberChannelEntity extends GenericEntity<String> implements RecordCreationEntity {
+
+    @Column(nullable = false, length = 64, updatable = false)
+    @NotBlank(groups = CreateGroup.class)
+    @Schema(description = "主题提供商标识")
+    private String providerId;
 
     @Column(nullable = false, length = 32)
     @NotBlank(groups = CreateGroup.class)
     @Schema(description = "名称")
     private String name;
 
-//    @Column
-//    @JsonCodec
-//    @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
-//    @Schema(description = "权限范围")
-//    private AuthenticationSpec grant;
-
-    /**
-     * @see SubscriberProvider#getId()
-     */
-    @Column(nullable = false, length = 32, updatable = false)
-    @NotBlank(groups = CreateGroup.class)
-    @Schema(description = "主题提供商标识")
-    private String topicProvider;
-
     @Column(nullable = false, length = 32)
-    @NotBlank(groups = CreateGroup.class)
-    @Schema(description = "主题提供商名称")
-    private String topicName;
-
-    /**
-     * @see NotifyChannelProvider#getId()
-     */
-    @Column(nullable = false, length = 32, updatable = false)
     @NotBlank(groups = CreateGroup.class)
     @Schema(description = "通知类型")
     private String channelProvider;
 
-    /**
-     * @see NotifyChannelProvider#createChannel(Map)
-     * @see org.jetlinks.community.notify.manager.subscriber.channel.notifiers.NotifierChannelProvider.NotifyChannelConfig
-     */
     @Column
     @JsonCodec
     @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
@@ -84,4 +63,11 @@ public class NotifyChannelEntity extends GenericEntity<String> {
     @Schema(description = "状态")
     private NotifyChannelState state;
 
+    @Column(length = 64, updatable = false)
+    @Schema(description = "创建人ID", accessMode = Schema.AccessMode.READ_ONLY)
+    private String creatorId;
+
+    @Column(length = 64, updatable = false)
+    @Schema(description = "创建时间", accessMode = Schema.AccessMode.READ_ONLY)
+    private Long createTime;
 }

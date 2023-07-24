@@ -58,16 +58,27 @@ public class AlarmProvider implements SubscriberProvider {
 
     @Override
     public Mono<Subscriber> createSubscriber(String id, Authentication authentication, Map<String, Object> config) {
-        ValueObject configs = ValueObject.of(config);
 
-        String alarmId = configs.getString("alarmConfigId").orElse("*");
-
-        String topic = Topics.alarm("*", "*", alarmId);
+        String topic = Topics.alarm("*", "*", getAlarmId(config));
 
         return Mono.just(locale -> createSubscribe(locale, id, new String[]{topic})
             //有效期内去重,防止同一个用户所在多个部门推送同一个告警
             .as(FluxUtils.distinct(Notify::getDataId, Duration.ofSeconds(10))));
 
+    }
+
+
+    protected Mono<Subscriber> doCreateSubscriber(String id,
+                                                  Authentication authentication,
+                                                  String topic) {
+        return Mono.just(locale -> createSubscribe(locale, id, new String[]{topic})
+            //有效期内去重,防止同一个用户所在多个部门推送同一个告警
+            .as(FluxUtils.distinct(Notify::getDataId, Duration.ofSeconds(10))));
+    }
+
+    protected String getAlarmId( Map<String, Object> config) {
+        ValueObject configs = ValueObject.of(config);
+        return configs.getString("alarmConfigId").orElse("*");
     }
 
     private Flux<Notify> createSubscribe(Locale locale,
@@ -121,6 +132,7 @@ public class AlarmProvider implements SubscriberProvider {
     enum TargetType {
         device("设备"),
         product("产品"),
+        org("组织"),
         other("其它");
 
         private final String text;
