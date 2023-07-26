@@ -49,10 +49,12 @@ public class WechatMessageTemplate extends AbstractTemplate<WechatMessageTemplat
     private String message;
 
     public Mono<String> getToUser(Map<String, Object> context, ConfigKey<String> relationPropertyPath) {
-        return VariableSource.resolveValue(TO_USER_KEY, context, relationPropertyPath)
+        return VariableSource
+            .resolveValue(TO_USER_KEY, context, relationPropertyPath)
             .map(String::valueOf)
-            .collect(Collectors.joining(","))
-            .defaultIfEmpty(toUser == null ? "" : toUser);
+            .filter(StringUtils::hasText)
+            .defaultIfEmpty(toUser == null ? "" : toUser)
+            .collect(Collectors.joining(","));
     }
 
     public String getToParty(Map<String, Object> context) {

@@ -131,8 +131,10 @@ public class DingTalkMessageTemplate extends AbstractTemplate<DingTalkMessageTem
     }
 
     public Mono<String> createUserIdList(Values context, ConfigKey<String> relationPropertyPath) {
-        return VariableSource.resolveValue(USER_ID_LIST_KEY, context.getAllValues(), relationPropertyPath)
+        return VariableSource
+            .resolveValue(USER_ID_LIST_KEY, context.getAllValues(), relationPropertyPath)
             .map(String::valueOf)
+            .filter(StringUtils::hasText)
             .defaultIfEmpty(userIdList == null ? "" : userIdList)
             .collect(Collectors.joining(","));
     }
