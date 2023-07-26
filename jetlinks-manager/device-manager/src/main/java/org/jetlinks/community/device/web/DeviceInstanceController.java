@@ -35,11 +35,13 @@ import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.device.service.data.DeviceProperties;
 import org.jetlinks.community.device.web.excel.DeviceExcelImporter;
 import org.jetlinks.community.device.web.excel.DeviceExcelInfo;
 import org.jetlinks.community.device.web.excel.DeviceWrapper;
 import org.jetlinks.community.device.web.excel.PropertyMetadataExcelInfo;
 import org.jetlinks.community.device.web.excel.PropertyMetadataWrapper;
+import org.jetlinks.community.device.web.excel.*;
 import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.io.excel.AbstractImporter;
 import org.jetlinks.community.io.excel.ImportExportService;
@@ -123,6 +125,8 @@ public class DeviceInstanceController implements
 
     private final WebClient webClient;
 
+    private final DeviceExcelFilterColumns filterColumns;
+
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
                                     DeviceRegistry registry,
@@ -134,7 +138,8 @@ public class DeviceInstanceController implements
                                     RelationService relationService,
                                     TransactionalOperator transactionalOperator,
                                     FileManager fileManager,
-                                    WebClient.Builder builder) {
+                                    WebClient.Builder builder,
+                                    DeviceExcelFilterColumns filterColumns) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
@@ -146,6 +151,7 @@ public class DeviceInstanceController implements
         this.transactionalOperator = transactionalOperator;
         this.fileManager = fileManager;
         this.webClient = builder.build();
+        this.filterColumns = filterColumns;
     }
 
 
@@ -652,8 +658,8 @@ public class DeviceInstanceController implements
                                   "attachment; filename=".concat(URLEncoder.encode("设备导入模版." + format, StandardCharsets.UTF_8
                                       .displayName())));
         return getDeviceProductDetail(productId)
-            .map(tp4 -> DeviceExcelInfo.getTemplateHeaderMapping(tp4.getT3().getTags(), tp4.getT4()))
-            .defaultIfEmpty(DeviceExcelInfo.getTemplateHeaderMapping(Collections.emptyList(), Collections.emptyList()))
+            .map(tp4 -> DeviceExcelInfo.getTemplateHeaderMapping(filterColumns,tp4.getT3().getTags(), tp4.getT4()))
+            .defaultIfEmpty(DeviceExcelInfo.getTemplateHeaderMapping(filterColumns,Collections.emptyList(), Collections.emptyList()))
             .flatMapMany(headers ->
                              ReactorExcel.<DeviceExcelInfo>writer(format)
                                  .headers(headers)
@@ -690,7 +696,7 @@ public class DeviceInstanceController implements
                     .map(tp4 -> Tuples
                         .of(
                             //表头
-                            DeviceExcelInfo.getExportHeaderMapping(tp4.getT3().getTags(), tp4.getT4()),
+                            DeviceExcelInfo.getExportHeaderMapping(filterColumns,tp4.getT3().getTags(), tp4.getT4()),
                             //配置key集合
                             tp4
                                 .getT4()
@@ -698,7 +704,7 @@ public class DeviceInstanceController implements
                                 .map(ConfigPropertyMetadata::getProperty)
                                 .collect(Collectors.toList())
                         ))
-                    .defaultIfEmpty(Tuples.of(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(), Collections
+                    .defaultIfEmpty(Tuples.of(DeviceExcelInfo.getExportHeaderMapping(filterColumns,Collections.emptyList(), Collections
                                                   .emptyList()),
                                               Collections.emptyList()))
                     .flatMapMany(headerAndConfigKey -> ReactorExcel
@@ -757,7 +763,7 @@ public class DeviceInstanceController implements
                                   "attachment; filename=".concat(URLEncoder.encode("设备实例." + format, StandardCharsets.UTF_8
                                       .displayName())));
         return ReactorExcel.<DeviceExcelInfo>writer(format)
-            .headers(DeviceExcelInfo.getExportHeaderMapping(Collections.emptyList(), Collections.emptyList()))
+            .headers(DeviceExcelInfo.getExportHeaderMapping(filterColumns,Collections.emptyList(), Collections.emptyList()))
             .converter(DeviceExcelInfo::toMap)
             .writeBuffer(
                 service
@@ -834,6 +840,17 @@ public class DeviceInstanceController implements
                                                    .toArray(new DeviceDataService.DevicePropertyAggregation[0]))
             )
             .map(AggregationData::values);
+    }
+
+    //查询属性列表
+    @PostMapping("/{deviceId:.+}/properties/_query/no-paging")
+    @QueryAction
+    @Operation(summary = "不分页查询设备的全部属性(一个属性为一列)",
+        description = "设备使用列式存储模式才支持")
+    public Flux<DeviceProperties> queryDevicePropertiesNoPaging(@PathVariable
+                                                                @Parameter(description = "设备ID") String deviceId,
+                                                                @RequestBody Mono<QueryParamEntity> entity) {
+        return entity.flatMapMany(q -> deviceDataService.queryProperties(deviceId, q));
     }
 
     //发送设备指令

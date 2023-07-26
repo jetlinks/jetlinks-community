@@ -8,6 +8,7 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.reactorql.term.FixedTermTypeSupport;
 import org.jetlinks.community.reactorql.term.TermTypeSupport;
 import org.jetlinks.community.reactorql.term.TermTypes;
+import org.jetlinks.core.Wrapper;
 import org.jetlinks.core.metadata.Jsonable;
 import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.core.utils.Reactors;
@@ -15,6 +16,7 @@ import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -56,6 +58,20 @@ public class ReactorUtils {
         return FluxUtils.distinct(keySelector, duration);
     }
 
+    /**
+     * 尝试执行 {@link Disposable#dispose()}
+     *
+     * @param disposableMaybe Disposable对象
+     * @see Disposable
+     * @see Wrapper
+     */
+    public static void dispose(Object disposableMaybe) {
+        if (disposableMaybe instanceof Disposable) {
+            ((Disposable) disposableMaybe).dispose();
+        } else if (disposableMaybe instanceof Wrapper && ((Wrapper) disposableMaybe).isWrapperFor(Disposable.class)) {
+            ((Wrapper) disposableMaybe).unwrap(Disposable.class).dispose();
+        }
+    }
 
     public static final Function<Object, Mono<Boolean>> alwaysTrue = ignore -> Reactors.ALWAYS_TRUE;
 

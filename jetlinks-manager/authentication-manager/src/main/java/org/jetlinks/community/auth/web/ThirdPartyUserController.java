@@ -10,7 +10,9 @@ import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.jetlinks.community.auth.entity.ThirdPartyUserBindEntity;
+import org.jetlinks.community.auth.service.ThirdPartyUserBindService;
 import org.jetlinks.community.auth.web.request.ThirdPartyBindUserInfo;
+import org.jetlinks.community.service.UserBindService;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -22,7 +24,12 @@ import reactor.core.publisher.Mono;
 @Tag(name = "第三方用户")
 public class ThirdPartyUserController {
 
+
+    private final ThirdPartyUserBindService thirdPartyUserBindService;
+
     private final ReactiveRepository<ThirdPartyUserBindEntity, String> repository;
+
+    private final UserBindService userBindService;
 
     @PatchMapping("/{type}/{provider}")
     @Operation(summary = "绑定用户")
@@ -66,6 +73,33 @@ public class ThirdPartyUserController {
             .deleteById(id)
             .then();
     }
+
+    @PostMapping("/me/{type}/{provider}/{bindCode}/_bind")
+    @Operation(summary = "根据绑定码绑定当前用户")
+    @Authorize(merge = false)
+    public Mono<Void> bindByCode(@PathVariable String type,
+                                 @PathVariable String provider,
+                                 @PathVariable String bindCode) {
+
+        return Authentication
+            .currentReactive()
+            .flatMap(authentication -> userBindService
+                .getUserInfoByCode(bindCode)
+                .doOnNext(userInfo -> userBindService.checkUserBind(authentication, userInfo))
+                .map(userInfo -> {
+                    ThirdPartyUserBindEntity entity = new ThirdPartyUserBindEntity();
+                    entity.setType(type);
+                    entity.setProvider(provider);
+                    entity.setThirdPartyUserId(userInfo.getThirdPartyUserId());
+                    entity.setUserId(authentication.getUser().getId());
+                    entity.setProviderName(userInfo.getName());
+                    entity.generateId();
+                    return entity;
+                }))
+            .as(thirdPartyUserBindService::save)
+            .then();
+    }
+
 
     @GetMapping("/{type}/{provider}")
     @Operation(summary = "获取绑定信息")

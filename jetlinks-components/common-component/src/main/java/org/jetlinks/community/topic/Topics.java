@@ -63,4 +63,17 @@ public interface Topics {
         //  /alarm/{targetType}/{targetId}/{alarmId}/record
         return String.join("", "/alarm/", targetType, "/", targetId, "/", alarmId, "/record");
     }
+
+    interface Authentications {
+
+        String allUserAuthenticationChanged = "/_sys/user-dimension-changed/*";
+
+        /**
+         * @see org.hswebframework.web.authorization.Authentication
+         */
+        static String userAuthenticationChanged(String userId) {
+            return "/_sys/user-dimension-changed/" + userId;
+        }
+
+    }
 }

@@ -10,8 +10,11 @@ import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataHelper;
 import org.springframework.util.Assert;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -29,12 +32,16 @@ public class RuleNotifierProperties {
     public void initVariable() {
         if (MapUtils.isNotEmpty(variables)) {
             for (Map.Entry<String, Object> entry : variables.entrySet()) {
-                VariableSource source = VariableSource.of(entry.getValue());
-                entry.setValue(source);
-                if (source.getSource() == VariableSource.Source.upper
-                    && Objects.equals(source.getUpperKey(), entry.getKey())) {
-                    //上游的key与参数key相同了,可能导致无法获取到上游变量
-                    log.warn("The upper key [{}] is the same as the parameter key,", entry.getKey());
+                Object value = entry.getValue();
+                if (value instanceof Collection) {
+                    List<VariableSource> sourceList = ((Collection<?>) value)
+                        .stream()
+                        .map(obj -> transformToVariables(entry.getKey(), obj))
+                        .collect(Collectors.toList());
+                    entry.setValue(sourceList);
+                } else {
+                    VariableSource source = transformToVariables(entry.getKey(), value);
+                    entry.setValue(source);
                 }
             }
         }
@@ -46,6 +53,17 @@ public class RuleNotifierProperties {
             vars.putAll(VariableSource.wrap(variables,vars));
         }
         return vars;
+    }
+
+    private VariableSource transformToVariables(String key,
+                                                Object value) {
+        VariableSource source = VariableSource.of(value);
+        if (source.getSource() == VariableSource.Source.upper
+            && Objects.equals(source.getUpperKey(), key)) {
+            //上游的key与参数key相同了,可能导致无法获取到上游变量
+            log.warn("The upper key [{}] is the same as the parameter key,", key);
+        }
+        return source;
     }
 
     public void validate() {
