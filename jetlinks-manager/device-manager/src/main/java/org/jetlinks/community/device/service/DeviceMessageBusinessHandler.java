@@ -118,7 +118,7 @@ public class DeviceMessageBusinessHandler {
                 return deviceService
                     .save(instance)
                     .then(Mono.defer(() -> registry
-                        .register(instance.toDeviceInfo()
+                        .register(instance.toDeviceBasicInfo()
                                           .addConfig("state", selfManageState
                                               ? org.jetlinks.core.device.DeviceState.offline
                                               : org.jetlinks.core.device.DeviceState.online))));

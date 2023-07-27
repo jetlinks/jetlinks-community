@@ -187,7 +187,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
             .map(key.getType()::cast);
     }
 
-    public DeviceInfo toDeviceInfo() {
+    public DeviceInfo toDeviceBasicInfo() {
         DeviceInfo info = DeviceInfo
             .builder()
             .id(this.getId())
@@ -205,6 +205,26 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         info.addConfig(PropertyConstants.productName, productName);
         info.addConfig(PropertyConstants.orgId, orgId);
         info.addConfig(PropertyConstants.creatorId,creatorId);
+        if (hasFeature(DeviceFeature.selfManageState)) {
+            info.addConfig(DeviceConfigKey.selfManageState, true);
+        }
+
+        return info;
+    }
+
+    public DeviceInfo toDeviceInfo() {
+        DeviceInfo info = DeviceInfo
+            .builder()
+            .id(this.getId())
+            .productId(this.getProductId())
+            .build();
+
+        if (!CollectionUtils.isEmpty(configuration)) {
+            info.addConfigs(configuration);
+        }
+        if (StringUtils.hasText(deriveMetadata)) {
+            info.addConfig(DeviceConfigKey.metadata, deriveMetadata);
+        }
         if (hasFeature(DeviceFeature.selfManageState)) {
             info.addConfig(DeviceConfigKey.selfManageState, true);
         }

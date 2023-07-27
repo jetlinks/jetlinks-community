@@ -257,7 +257,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 .thenReturn(device))
             //发布到注册中心
             .flatMap(instance -> registry
-                .register(instance.toDeviceInfo())
+                .register(instance.toDeviceBasicInfo())
                 .flatMap(deviceOperator -> deviceOperator
                     .checkState()//激活时检查设备状态
                     .onErrorReturn(org.jetlinks.core.device.DeviceState.offline)
@@ -871,6 +871,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 if (StringUtils.isEmpty(instanceEntity.getId())) {
                     instanceEntity.setId(info.getId());
                 }
+                instanceEntity.mergeConfiguration(info.getConfiguration());
             })
             .thenReturn(instanceEntity);
 

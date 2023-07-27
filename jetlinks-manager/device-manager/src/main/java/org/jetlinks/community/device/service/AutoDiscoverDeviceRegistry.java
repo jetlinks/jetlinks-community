@@ -34,7 +34,7 @@ public class AutoDiscoverDeviceRegistry implements DeviceRegistry {
             .switchIfEmpty(Mono.defer(() -> deviceRepository
                 .findById(deviceId)
                 .filter(instance -> instance.getState() != DeviceState.notActive)
-                .flatMap(instance -> parent.register(instance.toDeviceInfo())))
+                .flatMap(instance -> parent.register(instance.toDeviceBasicInfo())))
             )
         );
     }
