@@ -1,4 +1,4 @@
-package org.jetlinks.community.rule.engine.scene;
+package org.jetlinks.community.rule.engine.scene.internal.triggers;
 
 import com.google.common.collect.Sets;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,9 +14,12 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
+import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.core.things.ThingMetadata;
+import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.reactorql.term.TermType;
@@ -47,7 +50,7 @@ import java.util.stream.Collectors;
 
 @Getter
 @Setter
-public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
+public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerProvider.TriggerConfig, Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -168,6 +171,10 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
         return fragments.isEmpty() ? "true" : fragments.toRequest().toNativeSql();
     }
 
+    SqlFragments createFragments(List<Term> terms) {
+        return CollectionUtils.isEmpty(terms) ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
+    }
+
     Function<Map<String, Object>, Mono<Boolean>> createFilter(List<Term> terms) {
         SqlFragments fragments = CollectionUtils.isEmpty(terms) ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
         if (!fragments.isEmpty()) {
@@ -285,7 +292,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
         return column;
     }
 
-    static Term refactorTermValue(String tableName, Term term) {
+    public static Term refactorTermValue(String tableName, Term term) {
         if (term.getColumn() == null) {
             return term;
         }
@@ -431,7 +438,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
     }
 
 
-    public Flux<TermColumn> parseTermColumns(DeviceRegistry registry) {
+    public Flux<TermColumn> parseTermColumns(ThingsRegistry registry) {
         if (!StringUtils.hasText(productId)) {
             return Flux.empty();
         }
@@ -440,7 +447,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements Serializable {
             .as(this::parseTermColumns);
     }
 
-    public Flux<TermColumn> parseTermColumns(Mono<DeviceMetadata> metadataMono) {
+    public Flux<TermColumn> parseTermColumns(Mono<ThingMetadata> metadataMono) {
         if (operation == null) {
             return Flux.empty();
         }

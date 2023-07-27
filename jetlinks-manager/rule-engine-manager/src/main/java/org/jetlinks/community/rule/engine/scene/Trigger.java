@@ -5,14 +5,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.core.param.Term;
+import org.hswebframework.ezorm.rdb.executor.EmptySqlRequest;
+import org.hswebframework.ezorm.rdb.executor.SqlRequest;
+import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments;
+import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
+import org.jetlinks.community.rule.engine.scene.internal.triggers.*;
+import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import reactor.core.publisher.Flux;
 
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
@@ -25,7 +32,7 @@ public class Trigger implements Serializable {
 
     @Schema(description = "触发方式")
     @NotNull(message = "error.scene_rule_trigger_cannot_be_null")
-    private TriggerType type;
+    private String type;
 
     @Schema(description = "防抖配置")
     private GroupShakeLimit shakeLimit;
@@ -34,60 +41,98 @@ public class Trigger implements Serializable {
     private DeviceTrigger device;
 
     @Schema(description = "[type]为[timer]时不能为空")
-    private TimerSpec timer;
+    private TimerTrigger timer;
 
+    @Schema(description = "[type]不为[device,timer,collector]时不能为控")
+    private Map<String, Object> configuration;
+
+
+    public String getTypeName(){
+        return provider().getName();
+    }
 
     /**
      * 重构查询条件,替换为实际将要输出的变量.
      *
      * @param terms 条件
      * @return 重构后的条件
-     * @see DeviceTrigger#refactorTermValue(String,Term)
+     * @see DeviceTrigger#refactorTermValue(String, Term)
      */
-    public List<Term> refactorTerm(String tableName,List<Term> terms) {
+    public List<Term> refactorTerm(String tableName, List<Term> terms) {
         if (CollectionUtils.isEmpty(terms)) {
             return terms;
         }
         List<Term> target = new ArrayList<>(terms.size());
         for (Term term : terms) {
             Term copy = term.clone();
-            target.add(DeviceTrigger.refactorTermValue(tableName,copy));
+            target.add(DeviceTrigger.refactorTermValue(tableName, copy));
             if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(copy.getTerms())) {
-                copy.setTerms(refactorTerm(tableName,copy.getTerms()));
+                copy.setTerms(refactorTerm(tableName, copy.getTerms()));
             }
         }
         return target;
     }
 
-    public void validate() {
-        Assert.notNull(type, "error.scene_rule_trigger_cannot_be_null");
-        if (type == TriggerType.device) {
-            Assert.notNull(device, "error.scene_rule_trigger_device_cannot_be_null");
-            device.validate();
-        } else if (type == TriggerType.timer) {
-            Assert.notNull(timer, "error.scene_rule_trigger_timer_cannot_be_null");
-            timer.validate();
+    public SqlRequest createSql(List<Term> terms, boolean hasWhere) {
+        SceneTriggerProvider.TriggerConfig config = triggerConfig();
+
+        return config == null ? EmptySqlRequest.INSTANCE : provider().createSql(config, terms, hasWhere);
+    }
+
+    public SqlFragments createFilter(List<Term> terms) {
+        SceneTriggerProvider.TriggerConfig config = triggerConfig();
+
+        return config == null ? EmptySqlFragments.INSTANCE : provider().createFilter(config, terms);
+    }
+
+    public Flux<TermColumn> parseTermColumns() {
+        SceneTriggerProvider.TriggerConfig config = triggerConfig();
+
+        return config == null ? Flux.empty() : provider().parseTermColumns(config);
+    }
+
+
+    public SceneTriggerProvider.TriggerConfig triggerConfig() {
+        switch (type) {
+            case DeviceTriggerProvider.PROVIDER:
+                return device;
+            case TimerTriggerProvider.PROVIDER:
+                return timer;
+            default:
+                SceneTriggerProvider.TriggerConfig config = provider().newConfig();
+                if (configuration != null) {
+                    config.with(configuration);
+                }
+                return config;
         }
     }
 
+    private SceneTriggerProvider<SceneTriggerProvider.TriggerConfig> provider() {
+        return SceneProviders.getTriggerProviderNow(type);
+    }
+
+    public void validate() {
+        Assert.notNull(type, "error.scene_rule_trigger_cannot_be_null");
+        triggerConfig().validate();
+    }
+
     public List<Variable> createDefaultVariable() {
-        return type == TriggerType.device && device != null
-            ? device.createDefaultVariable()
-            : Collections.emptyList();
+        return provider().createDefaultVariable(triggerConfig());
     }
 
     public static Trigger device(DeviceTrigger device) {
         Trigger trigger = new Trigger();
-        trigger.setType(TriggerType.device);
+        trigger.setType(DeviceTriggerProvider.PROVIDER);
         trigger.setDevice(device);
         return trigger;
     }
 
     public static Trigger manual() {
         Trigger trigger = new Trigger();
-        trigger.setType(TriggerType.manual);
+        trigger.setType(ManualTriggerProvider.PROVIDER);
         return trigger;
     }
+
 
     @Getter
     @Setter
@@ -106,22 +151,7 @@ public class Trigger implements Serializable {
     }
 
     void applyModel(RuleModel model, RuleNodeModel sceneNode) {
-        if (type == TriggerType.timer) {
-            RuleNodeModel timerNode = new RuleNodeModel();
-            timerNode.setId("scene:timer");
-            timerNode.setName("定时触发场景");
-            timerNode.setExecutor("timer");
-            //使用最小负载节点来执行定时
-            // timerNode.setSchedulingRule(SchedulerSelectorStrategy.minimumLoad());
-            timerNode.setConfiguration(FastBeanCopier.copy(timer, new HashMap<>()));
-            model.getNodes().add(timerNode);
-            //定时->场景
-            model.link(timerNode, sceneNode);
-        }
-        //设备触发
-        if (type == TriggerType.device) {
-            device.applyModel(model, sceneNode);
-        }
+        provider().applyRuleNode(triggerConfig(), model, sceneNode);
     }
 
 }

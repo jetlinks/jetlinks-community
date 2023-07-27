@@ -6,6 +6,7 @@ import org.hswebframework.web.dict.EnumDict;
 
 @Getter
 @AllArgsConstructor
+@Deprecated
 public enum TriggerType implements EnumDict<String> {
     manual("手动触发"),
     timer("定时触发"),
