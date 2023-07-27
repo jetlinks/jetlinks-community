@@ -3,6 +3,7 @@ package org.jetlinks.community.device.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
@@ -184,15 +185,20 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     public <T> Optional<T> getConfiguration(ConfigKey<T> key) {
         return this
             .getConfiguration(key.getKey())
-            .map(key.getType()::cast);
+            .map(key::convertValue);
     }
 
-    public DeviceInfo toDeviceInfo() {
+    public DeviceInfo toDeviceInfo(boolean includeConfiguration) {
         DeviceInfo info = DeviceInfo
             .builder()
             .id(this.getId())
             .productId(this.getProductId())
+            .metadata(this.getDeriveMetadata())
             .build();
+
+        if (!includeConfiguration) {
+            return info;
+        }
 
         if (!CollectionUtils.isEmpty(configuration)) {
             info.addConfigs(configuration);
@@ -204,7 +210,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         info.addConfig(PropertyConstants.deviceName, name);
         info.addConfig(PropertyConstants.productName, productName);
         info.addConfig(PropertyConstants.orgId, orgId);
-        info.addConfig(PropertyConstants.creatorId,creatorId);
+        info.addConfig(PropertyConstants.creatorId, creatorId);
         if (hasFeature(DeviceFeature.selfManageState)) {
             info.addConfig(DeviceConfigKey.selfManageState, true);
         }
@@ -212,11 +218,15 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         return info;
     }
 
+    public DeviceInfo toDeviceInfo() {
+        return toDeviceInfo(true);
+    }
+
     public void mergeConfiguration(Map<String, Object> configuration, boolean ignoreExists) {
         if (this.configuration == null) {
             this.configuration = new HashMap<>();
         }
-        if (configuration == null) {
+        if (MapUtils.isEmpty(configuration)) {
             return;
         }
         Map<String, Object> newConf = new HashMap<>(configuration);

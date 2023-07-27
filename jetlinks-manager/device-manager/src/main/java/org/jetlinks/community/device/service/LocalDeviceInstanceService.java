@@ -53,6 +53,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -863,12 +864,12 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 registry
                     .getProduct(instanceEntity.getProductId())
                     .flatMap(DeviceProductOperator::getProtocol),
-                (product, protocol) -> protocol.doBeforeDeviceCreate(Transport.of(product.getTransportProtocol()), instanceEntity
-                    .toDeviceInfo())
+                (product, protocol) -> protocol.doBeforeDeviceCreate(
+                    Transport.of(product.getTransportProtocol()), instanceEntity.toDeviceInfo(false))
             )
             .flatMap(Function.identity())
             .doOnNext(info -> {
-                if (StringUtils.isEmpty(instanceEntity.getId())) {
+                if (ObjectUtils.isEmpty(instanceEntity.getId())) {
                     instanceEntity.setId(info.getId());
                 }
                 instanceEntity.mergeConfiguration(info.getConfiguration());
