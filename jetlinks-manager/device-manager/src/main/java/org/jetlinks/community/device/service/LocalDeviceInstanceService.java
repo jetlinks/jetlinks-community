@@ -871,7 +871,6 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 if (StringUtils.isEmpty(instanceEntity.getId())) {
                     instanceEntity.setId(info.getId());
                 }
-                instanceEntity.mergeConfiguration(info.getConfiguration());
             })
             .thenReturn(instanceEntity);
 
