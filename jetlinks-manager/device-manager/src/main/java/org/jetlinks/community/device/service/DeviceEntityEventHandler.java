@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -52,10 +53,11 @@ public class DeviceEntityEventHandler {
                 .flatMap(device -> registry
                     .getDevice(device.getId())
                     .flatMap(deviceOperator -> {
-                        Map<String, Object> configuration = device.getConfiguration();
-                        if (configuration == null) {
-                            configuration = new HashMap<>();
-                        }
+                        Map<String, Object> configuration =
+                            Optional.ofNullable(device.getConfiguration())
+                                    .map(HashMap::new)
+                                    .orElseGet(HashMap::new);
+
                         if (StringUtils.hasText(device.getName())) {
                             configuration.put(PropertyConstants.deviceName.getKey(), device.getName());
                         }
@@ -79,10 +81,11 @@ public class DeviceEntityEventHandler {
                 .flatMap(device -> registry
                     .getDevice(device.getId())
                     .flatMap(deviceOperator -> {
-                        Map<String, Object> configuration = device.getConfiguration();
-                        if (configuration == null) {
-                            configuration = new HashMap<>();
-                        }
+                        Map<String, Object> configuration =
+                            Optional.ofNullable(device.getConfiguration())
+                                    .map(HashMap::new)
+                                    .orElseGet(HashMap::new);
+
                         DeviceInstanceEntity old = olds.get(device.getId());
                         if (old != null && !Objects.equals(device.getName(), old.getName())) {
                             configuration.put(PropertyConstants.deviceName.getKey(), device.getName());
