@@ -1,6 +1,5 @@
 [
   {
-    "parentId": 0,
     "key": "SmartCity",
     "name": "智能城市",
     "id": 1
@@ -138,7 +137,6 @@
     "id": 40
   },
   {
-    "parentId": 0,
     "key": "SmartLife",
     "name": "智能生活",
     "id": 41
@@ -162,7 +160,6 @@
     "id": 44
   },
   {
-    "parentId": 0,
     "key": "SmartIndustry",
     "name": "智能工业",
     "id": 45
@@ -408,7 +405,6 @@
     "id": 85
   },
   {
-    "parentId": 0,
     "key": "LinkEdge",
     "name": "边缘计算",
     "id": 87
@@ -468,7 +464,6 @@
     "id": 100
   },
   {
-    "parentId": 0,
     "key": "linkbusiness",
     "name": "商业共享",
     "id": 102
@@ -552,7 +547,6 @@
     "id": 116
   },
   {
-    "parentId": 0,
     "key": "SmartTemplate",
     "name": "智能模板",
     "id": 117
@@ -954,7 +948,6 @@
     "id": 189
   },
   {
-    "parentId": 0,
     "key": "CustomCategory",
     "name": "自定义品类",
     "id": 190
@@ -1086,7 +1079,6 @@
     "id": 211
   },
   {
-    "parentId": 0,
     "key": "SOCSmartLife",
     "name": "智能生活SOC",
     "id": 213
@@ -1140,7 +1132,6 @@
     "id": 221
   },
   {
-    "parentId": 0,
     "key": "ElectricPower",
     "name": "智能电力",
     "id": 222
@@ -1230,7 +1221,6 @@
     "id": 240
   },
   {
-    "parentId": 0,
     "key": "SmartAgriculture",
     "name": "智能农业",
     "id": 241
@@ -1326,7 +1316,6 @@
     "id": 257
   },
   {
-    "parentId": 0,
     "key": "Building",
     "name": "智慧建筑",
     "id": 258
@@ -1578,7 +1567,6 @@
     "id": 299
   },
   {
-    "parentId": 0,
     "key": "campus",
     "name": "智能园区",
     "id": 301

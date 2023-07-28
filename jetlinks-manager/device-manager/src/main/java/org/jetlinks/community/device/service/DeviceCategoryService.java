@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.service;
 
 import com.alibaba.fastjson.JSON;
+import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
 import org.hswebframework.web.crud.service.GenericReactiveTreeSupportCrudService;
 import org.hswebframework.web.id.IDGenerator;
@@ -15,8 +16,10 @@ import reactor.core.publisher.Mono;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 @Service
+@Slf4j
 public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService<DeviceCategoryEntity, String> implements CommandLineRunner {
 
     @Override
@@ -36,7 +39,8 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
             .createQuery()
             .fetchOne()
             .switchIfEmpty(initDefaultData().then(Mono.empty()))
-            .subscribe();
+            .subscribe(ignore->{},
+                       err -> log.error("init device category error", err));
     }
 
 
@@ -67,7 +71,11 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
                     for (DeviceCategoryEntity category : root) {
                         String id = category.getId();
                         category.setId(category_splitter + id + category_splitter);
-                        category.setParentId(category_splitter + category.getParentId() + category_splitter);
+                        Optional
+                            .ofNullable(category.getParentId())
+                            .ifPresent(parentId -> {
+                                category.setParentId(category_splitter + parentId + category_splitter);
+                            });
                         rebuild(category_splitter + id, category.getChildren());
                     }
                     return root;
