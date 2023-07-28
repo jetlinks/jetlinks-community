@@ -7,6 +7,7 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
 import org.jetlinks.community.rule.engine.scene.TriggerType;
+import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
 
 import javax.persistence.Column;
 import javax.validation.constraints.NotBlank;
@@ -41,7 +42,7 @@ public class AlarmConfigDetail {
     private AlarmState state;
 
     @Schema(description = "场景触发类型")
-    private TriggerType sceneTriggerType;
+    private String sceneTriggerType;
 
     @Schema(description = "说明")
     private String description;
@@ -72,9 +73,9 @@ public class AlarmConfigDetail {
         List<SceneInfo> sceneList = new ArrayList<>();
         for (SceneEntity sceneEntity : sceneEntityList) {
             sceneList.add(SceneInfo.of(sceneEntity));
-            TriggerType triggerType = sceneEntity.getTriggerType();
+            String triggerType = sceneEntity.getTriggerType();
             // 存在一个手动触发场景，则将告警配置视为手动触发类型
-            if (this.sceneTriggerType == null || triggerType == TriggerType.manual) {
+            if (this.sceneTriggerType == null || ManualTriggerProvider.PROVIDER.equals(triggerType)) {
                 this.sceneTriggerType = triggerType;
             }
         }
@@ -97,7 +98,7 @@ public class AlarmConfigDetail {
         private String name;
 
         @Schema(description = "触发器类型")
-        private TriggerType triggerType;
+        private String triggerType;
 
         @Schema(description = "状态")
         private RuleInstanceState state;

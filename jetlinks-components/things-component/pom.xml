@@ -35,5 +35,10 @@
             <artifactId>timeseries-component</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>gateway-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

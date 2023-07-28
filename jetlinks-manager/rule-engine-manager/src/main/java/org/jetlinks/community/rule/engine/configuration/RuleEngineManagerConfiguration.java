@@ -2,8 +2,7 @@ package org.jetlinks.community.rule.engine.configuration;
 
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.service.ElasticSearchService;
-import org.jetlinks.community.rule.engine.scene.SceneFilter;
-import org.jetlinks.community.rule.engine.scene.SceneTaskExecutorProvider;
+import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.community.rule.engine.service.ElasticSearchAlarmHistoryService;
 import org.jetlinks.core.event.EventBus;
 import org.springframework.beans.factory.ObjectProvider;
@@ -18,9 +17,13 @@ public class RuleEngineManagerConfiguration {
 
     @Bean
     public SceneTaskExecutorProvider sceneTaskExecutorProvider(EventBus eventBus,
-                                                                ObjectProvider<SceneFilter> filters) {
+                                                               ObjectProvider<SceneFilter> filters,
+                                                               ObjectProvider<SceneActionProvider<?>> providers,
+                                                               ObjectProvider<SceneTriggerProvider<?>> triggerProviders) {
+        providers.forEach(SceneProviders::register);
+        triggerProviders.forEach(SceneProviders::register);
         return new SceneTaskExecutorProvider(eventBus,
-                                              SceneFilter.composite(filters));
+                                             SceneFilter.composite(filters));
     }
 
     @Configuration(proxyBeanMethods = false)
