@@ -160,7 +160,9 @@ public class DeviceInstanceController implements
     @QueryAction
     @Operation(summary = "获取指定ID设备详情")
     public Mono<DeviceDetail> getDeviceDetailInfo(@PathVariable @Parameter(description = "设备ID") String id) {
-        return service.getDeviceDetail(id);
+        return service
+            .getDeviceDetail(id)
+            .switchIfEmpty(Mono.error(NotFoundException::new));
     }
 
     //读取设备属性

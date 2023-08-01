@@ -99,9 +99,12 @@ public class DeviceDetail {
     @Schema(description = "激活时间")
     private long registerTime;
 
-    //设备元数据
+    //设备物模型
     @Schema(description = "物模型")
     private String metadata;
+
+    @Schema(description = "产品物模型")
+    private String productMetadata;
 
     //是否为独立物模型
     @Schema(description = "是否为独立物模型")
@@ -162,10 +165,30 @@ public class DeviceDetail {
     }
 
     private DeviceMetadata decodeMetadata() {
-        if (StringUtils.isEmpty(metadata)) {
-            return null;
+        if (StringUtils.hasText(metadata)) {
+            return JetLinksDeviceMetadataCodec.getInstance().doDecode(metadata);
         }
-        return JetLinksDeviceMetadataCodec.getInstance().doDecode(metadata);
+        return null;
+    }
+
+    private void mergeDeviceMetadata(String deviceMetadata) {
+        mergeDeviceMetadata(JetLinksDeviceMetadataCodec.getInstance().doDecode(deviceMetadata));
+    }
+
+    private void mergeDeviceMetadata(DeviceMetadata deviceMetadata) {
+        if (!StringUtils.hasText(productMetadata)) {
+            metadata = JetLinksDeviceMetadataCodec.getInstance().doEncode(deviceMetadata);
+            return;
+        }
+
+        //合并物模型
+        metadata = JetLinksDeviceMetadataCodec
+            .getInstance()
+            .doEncode(new CompositeDeviceMetadata(
+                JetLinksDeviceMetadataCodec.getInstance().doDecode(productMetadata),
+                deviceMetadata
+            ));
+
     }
 
     private void initTags() {
@@ -189,27 +212,41 @@ public class DeviceDetail {
                 operator.getOnlineTime().defaultIfEmpty(0L),
                 //T3: 离线时间
                 operator.getOfflineTime().defaultIfEmpty(0L),
-                //T4: 物模型
-                operator.getMetadata().switchIfEmpty(Mono.fromSupplier(this::decodeMetadata)),
+                //T4: 连接到到集群服务
+                operator.getConnectionServerId().defaultIfEmpty("/"),
                 //T5: 真实的配置信息
                 operator.getSelfConfigs(configs
                                             .stream()
                                             .map(ConfigPropertyMetadata::getProperty)
-                                            .collect(Collectors.toList()))
-                         .defaultIfEmpty(Values.of(Collections.emptyMap()))
+                                            .collect(Collectors.toSet()))
+                        .defaultIfEmpty(Values.of(Collections.emptyMap())),
+                //T6:设备物模型,单独保存物模型后有值
+                operator.getSelfConfig(DeviceConfigKey.metadata)
+                        .defaultIfEmpty("")
             )
             .doOnNext(tp -> {
                 setOnlineTime(tp.getT2());
                 setOfflineTime(tp.getT3());
                 setAddress(tp.getT1());
-                with(tp.getT4()
-                       .getTags()
-                       .stream()
-                       .map(DeviceTagEntity::of)
-                       .collect(Collectors.toList()));
+
                 Map<String, Object> cachedConfigs = tp.getT5().getAllValues();
                 cachedConfiguration.putAll(cachedConfigs);
-//                cachedConfigs.forEach(configuration::putIfAbsent);
+
+                String deviceMetadata = tp.getT6();
+                //以缓存中的物模型为准
+                if (StringUtils.hasText(deviceMetadata)) {
+                    mergeDeviceMetadata(deviceMetadata);
+                    setIndependentMetadata(true);
+                }
+
+                DeviceMetadata metadata_ = decodeMetadata();
+                if (null != metadata_) {
+                    with(metadata_.getTags()
+                                  .stream()
+                                  .map(DeviceTagEntity::of)
+                                  .collect(Collectors.toList()));
+                }
+
             })
             .thenReturn(this);
     }
@@ -258,9 +295,7 @@ public class DeviceDetail {
         if (productEntity == null) {
             return this;
         }
-        if (StringUtils.isEmpty(metadata)) {
-            setMetadata(productEntity.getMetadata());
-        }
+        setProductMetadata(productEntity.getMetadata());
         if (CollectionUtils.isEmpty(configuration) && !CollectionUtils.isEmpty(productEntity.getConfiguration())) {
             configuration.putAll(productEntity.getConfiguration());
         }
@@ -284,7 +319,6 @@ public class DeviceDetail {
         setId(device.getId());
         setName(device.getName());
         setState(device.getState());
-        setOrgId(device.getOrgId());
         setParentId(device.getParentId());
         setDescription(device.getDescribe());
         if (device.getFeatures() != null) {
@@ -309,7 +343,7 @@ public class DeviceDetail {
             configuration.putAll(device.getConfiguration());
         }
         if (StringUtils.hasText(device.getDeriveMetadata())) {
-            setMetadata(device.getDeriveMetadata());
+            mergeDeviceMetadata(device.getDeriveMetadata());
             setIndependentMetadata(true);
         }
 
