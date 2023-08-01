@@ -104,11 +104,8 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
         return ruleMono
             .flatMapMany(rule -> {
                 Trigger trigger = rule.getTrigger();
-                //目前只有设备触发有条件
-                if (trigger != null && trigger.getType() == TriggerType.device && trigger.getDevice() != null) {
-                    return trigger
-                        .getDevice()
-                        .parseTermColumns(deviceRegistry);
+                if (trigger != null) {
+                    return trigger.parseTermColumns();
                 }
                 return Flux.empty();
             });
@@ -130,8 +127,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
                     .createVariables(columns ,
                                      branch,
                                      branchGroup,
-                                     action,
-                                     deviceRegistry))
+                                     action))
             .flatMapMany(Function.identity());
     }
 

@@ -171,7 +171,7 @@
         <dependency>
             <groupId>io.asyncer</groupId>
             <artifactId>r2dbc-mysql</artifactId>
-            <version>0.9.1</version>
+            <version>0.9.3</version>
         </dependency>
 
         <dependency>

@@ -7,8 +7,13 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.DeviceThingType;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.community.relation.utils.VariableSource;
+import org.jetlinks.core.things.Thing;
+import org.jetlinks.core.things.ThingMetadata;
+import org.jetlinks.core.things.ThingTemplate;
+import org.jetlinks.core.things.ThingsRegistry;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -133,19 +138,19 @@ public class DeviceSelectorSpec extends VariableSource {
         DeviceSelectorProviders.getProviderNow(selector);
     }
 
-    public Mono<DeviceMetadata> getDeviceMetadata(DeviceRegistry registry, String productId) {
+    public Mono<ThingMetadata> getDeviceMetadata(ThingsRegistry registry, String productId) {
         //固定设备时使用设备的物模型
-        if (getSource() == Source.fixed) {
+        if (getSource() == Source.fixed && DeviceSelectorProviders.PROVIDER_FIXED.equals(getSelector())) {
             List<SelectorValue> fixed = getSelectorValues();
             if (CollectionUtils.isNotEmpty(fixed) && fixed.size() == 1) {
                 return registry
-                    .getDevice(String.valueOf(fixed.get(0).getValue()))
-                    .flatMap(DeviceOperator::getMetadata);
+                    .getThing(DeviceThingType.device,String.valueOf(fixed.get(0).getValue()))
+                    .flatMap(Thing::getMetadata);
             }
         }
         return registry
-            .getProduct(productId)
-            .flatMap(DeviceProductOperator::getMetadata);
+            .getTemplate(DeviceThingType.device,productId)
+            .flatMap(ThingTemplate::getMetadata);
     }
 }
 

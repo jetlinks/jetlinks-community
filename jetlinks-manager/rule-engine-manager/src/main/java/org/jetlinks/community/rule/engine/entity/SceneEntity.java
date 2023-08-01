@@ -42,10 +42,10 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
 
     @Schema(description = "触发器类型")
     @Column(length = 32, nullable = false, updatable = false)
-    @EnumCodec
-    @ColumnType(javaType = String.class)
+//    @EnumCodec
+//    @ColumnType(javaType = String.class)
     @NotNull
-    private TriggerType triggerType;
+    private String triggerType;
 
     @Column
     @JsonCodec
