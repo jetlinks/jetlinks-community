@@ -65,6 +65,7 @@ public class DeviceTagEntity extends GenericEntity<String> {
     @Schema(description = "说明")
     private String description;
 
+    private DataType dataType;
 
     public static DeviceTagEntity of(PropertyMetadata property) {
        DeviceTagEntity entity = new DeviceTagEntity();
@@ -73,6 +74,7 @@ public class DeviceTagEntity extends GenericEntity<String> {
         entity.setType(property.getValueType().getId());
         entity.setDescription(property.getDescription());
         entity.setCreateTime(new Date());
+        entity.setDataType(property.getValueType());
         return entity;
     }
 
