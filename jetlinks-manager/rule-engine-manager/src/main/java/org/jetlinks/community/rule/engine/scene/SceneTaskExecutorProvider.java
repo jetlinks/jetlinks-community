@@ -54,6 +54,11 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
 
     class SceneTaskExecutor extends AbstractTaskExecutor {
 
+        private String ruleId;
+        private String ruleName;
+
+        private boolean useBranch;
+
         private SceneRule rule;
 
         public SceneTaskExecutor(ExecutionContext context) {
@@ -74,7 +79,9 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
 
         @Override
         public void validate() {
-            rule.validate();
+            if (rule != null) {
+                rule.validate();
+            }
         }
 
         @Override
@@ -84,10 +91,13 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
         }
 
         private void load() {
-            SceneRule sceneRule = FastBeanCopier.copy(context.getJob().getConfiguration(),
-                                                      new SceneRule());
+            SceneRule sceneRule = createRule();
             sceneRule.validate();
             this.rule = sceneRule;
+        }
+
+        private SceneRule createRule() {
+            return FastBeanCopier.copy(context.getJob().getConfiguration(), new SceneRule());
         }
 
         private Object getDataId(Map<String, Object> data) {
@@ -127,8 +137,9 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
             if (disposable != null) {
                 disposable.dispose();
             }
-            boolean useBranch = CollectionUtils.isNotEmpty(rule.getBranches());
-
+            ruleId = rule.getId();
+            ruleName = rule.getName();
+            useBranch = CollectionUtils.isNotEmpty(rule.getBranches());
             SqlRequest request = rule.createSql(!useBranch);
             Flux<Map<String, Object>> source;
 
@@ -140,12 +151,12 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                     .flatMap(RuleData::dataToMap);
             } else {
                 if (log.isDebugEnabled()) {
-                    log.debug("init scene [{}:{}], sql:{}", rule.getId(), rule.getName(), request.toNativeSql());
+                    log.debug("init scene [{}:{}], sql:{}", ruleId, ruleName, request.toNativeSql());
                 }
 
                 ReactorQLContext qlContext = createReactorQLContext();
 
-                //sql参数
+                //request = {PrepareSqlRequest@25664} "select * from (\n\tselect\n\tnow() "_now",\n\tthis.timestamp "timestamp",\n\tthis.deviceId "deviceId",\n\tthis.headers.deviceName "deviceName",\n\tthis.headers.productId "productId",\n\tthis.headers.productName "productName",\n\t'device' "sourceType",\n\tthis.deviceId "sourceId",\n\tthis.deviceName "sourceName",\n\tthis.headers._uid "_uid",\n\tthis.headers.bindings "_bindings",\n\tthis.headers.traceparent "traceparent",\n\tthis.properties "properties",\n\tcoalesce(this['properties.te'],device.property.recent(deviceId,'te',timestamp)) "te_recent",\n\tproperty.metric('device',deviceId,'te','t') te_metric_t\t\nfrom "/device/1684380948267950080/11/message/property/report"\n) t \n"…视图sql参数
                 for (Object parameter : request.getParameters()) {
                     qlContext.bind(parameter);
                 }
@@ -164,14 +175,18 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                         source,
                         (idx, nodeId, data) -> {
                             if (log.isDebugEnabled()) {
-                                log.debug("scene [{}] branch [{}] execute", rule.getId(), nodeId);
+                                log.debug("scene [{}] branch [{}] execute", ruleId, nodeId);
                             }
-                            RuleData ruleData = context.newRuleData(data);
-                            return context
-                                .getOutput()
-                                .write(nodeId, ruleData)
-                                .onErrorResume(err -> context.onError(err, ruleData))
-                                .as(tracer());
+                            return Mono
+                                .deferContextual(ctx -> {
+                                    RuleData ruleData = TraceHolder.writeContextTo(ctx, context.newRuleData(data), RuleData::setHeader);
+                                    return eventBus
+                                        .publish("/scene/rule/" + ruleId, buildSceneData(data))
+                                        .then(context
+                                                  .getOutput()
+                                                  .write(nodeId, ruleData))
+                                        .onErrorResume(err -> context.onError(err, ruleData));
+                                });
                         });
             }
 
@@ -217,23 +232,22 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
             return data
                 .dataToMap()
                 .filterWhen(map -> {
-                    SceneData sceneData = new SceneData();
-                    sceneData.setId(IDGenerator.SNOW_FLAKE_STRING.generate());
-                    sceneData.setRule(rule);
-                    sceneData.setOutput(map);
+                    SceneData sceneData = buildSceneData(map);
 
-                    log.info("execute scene {} {} : {}", rule.getId(), rule.getName(), map);
+                    log.info("execute scene {} {} : {}", ruleId, ruleName, map);
 
                     return filter
                         .filter(sceneData)
                         .defaultIfEmpty(true);
                 })
-                .flatMap(map -> context
-                    .getOutput()
-                    .write(data.newData(map))
-                    .as(tracer())
-                    .contextWrite(ctx -> TraceHolder.readToContext(ctx, map)))
-                .onErrorResume(err -> context.onError(err, data))
+                .flatMap(map -> eventBus
+                    .publish("/scene/rule/" + ruleId, buildSceneData(map))
+                    .then(context
+                              .getOutput()
+                              .write(data.newData(map))
+                              .as(tracer())
+                              .contextWrite(ctx -> TraceHolder.readToContext(ctx, map)))
+                    .onErrorResume(err -> context.onError(err, data)))
                 .then();
 
         }
@@ -245,9 +259,9 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
         @Override
         public Mono<Void> execute(RuleData ruleData) {
             //分支
-            if (CollectionUtils.isNotEmpty(rule.getBranches())) {
+            if (useBranch) {
                 if (log.isDebugEnabled()) {
-                    log.debug("scene [{}] execute", rule.getId());
+                    log.debug("scene [{}] execute", ruleId);
                 }
                 RuleData newData = context.newRuleData(ruleData);
                 return context
@@ -258,6 +272,14 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                     .then();
             }
             return handleOutput(ruleData);
+        }
+
+        protected SceneData buildSceneData(Map<String, Object> map) {
+            SceneData sceneData = new SceneData();
+            sceneData.setId(IDGenerator.RANDOM.generate());
+            sceneData.setRule(rule);
+            sceneData.setOutput(map);
+            return sceneData;
         }
     }
 }

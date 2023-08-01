@@ -7,10 +7,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.executor.EmptySqlRequest;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
+import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.api.crud.entity.TermExpressionParser;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.utils.Reactors;
@@ -19,6 +21,9 @@ import org.jetlinks.community.rule.engine.commons.ShakeLimit;
 import org.jetlinks.community.rule.engine.commons.TermsConditionEvaluator;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
+import org.jetlinks.reactor.ql.DefaultReactorQLContext;
+import org.jetlinks.reactor.ql.ReactorQL;
+import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.model.RuleLink;
 import org.jetlinks.rule.engine.api.model.RuleModel;
@@ -89,35 +94,61 @@ public class SceneRule implements Serializable {
     private String description;
 
     public SqlRequest createSql(boolean hasWhere) {
-        if (trigger != null && trigger.getType() == TriggerType.device) {
-            List<Term> terms = new ArrayList<>();
-            if (CollectionUtils.isNotEmpty(this.terms)) {
-                terms.addAll(this.terms);
-            }
-            if (CollectionUtils.isNotEmpty(this.branches)) {
-                for (SceneConditionAction branch : branches) {
-                    terms.addAll(branch.createContextTerm());
-                }
-            }
-            return trigger.getDevice().createSql(terms, hasWhere);
+        if (trigger != null) {
+            return trigger.createSql(getTermList(), hasWhere);
         }
         return EmptySqlRequest.INSTANCE;
     }
 
-    public Function<Map<String, Object>, Mono<Boolean>> createFilter(List<Term> terms) {
-        if (trigger != null && trigger.getType() == TriggerType.device) {
-            return trigger.getDevice().createFilter(terms);
+    private List<Term> getTermList() {
+        List<Term> terms = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(this.terms)) {
+            terms.addAll(this.terms);
         }
+        if (CollectionUtils.isNotEmpty(this.branches)) {
+            for (SceneConditionAction branch : branches) {
+                terms.addAll(branch.createContextTerm());
+            }
+        }
+        return terms;
+    }
 
+    public Function<Map<String, Object>, Mono<Boolean>> createFilter(List<Term> terms) {
+        if (trigger != null) {
+            return createDefaultFilter(trigger.createFilter(terms));
+        }
         return ignore -> Reactors.ALWAYS_TRUE;
     }
 
-    String createFilterDescription(List<Term> terms) {
-        if (trigger != null && trigger.getType() == TriggerType.device) {
-            return trigger.getDevice().createFilterDescription(terms);
+    public static String DEFAULT_FILTER_TABLE = "t";
+
+    public Function<Map<String, Object>, Mono<Boolean>> createDefaultFilter(SqlFragments fragments) {
+        if (!fragments.isEmpty()) {
+            SqlRequest request = fragments.toRequest();
+            String sql = "select 1 from " + DEFAULT_FILTER_TABLE + " where " + request.getSql();
+            ReactorQL ql = ReactorQL
+                .builder()
+                .sql(sql)
+                .build();
+            List<Object> args = Arrays.asList(request.getParameters());
+            String sqlString = request.toNativeSql();
+            return new Function<Map<String, Object>, Mono<Boolean>>() {
+                @Override
+                public Mono<Boolean> apply(Map<String, Object> map) {
+                    ReactorQLContext context = new DefaultReactorQLContext((t) -> Flux.just(map), args);
+                    return ql
+                        .start(context)
+                        .hasElements();
+                }
+
+                @Override
+                public String toString() {
+                    return sqlString;
+                }
+            };
         }
 
-        return "true";
+        return ignore -> Reactors.ALWAYS_TRUE;
     }
 
     public ShakeLimitGrouping<Map<String, Object>> createGrouping() {
@@ -135,35 +166,13 @@ public class SceneRule implements Serializable {
                         (terms, l) -> {
                             Variable variable = Variable
                                 .of("scene", LocaleUtils.resolveMessage(
-                                    "message.scene_trigger_" + trigger.getType().name() + "_output",
-                                    trigger.getType().getText() + "输出的数据"
+                                    "message.scene_trigger_" + trigger.getType() + "_output",
+                                    trigger.getTypeName() + "输出的数据"
                                 ));
 
                             List<Variable> defaultVariables = createDefaultVariable();
                             List<Variable> termVar = SceneUtils.parseVariable(terms, columns);
                             List<Variable> variables = new ArrayList<>(defaultVariables.size() + termVar.size());
-
-                            //设备触发但是没有指定条件,或者其它触发类型,以下是内置的输出参数
-                            if (trigger.getType() != TriggerType.device) {
-                                variables.add(Variable
-                                                  .of("_now",
-                                                      LocaleUtils.resolveMessage(
-                                                          "message.scene_term_column_now",
-                                                          "服务器时间"))
-                                                  .withType(DateTimeType.ID)
-                                                  .withTermType(TermTypes.lookup(DateTimeType.GLOBAL))
-                                                  .withColumn("_now")
-                                );
-//                                variables.add(Variable
-//                                                  .of("timestamp",
-//                                                      LocaleUtils.resolveMessage(
-//                                                          "message.scene_term_column_timestamp",
-//                                                          "数据上报时间"))
-//                                                  .withType(DateTimeType.ID)
-//                                                  .withTermType(TermTypes.lookup(DateTimeType.GLOBAL))
-//                                                  .withColumn("timestamp")
-//                                );
-                            }
 
                             variables.addAll(defaultVariables);
 
@@ -177,8 +186,7 @@ public class SceneRule implements Serializable {
     public Flux<Variable> createVariables(List<TermColumn> columns,
                                           Integer branchIndex,
                                           Integer branchGroupIndex,
-                                          Integer actionIndex,
-                                          DeviceRegistry registry) {
+                                          Integer actionIndex) {
         Flux<Variable> variables = createSceneVariables(columns);
 
         //执行动作会输出的变量,串行执行才会生效
@@ -187,7 +195,7 @@ public class SceneRule implements Serializable {
             for (int i = 0; i < Math.min(actions.size(), actionIndex + 1); i++) {
                 variables = variables.concatWith(actions
                                                      .get(i)
-                                                     .createVariables(registry, null, branchGroupIndex, i + 1));
+                                                     .createVariables(null, branchGroupIndex, i + 1));
             }
         }
         //分支条件
@@ -202,7 +210,7 @@ public class SceneRule implements Serializable {
                 for (int i = 0; i < Math.min(actionList.size(), actionIndex + 1); i++) {
                     variables = variables.concatWith(actionList
                                                          .get(i)
-                                                         .createVariables(registry, branchIndex + 1, branchGroupIndex + 1, i + 1));
+                                                         .createVariables(branchIndex + 1, branchGroupIndex + 1, i + 1));
                 }
 
             }
@@ -212,7 +220,7 @@ public class SceneRule implements Serializable {
             .doOnNext(Variable::refactorPrefix);
     }
 
-    static String createBranchActionId(int branchIndex, int groupId, int actionIndex) {
+    public static String createBranchActionId(int branchIndex, int groupId, int actionIndex) {
         return "branch_" + branchIndex + "_group_" + groupId + "_action_" + actionIndex;
     }
 
@@ -447,13 +455,13 @@ public class SceneRule implements Serializable {
                                         if (CollectionUtils.isNotEmpty(preAction.getTerms())) {
                                             link.setCondition(TermsConditionEvaluator.createCondition(trigger.refactorTerm("this", preAction.getTerms())));
                                         }
-                                    } else if (trigger.getType() == TriggerType.manual) {
+                                    } else if (Objects.equals(trigger.getType(), ManualTriggerProvider.PROVIDER)) {
                                         model.link(sceneNode, actionNode);
                                     }
 
                                     preNode = actionNode;
                                 } else {
-                                    if (trigger.getType() == TriggerType.manual) {
+                                    if (Objects.equals(trigger.getType(), ManualTriggerProvider.PROVIDER)) {
                                         model.link(sceneNode, actionNode);
                                     }
                                 }
