@@ -212,15 +212,13 @@ public class DeviceDetail {
                 operator.getOnlineTime().defaultIfEmpty(0L),
                 //T3: 离线时间
                 operator.getOfflineTime().defaultIfEmpty(0L),
-                //T4: 连接到到集群服务
-                operator.getConnectionServerId().defaultIfEmpty("/"),
-                //T5: 真实的配置信息
+                //T4: 真实的配置信息
                 operator.getSelfConfigs(configs
                                             .stream()
                                             .map(ConfigPropertyMetadata::getProperty)
                                             .collect(Collectors.toSet()))
                         .defaultIfEmpty(Values.of(Collections.emptyMap())),
-                //T6:设备物模型,单独保存物模型后有值
+                //T5:设备物模型,单独保存物模型后有值
                 operator.getSelfConfig(DeviceConfigKey.metadata)
                         .defaultIfEmpty("")
             )
@@ -229,15 +227,8 @@ public class DeviceDetail {
                 setOfflineTime(tp.getT3());
                 setAddress(tp.getT1());
 
-                Map<String, Object> cachedConfigs = tp.getT5().getAllValues();
+                Map<String, Object> cachedConfigs = tp.getT4().getAllValues();
                 cachedConfiguration.putAll(cachedConfigs);
-
-                String deviceMetadata = tp.getT6();
-                //以缓存中的物模型为准
-                if (StringUtils.hasText(deviceMetadata)) {
-                    mergeDeviceMetadata(deviceMetadata);
-                    setIndependentMetadata(true);
-                }
 
                 DeviceMetadata metadata_ = decodeMetadata();
                 if (null != metadata_) {
