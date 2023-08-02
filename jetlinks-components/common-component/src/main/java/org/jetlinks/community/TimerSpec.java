@@ -16,18 +16,23 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.exception.ValidationException;
+import org.reactivestreams.Subscription;
 import org.springframework.util.Assert;
+import reactor.core.CoreSubscriber;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
+import javax.annotation.Nonnull;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -88,13 +93,25 @@ public class TimerSpec implements Serializable {
             }
             return predicate.and(range);
         }
-        if (mod == ExecuteMod.once){
+        if (mod == ExecuteMod.once) {
             LocalTime onceTime = once.localTime();
             Predicate<LocalDateTime> predicate
-                = time -> time.toLocalTime().compareTo(onceTime) == 0;
+                = time -> compareOnceTime(time.toLocalTime(), onceTime) == 0;
             return predicate.and(range);
         }
         return range;
+    }
+
+    public int compareOnceTime(LocalTime time1, LocalTime time2) {
+        int cmp = Integer.compare(time1.getHour(), time2.getHour());
+        if (cmp == 0) {
+            cmp = Integer.compare(time1.getMinute(), time2.getMinute());
+            if (cmp == 0) {
+                cmp = Integer.compare(time1.getSecond(), time2.getSecond());
+                //不比较纳秒
+            }
+        }
+        return cmp;
     }
 
     public String toCronExpression() {
@@ -280,9 +297,22 @@ public class TimerSpec implements Serializable {
      * @return 构造器
      */
     public Function<ZonedDateTime, Duration> nextDurationBuilder() {
-        Function<ZonedDateTime, ZonedDateTime> nextTime = nextTimeBuilder();
-        return time -> Duration.between(time, nextTime.apply(time));
+        return nextDurationBuilder(ZonedDateTime.now());
     }
+
+
+    public Function<ZonedDateTime, Duration> nextDurationBuilder(ZonedDateTime baseTime) {
+        Iterator<ZonedDateTime> it = iterable().iterator(baseTime);
+        return (time) -> {
+            Duration duration;
+            do {
+                duration = Duration.between(time, time = it.next());
+            }
+            while (duration.toMillis() < 0);
+            return duration;
+        };
+    }
+
 
     /**
      * 创建一个时间构造器,通过构造器来获取下一次时间
@@ -386,7 +416,7 @@ public class TimerSpec implements Serializable {
             public ZonedDateTime next() {
                 ZonedDateTime dateTime = current;
                 int max = MAX_IT_TIMES;
-                if (dateTime.toLocalTime().compareTo(onceTime) != 0){
+                if (!dateTime.toLocalTime().equals(onceTime)) {
                     dateTime = onceTime.atDate(dateTime.toLocalDate()).atZone(dateTime.getZone());
                 }
                 do {
@@ -403,7 +433,7 @@ public class TimerSpec implements Serializable {
     }
 
     public TimerIterable iterable() {
-        if ((trigger == Trigger.cron || trigger == null) && cron != null){
+        if ((trigger == Trigger.cron || trigger == null) && cron != null) {
             return cronIterable();
         }
         return mod == ExecuteMod.period ? periodIterable() : onceIterable();
@@ -416,6 +446,87 @@ public class TimerSpec implements Serializable {
             timeList.add(it.next());
         }
         return timeList;
+    }
+
+
+    public Flux<Long> flux() {
+        return flux(Schedulers.parallel());
+    }
+
+    public Flux<Long> flux(Scheduler scheduler) {
+        return new TimerFlux(nextDurationBuilder(), scheduler);
+    }
+
+    @AllArgsConstructor
+    static class TimerFlux extends Flux<Long> {
+        final Function<ZonedDateTime, Duration>  spec;
+        final Scheduler scheduler;
+
+        @Override
+        public void subscribe(@Nonnull CoreSubscriber<? super Long> coreSubscriber) {
+
+            TimerSubscriber subscriber = new TimerSubscriber(spec, scheduler, coreSubscriber);
+            coreSubscriber.onSubscribe(subscriber);
+        }
+    }
+
+    static class TimerSubscriber implements Subscription {
+        final Function<ZonedDateTime, Duration> spec;
+        final CoreSubscriber<? super Long> subscriber;
+        final Scheduler scheduler;
+        long count;
+        Disposable scheduling;
+
+        public TimerSubscriber(Function<ZonedDateTime, Duration> spec,
+                               Scheduler scheduler,
+                               CoreSubscriber<? super Long> subscriber) {
+            this.scheduler = scheduler;
+            this.spec = spec;
+            this.subscriber = subscriber;
+        }
+
+
+        @Override
+        public void request(long l) {
+            trySchedule();
+        }
+
+        @Override
+        public void cancel() {
+            if (scheduling != null) {
+                scheduling.dispose();
+            }
+        }
+
+        public void onNext() {
+
+            if (canSchedule()) {
+                subscriber.onNext(count++);
+            }
+            trySchedule();
+        }
+
+        void trySchedule() {
+            if (scheduling != null) {
+                scheduling.dispose();
+            }
+
+            ZonedDateTime now = ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduler.now(TimeUnit.MILLISECONDS)), ZoneId.systemDefault());
+            Duration delay = spec.apply(now);
+
+            scheduling = scheduler
+                .schedule(
+                    this::onNext,
+                    delay.toMillis(),
+                    TimeUnit.MILLISECONDS
+                );
+        }
+
+        protected boolean canSchedule() {
+            return true;
+        }
+
+
     }
 
     public enum Trigger {
