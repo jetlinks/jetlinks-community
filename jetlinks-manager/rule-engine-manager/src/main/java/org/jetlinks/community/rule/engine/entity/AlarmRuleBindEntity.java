@@ -26,12 +26,12 @@ public class AlarmRuleBindEntity extends GenericEntity<String> {
 
     public static final int ANY_BRANCH_INDEX = -1;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, length = 64)
     @NotBlank
     @Schema(description = "告警ID")
     private String alarmId;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, length = 64)
     @NotBlank
     @Schema(description = "场景规则ID")
     private String ruleId;
