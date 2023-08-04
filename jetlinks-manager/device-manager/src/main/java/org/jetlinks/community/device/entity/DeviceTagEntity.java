@@ -93,6 +93,16 @@ public class DeviceTagEntity extends GenericEntity<String> {
     }
 
 
+    //以物模型标签基础数据为准，重构数据库保存的可能已过时的标签数据
+    public DeviceTagEntity restructure(DeviceTagEntity tag) {
+        this.setDataType(tag.getDataType());
+        this.setName(tag.getName());
+        this.setType(tag.getType());
+        this.setKey(tag.getKey());
+        this.setDescription(tag.getDescription());
+        return this;
+    }
+
     public static String createTagId(String deviceId, String key) {
         return DigestUtils.md5Hex(deviceId + ":" + key);
     }
