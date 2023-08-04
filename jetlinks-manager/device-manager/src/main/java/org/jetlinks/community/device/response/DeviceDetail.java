@@ -252,7 +252,12 @@ public class DeviceDetail {
                 Collectors.toMap(
                     DeviceTagEntity::getKey,
                     Function.identity(),
-                    (_1, _2) -> StringUtils.hasText(_1.getValue()) ? _1 : _2));
+                    (_1, _2) -> {
+                        if (StringUtils.hasText(_1.getValue())) {
+                            return _1.restructure(_2);
+                        }
+                        return _2.restructure(_1);
+                    }));
 
         this.tags = new ArrayList<>(map.values());
 
@@ -268,6 +273,7 @@ public class DeviceDetail {
         } else {
             this.tags.sort(Comparator.comparing(DeviceTagEntity::getCreateTime));
         }
+
 
         if (StringUtils.hasText(id)) {
             for (DeviceTagEntity tag : getTags()) {
