@@ -15,6 +15,8 @@ import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.types.DateTimeType;
+import org.jetlinks.core.trace.MonoTracer;
+import org.jetlinks.core.trace.TraceHolder;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
@@ -24,6 +26,7 @@ import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
 import org.jetlinks.reactor.ql.DefaultReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
+import org.jetlinks.rule.engine.api.RuleConstants;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.model.RuleLink;
 import org.jetlinks.rule.engine.api.model.RuleModel;
@@ -113,7 +116,7 @@ public class SceneRule implements Serializable {
         return terms;
     }
 
-    public Function<Map<String, Object>, Mono<Boolean>> createFilter(List<Term> terms) {
+    public Function<Map<String, Object>, Mono<Boolean>> createDefaultFilter(List<Term> terms) {
         if (trigger != null) {
             return createDefaultFilter(trigger.createFilter(terms));
         }
@@ -230,6 +233,9 @@ public class SceneRule implements Serializable {
             return Disposables.disposed();
         }
 
+        String id = this.id;
+        String name = this.name;
+
         Function<Map<String, Object>, Mono<Boolean>> last = null;
 
         Disposable.Composite disposable = Disposables.composite();
@@ -237,19 +243,23 @@ public class SceneRule implements Serializable {
         for (SceneConditionAction branch : branches) {
             int _branchIndex = ++branchIndex;
             //执行条件
-            Function<Map<String, Object>, Mono<Boolean>> filter = createFilter(branch.getWhen());
+            Function<Map<String, Object>, Mono<Boolean>> filter = createDefaultFilter(branch.getWhen());
             //满足条件后的输出操作
             List<Function<Map<String, Object>, Mono<Void>>> outs = new ArrayList<>();
 
             List<SceneActions> groups = branch.getThen();
             int thenIndex = 0;
             if (CollectionUtils.isNotEmpty(groups)) {
-                thenIndex++;
 
                 for (SceneActions then : groups) {
+                    thenIndex++;
+
                     Function<Map<String, Object>, Mono<Void>> out;
 
                     int size = then.getActions().size();
+                    if (size == 0) {
+                        continue;
+                    }
                     //串行，只传递到第一个动作
                     if (!then.isParallel() || size == 1) {
                         String nodeId = createBranchActionId(_branchIndex, thenIndex, 1);
@@ -258,7 +268,7 @@ public class SceneRule implements Serializable {
                         //多个并行执行动作
                         String[] nodeIds = new String[size];
                         for (int i = 0; i < nodeIds.length; i++) {
-                            nodeIds[i] = createBranchActionId(_branchIndex, thenIndex, 1 + (i + 1));
+                            nodeIds[i] = createBranchActionId(_branchIndex, thenIndex, (i + 1));
                         }
                         Flux<String> nodeIdFlux = Flux.fromArray(nodeIds);
                         //并行
@@ -285,7 +295,7 @@ public class SceneRule implements Serializable {
                                 .transfer(sinks.asFlux(),
                                           (duration, stream) ->
                                               grouping
-                                                  .group(stream)//先按自定义分组再按事件窗口进行分组
+                                                  .group(stream)//先按自定义分组再按时间窗口进行分组
                                                   .flatMap(group -> group.window(duration), Integer.MAX_VALUE),
                                           (map, total) -> map.put("_total", total))
                                 .flatMap(handler)
@@ -339,23 +349,33 @@ public class SceneRule implements Serializable {
             disposable.dispose();
             throw new IllegalArgumentException();
         }
+        Function<Map<String, Object>, Mono<Boolean>> fLast = last;
+
+        MonoTracer<Boolean> tracer = MonoTracer.create(
+            "/rule-runtime/scene/" + id,
+            builder -> builder.setAttribute(RuleConstants.Trace.name, name));
 
         disposable.add(
-            sourceData.flatMap(last).subscribe()
+            sourceData
+                .flatMap(data -> fLast
+                    .apply(data)
+                    .as(tracer)
+                    .contextWrite(ctx -> TraceHolder.readToContext(ctx, data)))
+                .subscribe()
         );
 
         return disposable;
+    }
+
+    public SceneRule where(String expression) {
+        setTerms(TermExpressionParser.parse(expression));
+        return this;
     }
 
     public List<Variable> createDefaultVariable() {
         return trigger != null
             ? trigger.createDefaultVariable()
             : Collections.emptyList();
-    }
-
-    public SceneRule where(String expression) {
-        setTerms(TermExpressionParser.parse(expression));
-        return this;
     }
 
     public RuleModel toModel() {
