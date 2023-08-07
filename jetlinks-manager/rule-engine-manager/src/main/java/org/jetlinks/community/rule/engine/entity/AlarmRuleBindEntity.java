@@ -28,7 +28,7 @@ public class AlarmRuleBindEntity extends GenericEntity<String> {
 
     @Column(nullable = false, updatable = false, length = 64)
     @NotBlank
-    @Schema(description = "告警ID")
+    @Schema(description = "告警配置ID")
     private String alarmId;
 
     @Column(nullable = false, updatable = false, length = 64)
