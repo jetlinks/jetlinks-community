@@ -8,6 +8,6 @@ public class Version {
 
     private final String edition = "community";
 
-    private final String version = "2.0.0-SNAPSHOT";
+    private final String version = "2.2.0-SNAPSHOT";
 
 }
