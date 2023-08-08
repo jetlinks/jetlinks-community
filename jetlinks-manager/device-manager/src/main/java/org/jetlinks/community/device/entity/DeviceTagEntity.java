@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.entity;
 
 
+import com.alibaba.fastjson.JSON;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +15,8 @@ import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.types.ArrayType;
+import org.jetlinks.core.metadata.types.ObjectType;
 
 import javax.persistence.Column;
 import javax.persistence.Index;
@@ -65,6 +68,7 @@ public class DeviceTagEntity extends GenericEntity<String> {
     @Schema(description = "说明")
     private String description;
 
+    private DataType dataType;
 
     public static DeviceTagEntity of(PropertyMetadata property) {
        DeviceTagEntity entity = new DeviceTagEntity();
@@ -73,7 +77,19 @@ public class DeviceTagEntity extends GenericEntity<String> {
         entity.setType(property.getValueType().getId());
         entity.setDescription(property.getDescription());
         entity.setCreateTime(new Date());
+        entity.setDataType(property.getValueType());
         return entity;
+    }
+
+
+    //以物模型标签基础数据为准，重构数据库保存的可能已过时的标签数据
+    public DeviceTagEntity restructure(DeviceTagEntity tag) {
+        this.setDataType(tag.getDataType());
+        this.setName(tag.getName());
+        this.setType(tag.getType());
+        this.setKey(tag.getKey());
+        this.setDescription(tag.getDescription());
+        return this;
     }
 
     public static DeviceTagEntity of(PropertyMetadata property, Object value) {
@@ -86,7 +102,19 @@ public class DeviceTagEntity extends GenericEntity<String> {
                 value = newValue;
             }
         }
-        tag.setValue(String.valueOf(value));
+
+        String stringValue;
+        switch (type.getId()) {
+            //结构体和数组类型转为json字符串
+            case ObjectType.ID:
+            case ArrayType.ID:
+                stringValue = JSON.toJSONString(value);
+                break;
+            default:
+                stringValue = String.valueOf(value);
+        }
+
+        tag.setValue(stringValue);
         return tag;
     }
 

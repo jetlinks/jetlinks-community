@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.rule.engine.api.RuleConstants;
+import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
 import org.jetlinks.rule.engine.api.task.Task;
 import org.jetlinks.rule.engine.api.task.TaskExecutor;
@@ -24,6 +25,7 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -31,8 +33,6 @@ import java.util.function.Supplier;
 @Component
 @AllArgsConstructor
 public class TimerTaskExecutorProvider implements TaskExecutorProvider {
-
-    private final Scheduler scheduler = Schedulers.parallel();
 
     @Override
     public String getExecutor() {
@@ -44,17 +44,13 @@ public class TimerTaskExecutorProvider implements TaskExecutorProvider {
         return Mono.just(new TimerTaskExecutor(context));
     }
 
-    class TimerTaskExecutor extends AbstractTaskExecutor {
-
-        Supplier<Duration> nextDelay;
+    static class TimerTaskExecutor extends AbstractTaskExecutor {
 
         TimerSpec spec;
 
-        Predicate<LocalDateTime> filter;
-
         public TimerTaskExecutor(ExecutionContext context) {
             super(context);
-            nextDelay = createNextDelay();
+            spec = FastBeanCopier.copy(context.getJob().getConfiguration(), new TimerSpec());
         }
 
         @Override
@@ -68,56 +64,47 @@ public class TimerTaskExecutorProvider implements TaskExecutorProvider {
         }
 
         private Disposable execute() {
-            Duration nextTime = nextDelay.get();
-            context.getLogger().debug("trigger timed task after {}", nextTime);
-            if (this.disposable != null) {
-                this.disposable.dispose();
-            }
-            return this.disposable =
-                Mono.delay(nextTime, scheduler)
-                    .flatMap(t -> {
-                        if (!this.filter.test(LocalDateTime.now())) {
-                            return Mono.empty();
-                        }
-                        Map<String, Object> data = new HashMap<>();
-                        long currentTime = System.currentTimeMillis();
-                        data.put("timestamp", currentTime);
-                        data.put("_now", currentTime);
-                        return context
-                            .getOutput()
-                            .write(Mono.just(context.newRuleData(data)))
-                            .then(context
-                                      .fireEvent(RuleConstants.Event.complete, context.newRuleData(System.currentTimeMillis()))
-                                      .thenReturn(1));
-
-                    })
-                    .onErrorResume(err -> context.onError(err, null).then(Mono.empty()))
-                    .doFinally(s -> {
-                        if (getState() == Task.State.running && s != SignalType.CANCEL) {
-                            execute();
-                        }
-                    })
-                    .subscribe();
+            return spec
+                .flux()
+                .onBackpressureDrop()
+                .concatMap(t -> {
+                    Map<String, Object> data = new HashMap<>();
+                    long currentTime = System.currentTimeMillis();
+                    data.put("timestamp", currentTime);
+                    data.put("_now", currentTime);
+                    data.put("times", t);
+                    RuleData ruleData = context.newRuleData(data);
+                    return context
+                        .getOutput()
+                        .write(ruleData)
+                        .then(context.fireEvent(RuleConstants.Event.result, ruleData))
+                        .onErrorResume(err -> context.onError(err, null).then(Mono.empty()))
+                        .as(tracer());
+                })
+                .subscribe();
         }
 
         @Override
         public void reload() {
-            nextDelay = createNextDelay();
+            spec = FastBeanCopier.copy(context.getJob().getConfiguration(), new TimerSpec());
+            if (disposable != null) {
+                disposable.dispose();
+            }
             disposable = doStart();
         }
 
         @Override
         public void validate() {
-            createNextDelay();
-        }
-
-        private Supplier<Duration> createNextDelay() {
             TimerSpec spec = FastBeanCopier.copy(context.getJob().getConfiguration(), new TimerSpec());
-            Function<ZonedDateTime, Duration> builder = spec.nextDurationBuilder();
-            this.filter = spec.createTimeFilter();
-            return () -> builder.apply(ZonedDateTime.now());
-
+            spec.nextDurationBuilder();
+            spec.createTimeFilter();
         }
+
+        @Override
+        public synchronized void shutdown() {
+            super.shutdown();
+        }
+
 
     }
 

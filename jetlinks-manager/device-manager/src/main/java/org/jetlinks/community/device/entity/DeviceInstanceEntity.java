@@ -209,8 +209,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         info.addConfig(DeviceConfigKey.parentGatewayId, this.getParentId());
         info.addConfig(PropertyConstants.deviceName, name);
         info.addConfig(PropertyConstants.productName, productName);
-        info.addConfig(PropertyConstants.orgId, orgId);
-        info.addConfig(PropertyConstants.creatorId, creatorId);
+        info.addConfig(PropertyConstants.creatorId,creatorId);
         if (hasFeature(DeviceFeature.selfManageState)) {
             info.addConfig(DeviceConfigKey.selfManageState, true);
         }
