@@ -9,6 +9,7 @@ import org.hswebframework.ezorm.rdb.executor.PrepareSqlRequest;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.AbstractTermsFragmentBuilder;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments;
+import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
@@ -47,6 +48,8 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.jetlinks.community.rule.engine.scene.SceneRule.DEFAULT_FILTER_TABLE;
 
 @Getter
 @Setter
@@ -175,37 +178,6 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         return CollectionUtils.isEmpty(terms) ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
     }
 
-    Function<Map<String, Object>, Mono<Boolean>> createFilter(List<Term> terms) {
-        SqlFragments fragments = CollectionUtils.isEmpty(terms) ? EmptySqlFragments.INSTANCE : termBuilder.createTermFragments(this, terms);
-        if (!fragments.isEmpty()) {
-            SqlRequest request = fragments.toRequest();
-            String sql = "select 1 from t where " + request.getSql();
-            ReactorQL ql = ReactorQL
-                .builder()
-                .sql(sql)
-                .build();
-            List<Object> args = Arrays.asList(request.getParameters());
-            String sqlString = request.toNativeSql();
-            return new Function<Map<String, Object>, Mono<Boolean>>() {
-                @Override
-                public Mono<Boolean> apply(Map<String, Object> map) {
-                    ReactorQLContext context = new DefaultReactorQLContext((t) -> Flux.just(map), args);
-                    return ql
-                        .start(context)
-                        .hasElements();
-                }
-
-                @Override
-                public String toString() {
-                    return sqlString;
-                }
-            };
-        }
-
-        return ignore -> Reactors.ALWAYS_TRUE;
-
-    }
-
     private String createFromTable() {
         String topic = null;
 
@@ -230,12 +202,13 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         if (!StringUtils.hasText(selector)) {
             selector = "all";
         }
+        String scope;
         switch (selector) {
             case "all":
                 topic = String.format(topic, "*");
                 break;
             case "fixed":
-                String scope = getSelectorValues()
+                scope = getSelectorValues()
                     .stream()
                     .map(SelectorValue::getValue)
                     .map(String::valueOf)
@@ -273,7 +246,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
                 .lookupSupport(termType)
                 .orElseThrow(() -> new UnsupportedOperationException("unsupported termType " + termType));
 
-            Term copy = refactorTermValue("t", term.clone());
+            Term copy = refactorTermValue(DEFAULT_FILTER_TABLE, term.clone());
 
             return support.createSql(copy.getColumn(), copy.getValue(), term);
         }
@@ -330,28 +303,40 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
                 .collect(Collectors.toList());
         }
 
-        if (!term.getOptions().contains(TermType.OPTIONS_NATIVE_SQL)) {
-            String column;
-            // properties.xxx.last的场景
-            if (arr.length > 3 && arr[0].equals("properties")) {
-                column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
-            } else if (!isBranchTerm(arr[0])) {
-                column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "']";
-            } else {
-                column = term.getColumn();
-            }
-            term.setColumn(column);
+        String column;
+        // properties.xxx.last的场景
+        if (arr.length > 3 && arr[0].equals("properties")) {
+            column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
+        } else if (!isDirectTerm(arr[0])) {
+            column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "']";
+        } else {
+            column = term.getColumn();
         }
+
+        if (term.getOptions().contains(TermType.OPTIONS_NATIVE_SQL)) {
+            val = NativeSql.of(String.valueOf(val));
+        }
+
+        term.setColumn(column);
 
         term.setValue(val);
 
         return term;
     }
 
+    private static boolean isDirectTerm(String column) {
+        //直接term,构建Condition输出条件时使用
+        return isBranchTerm(column) || isSceneTerm(column);
+    }
+
     private static boolean isBranchTerm(String column) {
         return column.startsWith("branch_") &&
             column.contains("_group_")
             && column.contains("_action_");
+    }
+
+    private static boolean isSceneTerm(String column) {
+        return column.startsWith("scene");
     }
 
     static String parseProperty(String column) {
@@ -377,9 +362,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
                     case current:
                         return "this['properties." + property + "']";
                     case recent:
-                        return "coalesce(this['properties." + property + "']" + ",device.property.recent(deviceId,'" + property + "',timestamp))";
+                        return "coalesce(this['properties." + property + "']" + ",device.property.recent(deviceId,'" + property + "',timestamp - 1))";
                     case last:
-                        return "device.property.recent(deviceId,'" + property + "',timestamp)";
+                        return "device.property.recent(deviceId,'" + property + "',timestamp - 1)";
                 }
             } catch (IllegalArgumentException ignore) {
 
@@ -389,35 +374,13 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
     }
 
     static String createColumnAlias(String column, boolean wrapColumn) {
-        if (!column.contains(".")) {
-            return wrapColumn ? wrapColumnName(column) : column;
-        }
-        String[] arr = column.split("[.]");
-        String alias;
-        //properties.temp.current
-        if ("properties".equals(arr[0])) {
-            String property = arr[1];
-            alias = property + "_" + arr[arr.length - 1];
-        } else {
-            if (arr.length > 1) {
-                alias = String.join("_", Arrays.copyOfRange(arr, 1, arr.length));
-            } else {
-                alias = column.replace(".", "_");
-            }
-        }
-        return wrapColumn ? wrapColumnName(alias) : alias;
+        return SceneUtils.createColumnAlias("properties", column, wrapColumn);
     }
 
     static String createColumnAlias(String column) {
         return createColumnAlias(column, true);
     }
 
-    static String wrapColumnName(String column) {
-        if (column.startsWith("\"") && column.endsWith("\"")) {
-            return column;
-        }
-        return "\"" + (column.replace("\"", "\\\"")) + "\"";
-    }
 
     public List<Variable> createDefaultVariable() {
         return Arrays.asList(
@@ -518,5 +481,4 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         operation.validate();
 
     }
-
 }

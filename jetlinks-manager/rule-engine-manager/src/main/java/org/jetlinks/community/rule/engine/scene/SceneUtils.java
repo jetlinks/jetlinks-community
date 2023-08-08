@@ -7,14 +7,37 @@ import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.value.TermValue;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 public class SceneUtils {
 
+    public static String createColumnAlias(String prefix,String column, boolean wrapColumn) {
+        if (!column.contains(".")) {
+            return wrapColumn ? wrapColumnName(column) : column;
+        }
+        String[] arr = column.split("[.]");
+        String alias;
+        //prefix.temp.current
+        if (prefix.equals(arr[0])) {
+            String property = arr[1];
+            alias = property + "_" + arr[arr.length - 1];
+        } else {
+            if (arr.length > 1) {
+                alias = String.join("_", Arrays.copyOfRange(arr, 1, arr.length));
+            } else {
+                alias = column.replace(".", "_");
+            }
+        }
+        return wrapColumn ? wrapColumnName(alias) : alias;
+    }
+
+    public static String wrapColumnName(String column) {
+        if (column.startsWith("\"") && column.endsWith("\"")) {
+            return column;
+        }
+        return "\"" + (column.replace("\"", "\\\"")) + "\"";
+    }
 
     /**
      * 根据条件和可选的条件列解析出将要输出的变量信息
