@@ -747,12 +747,27 @@ public class DeviceInstanceController implements
                                                  .thenMany(Flux.fromIterable(list));
                                          })
                             , 512 * 1024))//缓冲512k
+                    .map(bytes -> {
+                        if (format.equals("csv")){
+                            String bomString = "\ufeff";
+                            byte[] bomBytes = bomString.getBytes(StandardCharsets.UTF_8);
+                            byte[] result = concatenateByteArrays(bomBytes, bytes);
+                            return result;
+                        }
+                        return bytes;
+                    })
                     .doOnError(err -> log.error(err.getMessage(), err))
                     .map(bufferFactory::wrap)
                     .as(response::writeWith);
             });
     }
 
+    private static byte[] concatenateByteArrays(byte[] array1, byte[] array2) {
+        byte[] result = new byte[array1.length + array2.length];
+        System.arraycopy(array1, 0, result, 0, array1.length);
+        System.arraycopy(array2, 0, result, array1.length, array2.length);
+        return result;
+    }
 
     //直接导出数据,不支持导出标签.
     @GetMapping("/export.{format}")
