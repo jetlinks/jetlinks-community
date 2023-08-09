@@ -25,6 +25,7 @@ import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.PropertyMetric;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.response.DeviceDeployResult;
@@ -50,6 +51,7 @@ import org.jetlinks.community.io.utils.FileUtils;
 import org.jetlinks.community.relation.RelationObjectProvider;
 import org.jetlinks.community.relation.service.RelationService;
 import org.jetlinks.community.relation.service.request.SaveRelationRequest;
+import org.jetlinks.community.things.impl.metric.DefaultPropertyMetricManager;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.community.web.response.ValidationResult;
 import org.jetlinks.core.Values;
@@ -127,6 +129,8 @@ public class DeviceInstanceController implements
 
     private final DeviceExcelFilterColumns filterColumns;
 
+    private final DefaultPropertyMetricManager metricManager;
+
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
                                     DeviceRegistry registry,
@@ -139,7 +143,8 @@ public class DeviceInstanceController implements
                                     TransactionalOperator transactionalOperator,
                                     FileManager fileManager,
                                     WebClient.Builder builder,
-                                    DeviceExcelFilterColumns filterColumns) {
+                                    DeviceExcelFilterColumns filterColumns,
+                                    DefaultPropertyMetricManager metricManager) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
@@ -152,6 +157,7 @@ public class DeviceInstanceController implements
         this.fileManager = fileManager;
         this.webClient = builder.build();
         this.filterColumns = filterColumns;
+        this.metricManager = metricManager;
     }
 
 
@@ -1104,4 +1110,26 @@ public class DeviceInstanceController implements
     }
 
 
+    @PatchMapping("/{deviceId}/metric/property/{property}")
+    @Operation(summary = "保存设备属性指标数据")
+    @SaveAction
+    public Mono<Void> savePropertyMetric(@PathVariable String deviceId,
+                                         @PathVariable String property,
+                                         @RequestBody Flux<PropertyMetric> metricFlux) {
+        return metricManager
+            .savePropertyMetrics(DeviceThingType.device.getId(),
+                                 deviceId,
+                                 property,
+                                 metricFlux)
+            .then();
+    }
+
+    @GetMapping("/{deviceId}/metric/property/{property}")
+    @Operation(summary = "获取设备属性指标数据")
+    @SaveAction
+    public Flux<PropertyMetric> getPropertyMetric(@PathVariable String deviceId,
+                                                  @PathVariable String property) {
+        return metricManager
+            .getPropertyMetrics(DeviceThingType.device.getId(), deviceId, property);
+    }
 }

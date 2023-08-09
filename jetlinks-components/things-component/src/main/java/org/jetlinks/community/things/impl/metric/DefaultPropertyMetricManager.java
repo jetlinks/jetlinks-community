@@ -40,6 +40,67 @@ public class DefaultPropertyMetricManager extends AbstractPropertyMetricManager 
         this.repository = repository;
     }
 
+    public Flux<PropertyMetric> getPropertyMetrics(String thingType,
+                                                   String thingId,
+                                                   String property) {
+        return Mono
+            .zip(
+                //数据库中记录的
+                repository
+                    .createQuery()
+                    .where(PropertyMetricEntity::getThingType, thingType)
+                    .and(PropertyMetricEntity::getThingId, thingId)
+                    .and(PropertyMetricEntity::getProperty, property)
+                    .fetch()
+                    .map(PropertyMetricEntity::toMetric)
+                    .collectMap(PropertyMetric::getId),
+                //物模型中配置的
+                registry
+                    .getThing(thingType, thingId)
+                    .flatMap(Thing::getTemplate)
+                    .flatMap(ThingTemplate::getMetadata)
+                    .flatMapIterable(metadata -> metadata
+                        .getProperty(property)
+                        .map(PropertyMetadataConstants.Metrics::getMetrics)
+                        .orElse(Collections.emptyList()))
+                    .collectMap(PropertyMetric::getId, Function.identity(), LinkedHashMap::new),
+                (exists, inMetadata) -> {
+                    for (Map.Entry<String, PropertyMetric> entry : exists.entrySet()) {
+                        String metric = entry.getKey();
+                        PropertyMetric independent = entry.getValue();
+                        PropertyMetric fromMetadata = inMetadata.get(metric);
+                        if (fromMetadata == null) {
+                            inMetadata.put(metric, independent);
+                            continue;
+                        }
+                        fromMetadata.setValue(independent.getValue());
+                    }
+                    return Flux.fromIterable(inMetadata.values());
+                })
+            .flatMapMany(Function.identity());
+    }
+
+    public Mono<SaveResult> savePropertyMetrics(String thingType,
+                                                String thingId,
+                                                String property,
+                                                Flux<PropertyMetric> metrics) {
+        return metrics
+            .map(metric -> {
+                PropertyMetricEntity entity = new PropertyMetricEntity();
+                entity.setThingId(thingId);
+                entity.setThingType(thingType);
+                entity.setMetric(metric.getId());
+                entity.setMetricName(metric.getName());
+                entity.setProperty(property);
+                entity.setValue(String.valueOf(metric.getValue()));
+                entity.setRange(metric.isRange());
+                entity.genericId();
+                return entity;
+            })
+            .as(repository::save);
+
+    }
+
     @Override
     protected Mono<PropertyMetric> loadPropertyMetric(ThingId thingId,
                                                       String property,

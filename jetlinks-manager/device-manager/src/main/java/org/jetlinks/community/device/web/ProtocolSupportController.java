@@ -100,8 +100,20 @@ public class ProtocolSupportController
     @GetMapping("/supports")
     @Authorize(merge = false)
     @Operation(summary = "获取当前支持的协议")
-    public Flux<ProtocolInfo> allProtocols() {
-        return protocolSupports.getProtocols().map(ProtocolInfo::of);
+    public Flux<ProtocolInfo> allProtocols(@Parameter(hidden = true) QueryParamEntity query) {
+        return protocolSupports
+            .getProtocols()
+            .collectMap(ProtocolSupport::getId)
+            .flatMapMany(protocols -> service.createQuery()
+                                             .setParam(query)
+                                             .fetch()
+                                             .index()
+                                             .flatMap(tp2 -> Mono
+                                                 .justOrEmpty(protocols.get(tp2.getT2().getId()))
+                                                 .map(ProtocolInfo::of)
+                                                 .map(protocolInfo -> Tuples.of(tp2.getT1(), protocolInfo))))
+            .sort(Comparator.comparingLong(Tuple2::getT1))
+            .map(Tuple2::getT2);
     }
 
     @GetMapping("/{id}/{transport}/configuration")
