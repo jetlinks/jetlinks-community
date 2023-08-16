@@ -20,6 +20,7 @@ import org.jetlinks.community.reference.DefaultDataReferenceManager;
 import org.jetlinks.community.resource.DefaultResourceManager;
 import org.jetlinks.community.resource.ResourceManager;
 import org.jetlinks.community.resource.ResourceProvider;
+import org.jetlinks.community.resource.TypeScriptDeclareResourceProvider;
 import org.jetlinks.community.resource.initialize.PermissionResourceProvider;
 import org.jetlinks.community.service.DefaultUserBindService;
 import org.jetlinks.community.utils.TimeUtils;
@@ -170,6 +171,11 @@ public class CommonConfiguration {
     @Bean
     public PermissionResourceProvider permissionResourceProvider(){
         return new PermissionResourceProvider();
+    }
+
+    @Bean
+    public TypeScriptDeclareResourceProvider typeScriptDeclareResourceProvider() {
+        return new TypeScriptDeclareResourceProvider();
     }
 
     @Bean
