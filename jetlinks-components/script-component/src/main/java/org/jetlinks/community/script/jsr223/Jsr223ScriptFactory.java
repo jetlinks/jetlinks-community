@@ -96,12 +96,12 @@ public abstract class Jsr223ScriptFactory extends AbstractScriptFactory {
 
     @Override
     @SuppressWarnings("all")
-    public final <T> T bind(Script script, Class<T> interfaceType) {
+    public final <T> T bind(Script script, Class<T> interfaceType,ExecutionContext context) {
         String returns = createFunctionMapping(interfaceType.getDeclaredMethods());
         String content = script.getContent() + "\n return " + returns + ";";
 
         CompiledScript compiledScript = compile(script.content(content), false);
-        Object source = compiledScript.call(Collections.emptyMap());
+        Object source = compiledScript.call(context);
         Set<Method> ignoreMethods = new HashSet<>();
 
         return (T) Proxy.newProxyInstance(

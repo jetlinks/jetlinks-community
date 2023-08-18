@@ -1,15 +1,19 @@
 package org.jetlinks.community.device.message.transparent.script;
 
+import lombok.RequiredArgsConstructor;
 import org.hswebframework.web.exception.ValidationException;
 import org.jetlinks.community.device.message.transparent.SimpleTransparentMessageCodec;
 import org.jetlinks.community.device.message.transparent.TransparentMessageCodec;
 import org.jetlinks.community.device.message.transparent.TransparentMessageCodecProvider;
 import org.jetlinks.community.script.Script;
+import org.jetlinks.community.script.ScriptFactory;
 import org.jetlinks.community.script.Scripts;
+import org.jetlinks.community.script.context.ExecutionContext;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -28,12 +32,15 @@ public class Jsr223TransparentMessageCodecProvider implements TransparentMessage
         Assert.hasText(lang, "lang can not be null");
         Assert.hasText(script, "script can not be null");
 
-        CodecContext context = new CodecContext();
+        ScriptFactory factory = Scripts.getFactory(lang);
 
-        SimpleTransparentMessageCodec.Codec codec = Scripts
-            .getFactory(lang)
-            .bind(Script.of("jsr223-transparent", script),
-                  SimpleTransparentMessageCodec.Codec.class);
+        CodecContext context = new CodecContext(factory);
+
+        SimpleTransparentMessageCodec.Codec codec = factory.bind(
+            Script.of("jsr223-transparent", script),
+            SimpleTransparentMessageCodec.Codec.class,
+            ExecutionContext.create(Collections.singletonMap("codec", context)));
+
 
         if (context.encoder == null && codec != null) {
             context.onDownstream(codec::encode);
@@ -52,8 +59,9 @@ public class Jsr223TransparentMessageCodecProvider implements TransparentMessage
                 ));
     }
 
+    @RequiredArgsConstructor
     public static class CodecContext implements SimpleTransparentMessageCodec.Codec {
-
+        private final ScriptFactory factory;
         private Function<SimpleTransparentMessageCodec.EncodeContext, Object> encoder;
         private Function<SimpleTransparentMessageCodec.DecodeContext, Object> decoder;
 
@@ -70,7 +78,7 @@ public class Jsr223TransparentMessageCodecProvider implements TransparentMessage
             if (decoder == null) {
                 return null;
             }
-            return decoder.apply(context);
+            return factory.convertToJavaType(decoder.apply(context));
         }
 
         @Override
@@ -78,7 +86,7 @@ public class Jsr223TransparentMessageCodecProvider implements TransparentMessage
             if (encoder == null) {
                 return null;
             }
-            return encoder.apply(context);
+            return factory.convertToJavaType(encoder.apply(context));
         }
 
     }
