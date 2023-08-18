@@ -22,6 +22,16 @@ declare interface DecodeContext {
     timestamp(): number;
 
     /**
+     * 解析报文为json对象
+     */
+    json(): java.util.Map<string, any>;
+
+    /**
+     * 解析报文为json对象
+     */
+    jsonArray(): java.util.List<any>;
+
+    /**
      * 获取原始透传消息
      */
     message(): org.jetlinks.core.message.DirectMessage;

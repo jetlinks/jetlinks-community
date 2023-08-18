@@ -12,6 +12,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.collections4.MapUtils;
 import org.jetlinks.community.OperationSource;
 import org.jetlinks.community.PropertyConstants;
+import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.DirectDeviceMessage;
 import org.jetlinks.core.message.MessageType;
@@ -139,9 +140,12 @@ public class SimpleTransparentMessageCodec implements TransparentMessageCodec {
         }
 
         public Object json() {
-            return JSON.parse(buffer.array());
+            return ObjectMappers.parseJson(ByteBufUtil.getBytes(buffer), Object.class);
         }
 
+        public Object jsonArray() {
+            return ObjectMappers.parseJsonArray(ByteBufUtil.getBytes(buffer), Object.class);
+        }
         public Map<String, String> pathVars(String pattern, String path) {
             return TopicUtils.getPathVariables(pattern, path);
         }
