@@ -1,5 +1,7 @@
 package org.jetlinks.community.script;
 
+import org.jetlinks.community.script.context.ExecutionContext;
+
 import java.util.Collection;
 import java.util.Map;
 
@@ -87,6 +89,12 @@ public interface ScriptFactory {
      * @return 接口代理实现
      */
     <T> T bind(Script script,
-               Class<T> interfaceType);
+               Class<T> interfaceType,
+               ExecutionContext context);
+
+    default <T> T bind(Script script,
+                       Class<T> interfaceType) {
+        return bind(script, interfaceType, ExecutionContext.create());
+    }
 
 }
