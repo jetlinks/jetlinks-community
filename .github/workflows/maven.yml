@@ -20,8 +20,8 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
     - name: Build with Maven
-      run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pbuild && cd jetlinks-standalone && docker build -t registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
+      run: ./mvnw clean install -Dmaven.build.timestamp="$(date "+%Y-%m-%d %H:%M:%S")" -Dmaven.test.skip=true -Pbuild && cd jetlinks-standalone && docker build -t registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) .
     - name: Login Docker Repo
       run: echo "${{ secrets.ALIYUN_DOCKER_REPO_PWD }}" | docker login registry.cn-shenzhen.aliyuncs.com -u ${{ secrets.ALIYUN_DOCKER_REPO_USERNAME }} --password-stdin
     - name: Push Docker
-      run: docker push registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+      run: docker push registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
