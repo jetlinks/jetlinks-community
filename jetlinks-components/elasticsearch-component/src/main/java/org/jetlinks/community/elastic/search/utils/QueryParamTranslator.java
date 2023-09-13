@@ -103,9 +103,7 @@ public class QueryParamTranslator {
                 }
             };
         }
-        for (Term term : queryParam.getTerms()) {
-            linkTypeParser.process(term, paramConverter, queryBuilders);
-        }
+        linkTypeParser.process(queryParam.getTerms(), paramConverter, queryBuilders);
         return queryBuilders;
     }
 

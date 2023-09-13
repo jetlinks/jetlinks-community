@@ -18,42 +18,56 @@ public class DefaultLinkTypeParser implements LinkTypeParser {
 
     private final TermTypeParser parser = new DefaultTermTypeParser();
 
+
     @Override
-    public BoolQueryBuilder process(Term term, Consumer<Term> consumer, BoolQueryBuilder queryBuilders) {
-        if (term.getValue() == null && CollectionUtils.isEmpty(term.getTerms())) {
-            return queryBuilders;
+    public void process(List<Term> terms,
+                                    Consumer<Term> consumer,
+                                    BoolQueryBuilder queryBuilders) {
+
+        if (CollectionUtils.isEmpty(terms)) {
+            return;
         }
-        if (term.getType() == Term.Type.or) {
-            handleOr(queryBuilders, term, consumer);
-        } else {
-            handleAnd(queryBuilders, term, consumer);
+        for (TermsHandler.TermGroup group : TermsHandler.groupTerms(terms)) {
+            if (group.type == Term.Type.or) {
+                for (Term groupTerm : group.getTerms()) {
+                    handleOr(queryBuilders, groupTerm, consumer);
+                }
+            } else {
+                BoolQueryBuilder andQuery = QueryBuilders.boolQuery();
+                for (Term groupTerm : group.getTerms()) {
+                    handleAnd(andQuery, groupTerm, consumer);
+                }
+                if (!CollectionUtils.isEmpty(andQuery.must())){
+                    queryBuilders.should(andQuery);
+                }
+            }
         }
-        return queryBuilders;
     }
 
-    private void handleOr(BoolQueryBuilder queryBuilders, Term term, Consumer<Term> consumer) {
+    private void handleOr(BoolQueryBuilder queryBuilders,
+                          Term term,
+                          Consumer<Term> consumer) {
         consumer.accept(term);
         if (term.getTerms().isEmpty() && term.getValue() != null) {
             parser.process(() -> term, queryBuilders::should);
-        } else {
+        } else if (!term.getTerms().isEmpty()){
             BoolQueryBuilder nextQuery = QueryBuilders.boolQuery();
-            List<Term> terms = (term.getTerms());
-            terms.forEach(t -> process(t, consumer, nextQuery));
+            process(term.getTerms(), consumer, nextQuery);
             queryBuilders.should(nextQuery);
         }
     }
 
-    private void handleAnd(BoolQueryBuilder queryBuilders, Term term, Consumer<Term> consumer) {
+    private void handleAnd(BoolQueryBuilder queryBuilders,
+                           Term term,
+                           Consumer<Term> consumer) {
         consumer.accept(term);
         if (term.getTerms().isEmpty() && term.getValue() != null) {
             parser.process(() -> term, queryBuilders::must);
-        } else {
+        } else if (!term.getTerms().isEmpty()){
             BoolQueryBuilder nextQuery = QueryBuilders.boolQuery();
-            List<Term> terms = term.getTerms();
-            terms.forEach(t -> process(t, consumer, nextQuery));
+            process(term.getTerms(), consumer, nextQuery);
             queryBuilders.must(nextQuery);
         }
     }
-
 
 }
