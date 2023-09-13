@@ -3,6 +3,7 @@ package org.jetlinks.community.elastic.search.parser;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.hswebframework.ezorm.core.param.Term;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -10,5 +11,5 @@ import java.util.function.Consumer;
  **/
 public interface LinkTypeParser {
 
-    BoolQueryBuilder process(Term term, Consumer<Term> consumer, BoolQueryBuilder queryBuilders);
+    void process(List<Term> terms, Consumer<Term> consumer, BoolQueryBuilder queryBuilders);
 }
