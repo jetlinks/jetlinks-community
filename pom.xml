@@ -40,7 +40,7 @@
         <elasticsearch.version>7.17.5</elasticsearch.version>
         <californium.version>3.7.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <reactor.version>2020.0.36</reactor.version>
+        <reactor.version>2020.0.31</reactor.version>
         <vertx.version>4.3.8</vertx.version>
         <log4j.version>2.18.0</log4j.version>
         <logback.version>1.2.11</logback.version>
