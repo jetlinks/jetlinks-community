@@ -20,7 +20,7 @@ public class ClusterProperties {
     private String name = NAME;
 
     //集群节点对外暴露的host
-    private String externalHost;
+    private String externalHost = "127.0.0.1";
 
     //集群节点对外暴露的端口
     private Integer externalPort;
@@ -29,7 +29,7 @@ public class ClusterProperties {
     private int port;
 
     //集群rpc对外暴露的host
-    private String rpcExternalHost;
+    private String rpcExternalHost = "127.0.0.1";
 
     //集群rpc对外暴露的端口
     private Integer rpcExternalPort;

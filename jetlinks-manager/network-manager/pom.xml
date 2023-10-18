@@ -89,7 +89,6 @@
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-semconv</artifactId>
-            <version>1.12.0-alpha</version>
         </dependency>
     </dependencies>
 

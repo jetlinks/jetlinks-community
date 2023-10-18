@@ -21,13 +21,13 @@
         <project.build.jdk>${java.version}</project.build.jdk>
         <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
         <!-- https://github.com/hs-web/hsweb-framework -->
-        <hsweb.framework.version>4.0.16</hsweb.framework.version>
+        <hsweb.framework.version>4.0.17-SNAPSHOT</hsweb.framework.version>
         <!-- https://github.com/hs-web/hsweb-easy-orm -->
-        <easyorm.version>4.1.1</easyorm.version>
+        <easyorm.version>4.1.2-SNAPSHOT</easyorm.version>
         <!-- https://github.com/jetlinks/jetlinks -->
-        <jetlinks.version>1.2.1</jetlinks.version>
+        <jetlinks.version>1.2.2-SNAPSHOT</jetlinks.version>
         <!-- https://github.com/hs-web/reactor-excel -->
-        <reactor.excel.version>1.0.5</reactor.excel.version>
+        <reactor.excel.version>1.0.6-SNAPSHOT</reactor.excel.version>
         <!-- https://github.com/jetlinks/reactor-ql -->
         <reactor.ql.version>1.0.16</reactor.ql.version>
         <!-- https://github.com/jetlinks/jetlinks-plugin -->
@@ -36,7 +36,7 @@
         <!-- 第三方依赖版本 -->
         <r2dbc.version>Borca-SR2</r2dbc.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <netty.version>4.1.89.Final</netty.version>
+        <netty.version>4.1.97.Final</netty.version>
         <elasticsearch.version>7.17.5</elasticsearch.version>
         <californium.version>3.7.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
@@ -50,6 +50,8 @@
         <swagger.version>2.2.8</swagger.version>
         <jna.version>5.12.1</jna.version>
         <aliyun.sdk.core>4.5.2</aliyun.sdk.core>
+        <fst.version>2.57</fst.version>
+        <grpc.version>1.53.0</grpc.version>
     </properties>
 
 
@@ -189,6 +191,18 @@
         <dependencies>
 
             <dependency>
+                <groupId>io.asyncer</groupId>
+                <artifactId>r2dbc-mysql</artifactId>
+                <version>0.9.3</version>
+            </dependency>
+
+            <dependency>
+                <groupId>de.ruedigermoeller</groupId>
+                <artifactId>fst</artifactId>
+                <version>${fst.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna</artifactId>
                 <version>${jna.version}</version>
@@ -221,7 +235,13 @@
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>2.1.210</version>
+                <version>2.2.224</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2-mvstore</artifactId>
+                <version>2.1.214</version>
             </dependency>
 
             <dependency>
@@ -269,8 +289,14 @@
 
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
-                <version>1.70</version>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>1.76</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>1.76</version>
             </dependency>
 
             <dependency>
@@ -360,6 +386,21 @@
             </dependency>
 
             <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-bom</artifactId>
+                <version>${opentelemetry.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-semconv</artifactId>
+                <version>${opentelemetry.version}-alpha</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.r2dbc</groupId>
                 <artifactId>r2dbc-bom</artifactId>
                 <version>${r2dbc.version}</version>
@@ -415,7 +456,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.0-jre</version>
+                <version>32.1.2-jre</version>
             </dependency>
 
             <dependency>
@@ -476,6 +517,31 @@
                 <groupId>com.aliyun</groupId>
                 <artifactId>aliyun-java-sdk-core</artifactId>
                 <version>${aliyun.sdk.core}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
+                <version>${grpc.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
 

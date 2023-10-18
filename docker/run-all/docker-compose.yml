@@ -59,7 +59,7 @@ services:
     links:
       - jetlinks:jetlinks
   jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-standalone:2.2.0-SNAPSHOT
+    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:2.2.0-SNAPSHOT
     container_name: jetlinks-ce
 
     ports:
