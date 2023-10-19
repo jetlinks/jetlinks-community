@@ -147,7 +147,7 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                     .getMessageCodec(DefaultTransport.WebSocket)
                     .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(session, msg, registry)))
                     .cast(DeviceMessage.class)
-                    .flatMap(deviceMessage -> {
+                    .concatMap(deviceMessage -> {
                         monitor.receivedMessage();
                         if (!StringUtils.hasText(deviceMessage.getDeviceId())) {
                             deviceMessage.thingId(DeviceThingType.device, session.getDeviceId());
