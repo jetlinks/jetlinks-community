@@ -130,13 +130,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                          .onErrorResume(err -> {
                              log.error(err.getMessage(), err);
                              return Mono.empty();
-                         })
-                         .as(MonoTracer
-                                 .create(SpanName.connection(connection.getClientId()),
-                                         builder -> {
-                                             builder.setAttribute(clientId, connection.getClientId());
-                                             builder.setAttribute(SpanKey.address, connection.getClientAddress().toString());
-                                         })),
+                         }),
                      Integer.MAX_VALUE)
             .subscribe();
 
