@@ -171,6 +171,7 @@ public class AutoUpdateThingsDataManager extends LocalFileThingsDataManager {
                                 .topics(ThingConstants.Topics.properties(ThingType.of(thingType), thingId))
                                 .local()
                                 .broker()
+                                .priority(Integer.MIN_VALUE)
                                 .build(),
                     PropertyMessage.class
                 )
