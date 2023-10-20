@@ -16,6 +16,7 @@ import java.lang.annotation.*;
  *      return doSomeThing(msg);
  * }
  * </pre>
+ *
  * @author zhouhao
  * @see org.jetlinks.core.event.EventBus
  * @see org.jetlinks.community.gateway.spring.SpringMessageBroker
@@ -78,4 +79,9 @@ public @interface Subscribe {
      */
     Subscription.Feature[] features() default Subscription.Feature.local;
 
+    /**
+     *
+     * @return 订阅优先级,值越小优先级越高.
+     */
+    int priority() default Integer.MAX_VALUE;
 }
