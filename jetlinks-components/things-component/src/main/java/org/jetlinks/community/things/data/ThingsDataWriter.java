@@ -19,4 +19,25 @@ public interface ThingsDataWriter {
                               long timestamp,
                               @Nonnull Object value,
                               String state);
+
+    @Nonnull
+    Mono<Void> updateEvent(@Nonnull String thingType,
+                           @Nonnull String thingId,
+                           @Nonnull String eventId,
+                           long timestamp,
+                           @Nonnull Object data);
+
+    @Nonnull
+    Mono<Void> removeProperty(@Nonnull String thingType,
+                              @Nonnull String thingId,
+                              @Nonnull String property);
+
+    @Nonnull
+    Mono<Void> removeProperties(@Nonnull String thingType,
+                                @Nonnull String thingId);
+
+    @Nonnull
+    Mono<Void> removeEvent(@Nonnull String thingType,
+                           @Nonnull String thingId,
+                           @Nonnull String eventId);
 }

@@ -145,7 +145,7 @@ public class MqttClientDeviceGateway extends AbstractDeviceGateway {
                         new UnknownDeviceMqttClientSession(getId(), mqttClient, monitor),
                         mqttMessage,
                         registry)))
-                .flatMap(message -> {
+                .concatMap(message -> {
                     monitor.receivedMessage();
                     return helper
                         .handleDeviceMessage((DeviceMessage) message,

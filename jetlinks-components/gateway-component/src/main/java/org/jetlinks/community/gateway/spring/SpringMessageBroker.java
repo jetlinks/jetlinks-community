@@ -7,6 +7,7 @@ import org.hswebframework.web.utils.TemplateParser;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.core.utils.TopicUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -18,8 +19,10 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Signal;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -34,7 +37,7 @@ public class SpringMessageBroker implements BeanPostProcessor {
     private final Environment environment;
 
     @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+    public Object postProcessAfterInitialization(@Nonnull Object bean, @Nonnull String beanName) throws BeansException {
         Class<?> type = ClassUtils.getUserClass(bean);
         ReflectionUtils.doWithMethods(type, method -> {
             AnnotationAttributes subscribes = AnnotatedElementUtils.getMergedAnnotationAttributes(method, Subscribe.class);
@@ -45,36 +48,37 @@ public class SpringMessageBroker implements BeanPostProcessor {
             if (!StringUtils.hasText(id)) {
                 id = type.getSimpleName().concat(".").concat(method.getName());
             }
-
+            String traceName = "/java/" + type.getSimpleName() + "/" + method.getName();
+            String callName = type.getSimpleName() + "." + method.getName();
             Subscription subscription = Subscription
                 .builder()
                 .subscriberId("spring:" + id)
                 .topics(Arrays.stream(subscribes.getStringArray("value"))
                               .map(this::convertTopic)
-                              .flatMap(topic -> TopicUtils.expand(topic).stream())
-                              .collect(Collectors.toList())
-                )
+                              .collect(Collectors.toList()))
+                .priority(subscribes.getNumber("priority"))
                 .features((Subscription.Feature[]) subscribes.get("features"))
                 .build();
 
             ProxyMessageListener listener = new ProxyMessageListener(bean, method);
 
-            Consumer<Signal<Void>> logError = ReactiveLogger
-                .onError(error -> log.error("handle[{}] event message error", listener, error));
+            Consumer<Throwable> logError = error -> log.error("handle[{}] event message error : {}", listener, error.getLocalizedMessage(), error);
+
+            MonoTracer<Void> tracer = MonoTracer.create(traceName);
 
             eventBus
-                .subscribe(subscription)
-                .doOnNext(msg -> {
+                .subscribe(subscription, msg -> {
                     try {
-                        listener
+                        return listener
                             .onMessage(msg)
-                            .doOnEach(logError)
-                            .subscribe();
+                            .as(tracer)
+                            .doOnError(logError)
+                            .checkpoint(callName);
                     } catch (Throwable e) {
-                        log.error("handle[{}] event message error", listener, e);
+                        logError.accept(e);
                     }
-                })
-                .subscribe();
+                    return Mono.empty();
+                });
 
         });
 

@@ -158,7 +158,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                 .flatMap(pt -> pt.getMessageCodec(getTransport()))
                 .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(sessionRef.get(), message, registry)))
                 .cast(DeviceMessage.class)
-                .flatMap(msg -> this
+                .concatMap(msg -> this
                     .handleDeviceMessage(msg)
                     .as(MonoTracer.create(
                         DeviceTracer.SpanName.decode(msg.getDeviceId()),
