@@ -8,6 +8,7 @@ import lombok.*;
 import org.jetlinks.community.things.ThingConstants;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.message.ThingMessage;
 import org.jetlinks.core.message.property.PropertyMessage;
 import org.jetlinks.core.things.ThingId;
 import org.jetlinks.core.things.ThingProperty;
@@ -173,14 +174,17 @@ public class AutoUpdateThingsDataManager extends LocalFileThingsDataManager {
                                 .broker()
                                 .priority(Integer.MIN_VALUE)
                                 .build(),
-                    PropertyMessage.class
+                    ThingMessage.class
                 )
                 .doOnNext(this::doUpdate)
                 .subscribe();
         }
 
-        private void doUpdate(PropertyMessage message) {
-
+        private void doUpdate(ThingMessage thingMessage) {
+            if (!(thingMessage instanceof PropertyMessage)) {
+                return;
+            }
+            PropertyMessage message = (PropertyMessage) thingMessage;
             try {
                 Map<String, Object> properties = message.getProperties();
                 if (properties == null) {
