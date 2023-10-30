@@ -1,13 +1,17 @@
 package org.jetlinks.community.notify.voice.aliyun;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Maps;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.community.notify.NotifyVariableBusinessConstant;
 import org.jetlinks.community.notify.template.AbstractTemplate;
-import org.jetlinks.community.notify.template.Template;
 import org.jetlinks.community.notify.template.VariableDefinition;
+import org.jetlinks.community.relation.RelationConstants;
+import org.jetlinks.community.relation.utils.RelationUtils;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
 
 import javax.annotation.Nonnull;
 import javax.validation.constraints.NotBlank;
@@ -27,11 +31,17 @@ public class AliyunVoiceTemplate extends AbstractTemplate<AliyunVoiceTemplate> {
 
     @Schema(description = "通知模版ID")
     @NotBlank(message = "[ttsCode]不能为空")
+    @Deprecated
     private String ttsCode;
+
+    @Schema(description = "通知模版ID")
+    private String templateCode;
 
     private String calledShowNumbers;
 
     private String calledNumber;
+
+    private TemplateType templateType = TemplateType.tts;
 
     @Schema(description = "通知播放次数")
     private int playTimes = 1;
@@ -39,12 +49,27 @@ public class AliyunVoiceTemplate extends AbstractTemplate<AliyunVoiceTemplate> {
     private Map<String, String> ttsParam;
 
     public String createTtsParam(Map<String, Object> ctx) {
+        Map<String, VariableDefinition> variables = getVariables();
 
-        return JSON.toJSONString(ctx);
+        return JSON.toJSONString(Maps.filterEntries(renderMap(ctx),
+                                                    e -> variables.containsKey(e.getKey())));
     }
 
-    public String getCalledNumber(Map<String, Object> ctx) {
-        return get(CALLED_NUMBER_KEY, ctx, this::getCalledNumber);
+    public Flux<String> getCalledNumber(Map<String, Object> ctx) {
+        if (StringUtils.hasText(this.getCalledNumber())) {
+            return Flux.just(this.getCalledNumber());
+        }
+        //如果没有指定固定值,则从上下文中获取
+        return RelationUtils
+            .resolve(CALLED_NUMBER_KEY, ctx, RelationConstants.UserProperty.telephone)
+            .map(String::valueOf);
+    }
+
+    public String getTemplateCode() {
+        if (templateCode == null) {
+            return ttsCode;
+        }
+        return templateCode;
     }
 
     @Nonnull
@@ -58,10 +83,16 @@ public class AliyunVoiceTemplate extends AbstractTemplate<AliyunVoiceTemplate> {
             VariableDefinition
                 .builder()
                 .id(CALLED_NUMBER_KEY)
-                .name("收信人")
+                .name("被叫号码")
                 .description("收信人手机号码")
+                .expand(NotifyVariableBusinessConstant.businessId,
+                        NotifyVariableBusinessConstant.NotifyVariableBusinessTypes.userType)
                 .required(true)
                 .build()
         );
+    }
+
+    public enum TemplateType {
+        voice, tts
     }
 }
