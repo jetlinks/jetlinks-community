@@ -53,6 +53,6 @@ public class DeviceDynamicDashboard implements DeviceDashboard {
 
     protected Mono<DeviceDashboardObject> convertObject(DeviceProductEntity product) {
         return registry.getProduct(product.getId())
-            .map(operator -> DeviceDashboardObject.of(product.getId(), product.getName(), operator, eventBus, dataService));
+            .map(operator -> DeviceDashboardObject.of(product.getId(), product.getName(), operator, eventBus, dataService,registry));
     }
 }
