@@ -90,11 +90,13 @@ public class VariableSource implements Serializable {
         }
         if (value instanceof Map) {
             Map<?, ?> mapVal = ((Map<?, ?>) value);
-            Object sourceName = mapVal.get("source");
-            if (sourceName != null && VariableSource.Source.of(String.valueOf(sourceName)).isPresent()) {
-                VariableSource source = FastBeanCopier.copy(mapVal, new VariableSource());
-                if (source.getSource() != null) {
-                    return source;
+            if(!mapVal.containsKey("$noVariable")){
+                Object sourceName = mapVal.get("source");
+                if (sourceName != null && VariableSource.Source.of(String.valueOf(sourceName)).isPresent()) {
+                    VariableSource source = FastBeanCopier.copy(mapVal, new VariableSource());
+                    if (source.getSource() != null) {
+                        return source;
+                    }
                 }
             }
         }

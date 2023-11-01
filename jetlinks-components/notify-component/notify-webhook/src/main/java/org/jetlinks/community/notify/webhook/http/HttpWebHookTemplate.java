@@ -42,7 +42,6 @@ public class HttpWebHookTemplate extends AbstractTemplate<HttpWebHookTemplate> {
     //todo 增加认证类型, oauth2等
 
     public String resolveBody(Values context) {
-
         Map<String, Object> contextVal = renderMap(context.getAllValues());
 
         if (contextAsBody) {
