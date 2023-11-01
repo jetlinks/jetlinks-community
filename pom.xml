@@ -37,7 +37,7 @@
         <r2dbc.version>Borca-SR2</r2dbc.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
         <netty.version>4.1.97.Final</netty.version>
-        <elasticsearch.version>7.17.5</elasticsearch.version>
+        <elasticsearch.version>7.17.13</elasticsearch.version>
         <californium.version>3.7.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
         <reactor.version>2020.0.31</reactor.version>
@@ -223,7 +223,7 @@
             <dependency>
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
-                <version>20230227</version>
+                <version>20231013</version>
             </dependency>
 
             <dependency>
