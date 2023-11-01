@@ -2,6 +2,7 @@ package org.jetlinks.community.notify.template;
 
 
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.jetlinks.community.notify.NotifierProvider;
 import org.jetlinks.community.relation.utils.VariableSource;
 
@@ -32,7 +33,19 @@ public interface Template extends Serializable {
     default String get(Object value,
                        String key,
                        Map<String, Object> context) {
-        if (value == null || value instanceof String && ((String) value).trim().equals("")) {
+
+        if (value instanceof String) {
+            String strValue = ((String) value);
+            if (StringUtils.isBlank(strValue)) {
+                value = VariableSource.resolveValue(key, context);
+            }
+            //value是模版
+            else if (strValue.contains("${")) {
+                value = render(strValue, context);
+            }
+        }
+
+        if (value == null) {
             value = VariableSource.resolveValue(key, context);
         }
         return convert(key, value);
@@ -49,7 +62,7 @@ public interface Template extends Serializable {
     }
 
     default Map<String, Object> renderMap(Map<String, Object> context) {
-        return Maps.transformValues(context, value -> VariableSource.of(value).resolveStatic(context));
+        return Maps.transformValues(context, value -> value == null ? null: VariableSource.of(value).resolveStatic(context));
     }
 
     default String convert(String key, Object value) {

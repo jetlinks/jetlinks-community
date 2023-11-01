@@ -17,6 +17,7 @@ import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.template.TemplateManager;
 import org.jetlinks.community.notify.voice.VoiceProvider;
 import org.jetlinks.core.Values;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -76,33 +77,13 @@ public class AliyunVoiceNotifier extends AbstractNotifier<AliyunVoiceTemplate> {
     public Mono<Void> send(@Nonnull AliyunVoiceTemplate template, @Nonnull Values context) {
 
         return Mono.<Void>defer(() -> {
-            try {
-                CommonRequest request = new CommonRequest();
-                request.setSysMethod(MethodType.POST);
-                request.setSysDomain(domain);
-                request.setSysVersion("2017-05-25");
-                request.setSysAction("SingleCallByTts");
-                request.setSysConnectTimeout(connectTimeout);
-                request.setSysReadTimeout(readTimeout);
-                request.putQueryParameter("RegionId", regionId);
-                request.putQueryParameter("CalledShowNumber", template.getCalledShowNumbers());
-                request.putQueryParameter("CalledNumber", template.getCalledNumber(context.getAllValues()));
-                request.putQueryParameter("TtsCode", template.getTtsCode());
-                request.putQueryParameter("PlayTimes", String.valueOf(template.getPlayTimes()));
-                request.putQueryParameter("TtsParam", template.createTtsParam(context.getAllValues()));
-
-                CommonResponse response = client.getCommonResponse(request);
-
-                log.info("发起语音通知完成 {}:{}", response.getHttpResponse().getStatus(), response.getData());
-
-                JSONObject json = JSON.parseObject(response.getData());
-                if (!"ok".equalsIgnoreCase(json.getString("Code"))) {
-                    return Mono.error(new BusinessException(json.getString("Message"), json.getString("Code")));
-                }
-            } catch (Exception e) {
-                return Mono.error(e);
+            if (AliyunVoiceTemplate.TemplateType.voice == template.getTemplateType()) {
+                return convertVoiceRequest(template, context)
+                    .flatMap(this::handleRequest);
+            } else {
+                return convertTtsRequest(template, context)
+                    .flatMap(this::handleRequest);
             }
-            return Mono.empty();
         }).doOnEach(ReactiveLogger.onError(err -> {
             log.info("发起语音通知失败", err);
         })).subscribeOn(Schedulers.boundedElastic());
@@ -112,5 +93,70 @@ public class AliyunVoiceNotifier extends AbstractNotifier<AliyunVoiceTemplate> {
     @Nonnull
     public Mono<Void> close() {
         return Mono.fromRunnable(client::shutdown);
+    }
+
+    private Mono<Void> handleRequest(CommonRequest request) {
+        try {
+            CommonResponse response = client.getCommonResponse(request);
+
+            if (response == null) {
+                throw new BusinessException("error.unsupported_voice_notification_type");
+            }
+
+            log.info("发起语音通知完成 {}:{}", response.getHttpResponse().getStatus(), response.getData());
+
+            JSONObject json = JSON.parseObject(response.getData());
+            if (!"ok".equalsIgnoreCase(json.getString("Code"))) {
+                return Mono.error(new BusinessException(json.getString("Message"), json.getString("Code")));
+            }
+        } catch (Exception e) {
+            return Mono.error(e);
+        }
+        return Mono.empty();
+    }
+
+
+    Mono<CommonRequest> convertVoiceRequest(AliyunVoiceTemplate template, Values context){
+        return template
+            .getCalledNumber(context.getAllValues())
+            .next()
+            .map(calledNumber -> {
+                CommonRequest request = convert(template);
+                request.putQueryParameter("CalledNumber", calledNumber);
+                request.setSysAction("SingleCallByVoice");
+                request.putQueryParameter("VoiceCode", template.getTemplateCode());
+                return request;
+            });
+    }
+
+    Mono<CommonRequest> convertTtsRequest(AliyunVoiceTemplate template, Values context){
+        return template
+            .getCalledNumber(context.getAllValues())
+            .next()
+            .map(calledNumber -> {
+                CommonRequest request = convert(template);
+                request.putQueryParameter("CalledNumber", calledNumber);
+                request.putQueryParameter("TtsParam", template.createTtsParam(context.getAllValues()));
+                request.putQueryParameter("TtsCode", template.getTemplateCode());
+                request.setSysAction("SingleCallByTts");
+                return request;
+            });
+
+    }
+
+    CommonRequest convert(AliyunVoiceTemplate template){
+        CommonRequest request = new CommonRequest();
+        request.setSysMethod(MethodType.POST);
+        request.setSysDomain(domain);
+        request.setSysVersion("2017-05-25");
+        request.setSysConnectTimeout(connectTimeout);
+        request.setSysReadTimeout(readTimeout);
+        request.putQueryParameter("RegionId", regionId);
+        // 使用公共号池模板时，不填写主叫显号
+        if (StringUtils.hasText(template.getCalledShowNumbers())) {
+            request.putQueryParameter("CalledShowNumber", template.getCalledShowNumbers());
+        }
+        request.putQueryParameter("PlayTimes", String.valueOf(template.getPlayTimes()));
+        return request;
     }
 }
