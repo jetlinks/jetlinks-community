@@ -31,6 +31,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
@@ -181,7 +182,10 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                                 if (!hasValue) {
                                     span.setStatus(StatusCode.ERROR, "device not exists");
                                 }
-                                span.setAttribute(SpanKey.address, connection.getClientAddress().toString());
+                                InetSocketAddress address = connection.getClientAddress();
+                                if (address != null) {
+                                    span.setAttribute(SpanKey.address, address.toString());
+                                }
                                 span.setAttribute(clientId, connection.getClientId());
                             }))
             //设备认证错误,拒绝连接

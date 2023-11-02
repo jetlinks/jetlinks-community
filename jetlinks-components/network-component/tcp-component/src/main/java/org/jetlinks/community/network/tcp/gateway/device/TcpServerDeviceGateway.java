@@ -153,7 +153,6 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
         }
 
         Mono<Void> handleTcpMessage(TcpMessage message) {
-            long time = System.nanoTime();
             return getProtocol()
                 .flatMap(pt -> pt.getMessageCodec(getTransport()))
                 .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(sessionRef.get(), message, registry)))
@@ -162,17 +161,14 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                     .handleDeviceMessage(msg)
                     .as(MonoTracer.create(
                         DeviceTracer.SpanName.decode(msg.getDeviceId()),
-                        builder -> {
-                            builder.setAttribute(DeviceTracer.SpanKey.message, msg.toString());
-                            builder.setStartTimestamp(time, TimeUnit.NANOSECONDS);
-                        })))
-                .doOnEach(ReactiveLogger
-                              .onError(err -> log.error("Handle TCP[{}] message failed:\n{}",
-                                                        address,
-                                                        message
-                                  , err)))
-
-                .onErrorResume((err) -> Mono.fromRunnable(client::reset))
+                        builder -> builder.setAttributeLazy(DeviceTracer.SpanKey.message, msg::toString))))
+                .onErrorResume((err) -> {
+                    log.error("Handle TCP[{}] message failed:\n{}",
+                              address,
+                              message
+                        , err);
+                    return Mono.fromRunnable(client::reset);
+                })
                 .subscribeOn(Schedulers.parallel())
                 .then();
         }
