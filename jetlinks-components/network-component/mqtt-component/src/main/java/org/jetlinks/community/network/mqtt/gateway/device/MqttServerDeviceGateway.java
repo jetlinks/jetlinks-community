@@ -28,6 +28,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
@@ -287,6 +288,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                        MqttConnection::close)
             //网关暂停或者已停止时,则不处理消息
             .filter(pb -> isStarted())
+            .publishOn(Schedulers.parallel())
             //解码收到的mqtt报文
             .concatMap(publishing -> this
                 .decodeAndHandleMessage(operator, session, publishing, connection)
