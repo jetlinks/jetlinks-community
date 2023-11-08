@@ -12,11 +12,14 @@ import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
 import org.jetlinks.community.auth.entity.UserDetail;
+import org.jetlinks.community.auth.enums.UserEntityType;
+import org.jetlinks.community.auth.enums.UserEntityTypes;
 import org.jetlinks.community.auth.service.UserDetailService;
 import org.jetlinks.community.auth.service.request.SaveUserDetailRequest;
 import org.jetlinks.community.auth.service.request.SaveUserRequest;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -97,6 +100,13 @@ public class UserDetailController {
             .zipWith(request)
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
             .flatMap(tp2 -> userDetailService.saveUserDetail(tp2.getT1().getUser().getId(), tp2.getT2()));
+    }
+
+    @GetMapping("/types")
+    @Operation(summary = "获取所有用户类型")
+    @Authorize(merge = false)
+    public Flux<UserEntityType> getUserEntityTypes() {
+        return Flux.fromIterable(UserEntityTypes.getAllType());
     }
 
 }
