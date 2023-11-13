@@ -105,7 +105,7 @@ public class AlarmConfigEntity extends GenericEntity<String> implements RecordCr
         configs.put(AlarmConstants.ConfigKey.ownerId, getModifierId() == null ? getCreatorId() : getModifierId());
         configs.put(AlarmConstants.ConfigKey.targetType, getTargetType());
         configs.put(AlarmConstants.ConfigKey.state, getState().name());
-
+        configs.put(AlarmConstants.ConfigKey.description, getDescription());
         return configs;
     }
 }
