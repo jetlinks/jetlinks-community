@@ -64,7 +64,8 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
             AlarmConstants.ConfigKey.level,
             AlarmConstants.ConfigKey.targetType,
             AlarmConstants.ConfigKey.state,
-            AlarmConstants.ConfigKey.ownerId
+            AlarmConstants.ConfigKey.ownerId,
+            AlarmConstants.ConfigKey.description
         ));
 
     private final Map<Tuple2<String, Integer>, Set<String>> ruleAlarmBinds = new ConcurrentHashMap<>();
@@ -159,6 +160,7 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         entity.setSourceId(result.getSourceId());
 
         entity.setAlarmName(result.getAlarmName());
+        entity.setDescription(result.getDescription());
         entity.generateId();
         return entity;
     }
@@ -280,6 +282,7 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         info.setId(IDGenerator.RANDOM.generate());
         info.setAlarmConfigId(record.getAlarmConfigId());
         info.setAlarmConfigName(record.getAlarmName());
+        info.setDescription(record.getDescription());
         info.setAlarmRecordId(record.getId());
         info.setLevel(record.getLevel());
         info.setAlarmTime(record.getAlarmTime());

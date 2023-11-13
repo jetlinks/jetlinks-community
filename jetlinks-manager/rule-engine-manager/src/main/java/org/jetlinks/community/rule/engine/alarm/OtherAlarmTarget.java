@@ -21,7 +21,7 @@ public class OtherAlarmTarget implements AlarmTarget {
     @Override
     public Flux<AlarmTargetInfo> convert(AlarmData data) {
         return Flux.just(AlarmTargetInfo
-                             .of(data.getAlarmConfigId(),
+                             .of(data.getRuleId(),
                                  data.getRuleName(),
                                  getType()));
     }
