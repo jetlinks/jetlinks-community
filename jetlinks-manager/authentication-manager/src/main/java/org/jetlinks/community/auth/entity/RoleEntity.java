@@ -15,6 +15,7 @@ import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.simple.SimpleDimension;
 import org.hswebframework.web.crud.generator.Generators;
 import org.jetlinks.community.auth.enums.RoleState;
+import org.jetlinks.community.auth.service.RoleGroupService;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
@@ -41,6 +42,11 @@ public class RoleEntity extends GenericEntity<String> implements RecordCreationE
     @Schema(description = "状态。enabled为正常，disabled为已禁用")
     @DefaultValue("enabled")
     private RoleState state;
+
+    @Column(length = 64)
+    @Schema(description = "所属分组")
+    @DefaultValue(RoleGroupService.DEFAULT_GROUP_ID)
+    private String groupId;
 
     @Column(updatable = false)
     @Schema(
