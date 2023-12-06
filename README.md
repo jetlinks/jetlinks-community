@@ -60,7 +60,31 @@ TCP/UDP/MQTT/HTTP、TLS/DTLS、不同厂商、不同设备、不同报文、统�
 ------|------|----dev-env       # 启动开发环境
 ------|------|----run-all       # 启动全部,通过http://localhost:9000 访问系统.
 ------|----jetlinks-components  # 公共组件模块
+------|-------|----common-component # 通用组件.
+------|-------|----configuration-component # 通用配置.
+------|-------|----dashboard-component # 仪表盘.
+------|-------|----datasource-component # 数据源.
+------|-------|----elasticsearch-component # elasticsearch集成.
+------|-------|----gateway-component # 网关组件,消息网关,设备接入.
+------|-------|----io-component # IO 组件,Excel导入导出等.
+------|-------|----logging-component # 日志组件
+------|-------|----network-component # 网络组件,MQTT,TCP,CoAP,UDP等
+------|-------|----notify-component # 通知组件,短信,右键等通知
+------|-------|----protocol-component # 协议组件
+------|-------|----relation-component # 关系组件
+------|-------|----rule-engine-component # 规则引擎
+------|-------|----script-component # 脚本组件
+------|-------|----timeseries-component # 时序数据组件
+------|-------|----tdengine-component # TDengine集成
+------|-------|----things-component # 物组件
 ------|----jetlinks-manager     # 业务管理模块
+------|-------|----authentication-manager   # 用户,权限管理
+------|-------|----device-manager   # 设备管理
+------|-------|----logging-manager   # 日志管理
+------|-------|----network-manager   # 网络组件管理
+------|-------|----notify-manager   # 通知管理
+------|-------|----visualization-manager   # 数据可视化管理
+------|-------|----rule-engine-manager   # 规则引擎管理
 ------|----jetlinks-standalone  # 服务启动模块
 ------|----simulator            # 设备模拟器
 ```
