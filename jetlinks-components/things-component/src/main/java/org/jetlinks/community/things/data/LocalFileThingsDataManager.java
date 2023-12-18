@@ -26,9 +26,14 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.BiConsumer;
 
 public class LocalFileThingsDataManager implements ThingsDataManager, ThingsDataWriter {
+
+
+    private static final AtomicIntegerFieldUpdater<LocalFileThingsDataManager>
+        TAG_INC = AtomicIntegerFieldUpdater.newUpdater(LocalFileThingsDataManager.class, "tagInc");
 
     //单个属性最大缓存数量 java -Dthings.data.store.max-size=8
     static int DEFAULT_MAX_STORE_SIZE_EACH_KEY = Integer
@@ -48,6 +53,8 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
     private final Map<StoreKey, PropertyHistory> historyCache = new ConcurrentHashMap<>();
     private final MVMap<Long, PropertyHistory> historyStore;
 
+    private volatile int tagInc;
+
     @SuppressWarnings("all")
     private static MVStore load(String fileName) {
         return MVStoreUtils
@@ -66,6 +73,7 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
     public LocalFileThingsDataManager(MVStore store) {
         this.mvStore = store;
         this.tagStore = mvStore.openMap("tags");
+        this.tagInc = this.tagStore.size();
         this.historyStore = mvStore
             .openMap("store", new MVMap
                 .Builder<Long, PropertyHistory>()
@@ -255,7 +263,7 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
     protected final int getTag(String key) {
         return tagCache
             .computeIfAbsent(key, _key ->
-                tagStore.computeIfAbsent(_key, k -> tagStore.size() + 1));
+                tagStore.computeIfAbsent(_key, k -> TAG_INC.incrementAndGet(this)));
     }
 
     @SneakyThrows
@@ -397,10 +405,10 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
     }
 
     @Override
-    public Mono<org.jetlinks.core.things.ThingEvent> getLastEvent(String thingType,
-                                                                  String thingId,
-                                                                  String event,
-                                                                  long baseTime) {
+    public Mono<ThingEvent> getLastEvent(String thingType,
+                                         String thingId,
+                                         String event,
+                                         long baseTime) {
         String eventKey = createEventProperty(event);
         PropertyHistory propertyStore = getHistory(thingType, thingId, eventKey);
         if (propertyStore == null) {
@@ -587,7 +595,7 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
         @SuppressWarnings("all")
         public ThingProperty toPropertyNow(String property) {
             if (_temp == null) {
-                _temp = Mono.just(ThingProperty.of(property, value, time, state));
+                return ThingProperty.of(property, value, time, state);
             }
             if (_temp instanceof Callable) {
                 return ((Callable<ThingProperty>) _temp).call();
@@ -620,6 +628,11 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
             time = in.readLong();
             state = (String) SerializeUtils.readObject(in);
             value = SerializeUtils.readObject(in);
+        }
+
+        @Override
+        public String toString() {
+            return value + "(" + time + ")";
         }
     }
 
