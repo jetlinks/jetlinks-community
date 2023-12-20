@@ -9,6 +9,7 @@ import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.unit.DataSize;
 
 @Configuration
 @EnableConfigurationProperties(JetLinksProperties.class)
@@ -18,11 +19,24 @@ public class JetLinksConfiguration {
     @Bean
     public WebServerFactoryCustomizer<NettyReactiveWebServerFactory> webServerFactoryWebServerFactoryCustomizer() {
         //解决请求参数最大长度问题
-        return factory -> factory.addServerCustomizers(httpServer ->
-            httpServer.httpRequestDecoder(spec -> {
-                spec.maxInitialLineLength(10240);
-                return spec;
-            }));
+        return factory -> factory
+            .addServerCustomizers(
+                httpServer ->
+                    httpServer.httpRequestDecoder(spec -> {
+                        spec.maxInitialLineLength(
+                            Math.max(spec.maxInitialLineLength(),
+                                     (int) DataSize
+                                         .parse(System.getProperty("server.max-initial-line-length", "100KB"))
+                                         .toBytes())
+                        );
+                        spec.maxHeaderSize(
+                            Math.max(spec.maxHeaderSize(),
+                                     (int) DataSize
+                                         .parse(System.getProperty("server.max-header-size", "1MB"))
+                                         .toBytes())
+                        );
+                        return spec;
+                    }));
     }
 
     @Bean

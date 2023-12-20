@@ -2,10 +2,13 @@ package org.jetlinks.community.io.excel;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Maps;
+import io.netty.buffer.ByteBufAllocator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
+import org.hswebframework.ezorm.core.CastUtil;
 import org.hswebframework.reactor.excel.CellDataType;
 import org.hswebframework.reactor.excel.ExcelHeader;
 import org.hswebframework.web.api.crud.entity.Entity;
@@ -13,26 +16,29 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.CreateGroup;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.core.metadata.Jsonable;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.NettyDataBufferFactory;
+import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/**
- * @since 2.1
- */
 public class ImportHelper<T> {
+
+    public static final String FORMAT_JSON = "json";
+
+    public static final String FORMAT_XLSX = "xlsx";
+
+    public static final String FORMAT_CSV = "csv";
 
     /**
      * 实体构造器
@@ -120,11 +126,28 @@ public class ImportHelper<T> {
         return headers;
     }
 
-    public <R> Flux<R> doImport(InputStream inputStream,
-                                String format,
-                                Function<Importing<T>, R> resultMapper,
-                                Function<Flux<DataBuffer>, Mono<R>> infoWriter) {
-        Flux<Importing<T>> cache = doImport(inputStream, format)
+    @SuppressWarnings("all")
+    public <R> Flux<R> doImportJson(Flux<DataBuffer> inputStream,
+                                    Function<Importing<T>, R> resultMapper,
+                                    Function<Flux<DataBuffer>, Mono<R>> infoWriter) {
+
+        Flux<Importing<T>> importingFlux = ObjectMappers
+            .parseJsonStream(inputStream, Map.class)
+            .map(map -> CastUtil.<Map<String,Object>>cast(map))
+            .index(this::createImporting)
+            .buffer(bufferSize)
+            .concatMap(buffer -> this
+                .executeImport(Collections2.filter(buffer, Importing::isSuccess))
+                .thenMany(Flux.fromIterable(buffer)));
+
+        return doImport0(importingFlux, FORMAT_XLSX, resultMapper, infoWriter);
+    }
+
+    private <R> Flux<R> doImport0(Flux<Importing<T>> importingStream,
+                                  String errorFileFormat,
+                                  Function<Importing<T>, R> resultMapper,
+                                  Function<Flux<DataBuffer>, Mono<R>> infoWriter) {
+        Flux<Importing<T>> cache = importingStream
             .replay()
             .refCount(1, Duration.ofMillis(100))
             .as(LocaleUtils::transform);
@@ -150,9 +173,24 @@ public class ImportHelper<T> {
                                 "import.result.error", "失败:" + errorMessage, errorMessage));
                         }
                         return map;
-                    }), format)
+                    }), errorFileFormat)
                 .as(infoWriter)
         );
+    }
+
+    public <R> Flux<R> doImport(InputStream inputStream,
+                                String format,
+                                Function<Importing<T>, R> resultMapper,
+                                Function<Flux<DataBuffer>, Mono<R>> infoWriter) {
+        if (FORMAT_JSON.equals(format)) {
+            return doImportJson(DataBufferUtils.readInputStream(
+                                    () -> inputStream,
+                                    new NettyDataBufferFactory(ByteBufAllocator.DEFAULT),
+                                    256 * 1024),
+                                resultMapper,
+                                infoWriter);
+        }
+        return doImport0(readExcelFile(inputStream, format), format, resultMapper, infoWriter);
     }
 
     @SuppressWarnings("all")
@@ -160,21 +198,22 @@ public class ImportHelper<T> {
         return (Class<T>) instanceSupplier.get().getClass();
     }
 
-    public Flux<Importing<T>> doImport(InputStream inputStream, String format) {
+    public Flux<Importing<T>> readExcelFile(InputStream inputStream, String format) {
 
         return ExcelUtils
             .<Map<String, Object>>read(LinkedHashMap::new,
-                createHeaders(),
-                inputStream,
-                format)
+                                       createHeaders(),
+                                       inputStream,
+                                       format)
+            .map(data -> Maps.filterValues(data, obj -> !ObjectUtils.isEmpty(obj)))
             .index(this::createImporting)
             .buffer(bufferSize)
             .concatMap(buffer -> this
-                .doImport(Collections2.filter(buffer, Importing::isSuccess))
+                .executeImport(Collections2.filter(buffer, Importing::isSuccess))
                 .thenMany(Flux.fromIterable(buffer)));
     }
 
-    private Mono<Void> doImport(Collection<Importing<T>> buffer) {
+    private Mono<Void> executeImport(Collection<Importing<T>> buffer) {
         if (CollectionUtils.isEmpty(buffer)) {
             return Mono.empty();
         }
@@ -244,9 +283,12 @@ public class ImportHelper<T> {
             //todo 更多异常信息判断
             if (error instanceof NumberFormatException) {
                 String msg = error.getMessage();
+                if (null == msg){
+                    return LocaleUtils.resolveMessage("error.number_format_error_no_arg", "无法转换为数字");
+                }
                 if (msg.contains("\"")) {
                     String ch = msg.substring(msg.indexOf("\"") + 1, msg.lastIndexOf("\""));
-                    return LocaleUtils.resolveMessage("error.number_format_error", "无法转换["+ch+"]为数字",ch);
+                    return LocaleUtils.resolveMessage("error.number_format_error", "无法转换[" + ch + "]为数字", ch);
                 }
             }
             return error == null ? null : error.getLocalizedMessage();

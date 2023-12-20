@@ -17,6 +17,8 @@ import reactor.core.publisher.Mono;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class FileUtils {
 
@@ -77,18 +79,35 @@ public class FileUtils {
 
         return DataBufferUtils
             .join(dataBufferFlux
-                .map(buffer -> {
-                    if (buffer instanceof NettyDataBuffer) {
-                        return buffer;
-                    }
-                    try {
-                        return factory.wrap(buffer.asByteBuffer());
-                    } finally {
-                        DataBufferUtils.release(buffer);
-                    }
-                }))
+                      .map(buffer -> {
+                          if (buffer instanceof NettyDataBuffer) {
+                              return buffer;
+                          }
+                          try {
+                              return factory.wrap(buffer.asByteBuffer());
+                          } finally {
+                              DataBufferUtils.release(buffer);
+                          }
+                      }))
             .map(buffer -> buffer.asInputStream(true));
 
+    }
+
+    public static Flux<DataBuffer> readDataBuffer(WebClient client,
+                                                  String fileUrl) {
+        if (fileUrl.startsWith("http")) {
+            return client
+                .get()
+                .uri(fileUrl)
+                .accept(MediaType.APPLICATION_OCTET_STREAM)
+                .retrieve()
+                .bodyToFlux(DataBuffer.class);
+        } else {
+            return DataBufferUtils.readInputStream(
+                () -> Files.newInputStream(Paths.get(fileUrl)),
+                new NettyDataBufferFactory(ByteBufAllocator.DEFAULT),
+                256 * 1024);
+        }
     }
 
     public static Mono<InputStream> readInputStream(WebClient client,

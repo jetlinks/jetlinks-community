@@ -12,6 +12,8 @@ spring:
     serialization:
       WRITE_DATES_AS_TIMESTAMPS: true
     default-property-inclusion: non_null
+  codec:
+      max-in-memory-size: 100MB
   web:
     resources:
       static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
@@ -88,7 +90,7 @@ hsweb:
   file:
     upload:
       static-file-path: ./static/upload
-      static-location: http://127.0.0.1:8848/upload
+      static-location: http://127.0.0.1:${server.port}/upload
   webflux:
     response-wrapper:
       enabled: true #开启响应包装器(将返回值包装为ResponseMessage)
@@ -102,6 +104,10 @@ hsweb:
   #        name: 超级管理员
   authorize:
     auto-parse: true
+#  user-token:
+#    allopatric-login-mode: offlineOther  # 设置异地登录模式为 将其他地方登录的相同用户踢下线
+#    allopatric-login-modes:
+#      app: offlineOther
   permission:
     filter:
       enabled: true # 设置为true开启权限过滤,赋权时,不能赋予比自己多的权限.
@@ -150,6 +156,7 @@ logging:
     org.elasticsearch: error
     org.elasticsearch.deprecation: off
     "io.vertx.core.impl.ContextImpl": off
+    "org.hswebframework.web.starter.jackson": warn
   config: classpath:logback-spring.xml
 vertx:
   max-event-loop-execute-time-unit: seconds
