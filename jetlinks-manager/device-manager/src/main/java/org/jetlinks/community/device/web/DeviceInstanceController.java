@@ -360,6 +360,15 @@ public class DeviceInstanceController implements
         return queryParam.flatMap(param -> deviceDataService.queryPropertyPage(deviceId, param, property.split(",")));
     }
 
+    @PostMapping("/{deviceId:.+}/property/{property}/_query/no-paging")
+    @QueryAction
+    @Operation(summary = "(POST)查询设备指定属性列表(不分页)")
+    public Flux<DeviceProperty> queryDevicePropertiesNoPaging(@PathVariable @Parameter(description = "设备ID") String deviceId,
+                                                              @PathVariable @Parameter(description = "属性ID") String property,
+                                                              @RequestBody Mono<QueryParamEntity> queryParam) {
+        return queryParam.flatMapMany(param -> deviceDataService.queryProperty(deviceId, param, property.split(",")));
+    }
+
     //查询属性列表
     @GetMapping("/{deviceId:.+}/properties/_query")
     @QueryAction
