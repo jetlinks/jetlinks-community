@@ -77,17 +77,17 @@ public enum FixedTermTypeSupport implements TermTypeSupport {
                 NativeSql sql = ((NativeSql) val);
                 return NativeSql.of("concat('%'," + sql.getSql() + ",'%')");
             }
-            return super.convertValue(val, term);
+            val = super.convertValue(val, term);
+            if (val instanceof String && !((String) val).contains("%")) {
+                val = "%" + val + "%";
+            }
+            return val;
         }
     },
-    nlike("不包含字符", "str_nlike", StringType.ID){
+    nlike("不包含字符", "str_nlike", StringType.ID) {
         @Override
         protected Object convertValue(Object val, Term term) {
-            if (val instanceof NativeSql) {
-                NativeSql sql = ((NativeSql) val);
-                return NativeSql.of("concat('%'," + sql.getSql() + ",'%')");
-            }
-            return super.convertValue(val, term);
+          return like.convertValue(val,term);
         }
     },
 
@@ -152,7 +152,7 @@ public enum FixedTermTypeSupport implements TermTypeSupport {
                 .addParameter(((NativeSql) value).getParameters());
         } else {
             fragments.addSql("?")
-                .addParameter(value);
+                     .addParameter(value);
         }
         fragments.addSql(")");
         return fragments;
