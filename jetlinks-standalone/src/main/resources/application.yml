@@ -224,6 +224,7 @@ springdoc:
         - org.jetlinks.community.auth
         - org.hswebframework.web.system.authorization.defaults.webflux
         - org.hswebframework.web.file
+        - org.jetlinks.community.io.file.web
         - org.hswebframework.web.authorization.basic.web
         - org.jetlinks.community.logging.controller
   cache:
