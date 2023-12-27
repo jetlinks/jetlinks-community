@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.DeleteAction;
+import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.exception.AccessDenyException;
 import org.jetlinks.community.io.file.FileInfo;
 import org.jetlinks.community.io.file.FileManager;
@@ -102,8 +103,9 @@ public class FileManagerController {
                            }));
     }
 
-    @GetMapping("/{fileId}/_delete")
-    @Authorize(ignore = true)
+    @DeleteMapping("/{fileId}")
+    @Authorize()
+    @Resource(id= "delete-file",name = "删除文件")
     @DeleteAction
     @Operation(summary = "删除文件")
     public Mono<Integer> delete(@PathVariable String fileId) {
