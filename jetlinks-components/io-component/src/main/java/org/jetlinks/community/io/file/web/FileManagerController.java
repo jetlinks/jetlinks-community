@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
+import org.hswebframework.web.authorization.annotation.DeleteAction;
+import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.exception.AccessDenyException;
 import org.jetlinks.community.io.file.FileInfo;
 import org.jetlinks.community.io.file.FileManager;
@@ -24,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/file")
 @AllArgsConstructor
+@Resource(id= "file-manager",name = "文件管理")
 @Tag(name = "需身份认证的文件管理")
 public class FileManagerController {
 
@@ -100,4 +103,13 @@ public class FileManagerController {
 
                            }));
     }
+
+    @DeleteMapping("/{fileId}")
+    @DeleteAction
+    @Operation(summary = "删除文件")
+    public Mono<Integer> delete(@PathVariable String fileId) {
+        return fileManager
+            .delete(fileId);
+    }
+
 }
