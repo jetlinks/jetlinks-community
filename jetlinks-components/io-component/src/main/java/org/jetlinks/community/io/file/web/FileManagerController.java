@@ -7,7 +7,6 @@ import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.DeleteAction;
 import org.hswebframework.web.authorization.annotation.Resource;
-import org.hswebframework.web.authorization.annotation.ResourceAction;
 import org.hswebframework.web.authorization.exception.AccessDenyException;
 import org.jetlinks.community.io.file.FileInfo;
 import org.jetlinks.community.io.file.FileManager;
