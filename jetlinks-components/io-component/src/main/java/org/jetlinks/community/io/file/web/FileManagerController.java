@@ -106,8 +106,7 @@ public class FileManagerController {
     }
 
     @DeleteMapping("/{fileId}")
-    @Authorize(merge = false)
-    @DeleteAction()
+    @DeleteAction
     @Operation(summary = "删除文件")
     public Mono<Integer> delete(@PathVariable String fileId) {
         return fileManager
