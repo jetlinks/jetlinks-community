@@ -104,8 +104,10 @@ class ElasticSearchRowModeQueryOperations extends RowModeQueryOperationsBase {
                 if (property == null || thingId == null || value == null) {
                     return null;
                 }
-                return ThingPropertyDetail
-                    .of(TimeSeriesData.of(ts, data), properties.get(property));
+
+                return applyProperty(ThingPropertyDetail
+                                         .of(TimeSeriesData.of(ts, data), properties.get(property)),
+                                     data);
             });
     }
 
