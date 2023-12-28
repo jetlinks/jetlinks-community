@@ -29,6 +29,8 @@ public interface FileManager {
     Flux<DataBuffer> read(String id,
                           Function<ReaderContext, Mono<Void>> beforeRead);
 
+    Mono<Integer> delete(String id);
+
     interface ReaderContext {
         FileInfo info();
 
