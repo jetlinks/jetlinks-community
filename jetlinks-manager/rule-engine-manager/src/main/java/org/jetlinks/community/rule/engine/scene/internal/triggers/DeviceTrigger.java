@@ -14,26 +14,20 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
-import org.jetlinks.community.rule.engine.scene.*;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.metadata.DeviceMetadata;
-import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.core.things.ThingMetadata;
-import org.jetlinks.core.things.ThingsRegistry;
-import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.reactorql.term.TermType;
 import org.jetlinks.community.reactorql.term.TermTypeSupport;
 import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.rule.engine.executor.device.SelectorValue;
+import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.value.TermValue;
-import org.jetlinks.reactor.ql.DefaultReactorQLContext;
-import org.jetlinks.reactor.ql.ReactorQL;
-import org.jetlinks.reactor.ql.ReactorQLContext;
+import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.core.things.ThingMetadata;
+import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.util.Assert;
@@ -107,6 +101,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
             case writeProperty:
                 selectColumns.add("this.success \"success\"");
             case reportProperty:
+                selectColumns.add("this.properties \"properties\"");
+                break;
+            case readPropertyReply:
                 selectColumns.add("this.properties \"properties\"");
                 break;
             case reportEvent:
@@ -184,6 +181,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         switch (operation.getOperator()) {
             case reportProperty:
                 topic = "/device/" + productId + "/%s/message/property/report";
+                break;
+            case readPropertyReply:
+                topic = "/device/" + productId + "/%s/message/property/read/reply";
                 break;
             case reportEvent:
                 topic = "/device/" + productId + "/%s/message/event/" + operation.getEventId();
@@ -429,6 +429,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
             case offline:
             case reportEvent:
             case reportProperty:
+            case readPropertyReply:
                 return;
         }
 
