@@ -41,8 +41,11 @@ public abstract class RowModeQueryOperationsBase extends AbstractQueryOperations
 
         return this
             .doQuery(metric, query)
-            .mapNotNull(data -> ThingPropertyDetail
-                .of(data, properties.get(data.getString(ThingsDataConstants.COLUMN_PROPERTY_ID, null))))
+            .mapNotNull(data -> this
+                .applyProperty(
+                    ThingPropertyDetail
+                        .of(data, properties.get(data.getString(ThingsDataConstants.COLUMN_PROPERTY_ID, null))),
+                    data.getData()))
             ;
     }
 
@@ -58,8 +61,22 @@ public abstract class RowModeQueryOperationsBase extends AbstractQueryOperations
                              .clone()
                              .toQuery()
                              .and(ThingsDataConstants.COLUMN_PROPERTY_ID, e.getKey()))
-                         .mapNotNull(data -> ThingPropertyDetail.of(data, properties.get(data.getString(ThingsDataConstants.COLUMN_PROPERTY_ID, null)))),
+                         .mapNotNull(data -> this
+                             .applyProperty(
+                                 ThingPropertyDetail
+                                     .of(data, properties.get(data.getString(ThingsDataConstants.COLUMN_PROPERTY_ID, null))),
+                                 data.getData())),
                      16);
+    }
+
+    protected ThingPropertyDetail applyProperty(ThingPropertyDetail detail, Map<String, Object> data) {
+        if (detail == null) {
+            return null;
+        }
+        if (detail.getThingId() == null) {
+            detail.thingId((String) data.get(metricBuilder.getThingIdProperty()));
+        }
+        return detail;
     }
 
     @Override
@@ -76,8 +93,11 @@ public abstract class RowModeQueryOperationsBase extends AbstractQueryOperations
         return this
             .doQueryPage(metric,
                          query,
-                         data -> ThingPropertyDetail
-                             .of(data, properties.get(data.getString(ThingsDataConstants.COLUMN_PROPERTY_ID, null))));
+                         data -> this
+                             .applyProperty(
+                                 ThingPropertyDetail
+                                     .of(data, properties.get(data.getString(ThingsDataConstants.COLUMN_PROPERTY_ID, null))),
+                                 data.getData()));
     }
 
     @Override

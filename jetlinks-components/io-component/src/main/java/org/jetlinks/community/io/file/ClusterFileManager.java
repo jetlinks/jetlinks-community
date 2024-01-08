@@ -248,6 +248,16 @@ public class ClusterFileManager implements FileManager {
             });
     }
 
+    @Override
+    public Mono<Integer> delete(String id) {
+        return doDelete(id);
+    }
+
+    public Mono<Integer> doDelete(String id) {
+        return repository
+            .deleteById(id);
+    }
+
     @EventListener
     public void handleDeleteEvent(EntityDeletedEvent<FileEntity> event) {
         for (FileEntity fileEntity : event.getEntity()) {

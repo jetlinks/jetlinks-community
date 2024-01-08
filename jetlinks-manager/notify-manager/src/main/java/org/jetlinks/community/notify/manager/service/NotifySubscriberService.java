@@ -551,7 +551,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
 
             public synchronized void resubscribe(NotifySubscriberProviderEntity e, Authentication auth) {
                 if (e.getState() == NotifyChannelState.disabled
-                    || (!properties.isAllowAllNotify(auth))) {
+                    || (!properties.isAllowAllNotify(auth)  && e.getGrant() != null && !e.getGrant().isGranted(auth))) {
                     removeChannels();
                 } else {
                     //重新设置通知通道
@@ -575,7 +575,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
                 Set<String> newChannels = new HashSet<>(effectNotifyChannel);
                 //通道被禁用或者没有权限则删除此通道
                 if (e.getState() == NotifyChannelState.disabled
-                    || (!properties.isAllowAllNotify(auth))) {
+                    || (!properties.isAllowAllNotify(auth)  && e.getGrant() != null && !e.getGrant().isGranted(auth))) {
                     newChannels.remove(e.getId());
                 } else {
                     if (userConfigureNotifyChannels.contains(e.getId())) {
@@ -609,6 +609,9 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
             NotifySubscriberChannelEntity channel = channels.get(channelId);
             if (channel == null || channel.getState() == NotifyChannelState.disabled) {
                 return false;
+            }
+            if (!properties.isAllowAllNotify(auth) && channel.getGrant() != null) {
+                return channel.getGrant().isGranted(auth);
             }
             return true;
         }

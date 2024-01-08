@@ -55,6 +55,9 @@ public interface AlarmRuleHandler {
         @Schema(description = "告警名称")
         private String alarmName;
 
+        @Schema(description = "告警说明")
+        private String description;
+
         @Schema(description = "是否重复告警")
         private boolean alarming;
 

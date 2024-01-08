@@ -72,8 +72,7 @@ public class DefaultImportExportService implements ImportExportService {
                     .get()
                     .uri(fileUrl)
                     .accept(MediaType.APPLICATION_OCTET_STREAM)
-                    .exchange()
-                    .flatMap(clientResponse -> clientResponse.bodyToMono(Resource.class))
+                    .exchangeToMono(clientResponse -> clientResponse.bodyToMono(Resource.class))
                     .flatMap(resource -> Mono.fromCallable(resource::getInputStream));
             } else {
                 return Mono.fromCallable(() -> new FileInputStream(fileUrl));

@@ -21,6 +21,7 @@ import org.jetlinks.core.metadata.Jsonable;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.function.Function3;
@@ -106,8 +107,10 @@ public class ExcelUtils {
             .wrapper(ReactorExcel.mapWrapper())
             .readAndClose(inputStream, options)
             .map(map -> {
-
-                map = transformValue(map, keyAndHeader, ConverterExcelOption::convertForRead);
+                //过滤空值后转换数据
+                map = transformValue(Maps.filterValues(map, val -> !ObjectUtils.isEmpty(val)),
+                                     keyAndHeader,
+                                     ConverterExcelOption::convertForRead);
 
                 T data = supplier.get();
 

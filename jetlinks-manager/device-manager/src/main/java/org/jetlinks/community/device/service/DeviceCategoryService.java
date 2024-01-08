@@ -3,6 +3,7 @@ package org.jetlinks.community.device.service;
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
+import org.hswebframework.web.crud.events.EntityEventHelper;
 import org.hswebframework.web.crud.service.GenericReactiveTreeSupportCrudService;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.device.entity.DeviceCategoryEntity;
@@ -39,6 +40,7 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
             .createQuery()
             .fetchOne()
             .switchIfEmpty(initDefaultData().then(Mono.empty()))
+            .as(EntityEventHelper::setDoNotFireEvent)
             .subscribe(ignore->{},
                        err -> log.error("init device category error", err));
     }

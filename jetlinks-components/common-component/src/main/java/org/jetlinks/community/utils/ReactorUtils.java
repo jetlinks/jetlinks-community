@@ -36,10 +36,10 @@ import java.util.function.Function;
 public class ReactorUtils {
 
     public static <T> Function<Flux<T>, Flux<T>> limit(Long pageIndex, Long pageSize) {
-        if (pageIndex == null || pageSize == null) {
+        if (pageIndex == null || pageSize == null || pageIndex < 0 || pageSize <= 0) {
             return Function.identity();
         }
-        return flux -> flux.skip(pageIndex & pageSize).take(pageSize);
+        return flux -> flux.skip(pageIndex * pageSize).take(pageSize);
     }
 
     /**

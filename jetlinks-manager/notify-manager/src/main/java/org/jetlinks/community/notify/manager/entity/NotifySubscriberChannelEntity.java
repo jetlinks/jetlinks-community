@@ -11,6 +11,7 @@ import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.validator.CreateGroup;
+import org.jetlinks.community.authorize.AuthenticationSpec;
 import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 
 import javax.persistence.Column;
@@ -49,6 +50,12 @@ public class NotifySubscriberChannelEntity extends GenericEntity<String> impleme
     @NotBlank(groups = CreateGroup.class)
     @Schema(description = "通知类型")
     private String channelProvider;
+
+    @Column
+    @JsonCodec
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
+    @Schema(description = "权限范围")
+    private AuthenticationSpec grant;
 
     @Column
     @JsonCodec

@@ -28,9 +28,11 @@ import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
@@ -181,7 +183,10 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                                 if (!hasValue) {
                                     span.setStatus(StatusCode.ERROR, "device not exists");
                                 }
-                                span.setAttribute(SpanKey.address, connection.getClientAddress().toString());
+                                InetSocketAddress address = connection.getClientAddress();
+                                if (address != null) {
+                                    span.setAttribute(SpanKey.address, address.toString());
+                                }
                                 span.setAttribute(clientId, connection.getClientId());
                             }))
             //设备认证错误,拒绝连接
@@ -283,6 +288,7 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
                        MqttConnection::close)
             //网关暂停或者已停止时,则不处理消息
             .filter(pb -> isStarted())
+            .publishOn(Schedulers.parallel())
             //解码收到的mqtt报文
             .concatMap(publishing -> this
                 .decodeAndHandleMessage(operator, session, publishing, connection)
