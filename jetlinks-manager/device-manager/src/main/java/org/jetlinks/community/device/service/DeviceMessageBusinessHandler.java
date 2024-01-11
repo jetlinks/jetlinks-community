@@ -31,6 +31,7 @@ import org.springframework.dao.QueryTimeoutException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.BufferOverflowStrategy;
@@ -209,18 +210,15 @@ public class DeviceMessageBusinessHandler {
         Message childMessage = message.getChildDeviceMessage();
         if (childMessage instanceof DeviceUnRegisterMessage) {
             String childId = ((DeviceUnRegisterMessage) childMessage).getDeviceId();
-            return registry
-                .getDevice(childId)
-                .flatMap(dev -> dev
-                    .removeConfig(DeviceConfigKey.parentGatewayId.getKey())
-                    .then(dev.checkState()))
-                .flatMap(state -> deviceService
-                    .createUpdate()
-                    .setNull(DeviceInstanceEntity::getParentId)
-                    .set(DeviceInstanceEntity::getState, DeviceState.of(state))
-                    .where(DeviceInstanceEntity::getId, childId)
-                    .execute()
-                    .then());
+            if(!StringUtils.hasText(childId)){
+                return Mono.empty();
+            }
+            return deviceService
+                .createUpdate()
+                .setNull(DeviceInstanceEntity::getParentId)
+                .where(DeviceInstanceEntity::getId, childId)
+                .execute()
+                .then();
         }
         return Mono.empty();
     }
@@ -228,6 +226,9 @@ public class DeviceMessageBusinessHandler {
     @Subscribe("/device/*/*/unregister")
     @Transactional(propagation = Propagation.NEVER)
     public Mono<Void> unRegisterDevice(DeviceUnRegisterMessage message) {
+        if(message.getHeader(Headers.ignore).orElse(false)){
+            return Mono.empty();
+        }
         //注销设备
         return deviceService
             .unregisterDevice(message.getDeviceId())
