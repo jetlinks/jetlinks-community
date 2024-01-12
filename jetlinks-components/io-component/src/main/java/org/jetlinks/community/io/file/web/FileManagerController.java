@@ -88,7 +88,7 @@ public class FileManagerController {
                                        exchange.getResponse().getHeaders().add("file-md5", ctx.info().getMd5());
                                        exchange.getResponse().getHeaders().add("file-sha256", ctx.info().getSha256());
 
-                                       //文件流时下载文件
+                                       //文件流式下载文件
                                        if (mediaType.includes(MediaType.APPLICATION_OCTET_STREAM)) {
                                            exchange.getResponse().getHeaders().setContentDisposition(
                                                ContentDisposition
