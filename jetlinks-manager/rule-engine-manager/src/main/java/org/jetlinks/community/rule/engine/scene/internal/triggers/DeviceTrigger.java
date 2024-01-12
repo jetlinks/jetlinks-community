@@ -99,10 +99,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         switch (this.operation.getOperator()) {
             case readProperty:
             case writeProperty:
-                selectColumns.add("this.success \"success\"");
             case reportProperty:
-                selectColumns.add("this.properties \"properties\"");
-                break;
             case readPropertyReply:
                 selectColumns.add("this.properties \"properties\"");
                 break;
