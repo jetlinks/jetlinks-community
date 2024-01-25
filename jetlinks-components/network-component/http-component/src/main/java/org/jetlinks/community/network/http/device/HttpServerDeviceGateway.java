@@ -14,6 +14,7 @@ import org.jetlinks.core.message.DeviceOnlineMessage;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.message.codec.http.HttpExchangeMessage;
 import org.jetlinks.core.message.codec.http.websocket.WebSocketMessage;
 import org.jetlinks.core.route.HttpRoute;
 import org.jetlinks.core.route.WebsocketRoute;
@@ -75,6 +76,9 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
     }
 
 
+    public Transport getTransport() {
+        return DefaultTransport.HTTP;
+    }
     private Disposable handleRequest(HttpMethod method, String url) {
         return httpServer
             .handleRequest(method, url)
@@ -105,7 +109,7 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                             DeviceOnlineMessage message = new DeviceOnlineMessage();
                             message.setDeviceId(deviceId);
                             return this
-                                .handleWebsocketMessage(message, exchange)
+                                .handleWebsocketMessage(message, exchange, null)
                                 .flatMap(device -> exchange
                                     .receive()
                                     .flatMap(msg -> handleWebsocketRequest(exchange, msg, device))
@@ -145,15 +149,10 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                 //调用协议执行解码
                 return protocol
                     .getMessageCodec(DefaultTransport.WebSocket)
-                    .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(session, msg, registry)))
+                    .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
+                        session, msg, registry, deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session).then())))
                     .cast(DeviceMessage.class)
-                    .concatMap(deviceMessage -> {
-                        monitor.receivedMessage();
-                        if (!StringUtils.hasText(deviceMessage.getDeviceId())) {
-                            deviceMessage.thingId(DeviceThingType.device, session.getDeviceId());
-                        }
-                        return handleWebsocketMessage(deviceMessage, exchange);
-                    })
+                    .concatMap(deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session))
                     .doOnNext(session::setOperator)
                     .onErrorResume(err -> {
                         log.error("处理http请求失败:\n{}", msg, err);
@@ -172,7 +171,15 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
             });
     }
 
-    private Mono<DeviceOperator> handleWebsocketMessage(DeviceMessage message, WebSocketExchange exchange) {
+    private Mono<DeviceOperator> handleWebsocketMessage(DeviceMessage message,
+                                                        WebSocketExchange exchange,
+                                                        WebSocketDeviceSession session) {
+        monitor.receivedMessage();
+
+        if (null != session && !StringUtils.hasText(message.getDeviceId())) {
+            message.thingId(DeviceThingType.device, session.getDeviceId());
+        }
+
         return helper
             .handleDeviceMessage(
                 message,
@@ -213,23 +220,11 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                     UnknownHttpDeviceSession session = new UnknownHttpDeviceSession(exchange);
                     //调用协议执行解码
                     return protocol
-                        .getMessageCodec(DefaultTransport.HTTP)
-                        .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(session, httpMessage, registry)))
+                        .getMessageCodec(getTransport())
+                        .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
+                            session, httpMessage, registry, msg -> handleMessage(msg, exchange, httpMessage))))
                         .cast(DeviceMessage.class)
-                        .flatMap(deviceMessage -> {
-                            monitor.receivedMessage();
-                            return helper
-                                .handleDeviceMessage(deviceMessage,
-                                                     device -> new HttpDeviceSession(device, address),
-                                                     ignore -> {
-                                                     },
-                                                     () -> {
-                                                         log.warn("无法从HTTP消息中获取设备信息:\n{}\n\n设备消息:{}", httpMessage, deviceMessage);
-                                                         return exchange
-                                                             .error(HttpStatus.NOT_FOUND)
-                                                             .then(Mono.empty());
-                                                     });
-                        })
+                        .concatMap(deviceMessage -> handleMessage(deviceMessage, exchange, httpMessage))
                         .then(Mono.defer(() -> {
                             //如果协议包里没有回复，那就响应200
                             if (!exchange.isClosed()) {
@@ -248,6 +243,27 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                 log.error(error.getMessage(), error);
                 return response500Error(exchange, error);
             });
+    }
+
+    private Mono<Void> handleMessage(DeviceMessage deviceMessage,
+                                     HttpExchange exchange,
+                                     HttpExchangeMessage message) {
+        InetSocketAddress address = exchange
+            .request()
+            .getClientAddress();
+        monitor.receivedMessage();
+        return helper
+            .handleDeviceMessage(deviceMessage,
+                                 device -> new HttpDeviceSession(device, address),
+                                 ignore -> {
+                                 },
+                                 () -> {
+                                     log.warn("无法从HTTP消息中获取设备信息:\n{}\n\n设备消息:{}", message, deviceMessage);
+                                     return exchange
+                                         .error(HttpStatus.NOT_FOUND)
+                                         .then(Mono.empty());
+                                 })
+            .then();
     }
 
     private void doReloadRoute(List<HttpRoute> routes) {
