@@ -55,12 +55,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.jetlinks</groupId>
-            <artifactId>jdbc-bridge-r2dbc-dm</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-cbor</artifactId>
         </dependency>
