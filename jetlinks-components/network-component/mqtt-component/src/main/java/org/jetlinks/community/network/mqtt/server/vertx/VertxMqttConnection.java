@@ -23,6 +23,7 @@ import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.SimpleMqttMessage;
 import org.jetlinks.core.server.mqtt.MqttAuth;
+import org.jetlinks.core.utils.Reactors;
 import reactor.core.publisher.*;
 
 import javax.annotation.Nonnull;
@@ -41,7 +42,7 @@ class VertxMqttConnection implements MqttConnection {
     private long keepAliveTimeoutMs;
     @Getter
     private long lastPingTime = System.currentTimeMillis();
-    private volatile boolean closed = false, accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = true;
+    private volatile boolean closed = false, accepted = false, autoAckSub = true, autoAckUnSub = true, autoAckMsg = false;
     private static final MqttAuth emptyAuth = new MqttAuth() {
         @Override
         public String getUsername() {
@@ -53,19 +54,9 @@ class VertxMqttConnection implements MqttConnection {
             return "";
         }
     };
-    private final Sinks.Many<MqttPublishing> messageProcessor = Sinks
-        .many()
-        .multicast()
-        .onBackpressureBuffer(Integer.MAX_VALUE);
-
-    private final Sinks.Many<MqttSubscription> subscription = Sinks
-        .many()
-        .multicast()
-        .onBackpressureBuffer(Integer.MAX_VALUE);
-    private final Sinks.Many<MqttUnSubscription> unsubscription = Sinks
-        .many()
-        .multicast()
-        .onBackpressureBuffer(Integer.MAX_VALUE);
+    private final Sinks.Many<MqttPublishing> messageProcessor = Reactors.createMany(Integer.MAX_VALUE, false);
+    private final Sinks.Many<MqttSubscription> subscription = Reactors.createMany(Integer.MAX_VALUE, false);
+    private final Sinks.Many<MqttUnSubscription> unsubscription = Reactors.createMany(Integer.MAX_VALUE, false);
 
 
     public VertxMqttConnection(MqttEndpoint endpoint) {
@@ -178,7 +169,7 @@ class VertxMqttConnection implements MqttConnection {
                     publishing.acknowledge();
                 }
                 if (hasDownstream) {
-                    this.messageProcessor.tryEmitNext(publishing);
+                    this.messageProcessor.emitNext(publishing, Reactors.emitFailureHandler());
                 }
             })
             //QoS 1 PUBACK
@@ -211,7 +202,7 @@ class VertxMqttConnection implements MqttConnection {
                     subscription.acknowledge();
                 }
                 if (hasDownstream) {
-                    this.subscription.tryEmitNext(subscription);
+                    this.subscription.emitNext(subscription, Reactors.emitFailureHandler());
                 }
             })
             .unsubscribeHandler(msg -> {
@@ -222,7 +213,7 @@ class VertxMqttConnection implements MqttConnection {
                     unSubscription.acknowledge();
                 }
                 if (hasDownstream) {
-                    this.unsubscription.tryEmitNext(unSubscription);
+                    this.unsubscription.emitNext(unSubscription, Reactors.emitFailureHandler());
                 }
             });
     }
