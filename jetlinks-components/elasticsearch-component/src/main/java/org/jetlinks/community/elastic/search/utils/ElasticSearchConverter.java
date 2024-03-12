@@ -1,5 +1,6 @@
 package org.jetlinks.community.elastic.search.utils;
 
+import com.google.common.collect.Collections2;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexMetadata;
@@ -8,10 +9,7 @@ import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.*;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ElasticSearchConverter {
 
@@ -74,6 +72,13 @@ public class ElasticSearchConverter {
             }  else if (type instanceof DateTimeType) {
                 Date date = ((DateTimeType) type).convert(val);
                 newData.put(property.getId(), date);
+            } else if (type instanceof ObjectType) {
+                if (val instanceof Collection) {
+                    val = Collections2.transform(((Collection<?>) val), ((ObjectType) type)::convert);
+                    newData.put(property.getId(), val);
+                } else {
+                    newData.put(property.getId(), ((ObjectType) type).convert(val));
+                }
             } else if (type instanceof Converter) {
                 newData.put(property.getId(), ((Converter<?>) type).convert(val));
             }
