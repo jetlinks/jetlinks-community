@@ -1,17 +1,20 @@
 package org.jetlinks.community;
 
 import com.alibaba.fastjson.annotation.JSONType;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
+import lombok.*;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import reactor.core.publisher.Flux;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 @Getter
 @AllArgsConstructor
@@ -28,44 +31,43 @@ public class Interval {
     public static final String hours = "h";
     public static final String minutes = "m";
     public static final String seconds = "s";
+    public static final String millis = "S";
 
     private BigDecimal number;
 
     private String expression;
-
-    public boolean isFixed() {
-        return expression.equalsIgnoreCase(hours) ||
-            expression.equals(minutes) ||
-            expression.equals(seconds);
-    }
-
-    public boolean isCalendar() {
-        return expression.equals(days) ||
-            expression.equals(month) ||
-            expression.equals(year);
-    }
 
     @Override
     public String toString() {
         return (number) + expression;
     }
 
+    @Generated
     public static Interval ofSeconds(int seconds) {
         return of(seconds, Interval.seconds);
     }
 
+    @Generated
     public static Interval ofDays(int days) {
         return of(days, Interval.days);
     }
 
+    @Generated
     public static Interval ofHours(int hours) {
         return of(hours, Interval.hours);
     }
 
+    @Generated
     public static Interval ofMonth(int month) {
         return of(month, Interval.month);
     }
 
+    @Generated
+    public static Interval ofMinutes(int month) {
+        return of(month, Interval.minutes);
+    }
+
+    @Generated
     public static Interval of(int month, String expression) {
         return new Interval(new BigDecimal(month), expression);
     }
@@ -107,6 +109,31 @@ public class Interval {
         }
     }
 
+    public IntervalUnit getUnit() {
+        switch (expression) {
+            case year:
+                return IntervalUnit.YEARS;
+            case quarter:
+                return IntervalUnit.QUARTER;
+            case month:
+                return IntervalUnit.MONTHS;
+            case weeks:
+                return IntervalUnit.WEEKS;
+            case days:
+                return IntervalUnit.DAYS;
+            case hours:
+                return IntervalUnit.HOURS;
+            case minutes:
+                return IntervalUnit.MINUTES;
+            case seconds:
+                return IntervalUnit.SECONDS;
+            case millis:
+                return IntervalUnit.MILLIS;
+        }
+
+        throw new UnsupportedOperationException("unsupported interval express:" + expression);
+    }
+
     public static class IntervalJSONDeserializer extends JsonDeserializer<Interval> {
 
         @Override
@@ -121,6 +148,54 @@ public class Interval {
             }
             return of(node.textValue());
         }
+
+    }
+
+    public static class IntervalJSONSerializer extends JsonSerializer<Interval> {
+
+        @Override
+        public void serialize(Interval value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeString(value.toString());
+        }
+    }
+
+    public long toMillis() {
+        return getUnit().toMillis(number.intValue());
+    }
+
+    /**
+     * 对指定的时间戳按周期取整
+     *
+     * @param timestamp 时间戳
+     * @return 取整后的值
+     */
+    public long round(long timestamp) {
+        return getUnit().truncatedTo(timestamp, number.intValue());
+    }
+
+    /**
+     * 按当前周期对指定的时间范围进行迭代,每次迭代一个周期的时间戳
+     *
+     * @param from 时间从
+     * @param to   时间止
+     * @return 迭代器
+     */
+    public Iterable<Long> iterate(long from, long to) {
+        return getUnit().iterate(from, to, number.intValue());
+    }
+
+    public <T> Flux<T> generate(long from, long to, Function<Long, T> converter) {
+        return Flux
+            .fromIterable(iterate(from, to))
+            .map(converter);
+    }
+
+    public <T> Flux<T> generateWithFormat(long from,
+                                          long to,
+                                          String pattern,
+                                          BiFunction<Long, String, T> converter) {
+        DateTimeFormatter formatter = DateTimeFormat.forPattern(pattern);
+        return generate(from, to, t -> converter.apply(t, new DateTime(t).toString(formatter)));
     }
 
 }

@@ -6,6 +6,7 @@ import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.Interval;
+import org.joda.time.DateTime;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,7 +36,12 @@ public class AggregationQueryParam {
 
     private long startWithTime = 0;
 
-    private long endWithTime = System.currentTimeMillis();
+    private long endWithTime = DateTime.now()
+                                       .withHourOfDay(23)
+                                       .withMinuteOfHour(59)
+                                       .withSecondOfMinute(59)
+                                       .withMillisOfSecond(0)
+                                       .getMillis();
 
     private String timeProperty = "timestamp";
 
@@ -81,6 +87,10 @@ public class AggregationQueryParam {
 
     public AggregationQueryParam agg(String property, String alias, Aggregation agg) {
         return this.agg(new AggregationColumn(property, alias, agg));
+    }
+
+    public AggregationQueryParam agg(String property, String alias, Aggregation agg, Object defaultValue) {
+        return this.agg(new AggregationColumn(property, alias, agg, defaultValue));
     }
 
 
@@ -129,6 +139,9 @@ public class AggregationQueryParam {
     }
 
     public AggregationQueryParam groupBy(Interval time, String alias, String format) {
+        if (null == time) {
+            return this;
+        }
         return groupBy(new TimeGroup(time, alias, format));
     }
 
@@ -171,6 +184,16 @@ public class AggregationQueryParam {
     public AggregationQueryParam limit(int limit) {
         this.limit = limit;
         return this;
+    }
+
+    public List<Group> getGroups() {
+        if (getGroupByTime() == null) {
+            return groupBy;
+        }
+        List<Group> groups = new ArrayList<>();
+        groups.add(getGroupByTime());
+        groups.addAll(groupBy);
+        return groups;
     }
 
 }

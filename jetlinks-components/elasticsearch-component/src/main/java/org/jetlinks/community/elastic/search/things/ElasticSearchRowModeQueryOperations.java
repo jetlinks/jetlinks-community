@@ -104,10 +104,9 @@ class ElasticSearchRowModeQueryOperations extends RowModeQueryOperationsBase {
                 if (property == null || thingId == null || value == null) {
                     return null;
                 }
-
-                return applyProperty(ThingPropertyDetail
-                                         .of(TimeSeriesData.of(ts, data), properties.get(property)),
-                                     data);
+                return applyProperty(
+                    ThingPropertyDetail.of(TimeSeriesData.of(ts, data), properties.get(property)),
+                    data);
             });
     }
 
@@ -118,7 +117,7 @@ class ElasticSearchRowModeQueryOperations extends RowModeQueryOperationsBase {
         if (properties.length == 1) {
             return AggregationQueryParam
                 .of()
-                .agg(ThingsDataConstants.COLUMN_PROPERTY_NUMBER_VALUE, properties[0].getAlias(), properties[0].getAgg())
+                .agg(ThingsDataConstants.COLUMN_PROPERTY_NUMBER_VALUE, properties[0].getAlias(), properties[0].getAgg(), properties[0].getDefaultValue())
                 .as(param -> {
                     if (request.getInterval() == null) {
                         return param;
@@ -144,7 +143,7 @@ class ElasticSearchRowModeQueryOperations extends RowModeQueryOperationsBase {
             .of()
             .as(param -> {
                 Arrays.stream(properties)
-                      .forEach(agg -> param.agg(ThingsDataConstants.COLUMN_PROPERTY_NUMBER_VALUE, "value_" + agg.getAlias(), agg.getAgg()));
+                      .forEach(agg -> param.agg(ThingsDataConstants.COLUMN_PROPERTY_NUMBER_VALUE, "value_" + agg.getAlias(), agg.getAgg(),agg.getDefaultValue()));
                 return param;
             })
             .as(param -> {
@@ -191,7 +190,7 @@ class ElasticSearchRowModeQueryOperations extends RowModeQueryOperationsBase {
                                                          } else if (property.equals(prp.getProperty())) {
                                                              Object value = agg
                                                                  .get("value_" + alias)
-                                                                 .orElse(0);
+                                                                 .orElse(prp.getDefaultValue());
                                                              data.putIfAbsent(alias, value);
                                                          }
                                                      });
@@ -212,9 +211,10 @@ class ElasticSearchRowModeQueryOperations extends RowModeQueryOperationsBase {
                                 Map<String, Object> values = new HashMap<>();
                                 //values.put("time", group.key());
                                 for (Map.Entry<String, String> props : propertyAlias.entrySet()) {
+                                    PropertyAggregation prop = aliasProperty.get(props.getKey());
                                     values.put(props.getKey(), agg
                                         .get("value_" + props.getKey())
-                                        .orElse(0));
+                                        .orElse(prop != null ? prop.getDefaultValue() : 0));
                                 }
                                 return values;
                             }));
@@ -222,9 +222,11 @@ class ElasticSearchRowModeQueryOperations extends RowModeQueryOperationsBase {
             })
             .map(map -> {
                 map.remove("");
-                propertyAlias
-                    .keySet()
-                    .forEach(key -> map.putIfAbsent(key, 0));
+                for (Map.Entry<String, String> entry : propertyAlias.entrySet()) {
+                    PropertyAggregation agg = aliasProperty.get(entry.getKey());
+                    map.putIfAbsent(entry.getKey(), agg != null ? agg.getDefaultValue() : 0);
+                }
+
                 return AggregationData.of(map);
             })
             .sort(Comparator

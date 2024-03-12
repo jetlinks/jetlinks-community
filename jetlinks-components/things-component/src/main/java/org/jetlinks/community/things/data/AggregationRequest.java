@@ -7,6 +7,7 @@ import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.Interval;
+import org.jetlinks.community.doc.QueryConditionOnly;
 import org.jetlinks.community.utils.ConverterUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.joda.time.DateTime;
@@ -51,13 +52,32 @@ public class AggregationRequest {
         .toDate();
 
     @Schema(description = "数量限制")
-    @Builder.Default
-    int limit = 30;
+    Integer limit;
 
     //过滤条件
-    @Schema(description = "过滤条件")
+    @Schema(description = "过滤条件", implementation = QueryConditionOnly.class)
     @Builder.Default
     QueryParamEntity filter = QueryParamEntity.of();
+
+    public int getLimit() {
+        if (limit != null) {
+            return limit;
+        }
+        if (interval == null) {
+            return limit = 30;
+        }
+        long v = to.getTime() - from.getTime();
+
+        limit = (int)Math.ceil(
+            ((double) v / interval
+                .getUnit()
+                .getUnit()
+                .getDuration()
+                .toMillis())
+        );
+
+        return limit;
+    }
 
     public AggregationRequest copy() {
         return new AggregationRequest(interval, format, from, to, limit, filter.clone());
@@ -73,7 +93,7 @@ public class AggregationRequest {
             if ("timestamp".equals(term.getColumn())) {
                 if (TermType.btw.equals(term.getTermType())) {
                     List<Object> values = ConverterUtils.convertToList(term.getValue());
-                    if (values.size() > 0) {
+                    if (!values.isEmpty()) {
                         from = CastUtils.castDate(values.get(0));
                     }
                     if (values.size() > 1) {

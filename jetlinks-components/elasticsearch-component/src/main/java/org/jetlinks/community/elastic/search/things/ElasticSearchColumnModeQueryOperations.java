@@ -78,7 +78,7 @@ class ElasticSearchColumnModeQueryOperations extends ColumnModeQueryOperationsBa
             .of()
             .as(param -> {
                 for (PropertyAggregation property : properties) {
-                    param.agg(property.getProperty(), property.getAlias(), property.getAgg());
+                    param.agg(property.getProperty(), property.getAlias(), property.getAgg(),property.getDefaultValue());
                 }
                 return param;
             })
