@@ -2,6 +2,7 @@ package org.jetlinks.community.device.service;
 
 import lombok.AllArgsConstructor;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -34,6 +35,14 @@ public class DeviceProductHandler {
             applyProductConfig(event.getEntity())
         );
     }
+
+    @EventListener
+    public void handleProductSaveEvent(EntityCreatedEvent<DeviceProductEntity> event) {
+        event.async(
+            applyProductConfig(event.getEntity())
+        );
+    }
+
 
     @EventListener
     public void handleProductSaveEvent(EntityModifyEvent<DeviceProductEntity> event) {
