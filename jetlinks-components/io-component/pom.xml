@@ -72,5 +72,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.hswebframework.web</groupId>
+            <artifactId>hsweb-system-file</artifactId>
+            <version>${hsweb.framework.version}</version>
+            <optional>true</optional>
+        </dependency>
+
     </dependencies>
 </project>
