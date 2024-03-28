@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.TimerSpec;
+import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
@@ -14,8 +16,6 @@ import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.things.ThingMetadata;
-import org.jetlinks.community.TimerSpec;
-import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -124,6 +124,7 @@ public class DeviceOperation {
         //属性相关
         if (operator == Operator.readProperty
             || operator == Operator.reportProperty
+            || operator == Operator.readPropertyReply
             || operator == Operator.writeProperty) {
             terms.addAll(
                 this.createTerm(
@@ -250,6 +251,7 @@ public class DeviceOperation {
             case online:
             case offline:
             case reportProperty:
+            case readPropertyReply:
                 return;
             case reportEvent:
                 Assert.hasText(eventId, "error.scene_rule_trigger_device_operation_event_id_cannot_be_null");
@@ -279,6 +281,8 @@ public class DeviceOperation {
         reportProperty,
         //读取属性
         readProperty,
+        //读取属性回复
+        readPropertyReply,
         //修改属性
         writeProperty,
         //调用功能
