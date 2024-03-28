@@ -29,3 +29,4 @@ docker/data
 !demo-protocol-1.0.jar
 application-local.yml
 dev/
+.DS_Store
