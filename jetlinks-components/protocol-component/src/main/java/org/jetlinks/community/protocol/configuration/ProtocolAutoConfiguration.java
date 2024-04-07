@@ -28,10 +28,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @AutoConfigureBefore(DeviceClusterConfiguration.class)
 public class ProtocolAutoConfiguration {
 
-    @Bean
-    public ProtocolSupportManager protocolSupportManager(ClusterManager clusterManager) {
-        return new ClusterProtocolSupportManager(clusterManager);
-    }
+//    @Bean
+//    public ProtocolSupportManager protocolSupportManager(ClusterManager clusterManager) {
+//        return new ClusterProtocolSupportManager(clusterManager);
+//    }
 
     @Bean
     public ServiceContext serviceContext(ApplicationContext applicationContext) {
@@ -39,14 +39,10 @@ public class ProtocolAutoConfiguration {
     }
 
     @Bean
-    public LazyInitManagementProtocolSupports managementProtocolSupports(ProtocolSupportManager supportManager,
-                                                                         ProtocolSupportLoader loader,
-                                                                         ClusterManager clusterManager) {
-        LazyInitManagementProtocolSupports supports = new LazyInitManagementProtocolSupports();
-        supports.setClusterManager(clusterManager);
-        supports.setManager(supportManager);
-        supports.setLoader(loader);
-        return supports;
+    public LazyInitManagementProtocolSupports managementProtocolSupports(EventBus eventBus,
+                                                                         ClusterManager clusterManager,
+                                                                         ProtocolSupportLoader loader) {
+        return new LazyInitManagementProtocolSupports(eventBus, clusterManager, loader);
     }
 
     @Bean
@@ -57,7 +53,7 @@ public class ProtocolAutoConfiguration {
 
     @Bean
     public AutoDownloadJarProtocolSupportLoader autoDownloadJarProtocolSupportLoader(WebClient.Builder builder, FileManager fileManager) {
-        return new AutoDownloadJarProtocolSupportLoader(builder,fileManager);
+        return new AutoDownloadJarProtocolSupportLoader(builder, fileManager);
     }
 
     @Bean
