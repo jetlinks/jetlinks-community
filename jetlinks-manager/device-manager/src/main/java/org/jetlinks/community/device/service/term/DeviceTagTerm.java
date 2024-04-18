@@ -11,6 +11,7 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.term.AbstractTerm
 import org.hswebframework.web.api.crud.entity.TermExpressionParser;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,13 +33,13 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
     private void acceptTerm(boolean and, RDBColumnMetadata column, PrepareSqlFragments fragments, String terms) {
         //json
         if (terms.startsWith("[")) {
-            acceptTerm(and, fragments, (List) JSON.parseArray(terms, Map.class));
+            acceptTerm(and, fragments, JSON.parseArray(terms, Map.class));
         } else if (terms.startsWith("{")) {
             acceptTerm(and, fragments, JSON.parseObject(terms));
         } else if (terms.contains(":") && !terms.contains(" ")) {
             List<Map<String, String>> tags = Stream
-                .of(terms.split("[,]"))
-                .map(str -> str.split("[:]"))
+                .of(terms.split(","))
+                .map(str -> str.split(":"))
                 .map(str -> {
                     Map<String, String> tag = new HashMap<>();
                     tag.put("key", str[0]);
@@ -50,7 +51,10 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
         } else {
             //SQL表达式
             List<Term> tagKeys = TermExpressionParser.parse(terms);
-            fragments.addSql("and (").addFragments(builder.createTermFragments(column, tagKeys)).addSql(")");
+            SqlFragments expr = builder.createTermFragments(column, tagKeys);
+            if (expr.isNotEmpty()) {
+                fragments.addSql("and (").addFragments(expr).addSql(")");
+            }
         }
 
     }
@@ -64,15 +68,30 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
         }).collect(Collectors.toList()));
     }
 
-    private void acceptTerm(boolean and, PrepareSqlFragments fragments, List<Map<String, String>> tags) {
+    private void acceptTerm(boolean and, PrepareSqlFragments fragments, Collection<?> tags) {
 
         int len = 0;
         fragments.addSql("and (");
-        for (Map<String, String> tag : tags) {
+        for (Object tag : tags) {
             if (len++ > 0) {
                 fragments.addSql(and ? "and" : "or");
             }
-            fragments.addSql("(d.key = ? and d.value like ?)").addParameter(tag.get("key"), tag.get("value"));
+            String key;
+            String value;
+            if (tag instanceof Map) {
+                @SuppressWarnings("all")
+                Map<Object, Object> map = ((Map) tag);
+                //key or column
+                key = String.valueOf(map.getOrDefault("key", map.get("column")));
+                value = String.valueOf(map.get("value"));
+            } else if (tag instanceof Term) {
+                key = ((Term) tag).getColumn();
+                value = String.valueOf(((Term) tag).getValue());
+            } else {
+                throw new IllegalArgumentException("illegal tag value format");
+            }
+            fragments.addSql("(d.key = ? and d.value like ?)")
+                     .addParameter(key, value);
         }
         if (tags.isEmpty()) {
             fragments.addSql("1=2");
@@ -85,14 +104,13 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
 
 
         PrepareSqlFragments fragments = PrepareSqlFragments.of();
-
         fragments.addSql("exists(select 1 from ",getTableName("dev_device_tags",column)," d where d.device_id =", columnFullName);
         Object value = term.getValue();
         boolean and = term.getOptions().contains("and");
         if (value instanceof Map) {
             acceptTerm(and, fragments, (Map<?, ?>) value);
-        } else if (value instanceof List) {
-            acceptTerm(and, fragments, (List<Map<String, String>>) value);
+        } else if (value instanceof Collection) {
+            acceptTerm(and, fragments, (Collection<?>) value);
         } else {
             acceptTerm(and, column, fragments, String.valueOf(value));
         }
@@ -113,11 +131,17 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
             PrepareSqlFragments sqlFragments = PrepareSqlFragments.of();
             sqlFragments.addSql("(d.key = ?")
                         .addParameter(term.getColumn())
-                        .addSql("and")
-                        .addFragments(parameter
-                                          .findFeatureNow(TermFragmentBuilder.createFeatureId(term.getTermType()))
-                                          .createFragments("d.value", parameter, term)
-                        ).addSql(")");
+                        .addSql("and");
+            if (parameter == null) {
+                sqlFragments.addSql("d.value = ?").addParameter(term.getValue());
+            } else {
+                sqlFragments.addFragments(parameter
+                                              .findFeatureNow(TermFragmentBuilder.createFeatureId(term.getTermType()))
+                                              .createFragments("d.value", parameter, term)
+                );
+            }
+            sqlFragments
+                .addSql(")");
             return sqlFragments;
         }
 
