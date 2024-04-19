@@ -52,6 +52,25 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>java11</id>
+            <properties>
+                <maven.compiler.source>11</maven.compiler.source>
+                <maven.compiler.target>11</maven.compiler.target>
+                <java.version>11</java.version>
+                <project.build.jdk>11</project.build.jdk>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.openjdk.nashorn</groupId>
+                    <artifactId>nashorn-core</artifactId>
+                    <version>15.4</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
     <dependencies>
 
         <dependency>
@@ -152,20 +171,20 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.boot</groupId>-->
-<!--            <artifactId>spring-boot-starter-actuator</artifactId>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.boot</groupId>-->
+        <!--            <artifactId>spring-boot-starter-actuator</artifactId>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-r2dbc</artifactId>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>dev.miku</groupId>-->
-<!--            <artifactId>r2dbc-mysql</artifactId>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>dev.miku</groupId>-->
+        <!--            <artifactId>r2dbc-mysql</artifactId>-->
+        <!--        </dependency>-->
 
         <!-- https://github.com/mirromutth/r2dbc-mysql/issues/251 -->
         <dependency>
