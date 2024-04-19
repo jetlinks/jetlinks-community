@@ -34,13 +34,11 @@ import java.util.function.Supplier;
  * @since 1.5
  */
 @AllArgsConstructor
+@Getter
 public class DeviceGatewayHelper {
 
-    @Getter
     private final DeviceRegistry registry;
-    @Getter
     private final DeviceSessionManager sessionManager;
-    @Getter
     private final DecodedClientMessageHandler messageHandler;
 
     public static Consumer<DeviceSession> applySessionKeepaliveTimeout(DeviceMessage msg, Supplier<Duration> timeoutSupplier) {
@@ -112,7 +110,7 @@ public class DeviceGatewayHelper {
             return sessionManager
                 .remove(childrenId, removeSessionOnlyLocal(children))
                 .doOnNext(total -> {
-                    if (total > 0) {
+                    if (total > 0 && children instanceof DeviceOfflineMessage) {
                         children.addHeader(Headers.ignore, true);
                     }
                 })
