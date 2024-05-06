@@ -205,6 +205,8 @@ public class DeviceOperation {
                         TermColumn term = createTermColumn(_prefix, prop, false, valueTypes).get(0);
                         column.setColumn(term.getColumn());
                         column.setName(term.getName());
+                        column.setOptions(term.getOptions());
+                        column.withOthers(term.getOthers());
                     } else {
                         column.setChildren(createTermColumn(_prefix, prop, last, valueTypes));
                     }
