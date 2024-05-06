@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.TimerSpec;
+import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
@@ -14,8 +16,6 @@ import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.things.ThingMetadata;
-import org.jetlinks.community.TimerSpec;
-import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -205,6 +205,8 @@ public class DeviceOperation {
                         TermColumn term = createTermColumn(_prefix, prop, false, valueTypes).get(0);
                         column.setColumn(term.getColumn());
                         column.setName(term.getName());
+                        column.setOptions(term.getOptions());
+                        column.withOthers(term.getOthers());
                     } else {
                         column.setChildren(createTermColumn(_prefix, prop, last, valueTypes));
                     }

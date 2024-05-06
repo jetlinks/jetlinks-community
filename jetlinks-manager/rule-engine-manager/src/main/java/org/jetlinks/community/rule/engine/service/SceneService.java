@@ -2,15 +2,19 @@ package org.jetlinks.community.rule.engine.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.rule.engine.entity.SceneProductAndDeviceEntity;
 import org.jetlinks.community.rule.engine.entity.SceneEntity;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
+import org.jetlinks.community.rule.engine.executor.device.SelectorValue;
 import org.jetlinks.community.rule.engine.scene.SceneRule;
+import org.jetlinks.community.rule.engine.scene.internal.triggers.DeviceTrigger;
 import org.jetlinks.community.rule.engine.web.request.SceneExecuteRequest;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleEngine;
@@ -19,13 +23,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -33,6 +37,8 @@ import java.util.Map;
 public class SceneService extends GenericReactiveCrudService<SceneEntity, String> implements CommandLineRunner {
 
     private final RuleEngine ruleEngine;
+
+    private final ReactiveRepository<SceneProductAndDeviceEntity, String> alarmRepository;
 
     public Mono<Void> execute(String id, Map<String, Object> data) {
         long t = System.currentTimeMillis();
@@ -148,7 +154,7 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
                 //禁用时,停止规则
                 if (scene.getState() == RuleInstanceState.disable) {
                     return ruleEngine.shutdown(scene.getId());
-                }else if (scene.getState() == RuleInstanceState.started){
+                } else if (scene.getState() == RuleInstanceState.started) {
                     scene.validate();
                     return ruleEngine.startRule(scene.getId(), scene.toRule().getModel());
                 }
@@ -182,4 +188,69 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
             .subscribe();
     }
 
+    @EventListener
+    public void handleSaved(EntitySavedEvent<SceneEntity> event) {
+        event.async(
+            saveProductAndDevice(event.getEntity())
+        );
+    }
+
+    @EventListener
+    public void handleCreated(EntityCreatedEvent<SceneEntity> event) {
+        event.async(
+            Flux.fromIterable(event.getEntity())
+                .map(SceneEntity::getId)
+                .as(this::findById)
+                .collectList()
+                .flatMap(this::saveProductAndDevice)
+        );
+    }
+
+    private Mono<Void> saveProductAndDevice(Collection<SceneEntity> entities) {
+        List<SceneProductAndDeviceEntity> list = new ArrayList<>();
+        for (SceneEntity scene : entities) {
+            SceneProductAndDeviceEntity entity = new SceneProductAndDeviceEntity();
+            DeviceTrigger device = scene.getTrigger().getDevice();
+            if (!ObjectUtils.isEmpty(device)) {
+                for (SelectorValue selector : device.getSelectorValues()) {
+                    String deviceId = String.valueOf(selector.getValue());
+                    entity.setId(scene.getId());
+                    entity.setProductId(device.getProductId());
+                    entity.setDeviceId(deviceId);
+                    list.add(entity);
+                }
+            }
+        }
+        return alarmRepository.save(list).then();
+    }
+
+    @EventListener
+    public void handleModified(EntityModifyEvent<SceneEntity> event) {
+        event.async(
+            modifyProductAndDevice(event.getAfter())
+        );
+    }
+
+    private Mono<Void> modifyProductAndDevice(Collection<SceneEntity> entities) {
+        List<String> sceneIds = entities.stream()
+                                       .map(SceneEntity::getId)
+                                       .collect(Collectors.toList());
+
+        return alarmRepository.deleteById(sceneIds)
+                              .then(saveProductAndDevice(entities));
+    }
+
+    @EventListener
+    public void handleDeleted(EntityDeletedEvent<SceneEntity> event) {
+        event.async(
+            Flux.fromIterable(event.getEntity())
+                .map(SceneEntity::getId)
+                .collectList()
+                .flatMap(list -> deleteProductAndDevice(list))
+        );
+    }
+
+    private Mono<Void> deleteProductAndDevice(Collection<String> sceneIds) {
+        return alarmRepository.deleteById(sceneIds).then();
+    }
 }
