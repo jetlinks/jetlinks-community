@@ -301,23 +301,23 @@
                 <version>${log4j.version}</version>
             </dependency>
 
-            <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
+            <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk18on -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.70</version>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>1.78.1</version>
             </dependency>
 
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>1.78</version>
+                <version>1.78.1</version>
             </dependency>
 
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcpkix-jdk18on</artifactId>
-                <version>1.76</version>
+                <version>1.78.1</version>
             </dependency>
 
             <dependency>
