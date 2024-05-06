@@ -56,6 +56,9 @@ public class TermColumn {
     @Schema(description = "可选内容")
     private List<PropertyMetric> options;
 
+    @Schema(description = "其它配置")
+    private Map<String, Object> others;
+
     @Schema(description = "子列,在类型为object时有值")
     private List<TermColumn> children;
 
@@ -233,6 +236,17 @@ public class TermColumn {
                 child.refactorFullName(this.fullName);
             }
         }
+    }
+
+    public TermColumn withOthers(Map<String, Object> options) {
+        if (options != null) {
+            safeOptions().putAll(options);
+        }
+        return this;
+    }
+
+    public synchronized Map<String, Object> safeOptions() {
+        return others == null ? others = new HashMap<>() : others;
     }
 
 }
