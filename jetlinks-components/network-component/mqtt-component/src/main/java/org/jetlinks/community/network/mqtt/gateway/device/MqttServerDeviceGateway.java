@@ -316,7 +316,8 @@ class MqttServerDeviceGateway extends AbstractDeviceGateway {
             .getProtocol()
             .flatMap(protocol -> protocol.getMessageCodec(getTransport()))
             //解码
-            .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(session, message, registry)))
+            .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
+                session, message, registry,msg->handleMessage(operator,msg,connection).then())))
             .cast(DeviceMessage.class)
             .concatMap(msg -> {
                 //回填deviceId,有的场景协议包不能或者没有解析出deviceId,则直接使用连接对应的设备id进行填充.

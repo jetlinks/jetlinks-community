@@ -5,9 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.timeseries.query.Aggregation;
-import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -27,6 +27,23 @@ public class PropertyAggregation {
     @Schema(description = "聚合方式,支持(count,sum,max,min,avg)", type = "string")
     @NotNull
     private Aggregation agg; //聚合函数
+
+    @Schema(description = "聚合默认值")
+    private Object defaultValue;//默认值
+
+    public PropertyAggregation(String property, String alias, Aggregation agg) {
+        this(property, alias, agg, null);
+    }
+
+    public Object getDefaultValue() {
+        if (defaultValue != null) {
+            return defaultValue;
+        }
+        if (agg != null) {
+            return defaultValue = agg.getDefaultValue();
+        }
+        return null;
+    }
 
     public String getAlias() {
         if (StringUtils.isEmpty(alias)) {

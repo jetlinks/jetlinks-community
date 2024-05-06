@@ -8,6 +8,7 @@ import org.hswebframework.web.authorization.exception.UnAuthorizedException;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.auth.entity.UserSettingEntity;
 import org.jetlinks.community.auth.service.UserSettingService;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -65,6 +66,9 @@ public class UserSettingController {
                     entity.setUserId(auth.getUser().getId());
                     entity.setType(type);
                     entity.setKey(key);
+                    if(!StringUtils.hasText(entity.getName())){
+                        entity.setName(entity.getKey());
+                    }
                     entity.generateId();
                     return entity;
                 }

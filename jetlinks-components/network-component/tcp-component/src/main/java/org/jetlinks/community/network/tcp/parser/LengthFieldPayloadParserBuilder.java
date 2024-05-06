@@ -46,7 +46,7 @@ public class LengthFieldPayloadParserBuilder implements PayloadParserBuilderStra
                 break;
             case 2:
                 lengthParser =
-                    le ? buffer -> buffer.getUnsignedShort(offset)
+                    le ? buffer -> buffer.getUnsignedShortLE(offset)
                         : buffer -> buffer.getUnsignedShort(offset);
                 break;
             case 3:

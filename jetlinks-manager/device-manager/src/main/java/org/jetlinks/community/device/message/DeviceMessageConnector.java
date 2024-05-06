@@ -38,6 +38,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
     //将设备注册中心的配置追加到消息header中,下游订阅者可直接使用.
     private final static String[] allConfigHeader = {
         PropertyConstants.productId.getKey(),
+        PropertyConstants.productName.getKey(),
         PropertyConstants.deviceName.getKey(),
         PropertyConstants.orgId.getKey()
     };
@@ -148,11 +149,11 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
             }
             //从会话管理器里监听会话注销,转发为设备离线消息
             if (event.getType() == DeviceSessionEvent.Type.unregister) {
-                return handleSessionMessage(new DeviceOfflineMessage(),event.getSession());
+                return handleSessionMessage(new DeviceOfflineMessage().timestamp(event.getTimestamp()),event.getSession());
             }
             //从会话管理器里监听会话注册,转发为设备上线消息
             if (event.getType() == DeviceSessionEvent.Type.register) {
-                return handleSessionMessage(new DeviceOnlineMessage(),event.getSession());
+                return handleSessionMessage(new DeviceOnlineMessage().timestamp(event.getSession().connectTime()),event.getSession());
             }
             return Mono.empty();
         });
@@ -172,7 +173,6 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
                });
 
             message.setDeviceId(session.getDeviceId());
-            message.setTimestamp(System.currentTimeMillis());
 
             message.addHeader("connectTime", session.connectTime());
             message.addHeader("from", "session");

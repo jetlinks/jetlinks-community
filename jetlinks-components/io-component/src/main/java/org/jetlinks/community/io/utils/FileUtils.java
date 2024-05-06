@@ -48,6 +48,13 @@ public class FileUtils {
         return getMediaTypeByExtension(FilenameUtils.getExtension(name));
     }
 
+
+    /**
+     * 根据文件拓展名获取MediaType
+     *
+     * @param extension extension
+     * @return MediaType
+     */
     public static MediaType getMediaTypeByExtension(String extension) {
         if (!StringUtils.hasText(extension)) {
             return MediaType.APPLICATION_OCTET_STREAM;
@@ -60,6 +67,13 @@ public class FileUtils {
                 return MediaType.IMAGE_PNG;
             case "gif":
                 return MediaType.IMAGE_GIF;
+            case "svg":
+                return MediaType.parseMediaType("image/svg+xml");
+            case "tiff":
+            case "tif":
+                return MediaType.parseMediaType("image/tiff");
+            case "webp":
+                return MediaType.parseMediaType("image/webp");
             case "mp4":
                 return MediaType.parseMediaType("video/mp4");
             case "flv":
@@ -67,8 +81,20 @@ public class FileUtils {
             case "text":
             case "txt":
                 return MediaType.TEXT_PLAIN;
+            case "html":
+                return MediaType.TEXT_HTML;
+            case "md":
+                return MediaType.TEXT_MARKDOWN;
+            case "css":
+                return MediaType.parseMediaType("text/css");
             case "js":
+                return MediaType.parseMediaType("text/javascript");
+            case "xml":
+                return MediaType.TEXT_XML;
+            case "json":
                 return MediaType.APPLICATION_JSON;
+            case "pdf":
+                return MediaType.APPLICATION_PDF;
             default:
                 return MediaType.APPLICATION_OCTET_STREAM;
         }

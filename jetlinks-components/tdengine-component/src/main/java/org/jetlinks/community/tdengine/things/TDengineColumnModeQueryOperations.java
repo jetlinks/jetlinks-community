@@ -93,7 +93,7 @@ class TDengineColumnModeQueryOperations extends ColumnModeQueryOperationsBase {
                 long ts = timeSeriesData.getTimestamp();
                 Map<String, Object> newData = timeSeriesData.getData();
                 for (PropertyAggregation property : context.getProperties()) {
-                    newData.putIfAbsent(property.getAlias(), 0);
+                    newData.putIfAbsent(property.getAlias(), property.getDefaultValue());
                 }
                 newData.put("time", formatter.format(LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneId.systemDefault())));
                 return AggregationData.of(newData);

@@ -44,7 +44,9 @@ public class FileManagerController {
     @Operation(summary = "获取文件")
     public Mono<Void> read(@PathVariable String fileId,
                            ServerWebExchange exchange) {
-
+        if (fileId.contains(".")) {
+            fileId = fileId.substring(0, fileId.indexOf("."));
+        }
         return exchange
             .getResponse()
             .writeWith(fileManager

@@ -16,7 +16,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.7.14</spring.boot.version>
+        <spring.boot.version>2.7.18</spring.boot.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
@@ -36,22 +36,27 @@
         <!-- 第三方依赖版本 -->
         <r2dbc.version>Borca-SR2</r2dbc.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <netty.version>4.1.97.Final</netty.version>
-        <elasticsearch.version>7.17.14</elasticsearch.version>
+        <netty.version>4.1.104.Final</netty.version>
+        <elasticsearch.version>7.17.13</elasticsearch.version>
         <californium.version>3.7.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <reactor.version>2020.0.31</reactor.version>
+        <reactor.version>2020.0.38</reactor.version>
         <vertx.version>4.3.8</vertx.version>
         <log4j.version>2.18.0</log4j.version>
         <logback.version>1.2.11</logback.version>
         <springdoc.version>1.6.11</springdoc.version>
         <jackson.version>2.14.3</jackson.version>
-        <opentelemetry.version>1.17.0</opentelemetry.version>
+        <gson.version>2.9.1</gson.version>
+        <opentelemetry.version>1.26.0</opentelemetry.version>
         <swagger.version>2.2.8</swagger.version>
         <jna.version>5.12.1</jna.version>
         <aliyun.sdk.core>4.5.2</aliyun.sdk.core>
+        <jsonata.version>2.4.1</jsonata.version>
+        <spring.cloud.version>2021.0.3</spring.cloud.version>
         <fst.version>2.57</fst.version>
         <grpc.version>1.53.0</grpc.version>
+        <rsocket.version>1.1.4</rsocket.version>
+        <micrometer.version>1.11.8</micrometer.version>
     </properties>
 
 
@@ -189,6 +194,22 @@
     <dependencyManagement>
 
         <dependencies>
+
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-bom</artifactId>
+                <version>${micrometer.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>io.rsocket</groupId>
+                <artifactId>rsocket-bom</artifactId>
+                <version>${rsocket.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
 
             <dependency>
                 <groupId>io.asyncer</groupId>

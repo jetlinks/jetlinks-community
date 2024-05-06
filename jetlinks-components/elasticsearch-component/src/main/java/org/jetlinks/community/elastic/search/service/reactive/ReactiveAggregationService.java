@@ -4,10 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.BucketOrder;
+import org.elasticsearch.search.aggregations.*;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
@@ -15,6 +12,7 @@ import org.elasticsearch.search.aggregations.bucket.histogram.LongBounds;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.*;
+import org.elasticsearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -49,6 +47,10 @@ public class ReactiveAggregationService implements AggregationService {
     private final ReactiveElasticsearchClient restClient;
 
     private final ElasticSearchIndexManager indexManager;
+
+    //是否打开执行提示，打开后，聚合查询时会给每一个bucket构造global ordinals。单个索引数据量大于一百万时建议关闭。
+    private static final boolean IS_OPEN_GLOBAL_ORDINALS =
+        Boolean.parseBoolean(System.getProperty("elasticsearch.agg.query.execution_hint", "false"));
 
     @Autowired
     public ReactiveAggregationService(ElasticSearchIndexManager indexManager,
@@ -110,8 +112,13 @@ public class ReactiveAggregationService implements AggregationService {
             } else {
                 builder.size(100);
             }
+            //直接进行子聚合的计算
+            builder.collectMode(Aggregator.SubAggCollectionMode.DEPTH_FIRST);
 //            builder.missing(0);
-            return builder.executionHint("map");
+            if (IS_OPEN_GLOBAL_ORDINALS) {
+                builder.executionHint("map");
+            }
+            return builder;
         }
     }
 
@@ -143,6 +150,12 @@ public class ReactiveAggregationService implements AggregationService {
             AggregationBuilder builder = AggType
                 .of(aggColumn.getAggregation().name())
                 .aggregationBuilder(aggColumn.getAlias(), aggColumn.getProperty());
+
+            if (builder instanceof ValuesSourceAggregationBuilder &&
+                aggColumn.getDefaultValue() != null) {
+                ((ValuesSourceAggregationBuilder<?>) builder)
+                    .missing(aggColumn.getDefaultValue());
+            }
 
             if (builder instanceof TopHitsAggregationBuilder) {
                 TopHitsAggregationBuilder topHitsBuilder = ((TopHitsAggregationBuilder) builder);
@@ -248,8 +261,8 @@ public class ReactiveAggregationService implements AggregationService {
         return Flux.empty();
     }
 
-    private double getSafeNumber(double number) {
-        return (Double.isNaN(number) || Double.isInfinite(number)) ? 0D : number;
+    private Object getSafeNumber(double number) {
+        return (Double.isNaN(number) || Double.isInfinite(number)) ? null : number;
     }
 
     private Flux<Map<String, Object>> parseAggregation(Histogram aggregation) {

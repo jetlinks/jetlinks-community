@@ -115,7 +115,7 @@ class TDengineRowModeQueryOperations extends RowModeQueryOperationsBase {
                     Map<String, Object> newData = new HashMap<>();
                     newData.put("time", formatter.format(LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneId
                         .systemDefault())));
-                    newData.put(properties[0].getAlias(), timeSeriesData.get(key).orElse(0));
+                    newData.put(properties[0].getAlias(), timeSeriesData.get(key).orElse(properties[0].getDefaultValue()));
 
                     return AggregationData.of(newData);
                 })
@@ -141,7 +141,7 @@ class TDengineRowModeQueryOperations extends RowModeQueryOperationsBase {
                     Map<String, Object> newResult = new HashMap<>();
                     for (PropertyAggregation property : properties) {
                         String key = "value_" + property.getAlias();
-                        newResult.put(property.getAlias(), Optional.ofNullable(map.get(key)).orElse(0));
+                        newResult.put(property.getAlias(), Optional.ofNullable(map.get(key)).orElse(property.getDefaultValue()));
                     }
                     newResult.put("time", group.key());
                     newResult.put("_time", map.getOrDefault("_time", new Date()));

@@ -1,5 +1,7 @@
 package org.jetlinks.community.network.tcp.gateway.device;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.core.ProtocolSupport;
@@ -42,6 +44,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
 
     final TcpServer tcpServer;
 
+    @Getter
     Mono<ProtocolSupport> protocol;
 
     private final DeviceRegistry registry;
@@ -57,6 +60,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
     private final DeviceGatewayHelper helper;
 
     //连接检查超时时间,超过时间连接没有被正确处理返回会话,将被自动断开连接
+    @Setter
     private Duration connectCheckTimeout = TimeUtils.parse(System.getProperty("gateway.tcp.network.connect-check-timeout", "10s"));
 
     public TcpServerDeviceGateway(String id,
@@ -73,21 +77,9 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
         this.helper = new DeviceGatewayHelper(registry, sessionManager, clientMessageHandler);
     }
 
-    public Mono<ProtocolSupport> getProtocol() {
-        return protocol;
-    }
-
     @Override
     public long totalConnection() {
         return counter.sum();
-    }
-
-    public Transport getTransport() {
-        return DefaultTransport.TCP;
-    }
-
-    public NetworkType getNetworkType() {
-        return DefaultNetworkType.TCP_SERVER;
     }
 
 
@@ -116,7 +108,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             });
             monitor.connected();
 
-            sessionRef.set(new UnknownTcpDeviceSession(client.getId(), client, getTransport(), monitor));
+            sessionRef.set(new UnknownTcpDeviceSession(client.getId(), client, DefaultTransport.TCP, monitor));
 
             legalityChecker = Schedulers
                 .parallel()
@@ -136,12 +128,12 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
 
         Mono<Void> accept() {
             return getProtocol()
-                .flatMap(protocol -> protocol.onClientConnect(getTransport(), client, this))
+                .flatMap(protocol -> protocol.onClientConnect(DefaultTransport.TCP, client, this))
                 .then(
                     client
                         .subscribe()
                         .filter(tcp -> started.get())
-                        .flatMap(this::handleTcpMessage)
+                        .concatMap(this::handleTcpMessage)
                         .onErrorResume((err) -> {
                             log.error(err.getMessage(), err);
                             client.shutdown();
@@ -154,14 +146,15 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
 
         Mono<Void> handleTcpMessage(TcpMessage message) {
             return getProtocol()
-                .flatMap(pt -> pt.getMessageCodec(getTransport()))
-                .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(sessionRef.get(), message, registry)))
+                .flatMap(pt -> pt.getMessageCodec(DefaultTransport.TCP))
+                .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
+                    sessionRef.get(), message, registry, msg -> handleDeviceMessage(msg).then())))
                 .cast(DeviceMessage.class)
                 .concatMap(msg -> this
                     .handleDeviceMessage(msg)
                     .as(MonoTracer.create(
                         DeviceTracer.SpanName.decode(msg.getDeviceId()),
-                        builder -> builder.setAttributeLazy(DeviceTracer.SpanKey.message, msg::toString))))
+                        (span, _msg) -> span.setAttributeLazy(DeviceTracer.SpanKey.message, _msg::toString))))
                 .onErrorResume((err) -> {
                     log.error("Handle TCP[{}] message failed:\n{}",
                               address,
@@ -183,7 +176,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             return helper
                 .handleDeviceMessage(
                     message,
-                    device -> new TcpDeviceSession(device, client, getTransport(), monitor),
+                    device -> new TcpDeviceSession(device, client,DefaultTransport.TCP, monitor),
                     session -> {
                         TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
                         deviceSession.setClient(client);
@@ -211,12 +204,24 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
     }
 
 
+    private void closeClient(TcpClient client) {
+        try {
+            client.shutdown();
+        } catch (Throwable ignore) {
+
+        }
+    }
+
     private void doStart() {
         if (started.getAndSet(true) || disposable != null) {
             return;
         }
         disposable = tcpServer
             .handleConnection()
+//            .onBackpressureBuffer(maxConcurrency, client -> {
+//                log.warn("tcp server [{}] connection buffer is full, close it.", client.getRemoteAddress());
+//                closeClient(client);
+//            })
             .publishOn(Schedulers.parallel())
             .flatMap(client -> new TcpConnection(client)
                          .accept()
@@ -247,5 +252,4 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             }
         });
     }
-
 }
