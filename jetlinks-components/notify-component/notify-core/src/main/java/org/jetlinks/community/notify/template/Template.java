@@ -62,7 +62,18 @@ public interface Template extends Serializable {
     }
 
     default Map<String, Object> renderMap(Map<String, Object> context) {
-        return Maps.transformValues(context, value -> value == null ? null: VariableSource.of(value).resolveStatic(context));
+        return Maps.transformEntries(context, (key, value) ->
+            Optional.ofNullable(value)
+                    .map(val -> VariableSource.of(val).resolveStatic(context))
+                    .map(val -> {
+                        Optional<VariableDefinition> variableDefOpt = getVariable(key);
+                        if (variableDefOpt.isPresent()) {
+                            return variableDefOpt.get().convertValue(val);
+                        }
+                        return val;
+                    })
+                    .orElse(null)
+        );
     }
 
     default String convert(String key, Object value) {
