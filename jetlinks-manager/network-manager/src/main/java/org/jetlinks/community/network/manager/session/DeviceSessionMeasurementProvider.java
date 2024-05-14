@@ -176,10 +176,14 @@ public class DeviceSessionMeasurementProvider extends StaticMeasurementProvider 
             .registerMetadata(
                 TimeSeriesMetadata.of(
                     metric,
+                    SimplePropertyMetadata.of("type", "type", StringType.GLOBAL),
+                    SimplePropertyMetadata.of("creatorId", "creatorId", StringType.GLOBAL),
+                    SimplePropertyMetadata.of("deviceId", "deviceId", StringType.GLOBAL),
+                    SimplePropertyMetadata.of("productId", "productId", StringType.GLOBAL),
                     SimplePropertyMetadata.of("server", "server", StringType.GLOBAL),
-                    SimplePropertyMetadata.of("duration", "duration", IntType.GLOBAL),
-                    SimplePropertyMetadata.of("count", "count", IntType.GLOBAL),
-                    SimplePropertyMetadata.of("bindings", "bindings", new ArrayType().elementType(StringType.GLOBAL)),
+                    SimplePropertyMetadata.of("name", "name", StringType.GLOBAL),
+                    SimplePropertyMetadata.of("duration", "duration", LongType.GLOBAL),
+                    SimplePropertyMetadata.of("count", "count", LongType.GLOBAL),
                     SimplePropertyMetadata.of("connectTime", "connectTime", DateTimeType.GLOBAL)
                 ))
             .block(Duration.ofSeconds(30));
