@@ -38,6 +38,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
     //将设备注册中心的配置追加到消息header中,下游订阅者可直接使用.
     private final static String[] allConfigHeader = {
         PropertyConstants.productId.getKey(),
+        PropertyConstants.productName.getKey(),
         PropertyConstants.deviceName.getKey(),
         PropertyConstants.orgId.getKey()
     };
