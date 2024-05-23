@@ -50,6 +50,7 @@ import java.util.function.Function;
 @Setter
 public class SceneRule implements Serializable {
 
+    public static final String ACTION_KEY_BRANCH_ID = "_branchId";
     public static final String ACTION_KEY_BRANCH_INDEX = "_branchIndex";
     public static final String ACTION_KEY_GROUP_INDEX = "_groupIndex";
     public static final String ACTION_KEY_ACTION_INDEX = "_actionIndex";
@@ -331,11 +332,16 @@ public class SceneRule implements Serializable {
             if (last == null) {
                 last = handler;
             } else {
+                boolean executeAnyway = branch.isExecuteAnyway();
                 Function<Map<String, Object>, Mono<Boolean>> _last = last;
 
                 last = data -> _last
                     .apply(data)
                     .flatMap(match -> {
+                        //无论如何都尝试执行当前分支
+                        if(executeAnyway){
+                            return handler.apply(data);
+                        }
                         //上一个分支满足了则返回,不执行此分支逻辑
                         if (match) {
                             return Reactors.ALWAYS_FALSE;

@@ -30,6 +30,12 @@ public class SceneConditionAction implements Serializable {
     @Schema(description = "满足条件时执行的动作")
     private List<SceneActions> then;
 
+    @Schema(description = "无论如何都尝试执行此分支")
+    private boolean executeAnyway = false;
+
+    @Schema(description = "分支ID")
+    private Integer branchId;
+
 
     //仅用于设置到reactQl sql的column中
     public List<Term> createContextTerm() {
