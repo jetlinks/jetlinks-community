@@ -310,14 +310,20 @@
 
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk18on</artifactId>
+                <artifactId>bcpkix-jdk18on</artifactId>
                 <version>1.78.1</version>
             </dependency>
 
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk18on</artifactId>
+                <artifactId>bctls-jdk18on</artifactId>
                 <version>1.78.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <version>1.70</version>
             </dependency>
 
             <dependency>
