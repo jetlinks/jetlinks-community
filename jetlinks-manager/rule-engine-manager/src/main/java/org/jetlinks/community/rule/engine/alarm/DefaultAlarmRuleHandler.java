@@ -104,7 +104,7 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         //节点所在的条件分支索引
         int branchIndex = context
             .getJob()
-            .getConfiguration(SceneRule.ACTION_KEY_BRANCH_INDEX)
+            .getConfiguration(SceneRule.ACTION_KEY_BRANCH_ID)
             .map(idx -> CastUtils.castNumber(idx).intValue())
             .orElse(AlarmRuleBindEntity.ANY_BRANCH_INDEX);
 
