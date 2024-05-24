@@ -116,7 +116,7 @@ public class VertxMqttClient implements MqttClient {
     private void reSubscribe() {
         subscriber
             .getAllSubscriber()
-            .filter(topic -> topic.getSubscribers().size() > 0)
+            .filter(topic -> !topic.getSubscribers().isEmpty())
             .collectMap(topic -> getCompleteTopic(convertMqttTopic(topic.getSubscribers().iterator().next().getT1())),
                         topic -> topic.getSubscribers().iterator().next().getT3())
             .filter(MapUtils::isNotEmpty)
@@ -170,10 +170,10 @@ public class VertxMqttClient implements MqttClient {
 
                 Tuple3<String, FluxSink<MqttMessage>, Integer> topicQos = Tuples.of(topic, sink, qos);
 
-                boolean first = sinkTopic.getSubscribers().size() == 0;
+                boolean first = sinkTopic.getSubscribers().isEmpty();
                 sinkTopic.subscribe(topicQos);
                 composite.add(() -> {
-                    if (sinkTopic.unsubscribe(topicQos).size() > 0 && isAlive()) {
+                    if (!sinkTopic.unsubscribe(topicQos).isEmpty() && isAlive() && sinkTopic.getSubscribers().isEmpty()) {
                         client.unsubscribe(convertMqttTopic(completeTopic), result -> {
                             if (result.succeeded()) {
                                 log.debug("unsubscribe mqtt topic {}", completeTopic);
