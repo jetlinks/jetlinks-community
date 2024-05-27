@@ -3,6 +3,8 @@ package org.jetlinks.community.config;
 import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.web.cache.ReactiveCache;
+import org.hswebframework.web.cache.ReactiveCacheManager;
 import org.jetlinks.community.ValueObject;
 import org.jetlinks.community.config.entity.ConfigEntity;
 import reactor.core.publisher.Flux;
@@ -17,6 +19,13 @@ public class SimpleConfigManager implements ConfigManager, ConfigScopeManager {
     private final Map<ConfigScope, Set<ConfigPropertyDef>> scopes = new ConcurrentHashMap<>();
 
     private final ReactiveRepository<ConfigEntity, String> repository;
+
+    private final ReactiveCache<Map<String, Object>> cache;
+
+    public SimpleConfigManager(ReactiveRepository<ConfigEntity, String> repository, ReactiveCacheManager cacheManager) {
+        this.repository = repository;
+        this.cache = cacheManager.getCache("system-config");
+    }
 
     @Override
     public void addScope(ConfigScope scope,
@@ -55,20 +64,27 @@ public class SimpleConfigManager implements ConfigManager, ConfigScopeManager {
                     .filter(def -> null != def.getDefaultValue())
                     .collectMap(ConfigPropertyDef::getKey, ConfigPropertyDef::getDefaultValue),
                 //数据库配置的值
-                repository
-                    .createQuery()
-                    .where(ConfigEntity::getScope, scope)
-                    .fetch()
-                    .filter(val -> MapUtils.isNotEmpty(val.getProperties()))
-                    .<Map<String, Object>>reduce(new LinkedHashMap<>(), (l, r) -> {
-                        l.putAll(r.getProperties());
-                        return l;
-                    }),
+                cache
+                    .getMono(scope, () -> getPropertiesNow(scope)),
                 (defaults, values) -> {
-                    defaults.forEach(values::putIfAbsent);
-                    return values;
+                    Map<String, Object> properties = new HashMap<>(values);
+                    defaults.forEach(properties::putIfAbsent);
+                    return properties;
                 }
-            ).map(ValueObject::of);
+            )
+            .map(ValueObject::of);
+    }
+
+    private Mono<Map<String, Object>> getPropertiesNow(String scope) {
+        return repository
+            .createQuery()
+            .where(ConfigEntity::getScope, scope)
+            .fetch()
+            .filter(val -> MapUtils.isNotEmpty(val.getProperties()))
+            .reduce(new LinkedHashMap<>(), (l, r) -> {
+                l.putAll(r.getProperties());
+                return l;
+            });
     }
 
     @Override
@@ -77,7 +93,9 @@ public class SimpleConfigManager implements ConfigManager, ConfigScopeManager {
         entity.setProperties(values);
         entity.setScope(scope);
         entity.getId();
-        return repository.save(entity).then();
+        return repository
+            .save(entity)
+            .then(cache.evict(scope));
     }
 
 }
