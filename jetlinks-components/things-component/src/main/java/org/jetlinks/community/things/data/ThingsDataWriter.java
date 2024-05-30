@@ -28,6 +28,13 @@ public interface ThingsDataWriter {
                            @Nonnull Object data);
 
     @Nonnull
+    Mono<Void> updateTag(@Nonnull String thingType,
+                         @Nonnull String thingId,
+                         @Nonnull String tagKey,
+                         long timestamp,
+                         @Nonnull Object tagValue);
+
+    @Nonnull
     Mono<Void> removeProperty(@Nonnull String thingType,
                               @Nonnull String thingId,
                               @Nonnull String property);
@@ -40,4 +47,9 @@ public interface ThingsDataWriter {
     Mono<Void> removeEvent(@Nonnull String thingType,
                            @Nonnull String thingId,
                            @Nonnull String eventId);
+
+    @Nonnull
+    Mono<Void> removeTag(@Nonnull String thingType,
+                         @Nonnull String thingId,
+                         @Nonnull String tagKey);
 }
