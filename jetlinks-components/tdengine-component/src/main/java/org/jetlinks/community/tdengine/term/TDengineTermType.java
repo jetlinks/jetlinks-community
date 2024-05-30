@@ -28,7 +28,7 @@ public enum TDengineTermType {
         protected void doBuild(String column, Object value, StringJoiner sql) {
             String val = String.valueOf(value);
             sql.add(escapeColumn(column))
-                .add(" like ").add(val);
+                .add(" like ").add(createValue(val));
         }
     },
     btw(true, "btw") {
