@@ -7,6 +7,7 @@ import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.api.crud.entity.EntityFactory;
+import org.hswebframework.web.cache.ReactiveCacheManager;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.JvmErrorException;
 import org.jetlinks.community.config.ConfigManager;
@@ -159,9 +160,10 @@ public class CommonConfiguration {
 
     @Bean
     public ConfigManager configManager(ObjectProvider<ConfigScopeCustomizer> configScopeCustomizers,
-                                       ReactiveRepository<ConfigEntity, String> repository) {
+                                       ReactiveRepository<ConfigEntity, String> repository,
+                                       ReactiveCacheManager cacheManager) {
 
-        SimpleConfigManager configManager = new SimpleConfigManager(repository);
+        SimpleConfigManager configManager = new SimpleConfigManager(repository,cacheManager);
         for (ConfigScopeCustomizer customizer : configScopeCustomizers) {
             customizer.custom(configManager);
         }
