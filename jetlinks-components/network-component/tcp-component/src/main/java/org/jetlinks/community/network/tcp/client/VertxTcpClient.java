@@ -218,7 +218,7 @@ public class VertxTcpClient implements TcpClient {
                     }
                     keepAlive();
                     payloadParser.handle(buffer);
-                    if (this.socket != socket) {
+                    if (this.socket != null && this.socket != socket) {
                         log.warn("tcp client [{}] memory leak ", socket.remoteAddress());
                         socket.close();
                     }
