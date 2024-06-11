@@ -1,5 +1,6 @@
 package org.jetlinks.community.network.tcp.device;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.logger.ReactiveLogger;
 import org.jetlinks.community.gateway.AbstractDeviceGateway;
@@ -10,6 +11,7 @@ import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.client.TcpClient;
 import org.jetlinks.community.network.tcp.server.TcpServer;
 import org.jetlinks.community.network.utils.DeviceGatewayHelper;
+import org.jetlinks.community.utils.TimeUtils;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceOperator;
@@ -51,6 +53,12 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements MonitorSup
     private final LongAdder counter = new LongAdder();
 
     private Disposable disposable;
+
+    //连接检查超时时间,超过时间连接没有被正确处理返回会话,将被自动断开连接
+    @Setter
+    private Duration connectCheckTimeout = TimeUtils.parse(
+        System.getProperty("gateway.tcp.network.connect-check-timeout", "10s"));
+
 
     private final DeviceGatewayHelper helper;
 
@@ -95,6 +103,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements MonitorSup
         final AtomicReference<Duration> keepaliveTimeout = new AtomicReference<>();
         final AtomicReference<DeviceSession> sessionRef = new AtomicReference<>();
         final InetSocketAddress address;
+        Disposable legalityChecker;
 
         TcpConnection(TcpClient client) {
             this.client = client;
@@ -111,6 +120,20 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements MonitorSup
             });
             monitor.connected();
             sessionRef.set(new UnknownTcpDeviceSession(client.getId(), client, getTransport()));
+            legalityChecker = Schedulers
+                .parallel()
+                .schedule(this::checkLegality, connectCheckTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        }
+
+        public void checkLegality() {
+            //超过时间还未获取到任何设备则认为连接不合法，自动断开连接
+            if ((sessionRef.get() instanceof UnknownTcpDeviceSession)) {
+                log.info("tcp [{}] connection is illegal, close it.", address);
+                try {
+                    client.disconnect();
+                } catch (Throwable ignore) {
+                }
+            }
         }
 
         Mono<Void> accept() {
@@ -157,16 +180,22 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements MonitorSup
         }
 
         Mono<DeviceMessage> handleDeviceMessage(DeviceMessage message) {
+            Disposable checker = legalityChecker;
+            if (checker != null) {
+                checker.dispose();
+                legalityChecker = null;
+            }
             monitor.receivedMessage();
             return helper
-                .handleDeviceMessage(message,
-                                     device -> new TcpDeviceSession(device, client, getTransport(), monitor),
-                                     session -> {
-                                         TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
-                                         deviceSession.setClient(client);
-                                         sessionRef.set(deviceSession);
-                                     },
-                                     () -> log.warn("TCP{}: The device[{}] in the message body does not exist:{}", address, message.getDeviceId(), message)
+                .handleDeviceMessage(
+                    message,
+                    device -> new TcpDeviceSession(device, client, getTransport(), monitor),
+                    session -> {
+                        TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
+                        deviceSession.setClient(client);
+                        sessionRef.set(deviceSession);
+                    },
+                    () -> log.warn("TCP{}: The device[{}] in the message body does not exist:{}", address, message.getDeviceId(), message)
                 )
                 .thenReturn(message);
         }

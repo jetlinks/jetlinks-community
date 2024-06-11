@@ -9,14 +9,16 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Component
 public class DefaultPayloadParserBuilder implements PayloadParserBuilder, BeanPostProcessor {
 
-    private Map<PayloadParserType, PayloadParserBuilderStrategy> strategyMap = new ConcurrentHashMap<>();
+    private final Map<PayloadParserType, PayloadParserBuilderStrategy> strategyMap = new ConcurrentHashMap<>();
 
     public DefaultPayloadParserBuilder(){
         register(new FixLengthPayloadParserBuilder());
@@ -25,9 +27,10 @@ public class DefaultPayloadParserBuilder implements PayloadParserBuilder, BeanPo
         register(new DirectPayloadParserBuilder());
     }
     @Override
-    public PayloadParser build(PayloadParserType type, ValueObject configuration) {
+    public Supplier<PayloadParser> build(PayloadParserType type, ValueObject configuration) {
+
         return Optional.ofNullable(strategyMap.get(type))
-                .map(builder -> builder.build(configuration))
+                .map(builder -> builder.buildLazy(configuration))
                 .orElseThrow(() -> new UnsupportedOperationException("unsupported parser:" + type));
     }
 
@@ -36,7 +39,7 @@ public class DefaultPayloadParserBuilder implements PayloadParserBuilder, BeanPo
     }
 
     @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+    public Object postProcessAfterInitialization(@Nonnull Object bean,@Nonnull String beanName) throws BeansException {
         if (bean instanceof PayloadParserBuilderStrategy) {
             register(((PayloadParserBuilderStrategy) bean));
         }

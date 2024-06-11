@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.hswebframework.web.dict.Dict;
 import org.hswebframework.web.dict.EnumDict;
 import org.jetlinks.community.network.tcp.parser.strateies.PipePayloadParser;
+import org.jetlinks.community.network.tcp.parser.strateies.ScriptPayloadParserBuilder;
 
 @Getter
 @AllArgsConstructor
@@ -18,7 +19,7 @@ public enum PayloadParserType implements EnumDict<String> {
     DELIMITED("分隔符"),
 
     /**
-     * @see org.jetlinks.community.network.tcp.parser.strateies.ScriptPayloadParserBuilder
+     * @see ScriptPayloadParserBuilder
      * @see PipePayloadParser
      */
     SCRIPT("自定义脚本")

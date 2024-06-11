@@ -70,7 +70,7 @@ public class TcpServerProvider implements NetworkProvider<TcpServerProperties> {
         }
         // 根据解析类型配置数据解析器
         payloadParserBuilder.build(properties.getParserType(), properties);
-        tcpServer.setParserSupplier(() -> payloadParserBuilder.build(properties.getParserType(), properties));
+        tcpServer.setParserSupplier( payloadParserBuilder.build(properties.getParserType(), properties));
         tcpServer.setServer(instances);
         tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout", Duration.ofMinutes(10).toMillis()));
         // 针对JVM做的多路复用优化

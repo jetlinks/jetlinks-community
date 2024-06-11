@@ -61,7 +61,7 @@ public class VertxTcpClientProvider implements NetworkProvider<TcpClientProperti
         netClient.connect(properties.getPort(), properties.getHost(), result -> {
             if (result.succeeded()) {
                 log.debug("connect tcp [{}:{}] success", properties.getHost(), properties.getPort());
-                client.setRecordParser(payloadParserBuilder.build(properties.getParserType(), properties));
+                client.setRecordParser(payloadParserBuilder.build(properties.getParserType(), properties).get());
                 client.setSocket(result.result());
             } else {
                 log.error("connect tcp [{}:{}] error", properties.getHost(), properties.getPort(),result.cause());

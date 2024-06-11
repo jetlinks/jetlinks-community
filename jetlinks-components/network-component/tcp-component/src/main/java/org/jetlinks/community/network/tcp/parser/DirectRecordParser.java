@@ -1,28 +1,32 @@
 package org.jetlinks.community.network.tcp.parser;
 
 import io.vertx.core.buffer.Buffer;
-import reactor.core.publisher.EmitterProcessor;
+import org.jetlinks.core.utils.Reactors;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
-import java.util.function.Function;
-
+/**
+ * 不处理直接返回数据包
+ *
+ * @author zhouhao
+ * @since 1.0
+ */
 public class DirectRecordParser implements PayloadParser {
 
-    EmitterProcessor<Buffer> processor = EmitterProcessor.create(false);
-
+    private final Sinks.Many<Buffer> sink = Reactors.createMany();
 
     @Override
     public void handle(Buffer buffer) {
-        processor.onNext(buffer);
+        sink.emitNext(buffer, Reactors.emitFailureHandler());
     }
 
     @Override
     public Flux<Buffer> handlePayload() {
-        return processor.map(Function.identity());
+        return sink.asFlux();
     }
 
     @Override
     public void close() {
-        processor.onComplete();
+        sink.emitComplete(Reactors.emitFailureHandler());
     }
 }
