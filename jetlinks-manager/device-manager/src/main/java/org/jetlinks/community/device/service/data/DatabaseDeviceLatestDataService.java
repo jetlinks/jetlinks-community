@@ -41,6 +41,8 @@ import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationColumn;
 import org.jetlinks.reactor.ql.utils.CastUtils;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -69,7 +71,7 @@ import java.util.stream.Collectors;
  * @since 1.5.0
  */
 @Slf4j
-public class DatabaseDeviceLatestDataService implements DeviceLatestDataService {
+public class DatabaseDeviceLatestDataService implements DeviceLatestDataService, CommandLineRunner {
 
     private final DatabaseOperator databaseOperator;
 
@@ -133,17 +135,25 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService 
                 this::doWrite)
             .name("device-latest-data");
 
-        writer.start();
+        writer.init();
 
     }
 
     public void destroy() {
-        writer.dispose();
+        writer.stop();
     }
 
     static GeoCodec geoCodec = new GeoCodec();
 
     static StringCodec stringCodec = new StringCodec();
+
+    @Override
+    public void run(String... args) throws Exception {
+        writer.start();
+        SpringApplication
+            .getShutdownHandlers()
+            .add(writer::dispose);
+    }
 
     static class GeoCodec implements ValueCodec<String, GeoPoint> {
 
