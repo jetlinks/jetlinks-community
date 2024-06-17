@@ -69,7 +69,7 @@ public class RuleBindAlarmTerm extends AbstractTermFragmentBuilder {
         sqlFragments
             .addSql(
                 "and _bind.rule_id in (",
-                String.join("?", bindTerm.ruleId),
+                bindTerm.ruleId.stream().map(r -> "?").collect(Collectors.joining(",")),
                 ")")
             .addParameter(bindTerm.ruleId);
 
