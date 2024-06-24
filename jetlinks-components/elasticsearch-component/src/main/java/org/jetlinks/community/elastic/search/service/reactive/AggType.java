@@ -82,7 +82,16 @@ public enum AggType {
             return AggregationBuilders.stats(name).field(filed).missing(0);
         }
 
-    };
+    },
+
+    DIFFERENCE("极差值") {
+        @Override
+        public AggregationBuilder aggregationBuilder(String name, String filed) {
+            return AggregationBuilders.stats(name).field(filed).missing(0);
+        }
+    },
+
+    ;
 
     @Getter
     private final String text;
