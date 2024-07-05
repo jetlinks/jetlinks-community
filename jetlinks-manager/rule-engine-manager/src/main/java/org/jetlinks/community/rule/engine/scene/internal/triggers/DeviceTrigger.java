@@ -107,6 +107,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
             case writeProperty:
                 selectColumns.add("this.success \"success\"");
             case reportProperty:
+            case readPropertyReply:
                 selectColumns.add("this.properties \"properties\"");
                 break;
             case reportEvent:
@@ -184,6 +185,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         switch (operation.getOperator()) {
             case reportProperty:
                 topic = "/device/" + productId + "/%s/message/property/report";
+                break;
+            case readPropertyReply:
+                topic = "/device/" + productId + "/%s/message/property/read/reply";
                 break;
             case reportEvent:
                 topic = "/device/" + productId + "/%s/message/event/" + operation.getEventId();
@@ -429,6 +433,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
             case offline:
             case reportEvent:
             case reportProperty:
+            case readPropertyReply:
                 return;
         }
 

@@ -124,6 +124,7 @@ public class DeviceOperation {
         //属性相关
         if (operator == Operator.readProperty
             || operator == Operator.reportProperty
+            || operator == Operator.readPropertyReply
             || operator == Operator.writeProperty) {
             terms.addAll(
                 this.createTerm(
@@ -252,6 +253,7 @@ public class DeviceOperation {
             case online:
             case offline:
             case reportProperty:
+            case readPropertyReply:
                 return;
             case reportEvent:
                 Assert.hasText(eventId, "error.scene_rule_trigger_device_operation_event_id_cannot_be_null");
@@ -281,6 +283,8 @@ public class DeviceOperation {
         reportProperty,
         //读取属性
         readProperty,
+        //读取属性回复
+        readPropertyReply,
         //修改属性
         writeProperty,
         //调用功能
