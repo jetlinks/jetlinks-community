@@ -15,6 +15,7 @@ import org.hswebframework.web.authorization.annotation.DeleteAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 
 import org.hswebframework.web.authorization.annotation.SaveAction;
+import org.hswebframework.web.authorization.exception.UnAuthorizedException;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.authorize.AuthenticationSpec;
 import org.jetlinks.community.notify.manager.configuration.NotifySubscriberProperties;
@@ -150,17 +151,35 @@ public class NotifyChannelController {
                 SubscriberProvider::getId,
                 SubscriberProviderInfo::of));
 
+        Map<String, SubscriberProviderInfo> notSaveInfoMap = new HashMap<>(info);
         return providerService
             .createQuery()
             .fetch()
-            .mapNotNull(provider -> {
-                SubscriberProviderInfo channelInfo = info.get(provider.getProvider());
-                if (channelInfo != null) {
-                    channelInfo.with(provider);
+            .collectList()
+            .flatMap(providers -> {
+                Map<String, SubscriberProviderInfo> providerInfoMap = new HashMap<>();
+                for (NotifySubscriberProviderEntity provider : providers) {
+                    SubscriberProviderInfo channelInfo = info.get(provider.getProvider());
+                    if (channelInfo != null) {
+                        channelInfo.with(provider);
+                        providerInfoMap.put(channelInfo.getId(), channelInfo);
+                    }
+                    if (info.get(provider.getProvider()) != null) {
+                        notSaveInfoMap.remove(provider.getProvider());
+                    }
                 }
-                return channelInfo;
+                if (!MapUtils.isEmpty(notSaveInfoMap)) {
+                    List<NotifySubscriberProviderEntity> providerList = notSaveInfoMap
+                        .values()
+                        .stream()
+                        .map(SubscriberProviderInfo::toProviderEntity)
+                        .collect(Collectors.toList());
+                    return providerService
+                        .save(providerList)
+                        .thenReturn(providerInfoMap);
+                }
+                return Mono.just(providerInfoMap);
             })
-            .collectMap(SubscriberProviderInfo::getId, Function.identity())
             .filter(MapUtils::isNotEmpty)
             .flatMapMany(mapping -> repository
                 .createQuery()
@@ -181,7 +200,7 @@ public class NotifyChannelController {
     public Flux<SubscriberProviderInfo> accessibleChannels() {
         return Authentication
             .currentReactive()
-            .switchIfEmpty(Mono.error(Exception::new))
+            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
             .flatMapMany(auth -> channels().mapNotNull(info -> info.copyToProvidedUser(auth, properties)))
             .filter(p -> CollectionUtils.isNotEmpty(p.getChannels()));
     }
@@ -218,6 +237,11 @@ public class NotifyChannelController {
         private List<NotifySubscriberChannelEntity> channels = new ArrayList<>();
 
         public SubscriberProviderInfo copyToProvidedUser(Authentication auth, NotifySubscriberProperties properties) {
+            if (id == null
+                || (state == null || state == NotifyChannelState.disabled)
+                || (!properties.isAllowAllNotify(auth) && grant != null && !grant.isGranted(auth))) {
+                return null;
+            }
 
             SubscriberProviderInfo info = new SubscriberProviderInfo();
             info.setId(id);
