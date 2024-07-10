@@ -2,6 +2,8 @@ package org.jetlinks.community.network.http.device;
 
 import lombok.Setter;
 import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.enums.ErrorCode;
+import org.jetlinks.core.exception.DeviceOperationException;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.Transport;
@@ -70,8 +72,9 @@ class HttpDeviceSession implements DeviceSession {
 
     @Override
     public Mono<Boolean> send(EncodedMessage encodedMessage) {
-        if(websocket==null){
-            return Reactors.ALWAYS_FALSE;
+        //未建立websocket链接,不支持此类消息.
+        if(websocket == null){
+            return Mono.error(new DeviceOperationException(ErrorCode.UNSUPPORTED_MESSAGE));
         }
         if (encodedMessage instanceof WebSocketMessage) {
             return websocket
