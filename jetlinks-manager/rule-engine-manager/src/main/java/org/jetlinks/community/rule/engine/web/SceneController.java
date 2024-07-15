@@ -66,10 +66,24 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
         return service.disabled(id);
     }
 
+    @PutMapping("/batch/_disable")
+    @Operation(summary = "批量禁用场景")
+    @SaveAction
+    public Mono<Void> disableSceneBatch(String... id) {
+        return service.disabled(id);
+    }
+
     @PutMapping("/{id}/_enable")
     @Operation(summary = "启用场景")
     @SaveAction
     public Mono<Void> enabledScene(@PathVariable String id) {
+        return service.enable(id);
+    }
+
+    @PutMapping("/batch/_enable")
+    @Operation(summary = "批量启用场景")
+    @SaveAction
+    public Mono<Void> enabledSceneBatch(String... id) {
         return service.enable(id);
     }
 
@@ -124,7 +138,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
                 parseTermColumns(cache).collectList(),
                 cache,
                 (columns, rule) -> rule
-                    .createVariables(columns ,
+                    .createVariables(columns,
                                      branch,
                                      branchGroup,
                                      action))
