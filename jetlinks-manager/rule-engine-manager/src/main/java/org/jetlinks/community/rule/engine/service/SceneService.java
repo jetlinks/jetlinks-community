@@ -23,7 +23,9 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -90,7 +92,21 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
     }
 
     @Transactional(rollbackFor = Throwable.class)
-    public Mono<Void> enable(String... id) {
+    public Mono<Void> enable(String id) {
+        Assert.hasText(id, "id can not be empty");
+        long now = System.currentTimeMillis();
+        return this
+            .createUpdate()
+            .set(SceneEntity::getState, RuleInstanceState.started)
+            .set(SceneEntity::getModifyTime, now)
+            .set(SceneEntity::getStartTime, now)
+            .where(SceneEntity::getId, id)
+            .execute()
+            .then();
+    }
+
+    @Transactional(rollbackFor = Throwable.class)
+    public Mono<Void> enable(Collection<String> id) {
         Assert.notEmpty(id, "id can not be empty");
         long now = System.currentTimeMillis();
         return this
@@ -98,18 +114,29 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
             .set(SceneEntity::getState, RuleInstanceState.started)
             .set(SceneEntity::getModifyTime, now)
             .set(SceneEntity::getStartTime, now)
-            .in(SceneEntity::getId, Arrays.asList(id))
+            .in(SceneEntity::getId, id)
             .execute()
             .then();
     }
 
     @Transactional
-    public Mono<Void> disabled(String... id) {
+    public Mono<Void> disabled(String id) {
+        Assert.hasText(id, "id can not be empty");
+        return this
+            .createUpdate()
+            .set(SceneEntity::getState, RuleInstanceState.disable)
+            .where(SceneEntity::getId, id)
+            .execute()
+            .then();
+    }
+
+    @Transactional
+    public Mono<Void> disabled(Collection<String> id) {
         Assert.notEmpty(id, "id can not be empty");
         return this
             .createUpdate()
             .set(SceneEntity::getState, RuleInstanceState.disable)
-            .in(SceneEntity::getId, Arrays.asList(id))
+            .in(SceneEntity::getId, id)
             .execute()
             .then();
     }
