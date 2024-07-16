@@ -459,6 +459,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         }
         config.validate();
 
+        if (DeviceOperation.Operator.readProperty.equals(operation.getOperator()) && Objects.nonNull(operation.getFlowLimitSpec())) {
+            config.setFrom("pre-node");
+        }
         deviceNode.setConfiguration(config.toMap());
         model.getNodes().add(deviceNode);
 
@@ -474,9 +477,24 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         timerNode.setConfiguration(FastBeanCopier.copy(timer, new HashMap<>()));
         model.getNodes().add(timerNode);
 
-        // 定时->设备指令->场景
-        model.link(timerNode, deviceNode);
-        model.link(deviceNode, sceneNode);
+        if (!DeviceOperation.Operator.readProperty.equals(operation.getOperator()) || Objects.isNull(operation.getFlowLimitSpec())) {
+            model.link(timerNode, deviceNode);
+            model.link(deviceNode, sceneNode);
+        } else {
+            RuleNodeModel flowLimitNode = new RuleNodeModel();
+            flowLimitNode.setId("scene:flow:limit");
+            flowLimitNode.setName("流量限制");
+            flowLimitNode.setExecutor("flow-limit");
+            Map<String, Object> map = config.toMap();
+            operation.getFlowLimitSpec().setTimer(timer);
+            map.put("flowLimitSpec", operation.getFlowLimitSpec());
+            flowLimitNode.setConfiguration(map);
+            model.getNodes().add(flowLimitNode);
+            // 定时->设备指令->场景
+            model.link(timerNode, flowLimitNode);
+            model.link(flowLimitNode, deviceNode);
+            model.link(deviceNode, sceneNode);
+        }
 
     }
 

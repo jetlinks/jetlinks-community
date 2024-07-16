@@ -37,6 +37,9 @@ public class DeviceOperation {
     @NotNull(message = "error.scene_rule_trigger_device_operation_cannot_be_null")
     private Operator operator;
 
+    @Schema(description = "[operator]为[readProperty]时不能为空")
+    private FlowLimitSpec flowLimitSpec;
+
     @Schema(description = "[operator]为[readProperty,writeProperty,invokeFunction]时不能为空")
     private TimerSpec timer;
 
