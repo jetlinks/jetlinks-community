@@ -1,6 +1,8 @@
 package org.jetlinks.community.dashboard.measurements.sys;
 
 import com.google.common.collect.Maps;
+
+
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.dashboard.*;
@@ -12,6 +14,7 @@ import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.TimeSeriesMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.community.utils.TimeUtils;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
@@ -112,6 +115,8 @@ import java.util.Map;
 @Component
 public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider {
 
+    private static final String SYSTEM_MONITOR_REAL_TIME_TOPIC = "/_sys/monitor/info";
+
     private final SystemMonitorService monitorService = new SystemMonitorServiceImpl();
 
     private final Duration collectInterval = TimeUtils.parse(System.getProperty("monitor.system.collector.interval", "1m"));
@@ -124,10 +129,12 @@ public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider 
 
     private final Disposable.Composite disposable = Disposables.composite();
 
+    private final EventBus eventBus;
 
-    public SystemMonitorMeasurementProvider(TimeSeriesManager timeSeriesManager) {
+    public SystemMonitorMeasurementProvider(TimeSeriesManager timeSeriesManager, EventBus eventBus) {
         super(DefaultDashboardDefinition.systemMonitor, MonitorObjectDefinition.stats);
         this.timeSeriesManager = timeSeriesManager;
+        this.eventBus = eventBus;
 
         addMeasurement(new StaticMeasurement(CommonMeasurementDefinition.info)
             .addDimension(new RealTimeDimension())
@@ -159,7 +166,10 @@ public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider 
             .flatMap(ignore -> monitorService
                 .system()
                 .map(this::systemInfoToMap)
-                .flatMap(data -> timeSeriesManager.getService(metric).commit(data))
+                .flatMap(data -> timeSeriesManager
+                    .getService(metric)
+                    .commit(data)
+                    .then(eventBus.publish(SYSTEM_MONITOR_REAL_TIME_TOPIC,data)))
                 .onErrorResume(err -> Mono.empty()))
             .subscribe()
         );
