@@ -1,4 +1,4 @@
-package org.jetlinks.community.rule.engine.scene;
+package org.jetlinks.community.rule.engine.executor;
 
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.utils.Preconditions;
@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @Getter
 @Setter
-public class FlowLimitSpec {
+public class DeviceSenderFlowLimitSpec {
 
     @Schema(description = "自动配置,下发间隔平均分配在轮询周期内,下发总条数为属性个数")
     private boolean autoConfig = false;

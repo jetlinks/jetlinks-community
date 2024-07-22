@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.rule.engine.executor.DeviceSenderFlowLimitSpec;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
@@ -37,8 +38,8 @@ public class DeviceOperation {
     @NotNull(message = "error.scene_rule_trigger_device_operation_cannot_be_null")
     private Operator operator;
 
-    @Schema(description = "[operator]为[readProperty]时不能为空")
-    private FlowLimitSpec flowLimitSpec;
+    @Schema(description = "流控")
+    private DeviceSenderFlowLimitSpec deviceSenderFlowLimitSpec;
 
     @Schema(description = "[operator]为[readProperty,writeProperty,invokeFunction]时不能为空")
     private TimerSpec timer;

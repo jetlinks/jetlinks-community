@@ -42,9 +42,7 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -123,7 +121,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
             config.validate();
             if (config.getSelectorSpec() != null) {
                 selector = selectorBuilder.createSelector(config.getSelectorSpec())::select;
-            }  else if (StringUtils.hasText(config.deviceId)) {
+            } else if (StringUtils.hasText(config.deviceId)) {
                 selector = ctx -> registry.getDevice(config.getDeviceId()).flux();
             } else if (StringUtils.hasText(config.productId)) {
                 selector = selectorBuilder.createSelector(DeviceSelectorProviders.product(config.productId))::select;
@@ -171,6 +169,8 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
         private String stateOperator = "ignoreOffline";
 
+        private DeviceSenderFlowLimitSpec deviceSenderFlowLimitSpec;
+
         //延迟执行
         private long delayMillis = 0;
 
@@ -208,7 +208,42 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                     }
                     return mono;
                 })
-                .flatMapMany(msg -> "forget".equals(waitType)
+                .flatMapMany(msg -> {
+                    if (Objects.isNull(deviceSenderFlowLimitSpec)) {
+                        return Flux.just(msg);
+                    }
+                    if (msg instanceof ReadPropertyMessage) {
+                        ReadPropertyMessage readPropertyMessageTemplate = (ReadPropertyMessage) msg;
+                        List<String> properties = readPropertyMessageTemplate.getProperties();
+                        long executeIntervalMillis = deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size());
+                        return Flux
+                            .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
+                            .delayElements(Duration.ofMillis(executeIntervalMillis))
+                            .map(p -> {
+                                readPropertyMessageTemplate.setProperties(p);
+                                readPropertyMessageTemplate.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
+                                readPropertyMessageTemplate.setTimestamp(System.currentTimeMillis());
+                                return readPropertyMessageTemplate;
+                            });
+                    }
+                    if (msg instanceof WritePropertyMessage) {
+                        WritePropertyMessage writePropertyMessageTemplate = (WritePropertyMessage) msg;
+                        Map<String, Object> properties = writePropertyMessageTemplate.getProperties();
+                        long executeIntervalMillis = deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size());
+                        return Flux
+                            .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
+                            .delayElements(Duration.ofMillis(executeIntervalMillis))
+                            .map(p -> {
+                               writePropertyMessageTemplate.setProperties(p);
+                               writePropertyMessageTemplate.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
+                               writePropertyMessageTemplate.setTimestamp(System.currentTimeMillis());
+                               return writePropertyMessageTemplate;
+                            });
+                    }
+
+                    return Flux.just(msg);
+                })
+                .flatMap(msg -> "forget".equals(waitType)
                     ? device.messageSender().send(msg).then(Mono.empty())
                     : device.messageSender()
                             .send(msg)
@@ -314,6 +349,53 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
             }
             return value;
         }
+
+        private <T> List<List<T>> partition(List<T> list, int groupSize) {
+            List<List<T>> partitions = new ArrayList<>();
+            List<T> currentPartition = new ArrayList<>(groupSize);
+
+            for (T item : list) {
+                currentPartition.add(item);
+                if (currentPartition.size() == groupSize) {
+                    partitions.add(currentPartition);
+                    currentPartition = new ArrayList<>(groupSize);
+                }
+            }
+
+            // 添加最后一个可能不满的分区
+            if (!currentPartition.isEmpty()) {
+                partitions.add(currentPartition);
+            }
+
+            return partitions;
+        }
+
+        // 泛型方法，接受 Map<K, V> 类型的集合和一个整数作为分组大小
+        private static <K, V> List<Map<K, V>> partition(Map<K, V> map, int groupSize) {
+
+            List<Map.Entry<K, V>> entries = new ArrayList<>(map.entrySet());
+
+            int partitionsSize = (int) Math.ceil((double) entries.size() / groupSize);
+
+            List<Map<K, V>> partitions = new ArrayList<>(partitionsSize);
+
+            for (int i = 0; i < partitionsSize; i++) {
+                int fromIndex = i * groupSize;
+                int toIndex = Math.min(fromIndex + groupSize, entries.size());
+                Map<K, V> subMap = new HashMap<>(toIndex - fromIndex);
+
+                List<Map.Entry<K, V>> partitionEntries = entries.subList(fromIndex, toIndex);
+
+                for (Map.Entry<K, V> entry : partitionEntries) {
+                    subMap.put(entry.getKey(), entry.getValue());
+                }
+
+                partitions.add(subMap);
+            }
+
+            return partitions;
+        }
+
 
     }
 }
