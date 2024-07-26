@@ -7,8 +7,9 @@ import lombok.Setter;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
-import org.hswebframework.web.utils.TemplateParser;
+import org.jetlinks.community.relation.utils.VariableSource;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.utils.ConverterUtils;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -22,9 +23,6 @@ import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessage;
-import org.jetlinks.community.relation.utils.VariableSource;
-import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
-import org.jetlinks.reactor.ql.supports.DefaultPropertyFeature;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataHelper;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
@@ -38,13 +36,10 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 
 @AllArgsConstructor
@@ -208,41 +203,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                     }
                     return mono;
                 })
-                .flatMapMany(msg -> {
-                    if (Objects.isNull(deviceSenderFlowLimitSpec)) {
-                        return Flux.just(msg);
-                    }
-                    if (msg instanceof ReadPropertyMessage) {
-                        ReadPropertyMessage readPropertyMessageTemplate = (ReadPropertyMessage) msg;
-                        List<String> properties = readPropertyMessageTemplate.getProperties();
-                        long executeIntervalMillis = deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size());
-                        return Flux
-                            .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
-                            .delayElements(Duration.ofMillis(executeIntervalMillis))
-                            .map(p -> {
-                                readPropertyMessageTemplate.setProperties(p);
-                                readPropertyMessageTemplate.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
-                                readPropertyMessageTemplate.setTimestamp(System.currentTimeMillis());
-                                return readPropertyMessageTemplate;
-                            });
-                    }
-                    if (msg instanceof WritePropertyMessage) {
-                        WritePropertyMessage writePropertyMessageTemplate = (WritePropertyMessage) msg;
-                        Map<String, Object> properties = writePropertyMessageTemplate.getProperties();
-                        long executeIntervalMillis = deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size());
-                        return Flux
-                            .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
-                            .delayElements(Duration.ofMillis(executeIntervalMillis))
-                            .map(p -> {
-                               writePropertyMessageTemplate.setProperties(p);
-                               writePropertyMessageTemplate.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
-                               writePropertyMessageTemplate.setTimestamp(System.currentTimeMillis());
-                               return writePropertyMessageTemplate;
-                            });
-                    }
-
-                    return Flux.just(msg);
-                })
+                .flatMapMany(msg -> splitMessageExpression(msg))
                 .flatMap(msg -> "forget".equals(waitType)
                     ? device.messageSender().send(msg).then(Mono.empty())
                     : device.messageSender()
@@ -255,6 +216,47 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                                 return Mono.error(err);
                             })
                 );
+        }
+
+        private Flux<? extends DeviceMessage> splitMessageExpression(DeviceMessage message) {
+            if (Objects.isNull(deviceSenderFlowLimitSpec)) {
+                return Flux.just(message);
+            }
+            if (message instanceof ReadPropertyMessage) {
+                return splitMessageExpression((ReadPropertyMessage) message);
+            }
+            if (message instanceof WritePropertyMessage) {
+                return splitMessageExpression((WritePropertyMessage) message);
+            }
+            return Flux.just(message);
+        }
+
+        private Flux<ReadPropertyMessage> splitMessageExpression(ReadPropertyMessage message) {
+            List<String> properties = message.getProperties();
+            return Flux
+                .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
+                .delayElements(Duration.ofMillis(deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size())))
+                .map(p -> {
+                    ReadPropertyMessage copy = FastBeanCopier.copy(message, new ReadPropertyMessage());
+                    copy.setProperties(p);
+                    copy.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
+                    copy.setTimestamp(System.currentTimeMillis());
+                    return copy;
+                });
+        }
+
+        private Flux<WritePropertyMessage> splitMessageExpression(WritePropertyMessage message) {
+            Map<String, Object> properties = message.getProperties();
+            return Flux
+                .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
+                .delayElements(Duration.ofMillis(deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size())))
+                .map(p -> {
+                    WritePropertyMessage copy = FastBeanCopier.copy(message, new WritePropertyMessage());
+                    copy.setProperties(p);
+                    copy.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
+                    copy.setTimestamp(System.currentTimeMillis());
+                    return copy;
+                });
         }
 
         private Mono<ReadPropertyMessage> applyMessageExpression(Map<String, Object> ctx, ReadPropertyMessage message) {
@@ -383,7 +385,6 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                 int fromIndex = i * groupSize;
                 int toIndex = Math.min(fromIndex + groupSize, entries.size());
                 Map<K, V> subMap = new HashMap<>(toIndex - fromIndex);
-
                 List<Map.Entry<K, V>> partitionEntries = entries.subList(fromIndex, toIndex);
 
                 for (Map.Entry<K, V> entry : partitionEntries) {
@@ -392,10 +393,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
                 partitions.add(subMap);
             }
-
             return partitions;
         }
-
-
     }
 }
