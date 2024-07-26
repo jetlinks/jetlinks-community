@@ -219,7 +219,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
         }
 
         private Flux<? extends DeviceMessage> splitMessageExpression(DeviceMessage message) {
-            if (Objects.isNull(deviceSenderFlowLimitSpec)) {
+            if (Objects.isNull(deviceSenderFlowLimitSpec) || !deviceSenderFlowLimitSpec.isEnable()) {
                 return Flux.just(message);
             }
             if (message instanceof ReadPropertyMessage) {

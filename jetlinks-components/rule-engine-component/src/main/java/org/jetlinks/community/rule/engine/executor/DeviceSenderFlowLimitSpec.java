@@ -15,6 +15,9 @@ import java.util.Optional;
 @Setter
 public class DeviceSenderFlowLimitSpec {
 
+    @Schema (description = "是否启用")
+    private boolean enable = false;
+
     @Schema(description = "自动配置,下发间隔平均分配在轮询周期内,下发总条数为属性个数")
     private boolean autoConfig = false;
 
