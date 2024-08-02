@@ -7,8 +7,9 @@ import lombok.Setter;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
-import org.hswebframework.web.utils.TemplateParser;
+import org.jetlinks.community.relation.utils.VariableSource;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.utils.ConverterUtils;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -22,9 +23,6 @@ import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessage;
-import org.jetlinks.community.relation.utils.VariableSource;
-import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
-import org.jetlinks.reactor.ql.supports.DefaultPropertyFeature;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataHelper;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
@@ -38,15 +36,10 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 
 @AllArgsConstructor
@@ -123,7 +116,7 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
             config.validate();
             if (config.getSelectorSpec() != null) {
                 selector = selectorBuilder.createSelector(config.getSelectorSpec())::select;
-            }  else if (StringUtils.hasText(config.deviceId)) {
+            } else if (StringUtils.hasText(config.deviceId)) {
                 selector = ctx -> registry.getDevice(config.getDeviceId()).flux();
             } else if (StringUtils.hasText(config.productId)) {
                 selector = selectorBuilder.createSelector(DeviceSelectorProviders.product(config.productId))::select;
@@ -171,6 +164,8 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
 
         private String stateOperator = "ignoreOffline";
 
+        private DeviceSenderFlowLimitSpec deviceSenderFlowLimitSpec;
+
         //延迟执行
         private long delayMillis = 0;
 
@@ -208,7 +203,8 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                     }
                     return mono;
                 })
-                .flatMapMany(msg -> "forget".equals(waitType)
+                .flatMapMany(msg -> splitMessageExpression(msg))
+                .flatMap(msg -> "forget".equals(waitType)
                     ? device.messageSender().send(msg).then(Mono.empty())
                     : device.messageSender()
                             .send(msg)
@@ -220,6 +216,47 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
                                 return Mono.error(err);
                             })
                 );
+        }
+
+        private Flux<? extends DeviceMessage> splitMessageExpression(DeviceMessage message) {
+            if (Objects.isNull(deviceSenderFlowLimitSpec) || !deviceSenderFlowLimitSpec.isEnable()) {
+                return Flux.just(message);
+            }
+            if (message instanceof ReadPropertyMessage) {
+                return splitMessageExpression((ReadPropertyMessage) message);
+            }
+            if (message instanceof WritePropertyMessage) {
+                return splitMessageExpression((WritePropertyMessage) message);
+            }
+            return Flux.just(message);
+        }
+
+        private Flux<ReadPropertyMessage> splitMessageExpression(ReadPropertyMessage message) {
+            List<String> properties = message.getProperties();
+            return Flux
+                .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
+                .delayElements(Duration.ofMillis(deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size())))
+                .map(p -> {
+                    ReadPropertyMessage copy = FastBeanCopier.copy(message, new ReadPropertyMessage());
+                    copy.setProperties(p);
+                    copy.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
+                    copy.setTimestamp(System.currentTimeMillis());
+                    return copy;
+                });
+        }
+
+        private Flux<WritePropertyMessage> splitMessageExpression(WritePropertyMessage message) {
+            Map<String, Object> properties = message.getProperties();
+            return Flux
+                .fromIterable(partition(properties, deviceSenderFlowLimitSpec.getCount()))
+                .delayElements(Duration.ofMillis(deviceSenderFlowLimitSpec.getExecuteIntervalMillis(properties.size())))
+                .map(p -> {
+                    WritePropertyMessage copy = FastBeanCopier.copy(message, new WritePropertyMessage());
+                    copy.setProperties(p);
+                    copy.setMessageId(IDGenerator.SNOW_FLAKE_STRING.generate());
+                    copy.setTimestamp(System.currentTimeMillis());
+                    return copy;
+                });
         }
 
         private Mono<ReadPropertyMessage> applyMessageExpression(Map<String, Object> ctx, ReadPropertyMessage message) {
@@ -315,5 +352,48 @@ public class DeviceMessageSendTaskExecutorProvider implements TaskExecutorProvid
             return value;
         }
 
+        private <T> List<List<T>> partition(List<T> list, int groupSize) {
+            List<List<T>> partitions = new ArrayList<>();
+            List<T> currentPartition = new ArrayList<>(groupSize);
+
+            for (T item : list) {
+                currentPartition.add(item);
+                if (currentPartition.size() == groupSize) {
+                    partitions.add(currentPartition);
+                    currentPartition = new ArrayList<>(groupSize);
+                }
+            }
+
+            // 添加最后一个可能不满的分区
+            if (!currentPartition.isEmpty()) {
+                partitions.add(currentPartition);
+            }
+
+            return partitions;
+        }
+
+        // 泛型方法，接受 Map<K, V> 类型的集合和一个整数作为分组大小
+        private static <K, V> List<Map<K, V>> partition(Map<K, V> map, int groupSize) {
+
+            List<Map.Entry<K, V>> entries = new ArrayList<>(map.entrySet());
+
+            int partitionsSize = (int) Math.ceil((double) entries.size() / groupSize);
+
+            List<Map<K, V>> partitions = new ArrayList<>(partitionsSize);
+
+            for (int i = 0; i < partitionsSize; i++) {
+                int fromIndex = i * groupSize;
+                int toIndex = Math.min(fromIndex + groupSize, entries.size());
+                Map<K, V> subMap = new HashMap<>(toIndex - fromIndex);
+                List<Map.Entry<K, V>> partitionEntries = entries.subList(fromIndex, toIndex);
+
+                for (Map.Entry<K, V> entry : partitionEntries) {
+                    subMap.put(entry.getKey(), entry.getValue());
+                }
+
+                partitions.add(subMap);
+            }
+            return partitions;
+        }
     }
 }

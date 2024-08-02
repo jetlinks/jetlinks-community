@@ -446,6 +446,8 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
 
         config.setProductId(productId);
         config.setMessage(operation.toMessageTemplate());
+        config.setDeviceSenderFlowLimitSpec(getOperation().getDeviceSenderFlowLimitSpec());
+        config.getDeviceSenderFlowLimitSpec().setTimer(operation.getTimer());
 
         if (DeviceSelectorProviders.isFixed(this)) {
             config.setSelectorSpec(FastBeanCopier.copy(this, new DeviceSelectorSpec()));
