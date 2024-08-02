@@ -87,7 +87,7 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
                 context.putAll(mdc);
             }
             SerializableSystemLog info = SerializableSystemLog.builder()
-                .id(IDGenerator.SNOW_FLAKE_STRING.generate())
+                .id(IDGenerator.RANDOM.generate())
                 .mavenModule(mavenModule)
                 .context(context)
                 .name(event.getLoggerName())

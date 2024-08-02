@@ -253,7 +253,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         if (null == message) {
             return Mono.empty();
         }
-        message.addHeader(PropertyConstants.uid, IDGenerator.SNOW_FLAKE_STRING.generate());
+        message.addHeaderIfAbsent(PropertyConstants.uid, IDGenerator.RANDOM.generate());
         return this
             .getTopic(message)
             .flatMap(topic -> eventBus.publish(topic, message).then())
