@@ -59,6 +59,9 @@ public class SceneAction implements Serializable {
     @Schema(description = "拓展信息")
     private Map<String, Object> options;
 
+    @Schema(description = "执行动作ID")
+    private Integer actionId;
+
     /**
      * 从拓展信息中获取需要查询的列,用于在设备触发等场景需要在sql中获取对应的数据.
      *
