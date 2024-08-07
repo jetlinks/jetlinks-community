@@ -3,6 +3,7 @@ package org.jetlinks.community.device.service;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.crud.events.EntityEventHelper;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
@@ -43,6 +44,7 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
                         .set(DeviceProductEntity::getState, DeviceProductState.registered.getValue())
                         .where(DeviceProductEntity::getId, id)
                         .execute()
+                        .as(EntityEventHelper::setDoNotFireEvent)
                 )
                 .flatMap(i -> FastBeanCopier
                     .copy(product, new DeviceProductDeployEvent())
