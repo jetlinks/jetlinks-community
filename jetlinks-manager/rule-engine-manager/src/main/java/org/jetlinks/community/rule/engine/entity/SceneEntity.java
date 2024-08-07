@@ -17,6 +17,7 @@ import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.rule.engine.RuleEngineConstants;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
+import org.jetlinks.community.rule.engine.enums.SceneFeature;
 import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.cluster.RuleInstance;
@@ -112,6 +113,13 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
     @JsonCodec
     @ColumnType(jdbcType = JDBCType.LONGVARCHAR)
     private Map<String, Object> options;
+
+    @Column
+    @Schema(description = "场景特性")
+    @ColumnType(javaType = Long.class, jdbcType = JDBCType.BIGINT)
+    @EnumCodec(toMask = true)
+    @DefaultValue("none")
+    private SceneFeature[] features;
 
     @Column
     @Schema(description = "说明")

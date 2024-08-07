@@ -12,17 +12,15 @@ import org.hswebframework.web.api.crud.entity.TermExpressionParser;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.rule.engine.commons.ShakeLimit;
+import org.jetlinks.community.rule.engine.commons.TermsConditionEvaluator;
+import org.jetlinks.community.rule.engine.enums.SceneFeature;
 import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.metadata.types.DateTimeType;
+import org.jetlinks.community.rule.engine.scene.term.TermColumn;
+import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
 import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.core.trace.TraceHolder;
 import org.jetlinks.core.utils.Reactors;
-import org.jetlinks.community.reactorql.term.TermTypes;
-import org.jetlinks.community.rule.engine.commons.ShakeLimit;
-import org.jetlinks.community.rule.engine.commons.TermsConditionEvaluator;
-import org.jetlinks.community.rule.engine.scene.term.TermColumn;
-import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
 import org.jetlinks.reactor.ql.DefaultReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
@@ -93,6 +91,9 @@ public class SceneRule implements Serializable {
 
     @Schema(description = "扩展配置")
     private Map<String, Object> options;
+
+    @Schema(description = "场景特性")
+    private SceneFeature[] features;
 
     @Schema(description = "说明")
     private String description;
