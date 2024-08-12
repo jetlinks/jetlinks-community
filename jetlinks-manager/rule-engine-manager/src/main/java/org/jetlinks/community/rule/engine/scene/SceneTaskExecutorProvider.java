@@ -11,8 +11,6 @@ import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.trace.TraceHolder;
 import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.community.PropertyConstants;
-import org.jetlinks.community.rule.engine.RuleEngineConstants;
-import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQLRecord;
@@ -54,12 +52,12 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
 
     class SceneTaskExecutor extends AbstractTaskExecutor {
 
+        private SceneRule rule;
+
         private String ruleId;
         private String ruleName;
 
         private boolean useBranch;
-
-        private SceneRule rule;
 
         public SceneTaskExecutor(ExecutionContext context) {
             super(context);
@@ -140,6 +138,7 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
             ruleId = rule.getId();
             ruleName = rule.getName();
             useBranch = CollectionUtils.isNotEmpty(rule.getBranches());
+
             SqlRequest request = rule.createSql(!useBranch);
             Flux<Map<String, Object>> source;
 
@@ -150,13 +149,13 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                     .accept()
                     .flatMap(RuleData::dataToMap);
             } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("init scene [{}:{}], sql:{}", ruleId, ruleName, request.toNativeSql());
+                if (log.isInfoEnabled()) {
+                    log.info("init scene [{}:{}], sql:{}", ruleId, ruleName, request.toNativeSql());
                 }
 
                 ReactorQLContext qlContext = createReactorQLContext();
 
-                //request = {PrepareSqlRequest@25664} "select * from (\n\tselect\n\tnow() "_now",\n\tthis.timestamp "timestamp",\n\tthis.deviceId "deviceId",\n\tthis.headers.deviceName "deviceName",\n\tthis.headers.productId "productId",\n\tthis.headers.productName "productName",\n\t'device' "sourceType",\n\tthis.deviceId "sourceId",\n\tthis.deviceName "sourceName",\n\tthis.headers._uid "_uid",\n\tthis.headers.bindings "_bindings",\n\tthis.headers.traceparent "traceparent",\n\tthis.properties "properties",\n\tcoalesce(this['properties.te'],device.property.recent(deviceId,'te',timestamp)) "te_recent",\n\tproperty.metric('device',deviceId,'te','t') te_metric_t\t\nfrom "/device/1684380948267950080/11/message/property/report"\n) t \n"…视图sql参数
+                //sql参数
                 for (Object parameter : request.getParameters()) {
                     qlContext.bind(parameter);
                 }
@@ -187,21 +186,21 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                                                   .write(nodeId, ruleData))
                                         .onErrorResume(err -> context.onError(err, ruleData));
                                 });
+
                         });
             }
 
             //防抖
             Trigger.GroupShakeLimit shakeLimit = rule.getTrigger().getShakeLimit();
             if (shakeLimit != null && shakeLimit.isEnabled()) {
-
-                ShakeLimitGrouping<Map<String, Object>> grouping = shakeLimit.createGrouping();
-
-                source = shakeLimit.transfer(
-                    source,
-                    (time, flux) -> grouping
-                        .group(flux)
-                        .flatMap(group -> group.window(time), Integer.MAX_VALUE),
-                    (map, total) -> map.put("_total", total));
+                source = rule
+                    .getTrigger()
+                    .provider()
+                    .shakeLimit(ruleId, source, shakeLimit)
+                    .map(result -> {
+                        result.getElement().put("_total", result.getTimes());
+                        return result.getElement();
+                    });
             }
 
             return source
@@ -227,7 +226,6 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                 });
         }
 
-
         private Mono<Void> handleOutput(RuleData data) {
             return data
                 .dataToMap()
@@ -252,6 +250,14 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
 
         }
 
+        protected SceneData buildSceneData(Map<String, Object> map) {
+            SceneData sceneData = new SceneData();
+            sceneData.setId(IDGenerator.RANDOM.generate());
+            sceneData.setRule(rule);
+            sceneData.setOutput(map);
+            return sceneData;
+        }
+
         private Mono<Void> handleOutput(Map<String, Object> data) {
             return handleOutput(context.newRuleData(data));
         }
@@ -272,14 +278,6 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                     .then();
             }
             return handleOutput(ruleData);
-        }
-
-        protected SceneData buildSceneData(Map<String, Object> map) {
-            SceneData sceneData = new SceneData();
-            sceneData.setId(IDGenerator.RANDOM.generate());
-            sceneData.setRule(rule);
-            sceneData.setOutput(map);
-            return sceneData;
         }
     }
 }

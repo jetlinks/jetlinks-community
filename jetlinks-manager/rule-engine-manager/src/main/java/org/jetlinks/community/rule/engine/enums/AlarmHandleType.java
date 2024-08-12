@@ -2,11 +2,14 @@ package org.jetlinks.community.rule.engine.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.hswebframework.web.dict.I18nEnumDict;
+import org.hswebframework.web.dict.EnumDict;
 
+/**
+ * @author bestfeng
+ */
 @AllArgsConstructor
 @Getter
-public enum AlarmHandleType implements I18nEnumDict<String> {
+public enum AlarmHandleType implements EnumDict<String> {
 
     system("系统"),
     user("人工");

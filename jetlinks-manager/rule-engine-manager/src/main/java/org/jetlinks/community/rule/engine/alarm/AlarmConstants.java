@@ -21,5 +21,12 @@ public interface AlarmConstants {
         String sourceType = "sourceType";
         String sourceId = "sourceId";
         String sourceName = "sourceName";
+
+        //告警条件
+        String alarmFilterTermSpecs = "_filterTermSpecs";
+
+        String bindings = "bindings";
+
+        String alarmConfigSource = "alarmCenter";
     }
 }

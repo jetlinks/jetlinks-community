@@ -3,14 +3,65 @@ package org.jetlinks.community.topic;
 import lombok.Generated;
 import org.jetlinks.core.utils.StringBuilderUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 public interface Topics {
 
+    @Deprecated
+    static String org(String orgId, String topic) {
+        if (!topic.startsWith("/")) {
+            topic = "/" + topic;
+        }
+        return String.join("", "/org/", orgId, topic);
+    }
+
+    static String creator(String creatorId, String topic) {
+        return StringBuilderUtils.buildString(creatorId, topic, Topics::creator);
+    }
+
+    static void creator(String creatorId, String topic, StringBuilder builder) {
+        builder.append("/user/").append(creatorId);
+        if (topic.charAt(0) != '/') {
+            builder.append('/');
+        }
+        builder.append(topic);
+    }
+
+    static void binding(String type, String id, String topic, StringBuilder builder) {
+        builder.append('/')
+               .append(type)
+               .append('/')
+               .append(id);
+        if (topic.charAt(0) != '/') {
+            builder.append('/');
+        }
+        builder.append(topic);
+    }
+
+    /**
+     * 根据关系构造topic
+     * <pre>{@code
+     * /rel/{objectType}/{objectId}/{relation}/{topic}
+     *
+     * 如: /rel/用户/user1/manager/{topic}
+     * }</pre>
+     *
+     * @param objectType 对象类型
+     * @param objectId   对象ID
+     * @param relation   关系标识
+     * @param topic      topic后缀
+     * @param builder    StringBuilder
+     */
+    static void relation(String objectType, String objectId, String relation, String topic, StringBuilder builder) {
+        builder.append("/rel/")
+               .append(objectType)
+               .append('/')
+               .append(objectId)
+               .append('/')
+               .append(relation);
+        if (topic.charAt(0) != '/') {
+            builder.append('/');
+        }
+        builder.append(topic);
+    }
 
     String allDeviceRegisterEvent = "/_sys/registry-device/*/register";
     String allDeviceUnRegisterEvent = "/_sys/registry-device/*/unregister";
@@ -62,6 +113,11 @@ public interface Topics {
     static String alarm(String targetType, String targetId, String alarmId) {
         //  /alarm/{targetType}/{targetId}/{alarmId}/record
         return String.join("", "/alarm/", targetType, "/", targetId, "/", alarmId, "/record");
+    }
+
+    static String alarmRelieve(String targetType, String targetId, String alarmId) {
+        //  /alarm/{targetType}/{targetId}/{alarmId}/relieve
+        return String.join("", "/alarm/", targetType, "/", targetId, "/", alarmId, "/relieve");
     }
 
     interface Authentications {

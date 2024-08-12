@@ -57,6 +57,17 @@
         </dependency>
 
         <dependency>
+            <groupId>org.jetlinks.sdk</groupId>
+            <artifactId>jetlinks-sdk-api</artifactId>
+            <version>${jetlinks.sdk.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hswebframework.web</groupId>
+            <artifactId>hsweb-system-dictionary</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>

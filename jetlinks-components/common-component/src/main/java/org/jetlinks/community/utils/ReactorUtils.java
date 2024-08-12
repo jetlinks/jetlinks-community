@@ -58,6 +58,7 @@ public class ReactorUtils {
         return FluxUtils.distinct(keySelector, duration);
     }
 
+
     /**
      * 尝试执行 {@link Disposable#dispose()}
      *
@@ -198,14 +199,14 @@ public class ReactorUtils {
                     termType = FixedTermTypeSupport.gte.name();
                     break;
                 case "<":
-                    termType = FixedTermTypeSupport.lt.getName();
+                    termType = FixedTermTypeSupport.lt.name();
                     break;
                 case "<=":
-                    termType = FixedTermTypeSupport.lte.getName();
+                    termType = FixedTermTypeSupport.lte.name();
                     break;
                 case "!=":
                 case "<>":
-                    termType = FixedTermTypeSupport.neq.getName();
+                    termType = FixedTermTypeSupport.neq.name();
                     break;
             }
 
