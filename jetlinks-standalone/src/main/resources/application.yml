@@ -1,5 +1,5 @@
 server:
-  port: 8999
+  port: 8848
 
 spring:
   profiles:
@@ -28,7 +28,7 @@ spring:
   #        max-wait: 10s
   r2dbc:
     # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
-    url: r2dbc:postgresql://127.0.0.1:5432/jetlinks-community
+    url: r2dbc:postgresql://127.0.0.1:5432/jetlinks
     #    url: r2dbc:mysql://127.0.0.1:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
     username: postgres
     password: jetlinks
@@ -234,8 +234,3 @@ network:
     - 1883-1890
     - 8800-8810
     - 5060-5061
-trace:
-    enabled: true
-    jaeger: # 收集追踪信息到jaeger
-        enabled: true
-        endpoint: "http://127.0.0.1:14250"

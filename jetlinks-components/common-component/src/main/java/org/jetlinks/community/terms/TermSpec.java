@@ -115,15 +115,6 @@ public class TermSpec implements Jsonable, Serializable {
         });
     }
 
-    public static TermSpec ofTermSpecs(List<TermSpec> termSpecs) {
-        TermSpec spec = new TermSpec();
-        if (CollectionUtils.isEmpty(termSpecs)) {
-            return spec;
-        }
-        spec.setChildren(new ArrayList<>(termSpecs));
-        return spec;
-    }
-
     public static List<TermSpec> of(List<Term> terms, BiConsumer<Term, TermSpec> customizer) {
         if (terms == null) {
             return null;
@@ -254,16 +245,6 @@ public class TermSpec implements Jsonable, Serializable {
             builder.append(" )");
         }
 
-    }
-
-    public void compress() {
-        List<TermSpec> children = compressChildren();
-        if (children != this.children) {
-            setChildren(children);
-        }
-        for (TermSpec child : children) {
-            child.compress();
-        }
     }
 
 

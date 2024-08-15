@@ -25,8 +25,6 @@ public interface AlarmConstants {
         //告警条件
         String alarmFilterTermSpecs = "_filterTermSpecs";
 
-        String bindings = "bindings";
-
         String alarmConfigSource = "alarmCenter";
     }
 }
