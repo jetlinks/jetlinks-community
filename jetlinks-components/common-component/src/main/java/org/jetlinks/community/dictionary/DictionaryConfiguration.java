@@ -32,6 +32,12 @@ public class DictionaryConfiguration {
         }
 
         @Bean
+        public DictionaryColumnCustomizer dictionaryColumnCustomizer() {
+            return new DictionaryColumnCustomizer();
+        }
+
+
+        @Bean
         @ConfigurationProperties(prefix = "jetlinks.dict")
         public DictionaryInitManager dictionaryInitManager(ObjectProvider<DictionaryInitInfo> initInfo,
                                                            DefaultDictionaryService defaultDictionaryService,
