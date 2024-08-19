@@ -13,7 +13,7 @@ import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
-import org.hswebframework.web.utils.DigestUtils;
+import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.validator.CreateGroup;
 
 import javax.persistence.Column;
@@ -131,12 +131,7 @@ public class MenuEntity
     }
 
     public void generateId() {
-        String id = generateHexId(code, owner);
-        setId(id);
-    }
-
-    public static String generateHexId(String boardId, String owner) {
-        return DigestUtils.md5Hex(String.join(boardId, "|", owner));
+        setId(IDGenerator.SNOW_FLAKE_STRING.generate());
     }
 
     public boolean isSupportDataAccess() {
