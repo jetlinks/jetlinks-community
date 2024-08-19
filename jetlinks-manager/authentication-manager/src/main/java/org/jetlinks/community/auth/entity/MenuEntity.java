@@ -13,7 +13,6 @@ import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
-import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.validator.CreateGroup;
 
 import javax.persistence.Column;
@@ -121,18 +120,6 @@ public class MenuEntity
         , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
-
-    @Override
-    public String getId() {
-        if (super.getId() == null) {
-            generateId();
-        }
-        return super.getId();
-    }
-
-    public void generateId() {
-        setId(IDGenerator.SNOW_FLAKE_STRING.generate());
-    }
 
     public boolean isSupportDataAccess() {
         return false;
