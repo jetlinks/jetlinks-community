@@ -33,7 +33,7 @@
         <!-- https://github.com/jetlinks/jetlinks-plugin -->
         <jetlinks.plugin.version>1.0.1</jetlinks.plugin.version>
         <!-- https://github.com/jetlinks/jetlinks-sdk -->
-        <jetlinks.sdk.version>1.0.0-SNAPSHOT</jetlinks.sdk.version>
+        <jetlinks.sdk.version>1.0.0</jetlinks.sdk.version>
 
         <!-- 第三方依赖版本 -->
         <r2dbc.version>Borca-SR2</r2dbc.version>
@@ -714,12 +714,12 @@
         <repository>
             <id>releases</id>
             <name>Nexus Release Repository</name>
-            <url>https://nexus.jetlinks.cn/content/repositories/releases-pro/</url>
+            <url>https://nexus.jetlinks.cn/content/repositories/releases/</url>
         </repository>
         <snapshotRepository>
             <id>snapshots</id>
             <name>Nexus Snapshot Repository</name>
-            <url>https://nexus.jetlinks.cn/content/repositories/snapshots-pro/</url>
+            <url>https://nexus.jetlinks.cn/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
