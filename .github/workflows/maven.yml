@@ -1,8 +1,8 @@
 name: Auto Deploy Docker
 
-on: 
+on:
   push:
-    branches: [ "master","2.0" ]
+    branches: [ "master","2.0","2.1","2.2" ]
 jobs:
   build:
 
