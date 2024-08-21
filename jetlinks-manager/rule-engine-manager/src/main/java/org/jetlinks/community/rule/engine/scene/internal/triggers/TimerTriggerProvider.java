@@ -32,7 +32,7 @@ public class TimerTriggerProvider implements SceneTriggerProvider<TimerTrigger> 
 
     @Override
     public String getName() {
-        return "手动触发";
+        return "定时触发";
     }
 
     @Override
@@ -41,7 +41,7 @@ public class TimerTriggerProvider implements SceneTriggerProvider<TimerTrigger> 
     }
 
     @Override
-    public SqlRequest createSql(TimerTrigger config, List<Term> terms, boolean hasWhere) {
+    public SqlRequest createSql(TimerTrigger config, List<Term> terms, boolean hasFilter) {
         return EmptySqlRequest.INSTANCE;
     }
 

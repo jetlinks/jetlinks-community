@@ -6,7 +6,6 @@ import lombok.Setter;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
-import org.jetlinks.community.rule.engine.scene.TriggerType;
 import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
 
 import javax.persistence.Column;
@@ -59,11 +58,20 @@ public class AlarmConfigDetail {
     )
     private Long createTime;
 
+    @Schema(
+            description = "创建者名称(只读)"
+            , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorName;
+
     @Schema(description = "更新者ID", accessMode = Schema.AccessMode.READ_ONLY)
     private String modifierId;
 
     @Schema(description = "更新时间")
     private Long modifyTime;
+
+    @Schema(description = "修改人名称")
+    private String modifierName;
 
     public static AlarmConfigDetail of(AlarmConfigEntity entity) {
         return FastBeanCopier.copy(entity, new AlarmConfigDetail(), "sceneTriggerType");

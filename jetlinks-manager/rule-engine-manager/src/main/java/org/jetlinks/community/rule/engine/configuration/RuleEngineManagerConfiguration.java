@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Configuration;
 @AutoConfiguration
 public class RuleEngineManagerConfiguration {
 
-
     @Bean
     public SceneTaskExecutorProvider sceneTaskExecutorProvider(EventBus eventBus,
                                                                ObjectProvider<SceneFilter> filters,

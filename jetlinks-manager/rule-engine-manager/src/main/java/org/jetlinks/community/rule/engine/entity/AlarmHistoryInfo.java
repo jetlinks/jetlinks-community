@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetlinks.community.rule.engine.alarm.AlarmTargetInfo;
 import org.jetlinks.community.rule.engine.scene.SceneData;
+import org.jetlinks.community.terms.TermSpec;
 
 import java.io.Serializable;
 import java.util.*;
@@ -57,9 +58,28 @@ public class AlarmHistoryInfo implements Serializable {
     @Schema(description = "告警信息")
     private String alarmInfo;
 
-    @Schema(description = "绑定信息")
-    private List<Map<String, Object>> bindings;
+    @Schema(description = "创建者ID")
+    private String creatorId;
 
+    @Schema(description = "触发条件")
+    private TermSpec termSpec;
+
+    @Schema(description = "告警配置源")
+    private String alarmConfigSource;
+
+    @Schema(description = "触发条件描述")
+    private String triggerDesc;
+
+    @Schema(description = "告警原因描述")
+    private String actualDesc;
+
+    public void withTermSpec(TermSpec termSpec){
+        if (termSpec != null) {
+            this.setTermSpec(termSpec);
+            this.setTriggerDesc(termSpec.getTriggerDesc());
+            this.setActualDesc(termSpec.getActualDesc());
+        }
+    }
 
     @Deprecated
     public static AlarmHistoryInfo of(String alarmRecordId,
@@ -84,7 +104,6 @@ public class AlarmHistoryInfo implements Serializable {
 
         info.setAlarmInfo(JSON.toJSONString(data.getOutput()));
         info.setDescription(alarmConfig.getDescription());
-        info.setBindings(convertBindings(targetInfo, data, alarmConfig));
         return info;
     }
 

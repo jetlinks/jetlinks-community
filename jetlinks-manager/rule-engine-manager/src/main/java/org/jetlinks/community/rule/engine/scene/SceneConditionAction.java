@@ -16,11 +16,6 @@ import java.util.stream.Collectors;
 @Setter
 public class SceneConditionAction implements Serializable {
 
-    /**
-     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
-     * @see org.jetlinks.community.reactorql.term.TermType
-     * @see org.jetlinks.community.rule.engine.scene.value.TermValue
-     */
     @Schema(description = "条件")
     private List<Term> when;
 
@@ -35,7 +30,6 @@ public class SceneConditionAction implements Serializable {
 
     @Schema(description = "分支ID")
     private Integer branchId;
-
 
     //仅用于设置到reactQl sql的column中
     public List<Term> createContextTerm() {

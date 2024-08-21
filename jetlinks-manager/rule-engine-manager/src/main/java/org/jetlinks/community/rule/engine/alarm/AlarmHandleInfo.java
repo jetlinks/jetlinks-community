@@ -7,6 +7,7 @@ import org.jetlinks.community.rule.engine.enums.AlarmHandleType;
 import org.jetlinks.community.rule.engine.enums.AlarmRecordState;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 /**
  * @author bestfeng
@@ -24,7 +25,7 @@ public class AlarmHandleInfo {
     private String alarmConfigId;
 
     @Schema(description = "告警时间")
-    @NotBlank
+    @NotNull
     private Long alarmTime;
 
     @Schema(description = "处理说明")
@@ -33,9 +34,8 @@ public class AlarmHandleInfo {
     @Schema(description = "处理时间")
     private Long handleTime;
 
-    @NotBlank
     @Schema(description = "处理类型")
-    private AlarmHandleType type;
+    private String type;
 
     @Schema(description = "处理后的状态")
     @NotBlank

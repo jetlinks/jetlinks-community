@@ -10,6 +10,7 @@ import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.reactorql.term.TermType;
 import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
+import org.jetlinks.community.terms.I18nSpec;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
@@ -26,8 +27,14 @@ public class Variable {
     @Schema(description = "变量名")
     private String name;
 
+    @Schema(description = "变量编码")
+    private String code;
+
     @Schema(description = "变量全名")
     private String fullName;
+
+    @Schema(description = "全名显码")
+    private I18nSpec fullNameCode;
 
     @Schema(description = "列")
     private String column;
@@ -88,7 +95,7 @@ public class Variable {
 
     public Variable withType(DataType type) {
         withType(type.getId())
-            .withTermType(TermTypes.lookup(type));
+                .withTermType(TermTypes.lookup(type));
         return this;
     }
 
@@ -102,6 +109,16 @@ public class Variable {
         return this;
     }
 
+    public Variable withFullNameCode(I18nSpec fullNameCode) {
+        this.fullNameCode = fullNameCode;
+        return this;
+    }
+
+    public Variable withCode(String code) {
+        this.code = code;
+        return this;
+    }
+
     public String getColumn() {
         if (StringUtils.hasText(column)) {
             return column;
@@ -111,12 +128,15 @@ public class Variable {
 
     public Variable with(TermColumn column) {
         this.name = column.getName();
+        this.code = column.getCode();
         this.column = column.getColumn();
         this.metadata = column.isMetadata();
         this.description = column.getDescription();
         this.fullName = column.getFullName();
+        this.fullNameCode = column.getFullNameCode() == null ? null : column.getFullNameCode().copy();
         this.type = column.getDataType();
         this.termTypes = column.getTermTypes();
+        withOptions(column.safeOptions());
         return this;
     }
 
@@ -132,8 +152,7 @@ public class Variable {
                     child.setId(main.id + "." + child.getId());
                 }
 
-                if (StringUtils.hasText(child.getFullName())
-                    && StringUtils.hasText(main.getFullName())) {
+                if (StringUtils.hasText(child.getFullName()) && StringUtils.hasText(main.getFullName())) {
                     child.setFullName(main.getFullName() + "/" + child.getFullName());
                 }
 
