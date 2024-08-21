@@ -17,6 +17,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
         <spring.boot.version>2.7.18</spring.boot.version>
+        <spring.framework.version>5.3.39</spring.framework.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
@@ -196,6 +197,14 @@
     <dependencyManagement>
 
         <dependencies>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.framework.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <dependency>
                 <groupId>io.micrometer</groupId>
