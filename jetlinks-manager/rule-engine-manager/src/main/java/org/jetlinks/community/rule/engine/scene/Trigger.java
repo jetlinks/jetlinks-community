@@ -9,21 +9,25 @@ import org.hswebframework.ezorm.rdb.executor.EmptySqlRequest;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
-import org.hswebframework.web.bean.FastBeanCopier;
-import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
 import org.jetlinks.community.rule.engine.scene.internal.triggers.*;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
+import org.jetlinks.community.terms.TermSpec;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 @Getter
 @Setter
@@ -34,6 +38,10 @@ public class Trigger implements Serializable {
     @NotNull(message = "error.scene_rule_trigger_cannot_be_null")
     private String type;
 
+    /**
+     * @deprecated {@link SceneConditionAction#getShakeLimit()}
+     */
+    @Deprecated
     @Schema(description = "防抖配置")
     private GroupShakeLimit shakeLimit;
 
@@ -43,20 +51,19 @@ public class Trigger implements Serializable {
     @Schema(description = "[type]为[timer]时不能为空")
     private TimerTrigger timer;
 
-    @Schema(description = "[type]不为[device,timer,collector]时不能为控")
+    @Schema(description = "[type]不为[device,timer,collector]时不能为空")
     private Map<String, Object> configuration;
 
 
     public String getTypeName(){
         return provider().getName();
     }
-
     /**
      * 重构查询条件,替换为实际将要输出的变量.
      *
      * @param terms 条件
      * @return 重构后的条件
-     * @see DeviceTrigger#refactorTermValue(String, Term)
+     * @see SceneTriggerProvider#refactorTerm(String, Term)
      */
     public List<Term> refactorTerm(String tableName, List<Term> terms) {
         if (CollectionUtils.isEmpty(terms)) {
@@ -65,12 +72,16 @@ public class Trigger implements Serializable {
         List<Term> target = new ArrayList<>(terms.size());
         for (Term term : terms) {
             Term copy = term.clone();
-            target.add(DeviceTrigger.refactorTermValue(tableName, copy));
+            target.add(provider().refactorTerm(tableName, copy));
             if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(copy.getTerms())) {
                 copy.setTerms(refactorTerm(tableName, copy.getTerms()));
             }
         }
         return target;
+    }
+
+    public Term refactorTerm(String tableName, Term term) {
+        return provider().refactorTerm(tableName, term);
     }
 
     public SqlRequest createSql(List<Term> terms, boolean hasWhere) {
@@ -85,12 +96,15 @@ public class Trigger implements Serializable {
         return config == null ? EmptySqlFragments.INSTANCE : provider().createFilter(config, terms);
     }
 
+    public Mono<List<TermSpec>> createFilterSpec(List<Term> terms, BiConsumer<Term,TermSpec> customizer){
+        return provider().createFilterSpec(triggerConfig(), terms,customizer);
+    }
+
     public Flux<TermColumn> parseTermColumns() {
         SceneTriggerProvider.TriggerConfig config = triggerConfig();
 
         return config == null ? Flux.empty() : provider().parseTermColumns(config);
     }
-
 
     public SceneTriggerProvider.TriggerConfig triggerConfig() {
         switch (type) {
@@ -107,7 +121,7 @@ public class Trigger implements Serializable {
         }
     }
 
-    private SceneTriggerProvider<SceneTriggerProvider.TriggerConfig> provider() {
+    SceneTriggerProvider<SceneTriggerProvider.TriggerConfig> provider() {
         return SceneProviders.getTriggerProviderNow(type);
     }
 
@@ -117,7 +131,9 @@ public class Trigger implements Serializable {
     }
 
     public List<Variable> createDefaultVariable() {
-        return provider().createDefaultVariable(triggerConfig());
+        SceneTriggerProvider.TriggerConfig config = triggerConfig();
+
+        return config == null ? Collections.emptyList() : provider().createDefaultVariable(config);
     }
 
     public static Trigger device(DeviceTrigger device) {
@@ -132,7 +148,6 @@ public class Trigger implements Serializable {
         trigger.setType(ManualTriggerProvider.PROVIDER);
         return trigger;
     }
-
 
     @Getter
     @Setter

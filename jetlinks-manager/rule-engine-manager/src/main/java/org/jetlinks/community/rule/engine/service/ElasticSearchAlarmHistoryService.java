@@ -1,5 +1,6 @@
 package org.jetlinks.community.rule.engine.service;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.QueryParam;
@@ -52,8 +53,11 @@ public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
     }
 
     private Map<String, Object> createData(AlarmHistoryInfo info) {
-        return FastBeanCopier.copy(info, new HashMap<>(16));
-
+        Map<String, Object> data = FastBeanCopier.copy(info, new HashMap<>(16), "termSpec");
+        if (info.getTermSpec() != null) {
+            data.put("termSpec", JSONObject.toJSONString(info.getTermSpec()));
+        }
+        return data;
     }
 
     public void init() {
@@ -76,6 +80,10 @@ public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
 
                 .addProperty("alarmInfo", StringType.GLOBAL)
                 .addProperty("creatorId", StringType.GLOBAL)
+                .addProperty("termSpec", StringType.GLOBAL)
+                .addProperty("triggerDesc", StringType.GLOBAL)
+                .addProperty("actualDesc", StringType.GLOBAL)
+                .addProperty("alarmConfigSource", StringType.GLOBAL)
                 .addProperty("bindings", new ArrayType().elementType(StringType.GLOBAL))
         ).block(Duration.ofSeconds(10));
     }

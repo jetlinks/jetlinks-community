@@ -18,8 +18,8 @@ import java.util.Map;
  * 告警规则数据处理器,当场景规则中配置的告警动作被执行时,将调用此处理器的相关方法.
  *
  * @author zhouhao
- * @since 2.0
  * @see AlarmTaskExecutorProvider
+ * @since 2.0
  */
 public interface AlarmRuleHandler {
 
@@ -90,6 +90,12 @@ public interface AlarmRuleHandler {
 
         @Schema(description = "告警来源名称")
         private String sourceName;
+
+        /**
+         * 标识告警触发的配置来自什么业务功能
+         */
+        @Schema(description = "告警配置源")
+        private String alarmConfigSource = ConfigKey.alarmConfigSource;
 
 
         public Result copyWith(AlarmTargetInfo targetInfo) {

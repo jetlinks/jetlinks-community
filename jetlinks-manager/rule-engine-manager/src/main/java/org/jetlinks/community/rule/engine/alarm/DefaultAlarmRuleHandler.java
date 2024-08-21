@@ -11,32 +11,30 @@ import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
-import org.hswebframework.web.i18n.LocaleUtils;
-import org.hswebframework.web.id.IDGenerator;
-import org.jetlinks.community.gateway.annotation.Subscribe;
-import org.jetlinks.community.rule.engine.RuleEngineConstants;
-import org.jetlinks.community.rule.engine.entity.*;
-import org.jetlinks.community.rule.engine.enums.AlarmHandleType;
-import org.jetlinks.community.rule.engine.enums.AlarmRecordState;
-import org.jetlinks.community.rule.engine.enums.AlarmState;
-import org.jetlinks.community.rule.engine.scene.SceneRule;
-import org.jetlinks.community.rule.engine.service.AlarmConfigService;
-import org.jetlinks.community.rule.engine.service.AlarmHistoryService;
-import org.jetlinks.community.rule.engine.service.AlarmRecordService;
-import org.jetlinks.community.topic.Topics;
-import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.core.config.ConfigStorage;
 import org.jetlinks.core.config.ConfigStorageManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.utils.CompositeSet;
-import org.jetlinks.core.utils.Reactors;
+import org.jetlinks.community.command.rule.data.AlarmResult;
+import org.jetlinks.community.command.rule.data.RelieveInfo;
+import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.community.rule.engine.RuleEngineConstants;
+import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
+import org.jetlinks.community.rule.engine.entity.AlarmHandleHistoryEntity;
+import org.jetlinks.community.rule.engine.entity.AlarmRecordEntity;
+import org.jetlinks.community.rule.engine.entity.AlarmRuleBindEntity;
+import org.jetlinks.community.rule.engine.enums.AlarmState;
+import org.jetlinks.community.rule.engine.scene.SceneRule;
+import org.jetlinks.community.rule.engine.service.AlarmConfigService;
+import org.jetlinks.community.rule.engine.service.AlarmRecordService;
+import org.jetlinks.community.terms.TermSpec;
+import org.jetlinks.community.utils.ConverterUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataHelper;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -50,7 +48,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 @Slf4j
 @AllArgsConstructor
@@ -71,9 +68,7 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
     private final Map<Tuple2<String, Integer>, Set<String>> ruleAlarmBinds = new ConcurrentHashMap<>();
 
     private final AlarmRecordService alarmRecordService;
-    private final AlarmHistoryService historyService;
     private final ConfigStorageManager storageManager;
-    private final ApplicationEventPublisher eventPublisher;
 
     private final EventBus eventBus;
 
@@ -83,35 +78,67 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
 
     public final AlarmConfigService alarmConfigService;
 
+    public final AlarmHandler alarmHandler;
+
     @Override
     public Flux<Result> triggered(ExecutionContext context, RuleData data) {
         return this
             .parseAlarmInfo(context, data)
-            .flatMap(this::triggerAlarm);
+            .flatMap(alarmInfo -> alarmHandler
+                .triggerAlarm(FastBeanCopier
+                                  .copy(alarmInfo, new org.jetlinks.community.command.rule.data.AlarmInfo()))
+                .map(info -> {
+                    Result result = FastBeanCopier.copy(alarmInfo, new Result());
+                    FastBeanCopier.copy(info, result);
+                    return result;
+                }));
     }
 
     @Override
     public Flux<Result> relieved(ExecutionContext context, RuleData data) {
         return this
             .parseAlarmInfo(context, data)
-            .flatMap(this::relieveAlarm);
+            .flatMap(alarmInfo -> {
+                // 已经被解除不重复更新
+                if (alarmInfo.isCached() && !alarmInfo.isAlarming()) {
+                    return Mono.empty();
+                }
+                return alarmHandler
+                    .relieveAlarm(FastBeanCopier.copy(alarmInfo, new RelieveInfo()))
+                    .map(info -> {
+                        Result result = FastBeanCopier.copy(alarmInfo, new Result());
+                        FastBeanCopier.copy(info, result);
+                        return result;
+                    });
+            });
     }
 
     private Flux<AlarmInfo> parseAlarmInfo(ExecutionContext context, RuleData data) {
         if (ruleAlarmBinds.isEmpty()) {
             return Flux.empty();
         }
-        //节点所在的条件分支索引
-        int branchIndex = context
+
+        //节点所在的执行动作索引
+        int actionIndex = context
             .getJob()
-            .getConfiguration(SceneRule.ACTION_KEY_BRANCH_ID)
+            .getConfiguration(SceneRule.ACTION_KEY_ACTION_ID)
             .map(idx -> CastUtils.castNumber(idx).intValue())
             .orElse(AlarmRuleBindEntity.ANY_BRANCH_INDEX);
 
-        Set<String> alarmId = getBoundAlarmId(context.getInstanceId(), branchIndex);
+        Set<String> alarmId = getBoundAlarmId(context.getInstanceId(), actionIndex);
 
         if (CollectionUtils.isEmpty(alarmId)) {
-            return Flux.empty();
+            //节点所在的条件分支索引
+            int branchIndex = context
+                .getJob()
+                .getConfiguration(SceneRule.ACTION_KEY_BRANCH_ID)
+                .map(idx -> CastUtils.castNumber(idx).intValue())
+                .orElse(AlarmRuleBindEntity.ANY_BRANCH_INDEX);
+
+            alarmId = getBoundAlarmId(context.getInstanceId(), branchIndex);
+            if (CollectionUtils.isEmpty(alarmId)) {
+                return Flux.empty();
+            }
         }
 
         Map<String, Object> contextMap = RuleDataHelper.toContextMap(data);
@@ -145,25 +172,6 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         }
     }
 
-    private AlarmRecordEntity ofRecord(Result result) {
-        AlarmRecordEntity entity = new AlarmRecordEntity();
-        entity.setAlarmConfigId(result.getAlarmConfigId());
-        entity.setState(AlarmRecordState.warning);
-        entity.setAlarmTime(System.currentTimeMillis());
-        entity.setLevel(result.getLevel());
-        entity.setTargetType(result.getTargetType());
-        entity.setTargetName(result.getTargetName());
-        entity.setTargetId(result.getTargetId());
-
-        entity.setSourceType(result.getSourceType());
-        entity.setSourceName(result.getSourceName());
-        entity.setSourceId(result.getSourceId());
-
-        entity.setAlarmName(result.getAlarmName());
-        entity.setDescription(result.getDescription());
-        entity.generateId();
-        return entity;
-    }
 
     private Flux<AlarmInfo> parseAlarm(ExecutionContext context, ConfigStorage alarm, Map<String, Object> contextMap) {
         return this
@@ -182,150 +190,12 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
                     contextMap);
 
                 result.setData(alarmData);
-
+                result.setTermSpec(AlarmInfo.parseAlarmTrigger(context, contextMap));
                 return AlarmTarget
                     .of(result.getTargetType())
                     .convert(alarmData)
                     .map(result::copyWith);
-            })
-            .flatMap(info -> this
-                .getRecordCache(info.createRecordId())
-                .map(info::with)
-                .defaultIfEmpty(info));
-    }
-
-    private Mono<AlarmInfo> relieveAlarm(AlarmInfo result) {
-        // 已经被解除不重复更新
-        if (result.isCached() && !result.isAlarming()) {
-            return Mono.empty();
-        }
-
-        AlarmRecordEntity record = ofRecord(result);
-        return Mono
-            .zip(alarmRecordService.changeRecordState(AlarmRecordState.normal, record.getId()),
-                 updateRecordCache(record.getId(), RecordCache::withNormal),
-                 (total, ignore) -> total)
-            .flatMap(total -> {
-                //如果有数据被更新说明是正在告警中
-                if (total > 0) {
-                    result.setAlarming(true);
-                    return saveAlarmHandleHistory(record);
-                }
-                return Mono.empty();
-            })
-            .thenReturn(result);
-    }
-
-    private Mono<Void> saveAlarmHandleHistory(AlarmRecordEntity record) {
-        AlarmHandleInfo alarmHandleInfo = new AlarmHandleInfo();
-        alarmHandleInfo.setHandleTime(System.currentTimeMillis());
-        alarmHandleInfo.setAlarmRecordId(record.getId());
-        alarmHandleInfo.setAlarmConfigId(record.getAlarmConfigId());
-        alarmHandleInfo.setAlarmTime(record.getAlarmTime());
-        alarmHandleInfo.setState(AlarmRecordState.normal);
-        alarmHandleInfo.setType(AlarmHandleType.system);
-        alarmHandleInfo.setDescribe(LocaleUtils.resolveMessage("message.scene_triggered_relieve_alarm", "场景触发解除告警"));
-        // TODO: 2022/12/22 批量缓冲保存
-        return handleHistoryRepository
-            .save(AlarmHandleHistoryEntity.of(alarmHandleInfo))
-            .then();
-    }
-
-
-    private Mono<AlarmInfo> triggerAlarm(AlarmInfo result) {
-        AlarmRecordEntity record = ofRecord(result);
-
-        //更新告警状态.
-        return alarmRecordService
-            .createUpdate()
-            .set(record)
-            .where(AlarmRecordEntity::getId, record.getId())
-            .and(AlarmRecordEntity::getState, AlarmRecordState.warning)
-            .execute()
-            //更新数据库报错,依然尝试触发告警!
-            .onErrorResume(err -> {
-                log.error("trigger alarm error", err);
-                return Reactors.ALWAYS_ZERO;
-            })
-            .flatMap(total -> {
-                AlarmHistoryInfo historyInfo = createHistory(record, result);
-                result.setAlarmTime(record.getAlarmTime());
-
-                //更新结果返回0 说明是新产生的告警数据
-                if (total == 0) {
-                    result.setFirstAlarm(true);
-                    result.setAlarming(false);
-
-                    return alarmRecordService
-                        .save(record)
-                        .then(historyService.save(historyInfo))
-                        .then(publishAlarmRecord(historyInfo, result))
-                        .then(publishEvent(historyInfo))
-                        .then(saveAlarmCache(result, record));
-                }
-                result.setFirstAlarm(false);
-                result.setAlarming(true);
-
-                return historyService
-                    .save(historyInfo)
-                    .then(publishEvent(historyInfo))
-                    .then(saveAlarmCache(result, record));
             });
-    }
-
-    private Mono<Void> publishEvent(AlarmHistoryInfo historyInfo) {
-        return Mono.fromRunnable(() -> eventPublisher.publishEvent(historyInfo));
-    }
-
-    private AlarmHistoryInfo createHistory(AlarmRecordEntity record, AlarmInfo alarmInfo) {
-        AlarmHistoryInfo info = new AlarmHistoryInfo();
-        info.setId(IDGenerator.RANDOM.generate());
-        info.setAlarmConfigId(record.getAlarmConfigId());
-        info.setAlarmConfigName(record.getAlarmName());
-        info.setDescription(record.getDescription());
-        info.setAlarmRecordId(record.getId());
-        info.setLevel(record.getLevel());
-        info.setAlarmTime(record.getAlarmTime());
-
-        info.setTargetName(record.getTargetName());
-        info.setTargetId(record.getTargetId());
-        info.setTargetType(record.getTargetType());
-
-        info.setSourceType(record.getSourceType());
-        info.setSourceName(record.getSourceName());
-        info.setSourceId(record.getSourceId());
-
-
-        info.setAlarmInfo(ObjectMappers.toJsonString(alarmInfo.getData().getOutput()));
-        return info;
-    }
-
-    public Mono<Void> publishAlarmRecord(AlarmHistoryInfo historyInfo, AlarmInfo alarmInfo) {
-        String topic = Topics.alarm(historyInfo.getTargetType(), historyInfo.getTargetId(), historyInfo.getAlarmConfigId());
-        return eventBus
-            .publish(topic, historyInfo)
-            .then();
-    }
-
-    private Mono<AlarmInfo> saveAlarmCache(AlarmInfo result,
-                                           AlarmRecordEntity record) {
-
-        return this
-            .updateRecordCache(record.getId(), cache -> cache.with(result))
-            .thenReturn(result);
-
-//        return this
-//            .getAlarmStorage(result.getAlarmConfigId())
-//            .flatMap(store -> {
-//                Map<String, Object> configs = new HashMap<>();
-//
-//                configs.put(AlarmConstants.ConfigKey.lastAlarmTime, record.getAlarmTime());
-//                if (!result.isAlarming()) {
-//                    configs.put(AlarmConstants.ConfigKey.alarmTime, record.getAlarmTime());
-//                }
-//                return store.setConfigs(configs);
-//            })
-//            .thenReturn(result);
     }
 
     private Mono<AlarmInfo> getAlarmInfo(ConfigStorage alarm) {
@@ -338,7 +208,6 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
                     .equals(AlarmState.disabled.name())) {
                     return null;
                 }
-
                 AlarmInfo result = FastBeanCopier.copy(values.getAllValues(), new AlarmInfo());
 
                 if (result.getAlarmConfigId() == null ||
@@ -389,7 +258,15 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
     public void handleConfigEvent(EntityDeletedEvent<AlarmConfigEntity> event) {
         event.async(
             Flux.fromIterable(event.getEntity())
-                .flatMap(e -> eventBus.publish(TOPIC_ALARM_CONFIG_DELETE, e))
+                .flatMap(e -> eventBus
+                    .publish(TOPIC_ALARM_CONFIG_DELETE, e)
+                    .then(
+                        // 同步删除告警记录
+                        alarmRecordService
+                            .createDelete()
+                            .where(AlarmRecordEntity::getAlarmConfigId, e.getId())
+                            .execute())
+                    .then())
         );
     }
 
@@ -498,7 +375,27 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
 
         private AlarmData data;
 
+        /**
+         * 告警触发条件
+         */
+        private TermSpec termSpec;
+
         private boolean cached;
+
+        private List<Map<String, Object>> bindings;
+
+        public static TermSpec parseAlarmTrigger(ExecutionContext context, Map<String, Object> contextMap) {
+            TermSpec termSpec = new TermSpec();
+            Map<String, Object> configuration = context.getJob().getConfiguration();
+            Object termSpecs = configuration.get(AlarmConstants.ConfigKey.alarmFilterTermSpecs);
+            if (termSpecs != null) {
+                termSpec.setChildren(ConverterUtils.convertToList(termSpecs,o -> FastBeanCopier.copy(o, TermSpec.class)));
+                return termSpec.apply(contextMap);
+
+            }
+            return termSpec;
+        }
+
 
         @Override
         public AlarmInfo copyWith(AlarmTargetInfo targetInfo) {
@@ -513,40 +410,8 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
 
             return result;
         }
-
-        public AlarmInfo with(RecordCache cache) {
-            this.setAlarmTime(cache.alarmTime);
-            this.setLastAlarmTime(cache.lastAlarmTime);
-            this.setAlarming(cache.isAlarming());
-            this.cached = true;
-            return this;
-        }
-
-        public String createRecordId() {
-            return AlarmRecordEntity.generateId(getTargetId(), getTargetType(), getAlarmConfigId());
-        }
     }
 
-
-    private Mono<RecordCache> getRecordCache(String recordId) {
-        return storageManager
-            .getStorage("alarm-records")
-            .flatMap(store -> store
-                .getConfig(recordId)
-                .map(val -> val.as(RecordCache.class)));
-    }
-
-    private Mono<RecordCache> updateRecordCache(String recordId, Function<RecordCache, RecordCache> handler) {
-        return storageManager
-            .getStorage("alarm-records")
-            .flatMap(store -> store
-                .getConfig(recordId)
-                .map(val -> val.as(RecordCache.class))
-                .switchIfEmpty(Mono.fromSupplier(RecordCache::new))
-                .mapNotNull(handler)
-                .flatMap(cache -> store.setConfig(recordId, cache)
-                                       .thenReturn(cache)));
-    }
 
     public static class RecordCache implements Externalizable {
 
@@ -554,8 +419,8 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         static final byte stateAlarming = 0x02;
 
         byte state;
-        long alarmTime;
-        long lastAlarmTime;
+        public long alarmTime;
+        public long lastAlarmTime;
 
 
         public boolean isAlarming() {
@@ -572,13 +437,13 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
             return this;
         }
 
-        public RecordCache with(Result record) {
+        public RecordCache with(AlarmResult result) {
 
-            this.lastAlarmTime = this.alarmTime == 0 ? record.getAlarmTime() : this.alarmTime;
+            this.lastAlarmTime = this.alarmTime == 0 ? result.getAlarmTime() : this.alarmTime;
 
-            this.alarmTime = record.getAlarmTime();
+            this.alarmTime = result.getAlarmTime();
 
-            if (record.isAlarming() || record.isFirstAlarm()) {
+            if (result.isAlarming() || result.isFirstAlarm()) {
 
                 this.state = stateAlarming;
 

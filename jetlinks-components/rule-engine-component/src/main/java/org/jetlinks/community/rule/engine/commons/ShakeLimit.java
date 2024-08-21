@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import javax.annotation.Nonnull;
@@ -41,9 +42,8 @@ public class ShakeLimit implements Serializable {
     private boolean alarmFirst;
 
     /**
-     *
      * 利用窗口函数,将ReactorQL语句包装为支持抖动限制的SQL.
-     *
+     * <p>
      * select * from ( sql )
      * group by
      * _window('1s') --时间窗口
@@ -78,6 +78,7 @@ public class ShakeLimit implements Serializable {
      * @param totalConsumer  总数接收器
      * @param <T>            数据类型
      * @return 新流
+     * @deprecated {@link ShakeLimitProvider#shakeLimit(String, Flux, ShakeLimit)}
      */
     public <T> Flux<T> transfer(Flux<T> source,
                                 BiFunction<Duration, Flux<T>, Flux<Flux<T>>> windowFunction,
@@ -88,18 +89,27 @@ public class ShakeLimit implements Serializable {
         int thresholdNumber = getThreshold();
         Duration windowTime = Duration.ofSeconds(getTime());
 
-        return source
-            .as(flux -> windowFunction.apply(windowTime, flux))
+        return windowFunction
+            .apply(windowTime, source)
             //处理每一组数据
             .flatMap(group -> group
                 //给数据打上索引,索引号就是告警次数
                 .index((index, data) -> Tuples.of(index + 1, data))
+                .switchOnFirst((e, flux) -> {
+                    if (e.hasValue()) {
+                        @SuppressWarnings("all")
+                        T ele = e.get().getT2();
+                        return flux.map(tp2 -> Tuples.of(tp2.getT1(), tp2.getT2(), ele));
+                    }
+                    return flux.then(Mono.empty());
+                })
                 //超过阈值告警时
                 .filter(tp -> tp.getT1() >= thresholdNumber)
                 .as(flux -> isAlarmFirst() ? flux.take(1) : flux.takeLast(1))//取第一个或者最后一个
-                .map(tp2 -> {
-                    totalConsumer.accept(tp2.getT2(), tp2.getT1());
-                    return tp2.getT2();
-                }));
+                .map(tp3 -> {
+                    T next = isAlarmFirst() ? tp3.getT3() : tp3.getT2();
+                    totalConsumer.accept(next, tp3.getT1());
+                    return next;
+                }), Integer.MAX_VALUE);
     }
 }

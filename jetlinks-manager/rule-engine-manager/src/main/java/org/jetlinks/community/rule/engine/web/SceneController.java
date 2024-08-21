@@ -37,8 +37,6 @@ import java.util.function.Function;
 @Resource(id = "rule-scene", name = "场景管理")
 public class SceneController implements ReactiveServiceQueryController<SceneEntity, String> {
 
-    private final DeviceRegistry deviceRegistry;
-
     @Getter
     private final SceneService service;
 

@@ -17,9 +17,13 @@ import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.rule.engine.RuleEngineConstants;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
-import org.jetlinks.community.rule.engine.scene.*;
-import org.jetlinks.rule.engine.api.model.RuleModel;
+import org.jetlinks.community.rule.engine.enums.SceneFeature;
+import org.jetlinks.community.rule.engine.scene.SceneAction;
+import org.jetlinks.community.rule.engine.scene.SceneConditionAction;
+import org.jetlinks.community.rule.engine.scene.SceneRule;
+import org.jetlinks.community.rule.engine.scene.Trigger;
 import org.jetlinks.rule.engine.cluster.RuleInstance;
+import reactor.core.publisher.Mono;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
@@ -42,8 +46,8 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
 
     @Schema(description = "触发器类型")
     @Column(length = 32, nullable = false, updatable = false)
-//    @EnumCodec
-//    @ColumnType(javaType = String.class)
+    //  @EnumCodec
+    // @ColumnType(javaType = String.class)
     @NotNull
     private String triggerType;
 
@@ -86,6 +90,13 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
     @DefaultValue(generator = Generators.CURRENT_TIME)
     private Long createTime;
 
+    @Column(name = "creator_name", updatable = false)
+    @Schema(
+        description = "创建者名称(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorName;
+
     @Column(length = 64)
     @Schema(description = "修改人")
     private String modifierId;
@@ -94,6 +105,10 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
     @Schema(description = "修改时间")
     @DefaultValue(generator = Generators.CURRENT_TIME)
     private Long modifyTime;
+
+    @Column(length = 64)
+    @Schema(description = "修改人名称")
+    private String modifierName;
 
     @Column
     @Schema(description = "启动时间")
@@ -114,19 +129,30 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
     private Map<String, Object> options;
 
     @Column
+    @Schema(description = "场景特性")
+    @ColumnType(javaType = Long.class, jdbcType = JDBCType.BIGINT)
+    @EnumCodec(toMask = true)
+    @DefaultValue("none")
+    private SceneFeature[] features;
+
+    @Column
     @Schema(description = "说明")
     private String description;
 
-    public RuleInstance toRule() {
+    public Mono<RuleInstance> toRule() {
         SceneRule rule = copyTo(new SceneRule());
 
-        RuleInstance instance = new RuleInstance();
-        instance.setId(getId());
-        RuleModel model = rule.toModel();
-        model.addConfiguration(RuleEngineConstants.ruleCreatorIdKey, modifierId);
-        model.addConfiguration(RuleEngineConstants.ruleName, getName());
-        instance.setModel(model);
-        return instance;
+        return rule
+            .toModel()
+            .map(model -> {
+                RuleInstance instance = new RuleInstance();
+                instance.setId(getId());
+                model.addConfiguration(RuleEngineConstants.ruleCreatorIdKey, modifierId);
+                model.addConfiguration(RuleEngineConstants.ruleName, getName());
+                instance.setModel(model);
+                return instance;
+            });
+
     }
 
     public SceneEntity with(SceneRule rule) {
@@ -138,8 +164,8 @@ public class SceneEntity extends GenericEntity<String> implements RecordCreation
 
     public void validate() {
         getTrigger().validate();
-       if (CollectionUtils.isEmpty(getActions()) && CollectionUtils.isEmpty(getBranches())){
-           throw new BusinessException("error.scene_action_rule_cannot_be_null");
-       }
+        if (CollectionUtils.isEmpty(getActions()) && CollectionUtils.isEmpty(getBranches())) {
+            throw new BusinessException("error.scene_action_rule_cannot_be_null");
+        }
     }
 }
