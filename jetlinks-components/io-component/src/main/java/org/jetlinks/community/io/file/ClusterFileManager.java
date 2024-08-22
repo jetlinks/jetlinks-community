@@ -118,14 +118,12 @@ public class ClusterFileManager implements FileManager {
         return dataBuffer;
     }
 
-    public Mono<FileInfo> doSaveFile(String name, Flux<DataBuffer> stream, FileOption... options) {
-        LocalDate now = LocalDate.now();
+    public Mono<FileInfo> doSaveFile(String name, String folder, Flux<DataBuffer> stream, FileOption... options) {
         FileInfo fileInfo = new FileInfo();
         fileInfo.setId(IDGenerator.MD5.generate());
         fileInfo.withFileName(name);
 
-        String storagePath = now.format(DateTimeFormatter.BASIC_ISO_DATE)
-            + "/" + fileInfo.getId() + "." + fileInfo.getExtension();
+        String storagePath = folder + "/" + fileInfo.getId() + "." + fileInfo.getExtension();
 
         MessageDigest md5 = DigestUtils.getMd5Digest();
         MessageDigest sha256 = DigestUtils.getSha256Digest();
@@ -165,7 +163,12 @@ public class ClusterFileManager implements FileManager {
 
     @Override
     public Mono<FileInfo> saveFile(String name, Flux<DataBuffer> stream, FileOption... options) {
-        return doSaveFile(name, stream, options);
+        return saveFile(name, LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE), stream, options);
+    }
+
+    @Override
+    public Mono<FileInfo> saveFile(String name, String folder, Flux<DataBuffer> stream, FileOption... options) {
+        return doSaveFile(name, folder, stream, options);
     }
 
     @Override
@@ -190,6 +193,15 @@ public class ClusterFileManager implements FileManager {
     public Mono<FileInfo> getFile(String id) {
         return repository
             .findById(id)
+            .map(FileEntity::toInfo);
+    }
+
+    @Override
+    public Flux<FileInfo> listFiles(String folder) {
+        return repository
+            .createQuery()
+            .like(FileEntity::getStoragePath, folder + "/%")
+            .fetch()
             .map(FileEntity::toInfo);
     }
 
@@ -260,13 +272,12 @@ public class ClusterFileManager implements FileManager {
 
     @EventListener
     public void handleDeleteEvent(EntityDeletedEvent<FileEntity> event) {
-        for (FileEntity fileEntity : event.getEntity()) {
-            File file = Paths.get(properties.getStorageBasePath(), fileEntity.getStoragePath()).toFile();
-            if (file.exists()) {
-                log.debug("delete file: {}", file.getAbsolutePath());
-                file.delete();
-            }
-        }
+        event.async(
+            Flux.fromIterable(event.getEntity())
+                .map(entity -> Paths.get(properties.getStorageBasePath(), entity.getStoragePath()).toFile())
+                .filter(File::exists)
+                .map(File::delete)
+        );
     }
 
     @AllArgsConstructor

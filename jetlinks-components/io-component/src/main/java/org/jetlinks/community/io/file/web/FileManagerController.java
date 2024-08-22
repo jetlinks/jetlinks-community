@@ -18,6 +18,7 @@ import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
@@ -104,6 +105,13 @@ public class FileManagerController {
 
 
                            }));
+    }
+
+    @GetMapping("/{folder}/_list")
+    @Authorize(ignore = true)
+    @Operation(summary = "上传文件")
+    public Flux<FileInfo> list(@PathVariable("folder") String folder) {
+        return fileManager.listFiles(folder);
     }
 
     @DeleteMapping("/{fileId}")
