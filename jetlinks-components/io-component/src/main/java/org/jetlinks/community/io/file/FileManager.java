@@ -16,7 +16,7 @@ public interface FileManager {
 
     Mono<FileInfo> saveFile(String name, Flux<DataBuffer> stream, FileOption... options);
 
-    Mono<FileInfo> saveFile(String name, String storePath, Flux<DataBuffer> stream, FileOption... options);
+    Mono<FileInfo> saveFile(String name, String folder, Flux<DataBuffer> stream, FileOption... options);
 
     Mono<FileInfo> getFile(String id);
 
