@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.DeleteAction;
+import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.exception.AccessDenyException;
 import org.jetlinks.community.io.file.FileInfo;
@@ -108,13 +109,15 @@ public class FileManagerController {
     }
 
     @GetMapping("/{folder}/_list")
-    @Authorize()
+    @Authorize
+    @QueryAction
     @Operation(summary = "查询文件夹下所有文件")
     public Flux<FileInfo> list(@PathVariable("folder") String folder) {
         return fileManager.listFiles(folder);
     }
 
     @DeleteMapping("/{fileId}")
+    @Authorize
     @DeleteAction
     @Operation(summary = "删除文件")
     public Mono<Integer> delete(@PathVariable String fileId) {
