@@ -81,7 +81,7 @@ public class FileManagerController {
                                            .getHeaders()
                                            .getRange();
                                        long position = 0;
-                                       if (ranges.size() != 0) {
+                                       if (!ranges.isEmpty()) {
                                            position = ranges.get(0).getRangeStart(ctx.info().getLength());
                                        }
                                        ctx.position(position);

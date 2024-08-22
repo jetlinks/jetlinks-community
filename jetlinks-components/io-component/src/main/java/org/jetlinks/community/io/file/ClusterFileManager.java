@@ -1,5 +1,6 @@
 package org.jetlinks.community.io.file;
 
+import com.alibaba.excel.util.StringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
@@ -24,6 +25,7 @@ import org.springframework.core.io.buffer.*;
 import org.springframework.http.codec.multipart.FilePart;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
 import java.nio.file.NoSuchFileException;
@@ -168,6 +170,9 @@ public class ClusterFileManager implements FileManager {
 
     @Override
     public Mono<FileInfo> saveFile(String name, String folder, Flux<DataBuffer> stream, FileOption... options) {
+        if (folder.contains("/")) {
+            return Mono.error(new BusinessException("error.folder_cannot_contains:/"));
+        }
         return doSaveFile(name, folder, stream, options);
     }
 
@@ -277,6 +282,7 @@ public class ClusterFileManager implements FileManager {
                 .map(entity -> Paths.get(properties.getStorageBasePath(), entity.getStoragePath()).toFile())
                 .filter(File::exists)
                 .map(File::delete)
+                .subscribeOn(Schedulers.boundedElastic())
         );
     }
 
