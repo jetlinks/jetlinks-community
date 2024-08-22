@@ -1,6 +1,5 @@
 package org.jetlinks.community.io.file;
 
-import com.alibaba.excel.util.StringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
@@ -38,6 +37,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class ClusterFileManager implements FileManager {
@@ -58,6 +58,7 @@ public class ClusterFileManager implements FileManager {
      */
     public static final String API_PATH_CONFIG_NAME = "paths";
     public static final String API_PATH_CONFIG_KEY = "base-path";
+    private static final Pattern LEGAL_DIRECTORY_NAME_PATTERN = Pattern.compile("^[^\\\\/:*?\"<>|]{1,255}$");
 
     private final FileProperties properties;
 
@@ -170,8 +171,8 @@ public class ClusterFileManager implements FileManager {
 
     @Override
     public Mono<FileInfo> saveFile(String name, String folder, Flux<DataBuffer> stream, FileOption... options) {
-        if (folder.contains("/")) {
-            return Mono.error(new BusinessException("error.folder_cannot_contains:/"));
+        if (!LEGAL_DIRECTORY_NAME_PATTERN.matcher(folder).matches()) {
+            return Mono.error(new BusinessException("error.folder_name_is_invalid"));
         }
         return doSaveFile(name, folder, stream, options);
     }
