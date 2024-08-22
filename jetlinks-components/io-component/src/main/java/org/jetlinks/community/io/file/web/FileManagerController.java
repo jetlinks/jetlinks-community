@@ -108,8 +108,8 @@ public class FileManagerController {
     }
 
     @GetMapping("/{folder}/_list")
-    @Authorize(ignore = true)
-    @Operation(summary = "上传文件")
+    @Authorize()
+    @Operation(summary = "查询文件夹下所有文件")
     public Flux<FileInfo> list(@PathVariable("folder") String folder) {
         return fileManager.listFiles(folder);
     }
