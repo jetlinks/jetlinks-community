@@ -153,8 +153,7 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
                              .get(detail.getId())
                              .map(Authentication::getDimensions)
                              .defaultIfEmpty(Collections.emptyList())
-                             .map(detail::withDimension)
-                             .doOnNext(ignore->detail.setType(UserEntityTypes.getType(detail.getTypeId())))
+                             .map(dimensions -> detail.withDimension(dimensions).withType())
             );
     }
 

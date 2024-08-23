@@ -124,6 +124,11 @@ public class UserDetail {
         return this;
     }
 
+    public UserDetail withType() {
+        this.setType(UserEntityTypes.getType(this.getTypeId()));
+        return this;
+    }
+
     public UserEntity toUserEntity() {
         UserEntity userEntity = new UserEntity();
         userEntity.setId(id);
