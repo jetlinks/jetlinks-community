@@ -3,8 +3,10 @@ package org.jetlinks.community.auth.service;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
+import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
 import org.hswebframework.web.authorization.ReactiveAuthenticationManager;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
@@ -20,12 +22,14 @@ import org.jetlinks.community.auth.service.request.SaveUserRequest;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 /**
  * 用户详情管理
@@ -43,20 +47,25 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
     private final ReactiveUserService userService;
 
     private final RoleService roleService;
+
     private final OrganizationService organizationService;
 
     private final ReactiveAuthenticationManager authenticationManager;
+
+    private final QueryHelper queryHelper;
 
     private final static UserDetailEntity emptyDetail = new UserDetailEntity();
 
     public UserDetailService(ReactiveUserService userService,
                              RoleService roleService,
                              OrganizationService organizationService,
-                             ReactiveAuthenticationManager authenticationManager) {
+                             ReactiveAuthenticationManager authenticationManager,
+                             QueryHelper queryHelper) {
         this.userService = userService;
         this.roleService = roleService;
         this.organizationService = organizationService;
         this.authenticationManager = authenticationManager;
+        this.queryHelper = queryHelper;
         // 注册默认用户类型
         UserEntityTypes.register(Arrays.asList(DefaultUserEntityType.values()));
 
@@ -111,24 +120,42 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
     }
 
     public Mono<PagerResult<UserDetail>> queryUserDetail(QueryParamEntity query) {
-        return Mono.zip(
-                       userService.countUser(query),
-                       userService.findUser(query).collectMap(UserEntity::getId, userEntity -> userEntity))
-                   .flatMap(tp2 -> {
-                       Map<String, UserEntity> userMap = tp2.getT2();
-                       return this.createQuery()
-                                  .in(UserDetailEntity::getId, userMap.keySet())
-                                  .fetch()
-                                  .flatMap(userDetailEntity -> authenticationManager
-                                      .getByUserId(userDetailEntity.getId())
-                                      .map(Authentication::getDimensions)
-                                      .defaultIfEmpty(Collections.emptyList())
-                                      .map(dimensions -> UserDetail.of(userMap.get(userDetailEntity.getId()))
-                                                                   .with(userDetailEntity)
-                                                                   .withDimension(dimensions)))
-                                  .collectList()
-                                  .map(userDetailList -> PagerResult.of(tp2.getT1(), userDetailList, query));
-                   });
+        return QueryHelper
+            .transformPageResult(
+                queryHelper
+                    .select(UserDetail.class)
+                    .all(UserDetailEntity.class)
+                    .as(UserEntity::getId, UserDetail::setId)
+                    .as(UserEntity::getName, UserDetail::setName)
+                    .as(UserEntity::getUsername, UserDetail::setUsername)
+                    // 兼容之前已有字段
+                    .as(UserEntity::getType, UserDetail::setTypeId)
+                    .as(UserEntity::getStatus, UserDetail::setStatus)
+                    .as(UserEntity::getCreateTime, UserDetail::setCreateTime)
+                    .as(UserEntity::getCreatorId, UserDetail::setCreatorId)
+                    .from(UserEntity.class)
+                    .leftJoin(UserDetailEntity.class, j -> j.is(UserDetailEntity::getId, UserEntity::getId))
+                    .where(query)
+                    .fetchPaged(),
+                list -> this.fillUserDetail(list).
+                            collectList());
+    }
+
+    private Flux<UserDetail> fillUserDetail(List<UserDetail> users) {
+        if (CollectionUtils.isEmpty(users)) {
+            return Flux.empty();
+        }
+        return Flux
+            .fromIterable(users)
+            .flatMap(detail ->
+                         //维度信息
+                         ReactiveAuthenticationHolder
+                             .get(detail.getId())
+                             .map(Authentication::getDimensions)
+                             .defaultIfEmpty(Collections.emptyList())
+                             .map(detail::withDimension)
+                             .doOnNext(ignore->detail.setType(UserEntityTypes.getType(detail.getTypeId())))
+            );
     }
 
     /**
