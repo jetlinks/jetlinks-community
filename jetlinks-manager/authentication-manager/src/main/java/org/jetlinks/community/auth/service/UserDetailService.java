@@ -25,8 +25,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * 用户详情管理
@@ -112,33 +111,24 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
     }
 
     public Mono<PagerResult<UserDetail>> queryUserDetail(QueryParamEntity query) {
-        return Mono
-            .zip(
-                userService.countUser(query),
-                userService.findUser(query).collectList())
-            .flatMap(tp2 -> {
-                List<UserEntity> userList = tp2.getT2();
-                return this.createQuery()
-                           .in(UserDetailEntity::getId, userList
-                               .stream()
-                               .map(UserEntity::getId)
-                               .collect(Collectors.toList()))
-                           .fetch()
-                           .collectMap(UserDetailEntity::getId)
-                           .flatMap(userDetailMap -> {
-                               List<UserDetail> userDetailList = userList.stream()
-                                                                         .map(user -> {
-                                                                             UserDetail userDetail = UserDetail.of(user);
-                                                                             UserDetailEntity entity = userDetailMap.get(user.getId());
-                                                                             if (entity != null) {
-                                                                                 userDetail = userDetail.with(entity);
-                                                                             }
-                                                                             return userDetail;
-                                                                         })
-                                                                         .collect(Collectors.toList());
-                               return Mono.just(PagerResult.of(tp2.getT1(), userDetailList, query));
-                           });
-            });
+        return Mono.zip(
+                       userService.countUser(query),
+                       userService.findUser(query).collectMap(UserEntity::getId, userEntity -> userEntity))
+                   .flatMap(tp2 -> {
+                       Map<String, UserEntity> userMap = tp2.getT2();
+                       return this.createQuery()
+                                  .in(UserDetailEntity::getId, userMap.keySet())
+                                  .fetch()
+                                  .flatMap(userDetailEntity -> authenticationManager
+                                      .getByUserId(userDetailEntity.getId())
+                                      .map(Authentication::getDimensions)
+                                      .defaultIfEmpty(Collections.emptyList())
+                                      .map(dimensions -> UserDetail.of(userMap.get(userDetailEntity.getId()))
+                                                                   .with(userDetailEntity)
+                                                                   .withDimension(dimensions)))
+                                  .collectList()
+                                  .map(userDetailList -> PagerResult.of(tp2.getT1(), userDetailList, query));
+                   });
     }
 
     /**
