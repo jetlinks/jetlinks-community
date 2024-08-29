@@ -36,8 +36,7 @@ public abstract class AbstractPropertyMetricManager implements PropertyMetricMan
     private Mono<PropertyMetric> loadFromTemplate(ThingId thingId, String property, String metric) {
         return registry
             .getThing(thingId.getType(), thingId.getId())
-            .flatMap(Thing::getTemplate)
-            .flatMap(ThingTemplate::getMetadata)
+            .flatMap(Thing::getMetadata)
             .flatMap(metadata -> Mono
                 .justOrEmpty(
                     metadata

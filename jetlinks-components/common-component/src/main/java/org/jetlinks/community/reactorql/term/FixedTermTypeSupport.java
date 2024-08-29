@@ -1,5 +1,6 @@
 package org.jetlinks.community.reactorql.term;
 
+import com.google.common.collect.Sets;
 import lombok.Getter;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
@@ -106,14 +107,16 @@ public enum FixedTermTypeSupport implements TermTypeSupport {
     };
 
     private final String text;
+    private final boolean needValue;
     private final Set<String> supportTypes;
 
     private final String function;
 
-    private FixedTermTypeSupport(String text, String function, String... supportTypes) {
+    FixedTermTypeSupport(String text, String function, String... supportTypes) {
         this.text = text;
         this.function = function;
-        this.supportTypes = new HashSet<>(Arrays.asList(supportTypes));
+        this.needValue = true;
+        this.supportTypes = Sets.newHashSet(supportTypes);
     }
 
     @Override
@@ -140,21 +143,18 @@ public enum FixedTermTypeSupport implements TermTypeSupport {
         PrepareSqlFragments fragments = PrepareSqlFragments.of();
         appendFunction(column, fragments);
 
-        if (term.getOptions().contains(OPTIONS_NATIVE_SQL)) {
-            value = NativeSql.of(String.valueOf(value));
-        }
-
-        value = convertValue(value, term);
-
         if (value instanceof NativeSql) {
             fragments
                 .addSql(((NativeSql) value).getSql())
-                .addParameter(((NativeSql) value).getParameters());
-        } else {
-            fragments.addSql("?")
-                     .addParameter(value);
+                .addParameter(((NativeSql) value).getParameters())
+                .addSql(")");
+        } else if (needValue) {
+            value = convertValue(value, term);
+            fragments
+                .addSql("?")
+                .addParameter(value)
+                .addSql(")");
         }
-        fragments.addSql(")");
         return fragments;
     }
 
