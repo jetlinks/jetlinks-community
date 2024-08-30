@@ -174,7 +174,9 @@ public class MqttClientDeviceGateway extends AbstractDeviceGateway {
     }
 
     private MqttClientSession createDeviceSession(DeviceOperator device, MqttClient client) {
-        return new MqttClientSession(device.getDeviceId(), device, client, monitor);
+        MqttClientSession session = new MqttClientSession(device.getDeviceId(), device, client, monitor);
+        session.setGatewayId(getId());
+        return session;
     }
 
     @Override

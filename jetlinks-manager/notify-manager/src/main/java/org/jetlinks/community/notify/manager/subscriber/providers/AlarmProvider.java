@@ -122,7 +122,7 @@ public class AlarmProvider implements SubscriberProvider {
         //todo 根据配置来获取输出数据
         return Flux.just(
             SimplePropertyMetadata.of("targetType", "告警类型", StringType.GLOBAL),
-            SimplePropertyMetadata.of("alarmName", "告警名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("alarmConfigName", "告警名称", StringType.GLOBAL),
             SimplePropertyMetadata.of("targetName", "目标名称", StringType.GLOBAL)
         );
     }

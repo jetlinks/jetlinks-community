@@ -8,11 +8,12 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.community.reactorql.term.TermTypes;
-import org.jetlinks.community.rule.engine.scene.SceneTriggerProvider;
+import org.jetlinks.community.rule.engine.scene.AbstractSceneTriggerProvider;
 import org.jetlinks.community.rule.engine.scene.Variable;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -20,7 +21,8 @@ import java.util.Collections;
 import java.util.List;
 
 @Component
-public class ManualTriggerProvider implements SceneTriggerProvider<ManualTrigger> {
+@ConfigurationProperties(prefix = "rule.scene.trigger.manual")
+public class ManualTriggerProvider extends AbstractSceneTriggerProvider<ManualTrigger> {
     public static final String PROVIDER = "manual";
 
 
@@ -40,7 +42,7 @@ public class ManualTriggerProvider implements SceneTriggerProvider<ManualTrigger
     }
 
     @Override
-    public SqlRequest createSql(ManualTrigger config, List<Term> terms, boolean hasWhere) {
+    public SqlRequest createSql(ManualTrigger config, List<Term> terms, boolean hasFilter) {
         return EmptySqlRequest.INSTANCE;
     }
 

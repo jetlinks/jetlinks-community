@@ -86,6 +86,13 @@ public class AlarmConfigEntity extends GenericEntity<String> implements RecordCr
     )
     private Long createTime;
 
+    @Column(name = "creator_name", updatable = false)
+    @Schema(
+            description = "创建者名称(只读)"
+            , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorName;
+
     @Column(length = 64)
     @Schema(description = "更新者ID", accessMode = Schema.AccessMode.READ_ONLY)
     private String modifierId;
@@ -94,6 +101,10 @@ public class AlarmConfigEntity extends GenericEntity<String> implements RecordCr
     @DefaultValue(generator = Generators.CURRENT_TIME)
     @Schema(description = "更新时间")
     private Long modifyTime;
+
+    @Column(length = 64)
+    @Schema(description = "修改人名称")
+    private String modifierName;
 
 
     public Map<String, Object> toConfigMap() {

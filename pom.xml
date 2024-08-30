@@ -17,21 +17,24 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
         <spring.boot.version>2.7.18</spring.boot.version>
+        <spring.framework.version>5.3.39</spring.framework.version>
         <java.version>1.8</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
         <!-- https://github.com/hs-web/hsweb-framework -->
-        <hsweb.framework.version>4.0.17-SNAPSHOT</hsweb.framework.version>
+        <hsweb.framework.version>4.0.17</hsweb.framework.version>
         <!-- https://github.com/hs-web/hsweb-easy-orm -->
-        <easyorm.version>4.1.2-SNAPSHOT</easyorm.version>
+        <easyorm.version>4.1.2</easyorm.version>
         <!-- https://github.com/jetlinks/jetlinks -->
-        <jetlinks.version>1.2.2-SNAPSHOT</jetlinks.version>
+        <jetlinks.version>1.2.2</jetlinks.version>
         <!-- https://github.com/hs-web/reactor-excel -->
-        <reactor.excel.version>1.0.6-SNAPSHOT</reactor.excel.version>
+        <reactor.excel.version>1.0.6</reactor.excel.version>
         <!-- https://github.com/jetlinks/reactor-ql -->
-        <reactor.ql.version>1.0.16</reactor.ql.version>
+        <reactor.ql.version>1.0.17</reactor.ql.version>
         <!-- https://github.com/jetlinks/jetlinks-plugin -->
-        <jetlinks.plugin.version>1.0.1</jetlinks.plugin.version>
+        <jetlinks.plugin.version>1.0.2</jetlinks.plugin.version>
+        <!-- https://github.com/jetlinks/jetlinks-sdk -->
+        <jetlinks.sdk.version>1.0.0</jetlinks.sdk.version>
 
         <!-- 第三方依赖版本 -->
         <r2dbc.version>Borca-SR2</r2dbc.version>
@@ -194,6 +197,14 @@
     <dependencyManagement>
 
         <dependencies>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.framework.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <dependency>
                 <groupId>io.micrometer</groupId>
@@ -479,6 +490,11 @@
                 <version>${jetlinks.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.hswebframework.web</groupId>
+                <artifactId>hsweb-system-dictionary</artifactId>
+                <version>${hsweb.framework.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.google.guava</groupId>

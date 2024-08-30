@@ -1,6 +1,7 @@
 package org.jetlinks.community.rule.engine.web;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.hswebframework.web.api.crud.entity.PagerResult;
@@ -10,10 +11,7 @@ import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.jetlinks.community.rule.engine.entity.AlarmHistoryInfo;
 import org.jetlinks.community.rule.engine.service.AlarmHistoryService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -29,8 +27,24 @@ public class AlarmHistoryController {
     @PostMapping("/_query")
     @Operation(summary = "告警历史查询")
     @QueryAction
+    @Deprecated
     public Mono<PagerResult<AlarmHistoryInfo>> queryHandleHistoryPager(@RequestBody Mono<QueryParamEntity> query) {
         return query.flatMap(alarmHistoryService::queryPager);
+    }
+
+    @PostMapping("/{alarmConfigId}/_query")
+    @Operation(summary = "告警历史查询")
+    @QueryAction
+    public Mono<PagerResult<AlarmHistoryInfo>> queryHandleHistoryPager(
+        @PathVariable @Parameter(description = "告警配置ID") String alarmConfigId,
+        @RequestBody Mono<QueryParamEntity> query
+    ) {
+        return query
+            .map(q -> q
+                .toNestQuery()
+                .and(AlarmHistoryInfo::getAlarmConfigId, alarmConfigId)
+                .getParam())
+            .flatMap(alarmHistoryService::queryPager);
     }
 
 }

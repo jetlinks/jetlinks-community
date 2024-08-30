@@ -43,7 +43,7 @@ public class AlarmConfigService extends GenericReactiveCrudService<AlarmConfigEn
      */
     public Mono<Void> handleAlarm(AlarmHandleInfo info){
         return alarmRecordService
-            .changeRecordState(info.getState(), info.getAlarmRecordId())
+            .changeRecordState(info.getType(), info.getState(), info.getAlarmRecordId())
             .flatMap(total-> {
                 if (total > 0){
                     return handleHistoryRepository

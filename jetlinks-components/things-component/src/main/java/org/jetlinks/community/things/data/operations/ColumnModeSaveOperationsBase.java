@@ -12,7 +12,6 @@ import org.jetlinks.core.metadata.types.NumberType;
 import org.jetlinks.core.things.ThingMetadata;
 import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.core.utils.StringBuilderUtils;
-import org.jetlinks.core.utils.TimestampUtils;
 import org.jetlinks.community.things.data.ThingsDataConstants;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.utils.ObjectMappers;
@@ -32,6 +31,9 @@ public abstract class ColumnModeSaveOperationsBase extends AbstractSaveOperation
     }
 
     protected String createPropertyDataId(ThingMessage message) {
+        if (!useTimestampId(message)) {
+            return randomId();
+        }
         return DigestUtils.md5Hex(
             StringBuilderUtils
                 .buildString(message, (m, builder) -> {
@@ -76,13 +78,13 @@ public abstract class ColumnModeSaveOperationsBase extends AbstractSaveOperation
                     if (data.isEmpty()) {
                         return null;
                     }
-
+                    long timestamp = convertTimestamp(message.getTimestamp());
                     data.put(metricBuilder.getThingIdProperty(), message.getThingId());
-                    data.put(COLUMN_TIMESTAMP, TimestampUtils.toMillis(message.getTimestamp()));
+                    data.put(COLUMN_TIMESTAMP, timestamp);
                     data.put(COLUMN_CREATE_TIME, System.currentTimeMillis());
                     data.put(COLUMN_ID, id);
                     return Tuples.of(metricBuilder.createPropertyMetric(message.getThingType(), templateId, message.getThingId()),
-                                     TimeSeriesData.of(message.getTimestamp(), handlePropertiesData(metadata, data)));
+                                     TimeSeriesData.of(timestamp, handlePropertiesData(metadata, data)));
                 }));
     }
 

@@ -14,9 +14,13 @@ import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.ArrayType;
+import org.jetlinks.core.metadata.types.DataTypes;
 import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.types.UnknownType;
+import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 
 import javax.persistence.Column;
 import javax.persistence.Index;
@@ -24,6 +28,10 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -39,7 +47,7 @@ public class DeviceTagEntity extends GenericEntity<String> {
     @Schema(description = "设备ID")
     private String deviceId;
 
-    @Column(length = 32, updatable = false, nullable = false)
+    @Column(length = 64, updatable = false, nullable = false)
     @NotBlank(message = "[key]不能为空", groups = CreateGroup.class)
     @Schema(description = "标签标识")
     private String key;
@@ -71,7 +79,7 @@ public class DeviceTagEntity extends GenericEntity<String> {
     private DataType dataType;
 
     public static DeviceTagEntity of(PropertyMetadata property) {
-       DeviceTagEntity entity = new DeviceTagEntity();
+        DeviceTagEntity entity = new DeviceTagEntity();
         entity.setKey(property.getId());
         entity.setName(property.getName());
         entity.setType(property.getValueType().getId());
@@ -79,17 +87,6 @@ public class DeviceTagEntity extends GenericEntity<String> {
         entity.setCreateTime(new Date());
         entity.setDataType(property.getValueType());
         return entity;
-    }
-
-
-    //以物模型标签基础数据为准，重构数据库保存的可能已过时的标签数据
-    public DeviceTagEntity restructure(DeviceTagEntity tag) {
-        this.setDataType(tag.getDataType());
-        this.setName(tag.getName());
-        this.setType(tag.getType());
-        this.setKey(tag.getKey());
-        this.setDescription(tag.getDescription());
-        return this;
     }
 
     public static DeviceTagEntity of(PropertyMetadata property, Object value) {
@@ -118,8 +115,59 @@ public class DeviceTagEntity extends GenericEntity<String> {
         return tag;
     }
 
+    public DeviceProperty toProperty() {
+        DeviceProperty property = new DeviceProperty();
+        property.setProperty(getKey());
+        property.setDeviceId(deviceId);
+        property.setType(type);
+        property.setPropertyName(name);
+        DataType type = Optional
+            .ofNullable(DataTypes.lookup(getType()))
+            .map(Supplier::get)
+            .orElseGet(UnknownType::new);
+        if (type instanceof Converter) {
+            property.setValue(((Converter<?>) type).convert(getValue()));
+        } else {
+            property.setValue(getValue());
+        }
+        return property;
+
+
+    }
+
+    //以物模型标签基础数据为准，重构数据库保存的可能已过时的标签数据
+    public DeviceTagEntity restructure(DeviceTagEntity tag) {
+        this.setDataType(tag.getDataType());
+        this.setName(tag.getName());
+        this.setType(tag.getType());
+        this.setKey(tag.getKey());
+        this.setDescription(tag.getDescription());
+        return this;
+    }
+
+    public void generateId() {
+        setId(createTagId(deviceId, key));
+    }
 
     public static String createTagId(String deviceId, String key) {
         return DigestUtils.md5Hex(deviceId + ":" + key);
+    }
+
+    public static Set<String> parseTagKey(String metadata) {
+        return JetLinksDeviceMetadataCodec
+            .getInstance()
+            .doDecode(metadata)
+            .getTags()
+            .stream()
+            .map(PropertyMetadata::getId)
+            .collect(Collectors.toSet());
+    }
+
+    public static Set<String> parseTagKey(DeviceMetadata metadata) {
+        return metadata
+            .getTags()
+            .stream()
+            .map(PropertyMetadata::getId)
+            .collect(Collectors.toSet());
     }
 }

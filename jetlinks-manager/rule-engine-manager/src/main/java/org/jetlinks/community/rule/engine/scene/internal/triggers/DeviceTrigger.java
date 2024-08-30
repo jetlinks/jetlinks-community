@@ -9,31 +9,23 @@ import org.hswebframework.ezorm.rdb.executor.PrepareSqlRequest;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.AbstractTermsFragmentBuilder;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments;
-import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
-import org.jetlinks.community.rule.engine.scene.*;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.things.ThingMetadata;
 import org.jetlinks.core.things.ThingsRegistry;
-import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.TimerSpec;
-import org.jetlinks.community.reactorql.term.TermType;
 import org.jetlinks.community.reactorql.term.TermTypeSupport;
 import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.rule.engine.executor.device.SelectorValue;
+import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.rule.engine.scene.value.TermValue;
-import org.jetlinks.reactor.ql.DefaultReactorQLContext;
-import org.jetlinks.reactor.ql.ReactorQL;
-import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.util.Assert;
@@ -71,7 +63,11 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
 
     public SqlRequest createSql(List<Term> terms, boolean hasWhere) {
 
-        Map<String, Term> termsMap = SceneUtils.expandTerm(terms);
+        Map<String, List<Term>> termsMap = SceneUtils.expandTerm(terms);
+        List<Term> termList = new ArrayList<>();
+        for (List<Term> values : termsMap.values()) {
+            termList.addAll(values);
+        }
         // select * from (
         //   select
         //      this.deviceId deviceId,
@@ -84,7 +80,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         //      coalesce(this.properties.temp,device.property.recent(deviceId,'temp')) temp_recent,
         //      property.metric('device',deviceId,'temp','max') temp_metric_max
         // ) t where t.temp_current > t.temp_metric_max and t._now between ? and ?
-        Set<String> selectColumns = Sets.newLinkedHashSetWithExpectedSize(10 + termsMap.size());
+        Set<String> selectColumns = Sets.newLinkedHashSetWithExpectedSize(10 + termList.size());
         selectColumns.add("now() \"_now\"");
         selectColumns.add("this.timestamp \"timestamp\"");
         selectColumns.add("this.deviceId \"deviceId\"");
@@ -117,7 +113,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
                 selectColumns.add("this['output'] \"output\"");
                 break;
         }
-        for (Term value : termsMap.values()) {
+        for (Term value : termList) {
             String column = value.getColumn();
             if (StringUtils.hasText(value.getColumn())) {
                 String selectColumn = createSelectColumn(column);
@@ -227,7 +223,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         return "\"" + topic + "\"";
     }
 
-    public static final TermBuilder termBuilder = new TermBuilder();
+    static final TermBuilder termBuilder = new TermBuilder();
 
     static class TermBuilder extends AbstractTermsFragmentBuilder<DeviceTrigger> {
 
@@ -248,95 +244,13 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
 
             Term copy = refactorTermValue(DEFAULT_FILTER_TABLE, term.clone());
 
-            return support.createSql(copy.getColumn(), copy.getValue(), term);
+            return support.createSql(copy.getColumn(), copy.getValue(), copy);
         }
     }
 
-
-    static String createTermColumn(String tableName, String column) {
-        String[] arr = column.split("[.]");
-
-        // properties.xxx.last的场景
-        if (arr.length > 3 && arr[0].equals("properties")) {
-            column = tableName + "['" + createColumnAlias(column, false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
-        } else {
-            column = tableName + "['" + createColumnAlias(column, false) + "']";
-        }
-        return column;
-    }
 
     public static Term refactorTermValue(String tableName, Term term) {
-        if (term.getColumn() == null) {
-            return term;
-        }
-        String[] arr = term.getColumn().split("[.]");
-
-        List<TermValue> values = TermValue.of(term);
-        if (values.size() == 0) {
-            return term;
-        }
-
-        Function<TermValue, Object> parser = value -> {
-            //上游变量
-            if (value.getSource() == TermValue.Source.variable
-                || value.getSource() == TermValue.Source.upper) {
-                term.getOptions().add(TermType.OPTIONS_NATIVE_SQL);
-                return tableName + "['" + value.getValue() + "']";
-            }
-            //指标
-            else if (value.getSource() == TermValue.Source.metric) {
-                term.getOptions().add(TermType.OPTIONS_NATIVE_SQL);
-                return tableName + "['" + arr[1] + "_metric_" + value.getMetric() + "']";
-            }
-            //手动设置值
-            else {
-                return value.getValue();
-            }
-        };
-        Object val;
-        if (values.size() == 1) {
-            val = parser.apply(values.get(0));
-        } else {
-            val = values
-                .stream()
-                .map(parser)
-                .collect(Collectors.toList());
-        }
-
-        String column;
-        // properties.xxx.last的场景
-        if (arr.length > 3 && arr[0].equals("properties")) {
-            column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
-        } else if (!isDirectTerm(arr[0])) {
-            column = tableName + "['" + createColumnAlias(term.getColumn(), false) + "']";
-        } else {
-            column = term.getColumn();
-        }
-
-        if (term.getOptions().contains(TermType.OPTIONS_NATIVE_SQL)) {
-            val = NativeSql.of(String.valueOf(val));
-        }
-
-        term.setColumn(column);
-
-        term.setValue(val);
-
-        return term;
-    }
-
-    private static boolean isDirectTerm(String column) {
-        //直接term,构建Condition输出条件时使用
-        return isBranchTerm(column) || isSceneTerm(column);
-    }
-
-    private static boolean isBranchTerm(String column) {
-        return column.startsWith("branch_") &&
-            column.contains("_group_")
-            && column.contains("_action_");
-    }
-
-    private static boolean isSceneTerm(String column) {
-        return column.startsWith("scene");
+        return SceneUtils.refactorTerm(tableName, term);
     }
 
     static String parseProperty(String column) {
@@ -365,6 +279,8 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
                         return "coalesce(this['properties." + property + "']" + ",device.property.recent(deviceId,'" + property + "',timestamp - 1))";
                     case last:
                         return "device.property.recent(deviceId,'" + property + "',timestamp - 1)";
+                    case lastTime:
+                        return "device.property_time.recent(deviceId,'" + property + "',timestamp - 1)";
                 }
             } catch (IllegalArgumentException ignore) {
 

@@ -22,4 +22,8 @@ public class BufferProperties {
 
     //最大重试次数,超过此次数的数据将会放入死队列.
     private long maxRetryTimes = 64;
+
+    public boolean isExceededRetryCount(int count) {
+        return maxRetryTimes > 0 && count >= maxRetryTimes;
+    }
 }

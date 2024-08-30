@@ -15,12 +15,16 @@ import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.web.response.GatewayDeviceInfo;
+import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.DeviceConfigKey;
+import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.function.Function3;
 
 import java.util.Collections;
 import java.util.List;
@@ -196,6 +200,36 @@ public class GatewayDeviceController {
                 )
             )
             .then(getGatewayInfo(gatewayId));
+    }
+
+    @PostMapping("/{gatewayId}/unbind")
+    @SaveAction
+    @QueryOperation(summary = "从网关设备中解绑多个子设备")
+    @Transactional
+    public Mono<Void> unBindDevice(@PathVariable @Parameter(description = "网关设备ID") String gatewayId,
+                                   @RequestBody @Parameter(description = "子设备ID集合") Mono<List<String>> deviceId) {
+        Mono<List<String>> deviceIdCache = deviceId.cache();
+
+        return deviceId
+            .flatMap(deviceIdList -> instanceService
+                .createUpdate()
+                .setNull(DeviceInstanceEntity::getParentId)
+                .in(DeviceInstanceEntity::getId, deviceIdList)
+                .and(DeviceInstanceEntity::getParentId, gatewayId)
+                .execute()
+            )
+            .then(handleBindUnbind(gatewayId, deviceIdCache.flatMapIterable(Function.identity()), ProtocolSupport::onChildUnbind));
+    }
+
+    private Mono<Void> handleBindUnbind(String gatewayId,
+                                        Flux<String> childId,
+                                        Function3<ProtocolSupport, DeviceOperator, Flux<DeviceOperator>, Mono<Void>> operator) {
+        return registry
+            .getDevice(gatewayId)
+            .flatMap(gateway -> gateway
+                .getProtocol()
+                .flatMap(protocol -> operator.apply(protocol, gateway, childId.flatMap(registry::getDevice)))
+            );
     }
 
 }

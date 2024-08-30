@@ -3,20 +3,26 @@ package org.jetlinks.community.rule.engine.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
-import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
-import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
-import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
-import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
+import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
+import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.utils.DigestUtils;
+import org.jetlinks.community.dictionary.Dictionary;
 import org.jetlinks.community.rule.engine.enums.AlarmRecordState;
+import org.jetlinks.community.rule.engine.service.AlarmHandleTypeDictInit;
+import org.jetlinks.community.terms.TermSpec;
 
 import javax.persistence.Column;
+import javax.persistence.Index;
 import javax.persistence.Table;
+import java.sql.JDBCType;
 
 @Getter
 @Setter
-@Table(name = "alarm_record")
+@Table(name = "alarm_record",indexes = {
+    @Index(name = "idx_alarm_rec_t_type",columnList = "targetType"),
+    @Index(name = "idx_alarm_rec_t_key",columnList = "targetKey")
+})
 @Comment("告警记录")
 public class AlarmRecordEntity extends GenericEntity<String> {
 
@@ -57,6 +63,19 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     @Schema(description = "告警源名称")
     private String sourceName;
 
+    @Column
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR)
+    @JsonCodec
+    @Schema(description = "触发条件")
+    private TermSpec termSpec;
+
+    @Column(length = 1024)
+    @Schema(description = "触发条件描述")
+    private String triggerDesc;
+
+    @Column(length = 1024)
+    @Schema(description = "告警原因描述")
+    private String actualDesc;
 
     @Column
     @Schema(description = "最近一次告警时间")
@@ -76,6 +95,20 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     @ColumnType(javaType = String.class)
     @DefaultValue("normal")
     private AlarmRecordState state;
+
+
+    @Column(length = 32)
+    @Dictionary(AlarmHandleTypeDictInit.DICT_ID)
+    @Schema(description = "告警处理类型")
+    @ColumnType(javaType = String.class)
+    private EnumDict<String> handleType;
+
+    /**
+     * 标识告警触发的配置来自什么业务功能
+     */
+    @Column
+    @Schema(description = "告警配置源")
+    private String alarmConfigSource;
 
     @Column
     @Schema(description = "说明")

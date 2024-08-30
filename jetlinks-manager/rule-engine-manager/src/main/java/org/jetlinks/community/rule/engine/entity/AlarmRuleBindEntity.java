@@ -15,8 +15,8 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 
 @Table(name = "s_alarm_rule_bind", indexes = {
-    @Index(name = "idx_alarm_rule_aid", columnList = "alarmId"),
-    @Index(name = "idx_alarm_rule_rid", columnList = "ruleId"),
+        @Index(name = "idx_alarm_rule_aid", columnList = "alarmId"),
+        @Index(name = "idx_alarm_rule_rid", columnList = "ruleId"),
 })
 @Getter
 @Setter
@@ -28,7 +28,7 @@ public class AlarmRuleBindEntity extends GenericEntity<String> {
 
     @Column(nullable = false, updatable = false, length = 64)
     @NotBlank
-    @Schema(description = "告警配置ID")
+    @Schema(description = "告警ID")
     private String alarmId;
 
     @Column(nullable = false, updatable = false, length = 64)

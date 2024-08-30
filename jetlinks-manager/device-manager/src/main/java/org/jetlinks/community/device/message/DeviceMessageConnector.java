@@ -10,11 +10,13 @@ import org.jetlinks.core.device.session.DeviceSessionEvent;
 import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.*;
+import org.jetlinks.core.message.collector.ReportCollectorDataMessage;
 import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.server.MessageHandler;
 import org.jetlinks.core.server.session.ChildrenDeviceSession;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -130,6 +132,26 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         });
         //上报了新的物模型
         createFastBuilder(MessageType.DERIVED_METADATA, "/metadata/derived");
+        //状态检查
+        createFastBuilder(MessageType.STATE_CHECK, "/message/state_check");
+        createFastBuilder(MessageType.STATE_CHECK_REPLY, "/message/state_check_reply");
+
+        //数采相关消息 since 2.2
+        createFastBuilder(MessageType.REPORT_COLLECTOR, ((message, stringBuilder) -> {
+            String addr = message.getHeaderOrElse(ReportCollectorDataMessage.ADDRESS, null);
+            stringBuilder.append("/message/collector/report");
+            if (StringUtils.hasText(addr)) {
+                if (!addr.startsWith("/")) {
+                    stringBuilder.append('/');
+                }
+                stringBuilder.append(addr);
+            }
+        }));
+        createFastBuilder(MessageType.READ_COLLECTOR_DATA, "/message/collector/read");
+        createFastBuilder(MessageType.READ_COLLECTOR_DATA_REPLY, "/message/collector/read/reply");
+        createFastBuilder(MessageType.WRITE_COLLECTOR_DATA, "/message/collector/write");
+        createFastBuilder(MessageType.WRITE_COLLECTOR_DATA_REPLY, "/message/collector/write/reply");
+
     }
 
     private final DeviceRegistry registry;
@@ -253,7 +275,7 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         if (null == message) {
             return Mono.empty();
         }
-        message.addHeader(PropertyConstants.uid, IDGenerator.SNOW_FLAKE_STRING.generate());
+        message.addHeaderIfAbsent(PropertyConstants.uid, IDGenerator.RANDOM.generate());
         return this
             .getTopic(message)
             .flatMap(topic -> eventBus.publish(topic, message).then())

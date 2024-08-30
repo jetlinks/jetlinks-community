@@ -13,6 +13,7 @@ import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.PersistentSession;
 import org.jetlinks.supports.device.session.ClusterDeviceSessionManager;
+import org.jetlinks.supports.utils.MVStoreUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationContext;
@@ -45,25 +46,15 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
     }
 
     static MVMap<String, PersistentSessionEntity> initStore(String file) {
-        File f = new File(file);
-        if (!f.getParentFile().exists()) {
-            f.getParentFile().mkdirs();
-        }
-        Supplier<MVMap<String, PersistentSessionEntity>>
-            builder = () -> {
-            MVStore store = new MVStore.Builder()
-                .fileName(file)
-                .cacheSize(1)
-                .open();
-            return store.openMap("device-session");
-        };
-        try {
-            return builder.get();
-        } catch (MVStoreException e) {
-            log.warn("load session from {} error,delete it and init.", file, e);
-            f.delete();
-            return builder.get();
-        }
+        MVStore store =
+            MVStoreUtils.open(
+                new File(file),
+                "device-session",
+                builder -> {
+                    return builder.cacheSize(1);
+                });
+
+        return MVStoreUtils.openMap(store, "device-session", new MVMap.Builder<>());
     }
 
     @Override
@@ -118,8 +109,7 @@ public class PersistenceDeviceSessionManager extends ClusterDeviceSessionManager
             .map(ref -> ref.loaded.unwrap(PersistentSession.class))
             .as(this::tryPersistent)
             .block();
-        repository.store.compactMoveChunks();
-        repository.store.close();
+        repository.store.close(-1);
     }
 
     @Override

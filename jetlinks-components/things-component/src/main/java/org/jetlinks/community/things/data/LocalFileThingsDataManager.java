@@ -3,6 +3,7 @@ package org.jetlinks.community.things.data;
 import io.netty.buffer.*;
 import io.netty.util.ReferenceCountUtil;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.h2.mvstore.Cursor;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
@@ -11,7 +12,10 @@ import org.h2.mvstore.type.BasicDataType;
 import org.jetlinks.community.codec.Serializers;
 import org.jetlinks.core.things.ThingEvent;
 import org.jetlinks.core.things.ThingProperty;
+import org.jetlinks.core.things.ThingTag;
 import org.jetlinks.core.things.ThingsDataManager;
+import org.jetlinks.core.utils.NumberUtils;
+import org.jetlinks.core.utils.RecyclerUtils;
 import org.jetlinks.core.utils.SerializeUtils;
 import org.jetlinks.core.utils.StringBuilderUtils;
 import org.jetlinks.supports.utils.MVStoreUtils;
@@ -29,8 +33,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.BiConsumer;
 
+@Slf4j
 public class LocalFileThingsDataManager implements ThingsDataManager, ThingsDataWriter {
-
 
     private static final AtomicIntegerFieldUpdater<LocalFileThingsDataManager>
         TAG_INC = AtomicIntegerFieldUpdater.newUpdater(LocalFileThingsDataManager.class, "tagInc");
@@ -74,10 +78,14 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
         this.mvStore = store;
         this.tagStore = mvStore.openMap("tags");
         this.tagInc = this.tagStore.size();
-        this.historyStore = mvStore
-            .openMap("store", new MVMap
-                .Builder<Long, PropertyHistory>()
-                .valueType(new HistoryType()));
+        this.historyStore = MVStoreUtils
+            .openMap(
+                mvStore,
+                "store",
+                new MVMap
+                    .Builder<Long, PropertyHistory>()
+                    .valueType(new HistoryType())
+            );
     }
 
     public void shutdown() {
@@ -92,8 +100,7 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
                 historyStore.put(entry.getKey(), entry.getValue());
             }
         }
-        mvStore.compactFile(60_000);
-        mvStore.close(60_000);
+        mvStore.close(-1);
     }
 
     @Override
@@ -335,8 +342,8 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
 
         Property p = new Property();
         p.setTime(timestamp);
-        p.setValue(value);
-        p.setState(state);
+        p.setValue(tryIntern(value));
+        p.setState(RecyclerUtils.intern(state));
         propertyStore.update(p);
         propertyStore.tryStore(key.toTag(), historyStore::put);
     }
@@ -367,6 +374,16 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
 
     @Nonnull
     @Override
+    public Mono<Void> updateTag(@Nonnull String thingType,
+                                @Nonnull String thingId,
+                                @Nonnull String tagKey,
+                                long timestamp,
+                                @Nonnull Object tagValue) {
+        return this.updateProperty(thingType, thingId, createTagProperty(tagKey), timestamp, tagValue, null);
+    }
+
+    @Nonnull
+    @Override
     public Mono<Void> removeProperties(@Nonnull String thingType, @Nonnull String thingId) {
 
         scanProperty(thingType, thingId, null, null, (init, arg, key, value) -> {
@@ -388,6 +405,14 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
                                   @Nonnull String thingId,
                                   @Nonnull String eventId) {
         return this.removeProperty(thingType, thingId, createEventProperty(eventId));
+    }
+
+    @Nonnull
+    @Override
+    public Mono<Void> removeTag(@Nonnull String thingType,
+                                @Nonnull String thingId,
+                                @Nonnull String tagKey) {
+        return this.removeProperty(thingType, thingId, createTagProperty(tagKey));
     }
 
     @Nonnull
@@ -445,6 +470,51 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
 
         @Override
         public Object getData() {
+            return property.getValue();
+        }
+    }
+
+    @Override
+    public Mono<ThingTag> getLastTag(String thingType,
+                                     String thingId,
+                                     String tag,
+                                     long baseTime) {
+        String eventKey = createTagProperty(tag);
+        PropertyHistory propertyStore = getHistory(thingType, thingId, eventKey);
+        if (propertyStore == null) {
+            return Mono.empty();
+        }
+        Property pro = propertyStore.getProperty(baseTime);
+        if (pro == null) {
+            return Mono.empty();
+        }
+        return pro
+            .toProperty(eventKey)
+            .map(PropertyThingTag::new);
+    }
+
+    protected String createTagProperty(String tag) {
+        return "t@" + tag;
+    }
+
+    @AllArgsConstructor
+    private static class PropertyThingTag implements ThingTag {
+        private final ThingProperty property;
+
+        @Override
+        public String getTag() {
+            return property
+                .getProperty()
+                .substring(2);
+        }
+
+        @Override
+        public long getTimestamp() {
+            return property.getTimestamp();
+        }
+
+        @Override
+        public Object getValue() {
             return property.getValue();
         }
     }
@@ -536,8 +606,13 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
 
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeShort(refs.size());
-            for (Property ref : refs.values()) {
+            Collection<Property> properties = refs.values();
+            int size = Math.min(properties.size(), DEFAULT_MAX_STORE_SIZE_EACH_KEY);
+            out.writeShort(size);
+            for (Property ref : properties) {
+                if (size-- == 0) {
+                    break;
+                }
                 ref.writeExternal(out);
             }
             out.writeBoolean(first != null);
@@ -573,6 +648,28 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
             }
             return i;
         }
+    }
+
+    public static <T> T tryIntern(T val) {
+
+        if (val instanceof Number) {
+            if (NumberUtils.isIntNumber(((Number) val))) {
+                int v = ((Number) val).intValue();
+                if (v > Short.MIN_VALUE && v < Short.MAX_VALUE) {
+                    return RecyclerUtils.intern(val);
+                }
+            } else {
+                double v = ((Number) val).doubleValue();
+                //缓存2位小数
+                if (v > Byte.MIN_VALUE &&
+                    v < Byte.MAX_VALUE &&
+                    v * 1000 == (int) (v * 1000)) {
+                    return RecyclerUtils.intern(val);
+                }
+            }
+        }
+
+        return val;
     }
 
     @Getter
@@ -626,8 +723,8 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
         @Override
         public void readExternal(ObjectInput in) throws IOException {
             time = in.readLong();
-            state = (String) SerializeUtils.readObject(in);
-            value = SerializeUtils.readObject(in);
+            state = (String) tryIntern(SerializeUtils.readObject(in));
+            this.value = tryIntern(SerializeUtils.readObject(in));
         }
 
         @Override
@@ -670,6 +767,8 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
                 output.flush();
 
                 buff.put(buffer.nioBuffer());
+            } catch (Throwable err) {
+                log.warn("write thing data error", err);
             } finally {
                 ReferenceCountUtil.safeRelease(buffer);
             }
@@ -683,12 +782,17 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
             try (ObjectOutput output = createOutput(buffer)) {
 
                 for (int i = 0; i < len; i++) {
-                    ((PropertyHistory) Array.get(obj, i)).writeExternal(output);
+                    PropertyHistory history = ((PropertyHistory) Array.get(obj, i));
+                    if (history != null) {
+                        history.writeExternal(output);
+                    }
                 }
                 output.flush();
 
                 buff.put(buffer.nioBuffer());
 
+            } catch (Throwable err) {
+                log.warn("write thing data error", err);
             } finally {
                 ReferenceCountUtil.safeRelease(buffer);
             }
@@ -703,6 +807,8 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
                     data.readExternal(input);
                     Array.set(obj, i, data);
                 }
+            } catch (Throwable err) {
+                log.warn("read thing data error", err);
             }
         }
 
@@ -717,6 +823,8 @@ public class LocalFileThingsDataManager implements ThingsDataManager, ThingsData
             PropertyHistory data = new PropertyHistory();
             try (ObjectInput input = createInput(Unpooled.wrappedBuffer(buff))) {
                 data.readExternal(input);
+            } catch (Throwable err) {
+                log.warn("read thing data error", err);
             }
             return data;
         }

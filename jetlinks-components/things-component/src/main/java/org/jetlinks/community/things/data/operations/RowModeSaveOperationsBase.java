@@ -57,6 +57,7 @@ public abstract class RowModeSaveOperationsBase extends AbstractSaveOperations {
                                                                       Map<String, Object> properties,
                                                                       Map<String, Long> propertySourceTimes) {
         List<Tuple2<String, TimeSeriesData>> data = new ArrayList<>(properties.size());
+
         String metric = metricBuilder.createPropertyMetric(message.getThingType(), templateId, message.getThingId());
 
         for (Map.Entry<String, Object> entry : properties.entrySet()) {
@@ -67,21 +68,26 @@ public abstract class RowModeSaveOperationsBase extends AbstractSaveOperations {
             if (value == null || propertyMetadata == null || propertyIsIgnoreStorage(propertyMetadata)) {
                 continue;
             }
-            long timestamp = propertySourceTimes.getOrDefault(property, message.getTimestamp());
+            try {
+                long timestamp = convertTimestamp(
+                    propertySourceTimes.getOrDefault(property, message.getTimestamp()));
+                String dataId = createPropertyDataId(property, message, timestamp);
 
-            String dataId = createPropertyDataId(property, message, timestamp);
+                data.add(
+                    Tuples.of(
+                        metric,
+                        TimeSeriesData.of(timestamp, this
+                            .createRowPropertyData(dataId,
+                                                   TimestampUtils.toMillis(timestamp),
+                                                   message,
+                                                   propertyMetadata,
+                                                   value))
+                    )
+                );
+            } catch (Throwable err) {
+                handlerError("create property[" + property + "] ts data", message, err);
+            }
 
-            data.add(
-                Tuples.of(
-                    metric,
-                    TimeSeriesData.of(timestamp, this
-                        .createRowPropertyData(dataId,
-                                               TimestampUtils.toMillis(timestamp),
-                                               message,
-                                               propertyMetadata,
-                                               value))
-                )
-            );
         }
         return data;
     }
@@ -90,13 +96,9 @@ public abstract class RowModeSaveOperationsBase extends AbstractSaveOperations {
         return ThingsDataConstants.propertyIsIgnoreStorage(metadata);
     }
 
-    protected boolean useTimestampId(ThingMessage message) {
-        return message.getHeaderOrDefault(Headers.useTimestampAsId);
-    }
-
     protected String createPropertyDataId(String property, ThingMessage message, long timestamp) {
         if (!useTimestampId(message)) {
-            return IDGenerator.SNOW_FLAKE_STRING.generate();
+            return randomId();
         }
         return DigestUtils.md5Hex(
             StringBuilderUtils
@@ -137,7 +139,8 @@ public abstract class RowModeSaveOperationsBase extends AbstractSaveOperations {
             return;
         }
         DataType type = property.getValueType();
-        target.put(COLUMN_PROPERTY_TYPE, type.getId());
+        //不存储type,没啥意义
+        // target.put(COLUMN_PROPERTY_TYPE, type.getId());
         String convertedValue;
         if (type instanceof NumberType) {
             NumberType<?> numberType = (NumberType<?>) type;
@@ -145,7 +148,7 @@ public abstract class RowModeSaveOperationsBase extends AbstractSaveOperations {
                 ? ((Number) value)
                 : numberType.convertNumber(value);
             if (number == null) {
-                throw new BusinessException("error.cannot_convert", 500, value, type.getId());
+                throw new BusinessException.NoStackTrace("error.cannot_convert", 500, value, type.getId());
             }
             convertedValue = String.valueOf(number);
             target.put(COLUMN_PROPERTY_NUMBER_VALUE, convertNumberValue(number));

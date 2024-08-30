@@ -3,11 +3,15 @@ package org.jetlinks.community.configuration;
 import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import lombok.Generated;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.api.crud.entity.EntityFactory;
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.cache.ReactiveCacheManager;
+import org.hswebframework.web.dict.EnumDict;
+import org.hswebframework.web.dict.defaults.DefaultItemDefine;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.JvmErrorException;
 import org.jetlinks.community.config.ConfigManager;
@@ -15,6 +19,7 @@ import org.jetlinks.community.config.ConfigScopeCustomizer;
 import org.jetlinks.community.config.ConfigScopeProperties;
 import org.jetlinks.community.config.SimpleConfigManager;
 import org.jetlinks.community.config.entity.ConfigEntity;
+import org.jetlinks.community.dictionary.DictionaryJsonDeserializer;
 import org.jetlinks.community.reference.DataReferenceManager;
 import org.jetlinks.community.reference.DataReferenceProvider;
 import org.jetlinks.community.reference.DefaultDataReferenceManager;
@@ -26,6 +31,7 @@ import org.jetlinks.community.resource.initialize.PermissionResourceProvider;
 import org.jetlinks.community.service.DefaultUserBindService;
 import org.jetlinks.community.utils.TimeUtils;
 import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.reactor.ql.feature.Feature;
 import org.jetlinks.reactor.ql.supports.DefaultReactorQLMetadata;
@@ -47,6 +53,10 @@ import reactor.core.publisher.Hooks;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
@@ -123,6 +133,22 @@ public class CommonConfiguration {
             }
         }, Long.class);
 
+        BeanUtilsBean.getInstance().getConvertUtils().register(new Converter() {
+            @Override
+            @Generated
+            public <T> T convert(Class<T> type, Object value) {
+
+                if (value instanceof String) {
+                    return (T) DefaultItemDefine.builder()
+                                                .value(String.valueOf(value))
+                                                .build();
+                }
+
+                return (T) FastBeanCopier.copy(value, new DefaultItemDefine());
+
+            }
+        }, EnumDict.class);
+
         //捕获jvm错误,防止Flux被挂起
         Hooks.onOperatorError((err, val) -> {
             if (Exceptions.isJvmFatal(err)) {
@@ -155,6 +181,7 @@ public class CommonConfiguration {
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer(){
         return builder->{
             builder.deserializerByType(Date.class,new SmartDateDeserializer());
+            builder.deserializerByType(EnumDict.class, new DictionaryJsonDeserializer());
         };
     }
 
@@ -196,7 +223,7 @@ public class CommonConfiguration {
         return referenceManager;
     }
 
-    @AutoConfiguration
+    @Configuration
     @ConditionalOnClass(ReactiveRedisOperations.class)
     static class DefaultUserBindServiceConfiguration {
         @Bean

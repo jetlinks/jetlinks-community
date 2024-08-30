@@ -3,26 +3,29 @@ package org.jetlinks.community.rule.engine.scene;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
+import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.ezorm.rdb.executor.EmptySqlRequest;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
+import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.api.crud.entity.TermExpressionParser;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.hswebframework.web.utils.DigestUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.core.trace.TraceHolder;
+import org.jetlinks.core.utils.NamedFunction;
 import org.jetlinks.core.utils.Reactors;
-import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
 import org.jetlinks.community.rule.engine.commons.TermsConditionEvaluator;
+import org.jetlinks.community.rule.engine.enums.SceneFeature;
+import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
-import org.jetlinks.community.rule.engine.scene.term.limit.ShakeLimitGrouping;
+import org.jetlinks.community.terms.TermSpec;
 import org.jetlinks.reactor.ql.DefaultReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
@@ -48,11 +51,15 @@ import java.util.function.Function;
 
 @Getter
 @Setter
+@Slf4j
 public class SceneRule implements Serializable {
+    static final Function<Map<String, Object>, Mono<Boolean>> FILTER_TRUE =
+        NamedFunction.of("true", ignore -> Reactors.ALWAYS_TRUE);
 
     public static final String ACTION_KEY_BRANCH_ID = "_branchId";
     public static final String ACTION_KEY_BRANCH_INDEX = "_branchIndex";
     public static final String ACTION_KEY_GROUP_INDEX = "_groupIndex";
+    public static final String ACTION_KEY_ACTION_ID = "_actionId";
     public static final String ACTION_KEY_ACTION_INDEX = "_actionIndex";
 
     public static final String CONTEXT_KEY_SCENE_OUTPUT = "scene";
@@ -62,11 +69,11 @@ public class SceneRule implements Serializable {
     public static final String SOURCE_NAME_KEY = "sourceName";
 
 
-    @Schema(description = "告警ID")
+    @Schema(description = "场景ID")
     @NotBlank(message = "error.scene_rule_id_cannot_be_blank")
     private String id;
 
-    @Schema(description = "告警名称")
+    @Schema(description = "场景名称")
     @NotBlank(message = "error.scene_rule_name_cannot_be_blank")
     private String name;
 
@@ -74,11 +81,6 @@ public class SceneRule implements Serializable {
     @NotNull(message = "error.scene_rule_trigger_cannot_be_null")
     private Trigger trigger;
 
-    /**
-     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
-     * @see org.jetlinks.community.reactorql.term.TermType
-     * @see org.jetlinks.community.rule.engine.scene.value.TermValue
-     */
     @Schema(description = "触发条件")
     private List<Term> terms;
 
@@ -94,34 +96,31 @@ public class SceneRule implements Serializable {
     @Schema(description = "扩展配置")
     private Map<String, Object> options;
 
+    @Schema(description = "场景特性")
+    private SceneFeature[] features;
+
     @Schema(description = "说明")
     private String description;
 
     public SqlRequest createSql(boolean hasWhere) {
         if (trigger != null) {
-            return trigger.createSql(getTermList(), hasWhere);
+            return TraceHolder
+                .traceBlocking("/scene/create-sql", span -> {
+                    SqlRequest request = trigger.createSql(getTermList(), hasWhere);
+                    if (!(request instanceof EmptySqlRequest)) {
+                        span.setAttribute("sql", request.toNativeSql());
+                    }
+                    return request;
+                });
         }
         return EmptySqlRequest.INSTANCE;
-    }
-
-    private List<Term> getTermList() {
-        List<Term> terms = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(this.terms)) {
-            terms.addAll(this.terms);
-        }
-        if (CollectionUtils.isNotEmpty(this.branches)) {
-            for (SceneConditionAction branch : branches) {
-                terms.addAll(branch.createContextTerm());
-            }
-        }
-        return terms;
     }
 
     public Function<Map<String, Object>, Mono<Boolean>> createDefaultFilter(List<Term> terms) {
         if (trigger != null) {
             return createDefaultFilter(trigger.createFilter(terms));
         }
-        return ignore -> Reactors.ALWAYS_TRUE;
+        return FILTER_TRUE;
     }
 
     public static String DEFAULT_FILTER_TABLE = "t";
@@ -136,30 +135,17 @@ public class SceneRule implements Serializable {
                 .build();
             List<Object> args = Arrays.asList(request.getParameters());
             String sqlString = request.toNativeSql();
-            return new Function<Map<String, Object>, Mono<Boolean>>() {
-                @Override
-                public Mono<Boolean> apply(Map<String, Object> map) {
+            return NamedFunction
+                .of(sqlString, map -> {
                     ReactorQLContext context = new DefaultReactorQLContext((t) -> Flux.just(map), args);
                     return ql
                         .start(context)
                         .hasElements();
-                }
-
-                @Override
-                public String toString() {
-                    return sqlString;
-                }
-            };
+                });
         }
-
-        return ignore -> Reactors.ALWAYS_TRUE;
+        return FILTER_TRUE;
     }
 
-    public ShakeLimitGrouping<Map<String, Object>> createGrouping() {
-        //todo 其他分组方式实现
-        return flux -> flux
-            .groupBy(map -> map.getOrDefault("deviceId", "null"), Integer.MAX_VALUE);
-    }
 
     private Flux<Variable> createSceneVariables(List<TermColumn> columns) {
         return LocaleUtils
@@ -224,7 +210,7 @@ public class SceneRule implements Serializable {
             .doOnNext(Variable::refactorPrefix);
     }
 
-    public static String createBranchActionId(int branchIndex, int groupId, int actionIndex) {
+    static String createBranchActionId(int branchIndex, int groupId, int actionIndex) {
         return "branch_" + branchIndex + "_group_" + groupId + "_action_" + actionIndex;
     }
 
@@ -244,14 +230,23 @@ public class SceneRule implements Serializable {
         for (SceneConditionAction branch : branches) {
             int _branchIndex = ++branchIndex;
             //执行条件
-            Function<Map<String, Object>, Mono<Boolean>> filter = createDefaultFilter(branch.getWhen());
+            Function<Map<String, Object>, Mono<Boolean>> filter = TraceHolder
+                .traceBlocking("/scene/create-branch-filter",
+                               span -> {
+                                   Function<Map<String, Object>, Mono<Boolean>>
+                                       f = createDefaultFilter(branch.getWhen());
+                                   span.setAttribute("filter", f.toString());
+                                   span.setAttribute("branch", _branchIndex);
+                                   return f;
+                               });
             //满足条件后的输出操作
             List<Function<Map<String, Object>, Mono<Void>>> outs = new ArrayList<>();
 
             List<SceneActions> groups = branch.getThen();
             int thenIndex = 0;
             if (CollectionUtils.isNotEmpty(groups)) {
-
+                List<Function<Map<String, Object>, Mono<Void>>> actionOuts = new ArrayList<>();
+                //执行动作
                 for (SceneActions then : groups) {
                     thenIndex++;
 
@@ -277,39 +272,45 @@ public class SceneRule implements Serializable {
                             .flatMap(nodeId -> output.apply(_branchIndex, nodeId, data))
                             .then();
                     }
-                    //防抖
-                    ShakeLimit shakeLimit = branch.getShakeLimit();
-                    if (shakeLimit != null && shakeLimit.isEnabled()) {
-
-                        Sinks.Many<Map<String, Object>> sinks = Sinks
-                            .many()
-                            .unicast()
-                            .onBackpressureBuffer(Queues.<Map<String, Object>>unboundedMultiproducer().get());
-
-                        //分组方式,比如设备触发时,应该按设备分组,每个设备都走独立的防抖策略
-                        ShakeLimitGrouping<Map<String, Object>> grouping = createGrouping();
-
-                        Function<Map<String, Object>, Mono<Void>> handler = out;
-
-                        disposable.add(
-                            shakeLimit
-                                .transfer(sinks.asFlux(),
-                                          (duration, stream) ->
-                                              grouping
-                                                  .group(stream)//先按自定义分组再按时间窗口进行分组
-                                                  .flatMap(group -> group.window(duration), Integer.MAX_VALUE),
-                                          (map, total) -> map.put("_total", total))
-                                .flatMap(handler)
-                                .subscribe()
-                        );
-                        //输出到sink进行防抖控制
-                        out = data -> {
-                            sinks.emitNext(data, Reactors.emitFailureHandler());
-                            return Mono.empty();
-                        };
-                    }
-                    outs.add(out);
+                    actionOuts.add(out);
                 }
+
+                //防抖
+                ShakeLimit shakeLimit = branch.getShakeLimit();
+                if (shakeLimit != null && shakeLimit.isEnabled()) {
+                    Sinks.Many<Map<String, Object>> sinks = Sinks
+                        .many()
+                        .unicast()
+                        .onBackpressureBuffer(Queues.<Map<String, Object>>unboundedMultiproducer().get());
+
+                    //动作输出
+                    Flux<Function<Map<String, Object>, Mono<Void>>> _outs = Flux.fromIterable(new ArrayList<>(actionOuts));
+                    Function<Map<String, Object>, Mono<Void>> handler =
+                        map -> _outs.flatMap(call -> call.apply(map)).then();
+
+                    //防抖
+                    disposable.add(
+                        trigger
+                            .provider()
+                            .shakeLimit(DigestUtils.md5Hex(id + ":" + _branchIndex),
+                                        sinks.asFlux(),
+                                        shakeLimit)
+                            .flatMap(res -> {
+                                res.getElement().put("_total", res.getTimes());
+                                return handler.apply(res.getElement());
+                            })
+                            .subscribe()
+                    );
+                    //满足输出给防抖策略
+                    actionOuts.clear();
+                    actionOuts.add(data -> {
+                        sinks.emitNext(data, Reactors.emitFailureHandler());
+                        return Mono.empty();
+                    });
+                }
+
+                //动作输出
+                outs.addAll(actionOuts);
             }
 
 
@@ -339,7 +340,7 @@ public class SceneRule implements Serializable {
                     .apply(data)
                     .flatMap(match -> {
                         //无论如何都尝试执行当前分支
-                        if(executeAnyway){
+                        if (executeAnyway) {
                             return handler.apply(data);
                         }
                         //上一个分支满足了则返回,不执行此分支逻辑
@@ -373,18 +374,19 @@ public class SceneRule implements Serializable {
         return disposable;
     }
 
-    public SceneRule where(String expression) {
-        setTerms(TermExpressionParser.parse(expression));
-        return this;
-    }
-
     public List<Variable> createDefaultVariable() {
         return trigger != null
             ? trigger.createDefaultVariable()
             : Collections.emptyList();
     }
 
-    public RuleModel toModel() {
+    public SceneRule where(String expression) {
+        setTerms(TermExpressionParser.parse(expression));
+        return this;
+    }
+
+
+    public Mono<RuleModel> toModel() {
         validate();
         RuleModel model = new RuleModel();
         model.setId(id);
@@ -404,6 +406,7 @@ public class SceneRule implements Serializable {
         //触发器
         trigger.applyModel(model, sceneNode);
         model.getNodes().add(sceneNode);
+
         if (CollectionUtils.isNotEmpty(actions)) {
 
             int index = 1;
@@ -432,7 +435,8 @@ public class SceneRule implements Serializable {
                         RuleLink link = model.link(preNode, actionNode);
                         //设置上一个节点到此节点的输出条件
                         if (CollectionUtils.isNotEmpty(preAction.getTerms())) {
-                            link.setCondition(TermsConditionEvaluator.createCondition(trigger.refactorTerm("this", preAction.getTerms())));
+                            link.setCondition(TermsConditionEvaluator.createCondition(trigger.refactorTerm("this", preAction
+                                .getTerms())));
                         }
                         preNode = actionNode;
                     }
@@ -443,13 +447,53 @@ public class SceneRule implements Serializable {
             }
         }
 
+        List<Mono<?>> async = new ArrayList<>();
+
+        Mono<List<TermColumn>> columns = trigger
+            .parseTermColumns()
+            .collectList()
+            .cache();
+
+        Mono<Map<String, Variable>> columnMapping =
+            columns
+                .flatMapMany(this::createSceneVariables)
+                .expand(var -> var.getChildren() == null ? Flux.empty() : Flux.fromIterable(var.getChildren()))
+                .collectMap(Variable::getColumn, Function.identity())
+                .cache();
+
+
         //使用分支条件时
         if (CollectionUtils.isNotEmpty(branches)) {
             int branchIndex = 0;
+            Mono<List<TermSpec>> branchTermSpec = null;
             for (SceneConditionAction branch : branches) {
+                int branchId = branch.getBranchId() == null ? branchIndex : branch.getBranchId();
                 branchIndex++;
 
                 List<SceneActions> group = branch.getThen();
+                Mono<List<TermSpec>> lastTerm = branchTermSpec;
+                //场景输出的条件描述
+                branchTermSpec = columnMapping
+                    .flatMap(mapping -> trigger
+                        .createFilterSpec(
+                            branch.getWhen(),
+                            (term, spec) -> applyTermSpec(term, spec, mapping)))
+                    .flatMap(list -> {
+                        TermSpec spec = new TermSpec();
+                        //最后一个分支? else
+                        if (branch.getWhen().isEmpty()
+                            && lastTerm != null
+                            && !branch.isExecuteAnyway()) {
+                            spec.setTermType(TermType.not);
+                            return lastTerm
+                                .doOnNext(spec::setChildren)
+                                .thenReturn(Collections.singletonList(spec));
+                        }
+                        spec.setChildren(list);
+                        return Mono.just(Collections.singletonList(spec));
+                    })
+                    .cache();
+
 
                 if (CollectionUtils.isNotEmpty(group)) {
                     int groupIndex = 0;
@@ -459,13 +503,33 @@ public class SceneRule implements Serializable {
                             int actionIndex = 1;
                             RuleNodeModel preNode = null;
                             SceneAction preAction = null;
+                            Mono<List<TermSpec>> groupTerm = branchTermSpec;
+
                             for (SceneAction action : actions.getActions()) {
+
+                                int finalBranchIndex = branchIndex - 1,
+                                    finalGroupIndex = groupIndex - 1,
+                                    finalActionIndex = actionIndex - 1;
+
+                                int actionId = action.getActionId() == null ? actionIndex : action.getActionId();
+
+                                //变量信息
+                                Mono<Map<String, Variable>> groupVar = columns
+                                    .flatMapMany(termColumns -> this
+                                        .createVariables(termColumns, finalBranchIndex, finalGroupIndex, finalActionIndex))
+                                    .expand(var -> var.getChildren() == null
+                                        ? Flux.empty()
+                                        : Flux.fromIterable(var.getChildren()))
+                                    .collectMap(Variable::getColumn, Function.identity());
+
                                 RuleNodeModel actionNode = new RuleNodeModel();
                                 actionNode.setId(createBranchActionId(branchIndex, groupIndex, actionIndex));
                                 actionNode.setName("条件" + branchIndex + "_分组" + groupIndex + "_动作" + actionIndex);
 
                                 action.applyNode(actionNode);
                                 //串行
+                                actionNode.addConfiguration(ACTION_KEY_BRANCH_ID, branchId);
+                                actionNode.addConfiguration(ACTION_KEY_ACTION_ID, actionId);
                                 if (!actions.isParallel()) {
                                     //串行的时候 标记记录每一个动作的数据到header中，用于进行条件判断或者数据引用
                                     actionNode.addConfiguration(RuleData.RECORD_DATA_TO_HEADER, true);
@@ -479,36 +543,114 @@ public class SceneRule implements Serializable {
                                         RuleLink link = model.link(preNode, actionNode);
                                         //设置上一个节点到此节点的输出条件
                                         if (CollectionUtils.isNotEmpty(preAction.getTerms())) {
-                                            link.setCondition(TermsConditionEvaluator.createCondition(trigger.refactorTerm("this", preAction.getTerms())));
+                                            List<Term> termList = preAction.getTerms();
+                                            //合并上一个节点输出的变量
+                                            groupTerm = Mono.zip(
+                                                groupTerm.<List<TermSpec>>map(ArrayList::new),
+                                                groupVar,
+                                                (parent, mapping) -> {
+                                                    TermSpec childSpec = new TermSpec();
+                                                    childSpec
+                                                        .setChildren(
+                                                            TermSpec.of(
+                                                                termList,
+                                                                (term, spec) -> applyTermSpec(term, spec, mapping))
+                                                        );
+                                                    parent.add(childSpec);
+                                                    return parent;
+                                                });
+
+                                            link.setCondition(TermsConditionEvaluator.createCondition(
+                                                trigger.refactorTerm("this", termList)));
                                         }
+
                                     } else if (Objects.equals(trigger.getType(), ManualTriggerProvider.PROVIDER)) {
                                         model.link(sceneNode, actionNode);
                                     }
-
-                                    preNode = actionNode;
                                 } else {
                                     if (Objects.equals(trigger.getType(), ManualTriggerProvider.PROVIDER)) {
                                         model.link(sceneNode, actionNode);
                                     }
                                 }
 
+                                groupTerm = groupTerm
+                                    .doOnNext(arr -> {
+                                        log.debug(
+                                            "scene[{}] action[{}] term spec: {}",
+                                            getId(),
+                                            actionNode.getId(),
+                                            arr);
+                                        action.applyFilterSpec(actionNode, arr);
+                                    })
+                                    .as(MonoTracer.create(
+                                        "/scene/branch_filter_spec",
+                                        (span, next) -> {
+                                            span.setAttribute("spec", TermSpec.toString(next));
+                                            span.setAttribute("actionId", actionNode.getId());
+                                        }))
+                                    .cache();
+
+                                preNode = actionNode;
+
                                 model.getNodes().add(actionNode);
                                 preAction = action;
                                 actionIndex++;
                             }
+                            async.add(groupTerm);
                         }
                     }
+
                 }
-
-
             }
         }
 
-        return model;
+        return Flux
+            .concat(async)
+            .then(Mono.just(model));
 
     }
 
     public void validate() {
         ValidatorUtils.tryValidate(this);
     }
+
+    private void applyTermSpec(Term term, TermSpec spec, Map<String, Variable> mapping) {
+        Variable var = mapping.get(term.getColumn());
+        Term newTerm = trigger.refactorTerm("this", term.clone());
+
+        Object newValue = newTerm.getValue();
+        //期望值是另外一个变量
+        if (newValue instanceof NativeSql) {
+            spec.setExpectIsExpr(true);
+            String sql = ((NativeSql) newValue).getSql();
+            //sql语法格式特殊如: this['temp_current']
+            //只需要里面的temp_current作为变量表达式
+            if (sql.contains("['") && sql.endsWith("']")) {
+                spec.setExpected(sql.substring(sql.indexOf("['") + 2, sql.length() - 2));
+            }
+        } else {
+            spec.setExpected(newTerm.getValue());
+        }
+
+        if (var != null) {
+            spec.setColumn(var.getId());
+            spec.setMetadata(var.isMetadata());
+            spec.setDisplayCode(var.getFullNameCode());
+        }
+
+    }
+
+    private List<Term> getTermList() {
+        List<Term> terms = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(this.terms)) {
+            terms.addAll(this.terms);
+        }
+        if (CollectionUtils.isNotEmpty(this.branches)) {
+            for (SceneConditionAction branch : branches) {
+                terms.addAll(branch.createContextTerm());
+            }
+        }
+        return terms;
+    }
+
 }

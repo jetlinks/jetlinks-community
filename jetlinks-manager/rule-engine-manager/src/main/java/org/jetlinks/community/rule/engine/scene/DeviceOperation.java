@@ -9,20 +9,20 @@ import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
 import org.jetlinks.core.message.property.WritePropertyMessage;
+import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.types.UnknownType;
 import org.jetlinks.core.things.ThingMetadata;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotNull;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.jetlinks.core.metadata.SimplePropertyMetadata.of;
@@ -104,22 +104,25 @@ public class DeviceOperation {
         List<TermColumn> terms = new ArrayList<>(32);
         //服务器时间 // _now
         terms.add(TermColumn.of("_now",
-            resolveI18n("message.scene_term_column_now", "服务器时间"),
-            DateTimeType.GLOBAL,
-            resolveI18n("message.scene_term_column_now_desc", "收到设备数据时,服务器的时间.")));
+                                "message.scene_term_column_now",
+                                "服务器时间",
+                                DateTimeType.GLOBAL,
+                                "收到设备数据时,服务器的时间."));
         //数据上报时间 // timestamp
         terms.add(TermColumn.of("timestamp",
-            resolveI18n("message.scene_term_column_timestamp", "数据上报时间"),
-            DateTimeType.GLOBAL,
-            resolveI18n("message.scene_term_column_timestamp_desc", "设备上报的数据中指定的时间.")));
+                                "message.scene_term_column_timestamp",
+                                "数据上报时间",
+                                DateTimeType.GLOBAL,
+                                "设备上报的数据中指定的时间."));
 
         //下发指令操作可以判断结果
         if (operator == Operator.readProperty
             || operator == Operator.writeProperty
             || operator == Operator.invokeFunction) {
             terms.add(TermColumn.of("success",
-                resolveI18n("message.scene_term_column_event_success", "场景触发是否成功"),
-                BooleanType.GLOBAL));
+                                    "message.scene_term_column_event_success",
+                                    "场景触发是否成功",
+                                    BooleanType.GLOBAL));
         }
         //属性相关
         if (operator == Operator.readProperty
@@ -128,8 +131,7 @@ public class DeviceOperation {
             terms.addAll(
                 this.createTerm(
                     metadata.getProperties(),
-                    (property, column) -> column.setChildren(createTermColumn("properties", property, true, PropertyValueType
-                            .values())),
+                    (property, column) -> column.setChildren(createTermColumn("properties", property, true, PropertyValueType.values())),
                     LocaleUtils.resolveMessage("message.device_metadata_property", "属性"))
             );
         } else {
@@ -137,7 +139,12 @@ public class DeviceOperation {
             terms.addAll(
                 this.createTerm(
                     metadata.getProperties(),
-                    (property, column) -> column.setChildren(createTermColumn("properties", property, true, PropertyValueType.last)),
+                    (property, column) -> column.setChildren(
+                        createTermColumn(
+                            "properties",
+                            property,
+                            true,
+                            PropertyValueType.last, PropertyValueType.lastTime)),
                     LocaleUtils.resolveMessage("message.device_metadata_property", "属性")));
         }
 
@@ -146,51 +153,38 @@ public class DeviceOperation {
             terms.addAll(
                 this.createTerm(
                     metadata.getEvent(eventId)
-                        .<List<PropertyMetadata>>map(event -> Collections
-                            .singletonList(
-                                of("data",
-                                    event.getName(),
-                                    event.getType())
-                            ))
-                        .orElse(Collections.emptyList()),
-                    (property, column) -> column.setChildren(createTermColumn("event", property, false))));
+                            .<List<PropertyMetadata>>map(event -> Collections
+                                .singletonList(
+                                    of("data",
+                                       event.getName(),
+                                       event.getType())
+                                ))
+                            .orElse(Collections.emptyList()),
+                    (property, column) -> column.setChildren(createTermColumn("event", property, false)),
+                    LocaleUtils.resolveMessage("message.device_metadata_event", "事件")));
         }
         //调用功能
         if (operator == Operator.invokeFunction) {
             terms.addAll(
                 this.createTerm(
                     metadata.getFunction(functionId)
-                        .<List<PropertyMetadata>>map(meta -> Collections.singletonList(
-                            of("output",
-                                meta.getName(),
-                                meta.getOutput()))
-                        )
-                        .orElse(Collections.emptyList()),
-                    (property, column) -> column.setChildren(createTermColumn("function", property, false))));
+                            //过滤掉异步功能和无返回值功能的参数输出
+                            .filter(fun -> !fun.isAsync() && !(fun.getOutput() instanceof UnknownType))
+                            .<List<PropertyMetadata>>map(meta -> Collections.singletonList(
+                                of("output",
+                                   meta.getName(),
+                                   meta.getOutput()))
+                            )
+                            .orElse(Collections.emptyList()),
+                    (property, column) -> column.setChildren(createTermColumn("function", property, false)),
+                    LocaleUtils.resolveMessage("message.device_metadata_function", "功能调用")));
         }
 
-        Map<String, TermColumn> allColumn = terms
-            .stream()
-            .collect(Collectors.toMap(TermColumn::getColumn, Function.identity(), (a, b) -> a));
-        for (TermColumn term : terms) {
-            term.refactorDescription(allColumn::get);
-            term.refactorFullName(null);
-        }
-        return terms;
+        return TermColumn.refactorTermsInfo("properties", terms);
     }
 
     private String resolveI18n(String key, String name) {
         return LocaleUtils.resolveMessage(key, name);
-    }
-
-    private String appendColumn(String... columns) {
-        StringJoiner joiner = new StringJoiner(".");
-        for (String column : columns) {
-            if (StringUtils.hasText(column)) {
-                joiner.add(column);
-            }
-        }
-        return joiner.toString();
     }
 
     private List<TermColumn> createTermColumn(String prefix, PropertyMetadata property, boolean last, PropertyValueType... valueTypes) {
@@ -215,16 +209,22 @@ public class DeviceOperation {
         } else {
             if (!last) {
                 return Collections.singletonList(
-                    TermColumn.of(appendColumn(prefix, property.getId()),
-                            property.getName(), property.getValueType())
-                        .withMetrics(property)
-                        .withMetadataTrue()
+                    TermColumn.of(SceneUtils.appendColumn(prefix, property.getId()),
+                                  property.getName(), property.getValueType())
+                              .withMetrics(property)
+                              .withMetadataTrue()
                 );
             }
             return Arrays
                 .stream(valueTypes)
                 .map(type -> TermColumn
-                    .of(appendColumn(prefix, property.getId(), type.name()), type.getName(), property.getValueType())
+                    .of(SceneUtils
+                            .appendColumn(prefix,
+                                          property.getId(),
+                                          type.name()),
+                        type.getKey(),
+                        null,
+                        type.dataType == null ? property.getValueType() : type.dataType)
                     .withMetrics(property)
                     .withMetadataTrue()
                 )
@@ -258,17 +258,15 @@ public class DeviceOperation {
                 return;
             case readProperty:
                 Assert.notEmpty(readProperties,
-                    "error.scene_rule_trigger_device_operation_read_property_cannot_be_empty");
+                                "error.scene_rule_trigger_device_operation_read_property_cannot_be_empty");
                 return;
             case writeProperty:
                 Assert.notEmpty(writeProperties,
-                    "error.scene_rule_trigger_device_operation_write_property_cannot_be_empty");
+                                "error.scene_rule_trigger_device_operation_write_property_cannot_be_empty");
                 return;
             case invokeFunction:
                 Assert.hasText(functionId,
-                    "error.scene_rule_trigger_device_operation_function_id_cannot_be_null");
-                Assert.notEmpty(functionParameters,
-                    "error.scene_rule_trigger_device_operation_function_parameter_cannot_be_empty");
+                               "error.scene_rule_trigger_device_operation_function_id_cannot_be_null");
         }
     }
 
@@ -291,12 +289,15 @@ public class DeviceOperation {
     @AllArgsConstructor
     @Getter
     public enum PropertyValueType {
-        current("message.property_value_type_current"),
-        recent("message.property_value_type_recent"),
-        last("message.property_value_type_last"),
+        current("message.property_value_type_current", null),
+        recent("message.property_value_type_recent", null),
+        last("message.property_value_type_last", null),
+        lastTime("message.property_value_type_last_time", DateTimeType.GLOBAL),
         ;
 
         private final String key;
+
+        private final DataType dataType;
 
         public String getName() {
             return LocaleUtils.resolveMessage(key);

@@ -23,6 +23,12 @@ public class AlarmAction extends AlarmTaskExecutorProvider.Config {
         List<Variable> variables = new ArrayList<>();
 
         variables.add(
+            Variable.of(AlarmConstants.ConfigKey.alarmConfigId,
+                        LocaleUtils.resolveMessage("message.alarm_config_id", "告警配置ID"))
+                    .withType(StringType.GLOBAL)
+        );
+
+        variables.add(
             Variable.of(AlarmConstants.ConfigKey.alarmName,
                         LocaleUtils.resolveMessage("message.alarm_config_name", "告警配置名称"))
                     .withType(StringType.GLOBAL)

@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -35,8 +36,6 @@ import java.util.function.Function;
 @AllArgsConstructor
 @Resource(id = "rule-scene", name = "场景管理")
 public class SceneController implements ReactiveServiceQueryController<SceneEntity, String> {
-
-    private final DeviceRegistry deviceRegistry;
 
     @Getter
     private final SceneService service;
@@ -66,11 +65,25 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
         return service.disabled(id);
     }
 
+    @PutMapping("/batch/_disable")
+    @Operation(summary = "批量禁用场景")
+    @SaveAction
+    public Mono<Void> disableSceneBatch(@RequestBody Mono<List<String>> id) {
+        return id.flatMap(service::disabled);
+    }
+
     @PutMapping("/{id}/_enable")
     @Operation(summary = "启用场景")
     @SaveAction
     public Mono<Void> enabledScene(@PathVariable String id) {
         return service.enable(id);
+    }
+
+    @PutMapping("/batch/_enable")
+    @Operation(summary = "批量启用场景")
+    @SaveAction
+    public Mono<Void> enabledSceneBatch(@RequestBody Mono<List<String>> id) {
+        return id.flatMap(service::enable);
     }
 
     @PostMapping("/{id}/_execute")
@@ -124,7 +137,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
                 parseTermColumns(cache).collectList(),
                 cache,
                 (columns, rule) -> rule
-                    .createVariables(columns ,
+                    .createVariables(columns,
                                      branch,
                                      branchGroup,
                                      action))

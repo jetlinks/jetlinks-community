@@ -1,7 +1,6 @@
 package org.jetlinks.community.rule.engine.service;
 
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
@@ -14,7 +13,6 @@ import org.jetlinks.community.rule.engine.scene.SceneRule;
 import org.jetlinks.community.rule.engine.web.request.SceneExecuteRequest;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleEngine;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +22,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 @AllArgsConstructor
-@Slf4j
-public class SceneService extends GenericReactiveCrudService<SceneEntity, String> implements CommandLineRunner {
+public class SceneService extends GenericReactiveCrudService<SceneEntity, String> {
 
     private final RuleEngine ruleEngine;
 
@@ -93,25 +91,35 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
 
     @Transactional(rollbackFor = Throwable.class)
     public Mono<Void> enable(String id) {
-        Assert.hasText(id, "id can not be empty");
+        return enable(Collections.singletonList(id));
+    }
+
+    @Transactional(rollbackFor = Throwable.class)
+    public Mono<Void> enable(Collection<String> id) {
+        Assert.notEmpty(id, "id can not be empty");
         long now = System.currentTimeMillis();
         return this
             .createUpdate()
             .set(SceneEntity::getState, RuleInstanceState.started)
             .set(SceneEntity::getModifyTime, now)
             .set(SceneEntity::getStartTime, now)
-            .where(SceneEntity::getId, id)
+            .in(SceneEntity::getId, id)
             .execute()
             .then();
     }
 
     @Transactional
     public Mono<Void> disabled(String id) {
-        Assert.hasText(id, "id can not be empty");
+        return disabled(Collections.singletonList(id));
+    }
+
+    @Transactional
+    public Mono<Void> disabled(Collection<String> id) {
+        Assert.notEmpty(id, "id can not be empty");
         return this
             .createUpdate()
             .set(SceneEntity::getState, RuleInstanceState.disable)
-            .where(SceneEntity::getId, id)
+            .in(SceneEntity::getId, id)
             .execute()
             .then();
     }
@@ -148,9 +156,12 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
                 //禁用时,停止规则
                 if (scene.getState() == RuleInstanceState.disable) {
                     return ruleEngine.shutdown(scene.getId());
-                }else if (scene.getState() == RuleInstanceState.started){
+                } else if (scene.getState() == RuleInstanceState.started) {
                     scene.validate();
-                    return ruleEngine.startRule(scene.getId(), scene.toRule().getModel());
+                    return scene
+                        .toRule()
+                        .flatMap(instance -> ruleEngine.startRule(scene.getId(), instance.getModel()).then())
+                        ;
                 }
                 return Mono.empty();
             })
@@ -165,21 +176,6 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
         event.async(
             handleEvent(event.getEntity())
         );
-    }
-
-    @Override
-    public void run(String... args) {
-        createQuery()
-            .where()
-            .is(SceneEntity::getState, RuleInstanceState.started)
-            .fetch()
-            .flatMap(e -> Mono
-                .defer(() -> ruleEngine.startRule(e.getId(), e.toRule().getModel()).then())
-                .onErrorResume(err -> {
-                    log.warn("启动场景[{}]失败", e.getName(), err);
-                    return Mono.empty();
-                }))
-            .subscribe();
     }
 
 }

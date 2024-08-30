@@ -8,28 +8,27 @@ import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.rule.engine.scene.internal.actions.*;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.types.*;
+import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.community.reactorql.term.TermTypes;
+import org.jetlinks.community.rule.engine.scene.internal.actions.*;
+import org.jetlinks.community.terms.TermSpec;
 import org.jetlinks.community.utils.ConverterUtils;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import reactor.core.publisher.Flux;
 
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static org.hswebframework.web.i18n.LocaleUtils.resolveMessage;
 import static org.jetlinks.community.rule.engine.scene.SceneRule.createBranchActionId;
 
-/**
- * @see org.jetlinks.community.rule.engine.executor.TimerTaskExecutorProvider
- * @see org.jetlinks.community.rule.engine.executor.DelayTaskExecutorProvider
- * @see org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider
- */
 @Getter
 @Setter
 public class SceneAction implements Serializable {
@@ -59,6 +58,9 @@ public class SceneAction implements Serializable {
     @Schema(description = "拓展信息")
     private Map<String, Object> options;
 
+    @Schema(description = "执行动作ID")
+    private Integer actionId;
+
     /**
      * 从拓展信息中获取需要查询的列,用于在设备触发等场景需要在sql中获取对应的数据.
      *
@@ -77,14 +79,15 @@ public class SceneAction implements Serializable {
 
     /**
      * 尝试从动作的变量中提取出需要动态获取的列信息
+     *
      * @return 条件
      */
     private List<String> parseActionTerms() {
+
         return SceneProviders
             .getActionProviderNow(executor)
             .parseColumns(actionConfig());
     }
-
 
     public List<String> createContextColumns() {
         List<String> termList = new ArrayList<>();
@@ -92,6 +95,7 @@ public class SceneAction implements Serializable {
         termList.addAll(parseActionTerms());
         return termList;
     }
+
 
     public Object actionConfig() {
         switch (executor) {
@@ -123,7 +127,7 @@ public class SceneAction implements Serializable {
 
     }
 
-    private static Variable createVariable(Integer branchIndex, Integer group, int actionIndex, List<Variable> children) {
+    public static Variable createVariable(Integer branchIndex, Integer group, int actionIndex, List<Variable> children) {
 
         String varId = "action_" + actionIndex;
 
@@ -177,14 +181,19 @@ public class SceneAction implements Serializable {
         SceneProviders
             .getActionProviderNow(executor)
             .applyRuleNode(actionConfig(), node);
+
     }
 
-
+    public void applyFilterSpec(RuleNodeModel node, List<TermSpec> specs) {
+        SceneProviders
+                .getActionProviderNow(executor)
+                .applyFilterSpec(node, specs);
+    }
 
     public static Variable toVariable(String prefix,
-                                       PropertyMetadata metadata,
-                                       String i18nKey,
-                                       String msgPattern) {
+                                      PropertyMetadata metadata,
+                                      String i18nKey,
+                                      String msgPattern) {
         return toVariable(prefix.concat(".").concat(metadata.getId()),
                           metadata.getName(),
                           metadata.getValueType(),
@@ -194,11 +203,11 @@ public class SceneAction implements Serializable {
     }
 
     public static Variable toVariable(String id,
-                                       String metadataName,
-                                       DataType dataType,
-                                       String i18nKey,
-                                       String msgPattern,
-                                       String parentName) {
+                                      String metadataName,
+                                      DataType dataType,
+                                      String i18nKey,
+                                      String msgPattern,
+                                      String parentName) {
 
         String fullName = parentName == null ? metadataName : parentName + "." + metadataName;
         Variable variable = Variable.of(id, LocaleUtils.resolveMessage(i18nKey,

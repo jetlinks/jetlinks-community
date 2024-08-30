@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * 告警规则绑定.
@@ -49,4 +50,28 @@ public class AlarmRuleBindController implements ReactiveServiceCrudController<Al
                 .execute());
     }
 
+    @PostMapping("/{alarmId}/{ruleId}/_delete")
+    @DeleteAction
+    @Operation(summary = "删除指定分支的告警规则绑定")
+    public Mono<Integer> deleteAlarmBindByBranchId(@PathVariable @Parameter(description = "告警配置ID") String alarmId,
+                                                   @PathVariable @Parameter(description = "场景联动ID") String ruleId,
+                                                   @RequestBody @Parameter(description = "分支ID") Mono<List<Integer>> branchIndex) {
+        return branchIndex
+            .flatMap(idList -> service
+                .createDelete()
+                .where(AlarmRuleBindEntity::getAlarmId, alarmId)
+                .and(AlarmRuleBindEntity::getRuleId, ruleId)
+                .in(AlarmRuleBindEntity::getBranchIndex, idList)
+                .execute());
+    }
+
+    @PostMapping("/_delete")
+    @DeleteAction
+    @Operation(summary = "批量删除多个规则或告警的绑定")
+    public Mono<Integer> deleteAlarmBindById(@RequestBody @Parameter(description = "绑定信息") Mono<List<AlarmRuleBindEntity>> payload) {
+        return payload
+            .flatMapIterable(Function.identity())
+            .map(AlarmRuleBindEntity::getId)
+            .as(service::deleteById);
+    }
 }

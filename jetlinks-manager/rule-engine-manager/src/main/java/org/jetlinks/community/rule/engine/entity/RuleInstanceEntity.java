@@ -10,6 +10,7 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.api.crud.entity.RecordModifierEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
@@ -31,7 +32,7 @@ import java.sql.JDBCType;
 @Table(name = "rule_instance")
 @Comment("规则实例表")
 @EnableEntityEvent
-public class RuleInstanceEntity extends GenericEntity<String> implements RecordCreationEntity {
+public class RuleInstanceEntity extends GenericEntity<String> implements RecordCreationEntity, RecordModifierEntity {
 
     @Override
     @GeneratedValue(generator = "snow_flake")
@@ -75,6 +76,25 @@ public class RuleInstanceEntity extends GenericEntity<String> implements RecordC
     @Column(name = "creator_id")
     @Schema(description = "创建者ID")
     private String creatorId;
+
+    @Column(length = 64)
+    @Schema(
+        description = "修改人ID"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String modifierId;
+
+    @Column
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    @Schema(
+        description = "修改时间"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private Long modifyTime;
+
+    @Column(length = 64)
+    @Schema(description = "修改人名称")
+    private String modifierName;
 
     @Column(name = "state", length = 16)
     @EnumCodec
