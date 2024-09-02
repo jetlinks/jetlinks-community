@@ -36,6 +36,9 @@ public class UserDetail {
     @Schema(hidden = true)
     private UserEntityType type;
 
+    @Schema(description = "用户类型ID")
+    private String typeId;
+
     @Schema(description = "用户状态。1启用，0禁用")
     private Byte status;
 
@@ -62,6 +65,9 @@ public class UserDetail {
 
     @Schema(description = "所在机构(部门)信息")
     private List<OrganizationInfo> orgList;
+
+    @Schema(description = "创建者ID")
+    private String creatorId;
 
     private boolean tenantDisabled;
 
@@ -118,6 +124,11 @@ public class UserDetail {
         return this;
     }
 
+    public UserDetail withType() {
+        this.setType(UserEntityTypes.getType(this.getTypeId()));
+        return this;
+    }
+
     public UserEntity toUserEntity() {
         UserEntity userEntity = new UserEntity();
         userEntity.setId(id);
@@ -131,7 +142,7 @@ public class UserDetail {
         return userEntity;
     }
 
-    public UserDetailEntity toDetailEntity(){
+    public UserDetailEntity toDetailEntity() {
         return FastBeanCopier.copy(this, new UserDetailEntity());
     }
 
