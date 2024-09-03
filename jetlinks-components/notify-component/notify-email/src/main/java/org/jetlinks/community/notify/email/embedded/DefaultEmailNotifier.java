@@ -154,7 +154,15 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
                 return Flux
                     .fromIterable(template.getAttachments().entrySet())
-                    .flatMap(entry -> Mono.zip(Mono.just(entry.getKey()), convertResource(entry.getValue())))
+                    .flatMap(entry -> Mono
+                        .zip(Mono.just(entry.getKey()), convertResource(entry.getValue()))
+                        .onErrorResume(err -> {
+                            log.error("附件获取失败！", err);
+                            if (err.getMessage().startsWith("Exceeded limit on")) {
+                                return Mono.error(() -> new BusinessException.NoStackTrace("error.exceeded_limit_on_max_bytes_to_buffer", 500, entry.getKey()));
+                            }
+                            return Mono.error(() -> new BusinessException.NoStackTrace(err.getMessage()));
+                        }))
                     .flatMap(tp2 -> Mono
                         .fromCallable(() -> {
                             //添加附件
