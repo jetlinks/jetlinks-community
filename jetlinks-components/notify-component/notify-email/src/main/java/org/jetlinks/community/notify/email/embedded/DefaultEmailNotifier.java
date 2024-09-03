@@ -156,12 +156,12 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
                     .fromIterable(template.getAttachments().entrySet())
                     .flatMap(entry -> Mono
                         .zip(Mono.just(entry.getKey()), convertResource(entry.getValue()))
-                        .onErrorResume(err -> {
-                            if (err.getMessage().startsWith("Exceeded limit on")) {
-                                return Mono.error(() -> new BusinessException.NoStackTrace("error.load_attachment_failed", 500, entry.getKey(), err.getMessage()));
-                            }
-                            return Mono.error(() -> new BusinessException.NoStackTrace(err.getMessage()));
-                        }))
+                        .onErrorResume(err -> Mono
+                            .error(() -> new BusinessException.NoStackTrace("error.load_attachment_failed",
+                                                                            500,
+                                                                            entry.getKey(),
+                                                                            err.getMessage())))
+                    )
                     .flatMap(tp2 -> Mono
                         .fromCallable(() -> {
                             //添加附件
