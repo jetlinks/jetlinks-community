@@ -49,6 +49,14 @@ public class MenuBindEntity extends GenericEntity<String> {
     @NotBlank
     private String menuId;
 
+    /**
+     * @since 2.2 此前数据未记录
+     */
+    @Schema(description = "菜单拥有者")
+    @Column(length = 64, updatable = false)
+    @NotBlank
+    private String owner;
+
     @Schema(description = "其他配置")
     @Column
     @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
