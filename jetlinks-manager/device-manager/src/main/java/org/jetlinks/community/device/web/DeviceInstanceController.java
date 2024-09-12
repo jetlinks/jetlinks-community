@@ -37,11 +37,6 @@ import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.service.data.DeviceProperties;
-import org.jetlinks.community.device.web.excel.DeviceExcelImporter;
-import org.jetlinks.community.device.web.excel.DeviceExcelInfo;
-import org.jetlinks.community.device.web.excel.DeviceWrapper;
-import org.jetlinks.community.device.web.excel.PropertyMetadataExcelInfo;
-import org.jetlinks.community.device.web.excel.PropertyMetadataWrapper;
 import org.jetlinks.community.device.web.excel.*;
 import org.jetlinks.community.device.web.request.AggRequest;
 import org.jetlinks.community.io.excel.AbstractImporter;
@@ -65,11 +60,14 @@ import org.jetlinks.core.message.MessageType;
 import org.jetlinks.core.message.RepayableDeviceMessage;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.data.util.Lazy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.util.StringUtils;
@@ -1140,5 +1138,36 @@ public class DeviceInstanceController implements
                                                   @PathVariable String property) {
         return metricManager
             .getPropertyMetrics(DeviceThingType.device.getId(), deviceId, property);
+    }
+
+    //仅解析文件为属性物模型
+    @PostMapping(value = "/{productId}/property-metadata/file/analyze")
+    @SaveAction
+    @Operation(summary = "仅解析文件为属性物模型")
+    public Mono<String> importPropertyMetadata(@PathVariable @Parameter(description = "产品ID") String productId,
+                                               @RequestPart("file")
+                                               @Parameter(name = "file", description = "物模型属性文件,支持csv,xlsx文件格式") Mono<FilePart> partMono) {
+        return partMono
+            .flatMap(part -> DataBufferUtils
+                .join(part.content())
+                .map(DataBuffer::asInputStream)
+                .flatMap(inputStream -> metadataManager
+                    .getMetadataExpandsConfig(productId, DeviceMetadataType.property, "*", "*", DeviceConfigScope.device)
+                    .collectList()
+                    .flatMap(configMetadata -> read(inputStream,
+                                                    FileUtils.getExtension(part
+                                                                               .headers()
+                                                                               .getContentDisposition()
+                                                                               .getFilename()),
+                                                    new PropertyMetadataImportWrapper(configMetadata))
+                        .map(PropertyMetadataExcelImportInfo::toMetadata)
+                        .collectList()
+                        .filter(CollectionUtils::isNotEmpty))
+                    .map(list -> {
+                        SimpleDeviceMetadata metadata = new SimpleDeviceMetadata();
+                        list.forEach(metadata::addProperty);
+                        return JetLinksDeviceMetadataCodec.getInstance().doEncode(metadata);
+                    }))
+            );
     }
 }

@@ -1,7 +1,6 @@
 package org.jetlinks.community.io.utils;
 
 import io.netty.buffer.ByteBufAllocator;
-import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.jetlinks.core.message.codec.http.HttpUtils;
 import org.springframework.core.io.Resource;
@@ -23,7 +22,9 @@ import java.nio.file.Paths;
 public class FileUtils {
 
     public static String getExtension(String url) {
-        url = HttpUtils.urlDecode(url);
+        if (UrlCodecUtils.hasEncode(url)){
+            url = HttpUtils.urlDecode(url);
+        }
         if (url.contains("?")) {
             url = url.substring(0, url.lastIndexOf("?"));
         }
