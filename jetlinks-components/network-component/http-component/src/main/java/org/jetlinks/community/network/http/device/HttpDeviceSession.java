@@ -73,8 +73,11 @@ class HttpDeviceSession implements DeviceSession {
     @Override
     public Mono<Boolean> send(EncodedMessage encodedMessage) {
         //未建立websocket链接,不支持此类消息.
-        if(websocket == null){
-            return Mono.error(new DeviceOperationException(ErrorCode.UNSUPPORTED_MESSAGE));
+        if (websocket == null) {
+            return Mono.error(new DeviceOperationException.NoStackTrace(ErrorCode.UNSUPPORTED_MESSAGE));
+        }
+        if (!websocket.isAlive()) {
+            return Mono.error(new DeviceOperationException.NoStackTrace(ErrorCode.CONNECTION_LOST));
         }
         if (encodedMessage instanceof WebSocketMessage) {
             return websocket
@@ -99,7 +102,10 @@ class HttpDeviceSession implements DeviceSession {
 
     @Override
     public void close() {
-
+        //断开websocket连接
+        if (websocket != null) {
+            websocket.close().subscribe();
+        }
     }
 
     @Override
