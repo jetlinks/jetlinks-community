@@ -103,7 +103,10 @@ public class DeviceMessageBusinessHandler {
                 instance.setCreateTimeNow();
                 instance.setCreatorId(tps.getT4().getCreatorId());
                 instance.setOrgId(tps.getT4().getOrgId());
-
+                //网关ID
+                message.getHeader(DeviceConfigKey.parentGatewayId.getKey())
+                       .map(String::valueOf)
+                       .ifPresent(instance::setParentId);
                 //设备自状态管理
                 //网关注册设备子设备时,设置自状态管理。
                 //在检查子设备状态时,将会发送ChildDeviceMessage<DeviceStateCheckMessage>到网关
