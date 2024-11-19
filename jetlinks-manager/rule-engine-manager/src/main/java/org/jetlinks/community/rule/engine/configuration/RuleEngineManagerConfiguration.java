@@ -29,7 +29,7 @@ public class RuleEngineManagerConfiguration {
     @ConditionalOnClass(ElasticSearchService.class)
     static class ElasticSearchAlarmHistoryConfiguration {
 
-        @Bean(initMethod = "init")
+        @Bean
         public ElasticSearchAlarmHistoryService alarmHistoryService(ElasticSearchService elasticSearchService,
                                                                     ElasticSearchIndexManager indexManager) {
             return new ElasticSearchAlarmHistoryService(indexManager, elasticSearchService);
