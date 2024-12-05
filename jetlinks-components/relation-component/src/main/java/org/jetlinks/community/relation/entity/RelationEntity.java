@@ -40,6 +40,10 @@ public class RelationEntity extends GenericEntity<String> {
     @Column(length = 64, nullable = false)
     private String name;
 
+    @Schema(description = "反转关系名称")
+    @Column(length = 64)
+    private String reverseName;
+
     @Schema(description = "目标对象类型")
     @Column(length = 32, nullable = false, updatable = false)
     private String targetType;
