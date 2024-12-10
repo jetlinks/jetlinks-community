@@ -19,12 +19,13 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.core.param.TermType;
-import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.elastic.search.service.AggregationService;
 import org.jetlinks.community.elastic.search.utils.ElasticSearchConverter;
+import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.*;
+import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
@@ -32,6 +33,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.*;
@@ -205,7 +207,10 @@ public class ReactiveAggregationService implements AggregationService {
                 )
             )
             .flatMap(restClient::searchForPage)
-            .flatMapMany(this::parseResult)
+            .flatMapMany(row -> this.parseResult(row, aggregationQueryParam
+                .getAggColumns()
+                .stream()
+                .collect(Collectors.toMap(AggregationColumn::getAlias, AggregationColumn::getAggregation))))
             .as(flux -> {
                 if (!group) {
                     return flux
@@ -219,16 +224,18 @@ public class ReactiveAggregationService implements AggregationService {
             ;
     }
 
-    protected Flux<Map<String, Object>> parseResult(SearchResponse searchResponse) {
+    protected Flux<Map<String, Object>> parseResult(SearchResponse searchResponse, Map<String, Aggregation> columnAggregationMap) {
         return Mono.justOrEmpty(searchResponse.getAggregations())
                    .flatMapIterable(Aggregations::asList)
-                   .flatMap(agg -> parseAggregation(agg.getName(), agg), Integer.MAX_VALUE);
+                   .flatMap(agg -> parseAggregation(agg.getName(), agg, columnAggregationMap), Integer.MAX_VALUE);
     }
 
+
     private Flux<Map<String, Object>> parseAggregation(String name,
-                                                       org.elasticsearch.search.aggregations.Aggregation aggregation) {
+                                                       org.elasticsearch.search.aggregations.Aggregation aggregation,
+                                                       Map<String, Aggregation> columnAggregationMap) {
         if (aggregation instanceof Terms) {
-            return parseAggregation(((Terms) aggregation));
+            return parseAggregation(((Terms) aggregation), columnAggregationMap);
         }
         if (aggregation instanceof TopHits) {
             TopHits topHits = ((TopHits) aggregation);
@@ -243,7 +250,7 @@ public class ReactiveAggregationService implements AggregationService {
                 });
         }
         if (aggregation instanceof Histogram) {
-            return parseAggregation(((Histogram) aggregation));
+            return parseAggregation(((Histogram) aggregation), columnAggregationMap);
         }
         if (aggregation instanceof ValueCount) {
             return Flux.just(Collections.singletonMap(name, ((ValueCount) aggregation).getValue()));
@@ -257,6 +264,21 @@ public class ReactiveAggregationService implements AggregationService {
             // TODO: 2020/10/29 只处理了标准差差
             return Flux.just(Collections.singletonMap(name, stats.getStdDeviation()));
         }
+        if (aggregation instanceof ParsedStats) {
+            ParsedStats parsedStats = ((ParsedStats) aggregation);
+            Aggregation agg = columnAggregationMap.get(parsedStats.getName());
+            if (agg == null)  {
+                return Flux.empty();
+            }
+            switch (agg) {
+                case DIFFERENCE:
+                    BigDecimal max = (!Double.isInfinite(parsedStats.getMax()) ? BigDecimal.valueOf(parsedStats.getMax()) : BigDecimal.ZERO);
+                    BigDecimal min = (!Double.isInfinite(parsedStats.getMin()) ? BigDecimal.valueOf(parsedStats.getMin()) : BigDecimal.ZERO);
+                    return Flux.just(Collections.singletonMap(name, max.subtract(min)));
+                default:
+                    return Flux.empty();
+            }
+        }
 
         return Flux.empty();
     }
@@ -265,13 +287,13 @@ public class ReactiveAggregationService implements AggregationService {
         return (Double.isNaN(number) || Double.isInfinite(number)) ? null : number;
     }
 
-    private Flux<Map<String, Object>> parseAggregation(Histogram aggregation) {
+    private Flux<Map<String, Object>> parseAggregation(Histogram aggregation, Map<String, Aggregation> columnAggregationMap) {
 
         return Flux
             .fromIterable(aggregation.getBuckets())
             .flatMap(bucket ->
                          Flux.fromIterable(bucket.getAggregations().asList())
-                             .flatMap(agg -> this.parseAggregation(agg.getName(), agg), Integer.MAX_VALUE)
+                             .flatMap(agg -> this.parseAggregation(agg.getName(), agg, columnAggregationMap), Integer.MAX_VALUE)
                              .defaultIfEmpty(Collections.emptyMap())
 //                    .map(Map::entrySet)
 //                    .flatMap(Flux::fromIterable)
@@ -286,11 +308,11 @@ public class ReactiveAggregationService implements AggregationService {
             );
     }
 
-    private Flux<Map<String, Object>> parseAggregation(Terms aggregation) {
+    private Flux<Map<String, Object>> parseAggregation(Terms aggregation, Map<String, Aggregation> columnAggregationMap) {
 
         return Flux.fromIterable(aggregation.getBuckets())
                    .flatMap(bucket -> Flux.fromIterable(bucket.getAggregations().asList())
-                                          .flatMap(agg -> parseAggregation(agg.getName(), agg)
+                                          .flatMap(agg -> parseAggregation(agg.getName(), agg, columnAggregationMap)
                                               .map(map -> {
                                                   Map<String, Object> val = new HashMap<>(map);
                                                   val.put(aggregation.getName(), bucket.getKeyAsString());
