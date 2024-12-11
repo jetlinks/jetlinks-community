@@ -36,4 +36,8 @@ public interface MetricBuilder {
                                      String eventId) {
         return thingType + "_event_" + thingTemplateId + "_" + eventId;
     }
+
+    default String getTemplateIdProperty() {
+        return ThingsDataConstants.COLUMN_TEMPLATE_ID;
+    }
 }
