@@ -13,6 +13,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 
+import static org.jetlinks.community.things.data.ThingsDataConstants.COLUMN_MESSAGE_ID;
+
 
 class TDengineRowModeSaveOperations extends RowModeSaveOperationsBase {
     private final TDengineThingDataHelper helper;
@@ -62,6 +64,12 @@ class TDengineRowModeSaveOperations extends RowModeSaveOperationsBase {
         return helper.doSave(metric, data, this::isTagValue);
     }
 
+    @Override
+    protected Map<String, Object> createLogData(String templateId, ThingMessage message) {
+        Map<String, Object> data = super.createLogData(templateId,message);
+        data.put(COLUMN_MESSAGE_ID, Objects.isNull(message.getMessageId()) ? "" : message.getMessageId());
+        return data;
+    }
     @Override
     protected Mono<Void> doSave(String metric, Flux<TimeSeriesData> data) {
         return helper.doSave(metric, data, this::isTagValue);

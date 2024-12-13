@@ -36,4 +36,10 @@ public interface MetricBuilder {
                                      String eventId) {
         return thingType + "_event_" + thingTemplateId + "_" + eventId;
     }
+    /**
+     * @return 物模版ID的字段标识, 默认为{@link ThingsDataConstants#COLUMN_THING_ID}
+     */
+    default String getTemplateIdProperty() {
+        return ThingsDataConstants.COLUMN_TEMPLATE_ID;
+    }
 }

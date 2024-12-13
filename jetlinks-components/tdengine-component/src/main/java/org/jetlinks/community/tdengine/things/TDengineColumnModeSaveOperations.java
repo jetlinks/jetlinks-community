@@ -13,6 +13,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 
+import static org.jetlinks.community.things.data.ThingsDataConstants.COLUMN_MESSAGE_ID;
+
 
 class TDengineColumnModeSaveOperations extends ColumnModeSaveOperationsBase {
     private final TDengineThingDataHelper helper;
@@ -34,7 +36,12 @@ class TDengineColumnModeSaveOperations extends ColumnModeSaveOperationsBase {
     protected String createPropertyDataId(ThingMessage message) {
         return message.getMessageId();
     }
-
+    @Override
+    protected Map<String, Object> createLogData(String templateId, ThingMessage message) {
+        Map<String, Object> data = super.createLogData(templateId,message);
+        data.put(COLUMN_MESSAGE_ID, Objects.isNull(message.getMessageId()) ? "" : message.getMessageId());
+        return data;
+    }
     @Override
     protected Map<String, Object> handlePropertiesData(ThingMetadata metadata, Map<String, Object> properties) {
         properties = super.handlePropertiesData(metadata, properties);
