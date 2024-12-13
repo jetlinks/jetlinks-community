@@ -73,7 +73,7 @@ public abstract class AbstractSaveOperations implements SaveOperations {
             .then();
     }
 
-    protected Map<String, Object> createLogData(ThingMessage message) {
+    protected Map<String, Object> createLogData(String templateId, ThingMessage message) {
         Map<String, Object> data = Maps.newHashMapWithExpectedSize(8);
         data.put(COLUMN_ID, getOrCreateUid(message));
         data.put(metricBuilder.getThingIdProperty(), message.getThingId());
@@ -81,6 +81,9 @@ public abstract class AbstractSaveOperations implements SaveOperations {
         data.put(COLUMN_CREATE_TIME, System.currentTimeMillis());
         data.put(COLUMN_MESSAGE_ID, message.getMessageId());
         data.put(COLUMN_LOG_TYPE, ThingLogType.of(message).name());
+        if (settings.getLogFilter().isAllInOne()) {
+            data.put(metricBuilder.getTemplateIdProperty(), templateId);
+        }
         String log;
         if (message instanceof DeviceLogMessage) {
             log = ((DeviceLogMessage) message).getLog();
@@ -323,7 +326,7 @@ public abstract class AbstractSaveOperations implements SaveOperations {
 
         return Mono.just(Tuples.of(
             metricBuilder.createLogMetric(message.getThingType(), templateId, message.getThingId()),
-            TimeSeriesData.of(message.getTimestamp(), createLogData(message))));
+            TimeSeriesData.of(message.getTimestamp(), createLogData(templateId,message))));
     }
 
     protected abstract Flux<Tuple2<String, TimeSeriesData>> convertProperties(String templateId,

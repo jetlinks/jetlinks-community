@@ -19,7 +19,8 @@ public class DataSettings {
     @Getter
     @Setter
     public static class Log extends MessageTypeMatcher {
-
+        //使用同一个表来存储所有的日志数据
+        private boolean allInOne = false;
     }
 
     @Getter
