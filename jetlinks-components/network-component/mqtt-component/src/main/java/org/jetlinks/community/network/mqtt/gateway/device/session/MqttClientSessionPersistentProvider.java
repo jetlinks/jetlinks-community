@@ -96,7 +96,10 @@ public class MqttClientSessionPersistentProvider implements DeviceSessionProvide
                                                  NetworkManager manager) {
             return registry
                 .getDevice(deviceId)
-                .map(device -> {
+                .mapNotNull(device -> {
+                    if (networkId == null || gatewayId == null) {
+                        return null;
+                    }
                     MqttClientSession session = new MqttClientSession(
                         deviceId,
                         device,
@@ -106,6 +109,7 @@ public class MqttClientSessionPersistentProvider implements DeviceSessionProvide
                     session.setKeepAliveTimeout(Duration.ofMillis(keepAliveTimeout));
                     session.setLastPingTime(lastPingTime);
                     session.setConnectTime(connectTime);
+                    session.setGatewayId(gatewayId);
                     return session;
                 });
         }
