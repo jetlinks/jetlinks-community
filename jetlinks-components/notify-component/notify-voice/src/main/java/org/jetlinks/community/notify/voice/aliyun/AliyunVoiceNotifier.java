@@ -18,6 +18,7 @@ import org.jetlinks.community.notify.template.TemplateManager;
 import org.jetlinks.community.notify.voice.VoiceProvider;
 import org.jetlinks.core.Values;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -76,17 +77,18 @@ public class AliyunVoiceNotifier extends AbstractNotifier<AliyunVoiceTemplate> {
     @Nonnull
     public Mono<Void> send(@Nonnull AliyunVoiceTemplate template, @Nonnull Values context) {
 
-        return Mono.<Void>defer(() -> {
-            if (AliyunVoiceTemplate.TemplateType.voice == template.getTemplateType()) {
-                return convertVoiceRequest(template, context)
-                    .flatMap(this::handleRequest);
-            } else {
-                return convertTtsRequest(template, context)
-                    .flatMap(this::handleRequest);
-            }
-        }).doOnEach(ReactiveLogger.onError(err -> {
-            log.info("发起语音通知失败", err);
-        })).subscribeOn(Schedulers.boundedElastic());
+        return Flux.defer(() -> {
+                       if (AliyunVoiceTemplate.TemplateType.voice == template.getTemplateType()) {
+                           return convertVoiceRequest(template, context)
+                               .flatMap(this::handleRequest);
+                       } else {
+                           return convertTtsRequest(template, context)
+                               .flatMap(this::handleRequest);
+                       }
+                   }).doOnEach(ReactiveLogger.onError(err -> {
+                       log.info("发起语音通知失败", err);
+                   })).subscribeOn(Schedulers.boundedElastic())
+                   .then();
     }
 
     @Override
@@ -116,10 +118,9 @@ public class AliyunVoiceNotifier extends AbstractNotifier<AliyunVoiceTemplate> {
     }
 
 
-    Mono<CommonRequest> convertVoiceRequest(AliyunVoiceTemplate template, Values context){
+    Flux<CommonRequest> convertVoiceRequest(AliyunVoiceTemplate template, Values context){
         return template
             .getCalledNumber(context.getAllValues())
-            .next()
             .map(calledNumber -> {
                 CommonRequest request = convert(template);
                 request.putQueryParameter("CalledNumber", calledNumber);
