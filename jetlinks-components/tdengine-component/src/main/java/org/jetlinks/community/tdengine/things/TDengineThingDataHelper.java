@@ -13,6 +13,7 @@ import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.tdengine.TDEngineUtils;
 import org.jetlinks.community.tdengine.term.TDengineQueryConditionBuilder;
+import org.jetlinks.community.things.data.ThingsDataConstants;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.community.Interval;
@@ -121,14 +122,24 @@ class TDengineThingDataHelper implements Disposable {
         });
     }
 
-    public static String buildOrderBy(QueryParamEntity param) {
+    public String buildOrderBy(String metric, QueryParamEntity param) {
+        List<Sort> sorts = param.getSorts();
+        if (CollectionUtils.isEmpty(sorts)) {
+            return " order by `_ts` desc";
+        }
+        StringJoiner  joiner = new StringJoiner(", ", " order by ", "");
+        for (Sort sort : sorts) {
 
-        for (Sort sort : param.getSorts()) {
-            if (sort.getName().equalsIgnoreCase("timestamp")) {
-                return " order by `_ts` " + sort.getOrder();
+            if ((ThingsDataConstants.COLUMN_TIMESTAMP.equals(sort.getName()) || "_ts".equals(sort.getName()))) {
+                joiner.add("`_ts` " + sort.getOrder());
+            }else {
+                metadataManager
+                    .getColumn(metric, sort.getName())
+                    .orElseThrow(() -> new IllegalArgumentException("Unexpected TD engine order column: " + sort.getName()));
+                joiner.add("`"+ sort.getName() +"` " + sort.getOrder());
             }
         }
-        return " order by `_ts` desc";
+        return joiner.toString();
     }
 
     public String buildWhere(String metric, QueryParamEntity param, String... and) {
@@ -168,7 +179,7 @@ class TDengineThingDataHelper implements Disposable {
             .add(metric)
             .add("` ")
             .add(buildWhere(metric, param))
-            .add(buildOrderBy(param));
+            .add(buildOrderBy(metric, param));
 
         if (param.isPaging()) {
             joiner.add(" limit ").add(String.valueOf(param.getPageSize()))
@@ -192,7 +203,7 @@ class TDengineThingDataHelper implements Disposable {
         QueryParamEntity param = query.getParam();
         String sql = "`" + metric + "` " + buildWhere(metric, param);
         String countSql = "select count(1) total from " + sql;
-        String dataSql = "select * from " + sql + buildOrderBy(param) + " limit " + param.getPageSize() + " offset " + param
+        String dataSql = "select * from " + sql + buildOrderBy(metric, param) + " limit " + param.getPageSize() + " offset " + param
             .getPageIndex() * param.getPageSize();
 
         return Mono.zip(
