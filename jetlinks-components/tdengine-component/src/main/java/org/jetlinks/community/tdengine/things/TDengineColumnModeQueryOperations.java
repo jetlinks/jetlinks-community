@@ -79,7 +79,7 @@ class TDengineColumnModeQueryOperations extends ColumnModeQueryOperationsBase {
             joiner.add(" ")
                   .add(TDengineThingDataHelper.getGroupByTime(request.getInterval()));
         }
-        joiner.add(TDengineThingDataHelper.buildOrderBy(request.getFilter()));
+        joiner.add(helper.buildOrderBy(metric, request.getFilter()));
 
         String format = request.getFormat();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
