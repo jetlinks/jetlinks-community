@@ -106,7 +106,6 @@ public class DefaultVertxMqttServerProvider implements NetworkProvider<VertxMqtt
             .add("publicPort", "公网端口", "", new IntType())
             .add("certId", "证书id", "", new StringType())
             .add("secure", "开启TSL", "", new BooleanType())
-            .add("secure", "开启TSL", "", new BooleanType())
             .add("maxMessageSize", "最大消息长度", "", new StringType());
     }
 
