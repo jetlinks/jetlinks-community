@@ -7,6 +7,7 @@
 [![star](https://img.shields.io/github/stars/jetlinks/jetlinks-community?style=social)](https://github.com/jetlinks/jetlinks-community)
 [![star](https://gitee.com/jetlinks/jetlinks-community/badge/star.svg?theme=gvp)](https://gitee.com/jetlinks/jetlinks-community/stargazers)
 
+[![QQ⑥群572077464](https://img.shields.io/badge/QQ⑥群-572077464-brightgreen)](https://qm.qq.com/q/kLT3trlXuE)
 [![QQ⑤群554591908](https://img.shields.io/badge/QQ⑤群-554591908-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=jiirLiyFUecy_gsankzVQ-cl6SrZCnv9&&jump_from=webapi)
 [![QQ④群780133058](https://img.shields.io/badge/QQ④群-780133058-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=Gj47w9kg7TlV5ceD5Bqew_M_O0PIjh_l&jump_from=webapi)
 [![QQ③群647954464](https://img.shields.io/badge/QQ③群-647954464-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=K5m27CkhDn3B_Owr-g6rfiTBC5DKEY59&jump_from=webapi)
