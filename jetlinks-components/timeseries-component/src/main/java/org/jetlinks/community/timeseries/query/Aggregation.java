@@ -25,7 +25,8 @@ public enum Aggregation implements EnumDict<String> {
 
     //去重计数
     DISTINCT_COUNT(flux -> flux.distinct().count(),0),
-    NONE(numberFlux -> Reactors.ALWAYS_ZERO, 0);
+    NONE(numberFlux -> Reactors.ALWAYS_ZERO, 0),
+    DIFFERENCE(numberFlux -> MathFlux.sumDouble(numberFlux, Number::doubleValue), 0);
 
     private final Function<Flux<Number>, Mono<? extends Number>> computer;
     @Getter
