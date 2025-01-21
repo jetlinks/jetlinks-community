@@ -38,7 +38,7 @@ public class MqttClientProperties extends AbstractClientNetworkConfig {
     private String certId;
 
     //最大消息长度
-    private int maxMessageSize = 1024*1024;
+    private int maxMessageSize = 0XFFFFFF;
 
     //共享订阅前缀
     private String topicPrefix;

@@ -46,7 +46,7 @@ public class VertxTcpClient implements TcpClient {
 
     private final List<Runnable> disconnectListener = new CopyOnWriteArrayList<>();
 
-    private final Sinks.Many<TcpMessage> sink = Reactors.createMany();
+    private final Sinks.Many<TcpMessage> sink = Reactors.createMany(Integer.MAX_VALUE, false);
 
     private final boolean serverClient;
 

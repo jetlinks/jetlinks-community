@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -181,6 +182,15 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
                 request.setTargetId(targetId);
             })
             .flatMap(grantService::grant);
+    }
+
+    @PutMapping("/{targetType}/{targetId}/{owner}/clear-grant")
+    @Operation(summary = "清空菜单授权")
+    @ResourceAction(id = "grant", name = "授权")
+    public Mono<Void> cleargrant(@PathVariable String targetType,
+                                 @PathVariable String targetId,
+                                 @PathVariable String owner) {
+        return grantService.clearGrant(targetType, targetId, Collections.singleton(owner));
     }
 
     @PutMapping("/_batch/_grant")

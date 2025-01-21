@@ -2,7 +2,7 @@
 <configuration>
 
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
-    <property name="LOG_FILE" value="./logs/jetlinks-pro.log"/>
+    <property name="LOG_FILE" value="./logs/jetlinks-community.log"/>
 
     <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
 

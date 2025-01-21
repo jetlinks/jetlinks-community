@@ -102,8 +102,9 @@ public abstract class ColumnModeSaveOperationsBase extends AbstractSaveOperation
             return value instanceof String ? String.valueOf(value) : ObjectMappers.toJsonString(value);
         }
         //数字类型直接返回
-        if (metadata.getValueType() instanceof NumberType && value instanceof Number) {
-            return convertNumberValue(((NumberType<?>) metadata.getValueType()), ((Number) value));
+        if (metadata.getValueType() instanceof NumberType) {
+            NumberType<?> type = ((NumberType<?>) metadata.getValueType());
+            return convertNumberValue(type, type.convertOriginalNumber(value));
         }
         if (metadata.getValueType() instanceof Converter) {
             return ((Converter<?>) metadata.getValueType()).convert(value);

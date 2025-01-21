@@ -56,6 +56,7 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 //        options.setReconnectAttempts(10);
         template.setAutoKeepAlive(true);
         template.setKeepAliveInterval(180);
+        template.setMaxInflightQueue(65535);
     }
 
     @Nonnull
@@ -132,7 +133,7 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
 
 
     private Mono<MqttClientOptions> convert(MqttClientProperties config) {
-        MqttClientOptions options = FastBeanCopier.copy(config, new MqttClientOptions(template));
+        MqttClientOptions options = new MqttClientOptions(template);
 
         String clientId = String.valueOf(config.getClientId());
 
@@ -143,6 +144,7 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
         options.setClientId(clientId);
         options.setPassword(password);
         options.setUsername(username);
+        options.setMaxMessageSize(config.getMaxMessageSize());
 
         if (config.isSecure()) {
             options.setSsl(true);
