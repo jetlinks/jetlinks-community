@@ -9,7 +9,6 @@ import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
-import org.jetlinks.community.network.manager.enums.CertificateAuthenticationMethod;
 import org.jetlinks.community.network.manager.enums.CertificateFormat;
 import org.jetlinks.community.network.manager.enums.CertificateMode;
 import org.jetlinks.community.network.manager.enums.CertificateType;
@@ -59,14 +58,6 @@ public class CertificateEntity extends GenericEntity<String> implements RecordCr
     @DefaultValue("server")
     @NotNull(groups = CreateGroup.class)
     private CertificateMode mode;
-
-    @Column(length = 16)
-    @EnumCodec
-    @ColumnType(javaType = String.class)
-    @Schema(description = "证书认证方式,Single or Binomial")
-    @DefaultValue("single")
-    @NotNull(groups = CreateGroup.class)
-    private CertificateAuthenticationMethod authenticationMethod;
 
     @Column
     @ColumnType(jdbcType = JDBCType.CLOB)
