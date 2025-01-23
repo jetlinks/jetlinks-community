@@ -2,12 +2,14 @@ package org.jetlinks.community.rule.engine.scene.internal.actions;
 
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.rule.engine.alarm.AlarmTaskExecutorProvider;
+import org.jetlinks.community.rule.engine.enums.AlarmMode;
 import org.jetlinks.community.rule.engine.scene.SceneActionProvider;
 import org.jetlinks.community.rule.engine.scene.Variable;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -39,5 +41,10 @@ public class AlarmActionProvider implements SceneActionProvider<AlarmAction> {
     public void applyRuleNode(AlarmAction config, RuleNodeModel model) {
         model.setExecutor(AlarmTaskExecutorProvider.executor);
         model.setConfiguration(FastBeanCopier.copy(config, new HashMap<>()));
+    }
+
+    @Override
+    public List<String> getMode() {
+        return Arrays.asList(AlarmMode.trigger.name(), AlarmMode.relieve.name());
     }
 }

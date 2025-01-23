@@ -51,6 +51,11 @@ public class DeviceTriggerProvider extends AbstractSceneTriggerProvider<DeviceTr
     }
 
     @Override
+    public Term refactorTerm(String mainTableName, Term term) {
+        return DeviceTrigger.refactorTermValue(mainTableName, term);
+    }
+
+    @Override
     public List<Variable> createDefaultVariable(DeviceTrigger config) {
         return config.createDefaultVariable();
     }

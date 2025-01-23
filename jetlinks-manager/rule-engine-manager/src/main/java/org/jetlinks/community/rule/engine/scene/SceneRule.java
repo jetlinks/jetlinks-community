@@ -161,7 +161,7 @@ public class SceneRule implements Serializable {
                                 ));
 
                             List<Variable> defaultVariables = createDefaultVariable();
-                            List<Variable> termVar = SceneUtils.parseVariable(terms, columns);
+                            List<Variable> termVar = trigger.provider().parseVariable(terms, columns);
                             List<Variable> variables = new ArrayList<>(defaultVariables.size() + termVar.size());
 
                             variables.addAll(defaultVariables);
@@ -561,7 +561,7 @@ public class SceneRule implements Serializable {
                                                 });
 
                                             link.setCondition(TermsConditionEvaluator.createCondition(
-                                                trigger.refactorTerm("this", termList)));
+                                                trigger.refactorTerm("this", preAction.getTerms())));
                                         }
 
                                     } else if (Objects.equals(trigger.getType(), ManualTriggerProvider.PROVIDER)) {

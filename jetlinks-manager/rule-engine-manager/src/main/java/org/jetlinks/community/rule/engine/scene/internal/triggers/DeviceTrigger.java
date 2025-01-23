@@ -242,7 +242,11 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
                 .lookupSupport(termType)
                 .orElseThrow(() -> new UnsupportedOperationException("unsupported termType " + termType));
 
-            Term copy = refactorTermValue(DEFAULT_FILTER_TABLE, term.clone());
+            Term copy = support
+                .refactorTerm(
+                    DEFAULT_FILTER_TABLE, term.clone(),
+                    DeviceTrigger::refactorTermValue
+                );
 
             return support.createSql(copy.getColumn(), copy.getValue(), copy);
         }

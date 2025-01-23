@@ -8,6 +8,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.reactorql.function.FunctionInfo;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.BooleanType;
@@ -65,6 +66,9 @@ public class TermColumn {
      */
     @Schema(description = "支持的条件类型")
     private List<TermType> termTypes;
+
+    @Schema(description = "支持的函数")
+    private List<FunctionInfo> functions;
 
     @Schema(description = "支持的指标")
     private List<PropertyMetric> metrics;

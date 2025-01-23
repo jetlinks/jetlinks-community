@@ -2,8 +2,10 @@ package org.jetlinks.community.rule.engine.scene;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
+import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
 import org.jetlinks.community.PropertyMetric;
+import org.jetlinks.community.reactorql.function.FunctionSupport;
 import org.jetlinks.community.reactorql.term.TermType;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
@@ -14,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -154,17 +157,14 @@ public class SceneUtils {
         return variables;
     }
 
-    public static Flux<String> getSupportTriggers() {
-        return Flux
-            .fromIterable(SceneProviders.triggerProviders())
-            .map(SceneTriggerProvider::getProvider);
+    public static Flux<SceneTriggerProvider<SceneTriggerProvider.TriggerConfig>> getSupportTriggers() {
+        return Flux.fromIterable(SceneProviders.triggerProviders());
     }
 
-    public static Flux<String> getSupportActions() {
-        return Flux
-            .fromIterable(SceneProviders.actionProviders())
-            .map(SceneActionProvider::getProvider);
+    public static Flux<SceneActionProvider<?>> getSupportActions() {
+        return Flux.fromIterable(SceneProviders.actionProviders());
     }
+
 
     public static Flux<TermColumn> parseTermColumns(SceneRule ruleMono) {
         Trigger trigger = ruleMono.getTrigger();
@@ -196,7 +196,9 @@ public class SceneUtils {
             .map(SelectorInfo::of);
     }
 
-    public static Term refactorTerm(String tableName, Term term) {
+    public static Term refactorTerm(String tableName,
+                                    Term term,
+                                    BiFunction<String, String, String> columnRefactor) {
         if (term.getColumn() == null) {
             return term;
         }
@@ -219,6 +221,15 @@ public class SceneUtils {
                 term.getOptions().add(TermType.OPTIONS_NATIVE_SQL);
                 return tableName + "['" + arr[1] + "_metric_" + value.getMetric() + "']";
             }
+            //函数, 如: array_len() , device_prop()
+            else if (value.getSource() == TermValue.Source.function) {
+                SqlRequest request = FunctionSupport
+                    .supports
+                    .getNow(value.getFunction())
+                    .createSql(columnRefactor.apply(tableName, value.getColumn()), value.getArgs())
+                    .toRequest();
+                return NativeSql.of(request.getSql(), request.getParameters());
+            }
             //手动设置值
             else {
                 return value.getValue();
@@ -234,26 +245,40 @@ public class SceneUtils {
                 .collect(Collectors.toList());
         }
 
-        String column;
-        // properties.xxx.last的场景
-        if (arr.length > 3 && arr[0].equals("properties")) {
-            column = tableName + "['" + createColumnAlias("properties", term.getColumn(), false)
-                + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
-        } else if (!isDirectTerm(arr[0])) {
-            column = tableName + "['" + createColumnAlias("properties", term.getColumn(), false) + "']";
-        } else {
-            column = term.getColumn();
-        }
-
         if (term.getOptions().contains(TermType.OPTIONS_NATIVE_SQL) && !(val instanceof NativeSql)) {
             val = NativeSql.of(String.valueOf(val));
         }
 
-        term.setColumn(column);
+        term.setColumn(columnRefactor.apply(tableName, term.getColumn()));
 
         term.setValue(val);
 
         return term;
+    }
+
+    public static Term refactorTerm(String tableName, Term term) {
+        return refactorTerm(tableName, term, SceneUtils::refactorColumn);
+    }
+
+    private static String refactorColumn(String tableName, String column) {
+        String[] arr = column.split("[.]");
+        // fixme 重构 条件列解析逻辑
+        // properties.xxx.last的场景
+        if (arr.length > 3 && arr[0].equals("properties")) {
+            return tableName + "['" + createColumnAlias("properties", column, false)
+                + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
+        } else if (!isDirectTerm(arr[0])) {
+            return tableName + "['" + createColumnAlias(arr[0], column, false) + "']";
+        } else {
+            // scene.obj1.xx.val1.current => t['scene.obj1_current.val1']
+            if (arr.length > 3 && isSceneTerm(column)) {
+                return tableName + "['" + arr[0] + "." + createColumnAlias(arr[0], column, false) +
+                    "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1))
+                    + "']";
+            } else {
+                return tableName + "['" + column + "']";
+            }
+        }
     }
 
 

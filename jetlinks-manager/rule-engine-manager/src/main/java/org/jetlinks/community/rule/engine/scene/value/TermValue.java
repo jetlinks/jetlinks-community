@@ -28,6 +28,15 @@ public class TermValue implements Serializable {
     @Schema(description = "[source]为[metric]时不能为空")
     private String metric;
 
+    @Schema(description = "[source]为[function]时不能为空")
+    private String function;
+
+    @Schema(description = "[source]为[function]时有效")
+    private String column;
+
+    @Schema(description = "[source]为[function]时有效")
+    private Map<String, Object> args;
+
     public static TermValue manual(Object value) {
         TermValue termValue = new TermValue();
         termValue.setValue(value);
@@ -66,9 +75,26 @@ public class TermValue implements Serializable {
     }
 
     public enum Source {
+
+        /**
+         * 和manual一样,
+         * 兼容{@link org.jetlinks.community.relation.utils.VariableSource.Source#fixed}
+         */
+        fixed,
         manual,
+
         metric,
         variable,
-        upper
+        /**
+         * 和variable一样,兼容{@link org.jetlinks.community.relation.utils.VariableSource.Source#upper}
+         */
+        upper,
+
+        /**
+         * 函数
+         *
+         * @see org.jetlinks.community.reactorql.function.FunctionSupport
+         */
+        function
     }
 }

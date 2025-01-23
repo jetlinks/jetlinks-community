@@ -17,6 +17,8 @@ import org.jetlinks.community.rule.engine.alarm.AlarmTargetSupplier;
 import org.jetlinks.community.rule.engine.entity.AlarmConfigDetail;
 import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
 import org.jetlinks.community.rule.engine.entity.AlarmLevelEntity;
+import org.jetlinks.community.rule.engine.scene.SceneUtils;
+import org.jetlinks.community.rule.engine.scene.SceneTriggerProvider;
 import org.jetlinks.community.rule.engine.service.AlarmConfigService;
 import org.jetlinks.community.rule.engine.service.AlarmLevelService;
 import org.jetlinks.community.rule.engine.web.response.AlarmTargetTypeInfo;
@@ -55,12 +57,21 @@ public class AlarmConfigController implements ReactiveServiceCrudController<Alar
     @GetMapping("/target-type/supports")
     @Operation(summary = "获取支持的告警目标类型")
     public Flux<AlarmTargetTypeInfo> getTargetTypeSupports() {
+        Flux<String> triggerCache = SceneUtils
+            .getSupportTriggers()
+            .map(SceneTriggerProvider::getProvider)
+            .cache();
         return Flux
             .fromIterable(AlarmTargetSupplier
                               .get()
                               .getAll()
                               .values())
-            .map(AlarmTargetTypeInfo::of);
+            .flatMap(alarmTarget -> triggerCache
+                .filter(alarmTarget::isSupported)
+                .collectList()
+                .map(supportTriggers -> AlarmTargetTypeInfo
+                    .of(alarmTarget)
+                    .with(supportTriggers)));
     }
 
 

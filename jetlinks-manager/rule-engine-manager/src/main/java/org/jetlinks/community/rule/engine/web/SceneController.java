@@ -13,14 +13,20 @@ import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceQueryController;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.reactorql.aggregation.AggregationSupport;
 import org.jetlinks.community.rule.engine.service.SceneService;
+import org.jetlinks.community.rule.engine.utils.TermColumnUtils;
 import org.jetlinks.community.rule.engine.web.request.SceneExecuteRequest;
+import org.jetlinks.community.rule.engine.web.response.SceneActionInfo;
+import org.jetlinks.community.rule.engine.web.response.SceneAggregationInfo;
+import org.jetlinks.community.rule.engine.web.response.SceneTriggerInfo;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.community.rule.engine.entity.SceneEntity;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
+import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -110,6 +116,32 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
             .then();
     }
 
+    @GetMapping("/trigger/supports")
+    @Operation(summary = "获取支持的触发器类型")
+    public Flux<SceneTriggerInfo> getSupportTriggers() {
+        return SceneUtils
+            .getSupportTriggers()
+            .map(SceneTriggerInfo::of);
+    }
+
+    @GetMapping("/action/supports")
+    @Operation(summary = "获取支持的动作类型")
+    public Flux<SceneActionInfo> getSupportActions() {
+        return SceneUtils
+            .getSupportActions()
+            .flatMap(provider -> SceneActionInfo.of(provider));
+    }
+
+    @GetMapping("/aggregation/supports")
+    @Operation(summary = "获取支持的聚合函数")
+    public Flux<SceneAggregationInfo> getSupportAggregations() {
+        return LocaleUtils
+            .currentReactive()
+            .flatMapMany(locale -> Flux
+                .fromIterable(AggregationSupport.supports.getAll())
+                .map(aggregation -> SceneAggregationInfo.of(aggregation, locale)));
+    }
+
     @PostMapping("/parse-term-column")
     @Operation(summary = "根据触发器解析出支持的条件列")
     @QueryAction
@@ -122,6 +154,15 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
                 }
                 return Flux.empty();
             });
+    }
+
+    @PostMapping("/parse-array-child-term-column")
+    @Operation(summary = "解析数组需要的子元素支持的条件列")
+    @QueryAction
+    public Flux<TermColumn> parseArrayChildTermColumns(@RequestBody Mono<SimplePropertyMetadata> metadataMono) {
+        return metadataMono
+            .flatMapMany(metadata -> Flux
+                .fromIterable(TermColumnUtils.parseArrayChildTermColumns(metadata.getValueType())));
     }
 
     @PostMapping("/parse-variables")

@@ -47,4 +47,30 @@ public class AlarmHistoryController {
             .flatMap(alarmHistoryService::queryPager);
     }
 
+    @PostMapping("/alarm-record/{recordId}/_query")
+    @Operation(summary = "按告警记录查询告警历史")
+    @QueryAction
+    public Mono<PagerResult<AlarmHistoryInfo>> queryHistoryPager(
+        @PathVariable @Parameter(description = "告警记录ID") String recordId,
+        @RequestBody Mono<QueryParamEntity> query) {
+        return query
+            .map(q -> q
+                .toNestQuery()
+                .and(AlarmHistoryInfo::getAlarmRecordId, recordId)
+                .getParam())
+            .flatMap(alarmHistoryService::queryPager);
+    }
+
+    @PostMapping("/{dimensionType}/{alarmConfigId}/_query")
+    @Operation(summary = "按维度查询告警历史")
+    @QueryAction
+    public Mono<PagerResult<AlarmHistoryInfo>> queryHandleHistoryPagerByDimensionType(@PathVariable @Parameter(description = "告警配置ID") String alarmConfigId,
+                                                                                      @PathVariable @Parameter(description = "告警维度") String dimensionType,
+                                                                                      @RequestBody Mono<QueryParamEntity> query) {
+        return query
+            .doOnNext(queryParamEntity -> queryParamEntity
+                .toNestQuery(q -> q.and(AlarmHistoryInfo::getAlarmConfigId, alarmConfigId)))
+            .flatMap(alarmHistoryService::queryPager);
+    }
+
 }

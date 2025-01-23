@@ -9,6 +9,8 @@ import org.hswebframework.ezorm.rdb.executor.EmptySqlRequest;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
+import org.jetlinks.community.reactorql.term.TermTypeSupport;
+import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
 import org.jetlinks.community.rule.engine.scene.internal.triggers.*;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
@@ -72,7 +74,12 @@ public class Trigger implements Serializable {
         List<Term> target = new ArrayList<>(terms.size());
         for (Term term : terms) {
             Term copy = term.clone();
-            target.add(provider().refactorTerm(tableName, copy));
+            TermTypeSupport support = TermTypes.lookupSupport(term.getTermType()).orElse(null);
+            if (support != null) {
+                target.add(support.refactorTerm(tableName, copy, provider()::refactorTerm));
+            } else {
+                target.add(provider().refactorTerm(tableName, copy));
+            }
             if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(copy.getTerms())) {
                 copy.setTerms(refactorTerm(tableName, copy.getTerms()));
             }

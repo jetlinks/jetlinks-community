@@ -17,10 +17,11 @@ import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
+import org.jetlinks.core.metadata.types.IntType;
+import org.jetlinks.core.metadata.types.LongType;
 import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.utils.FluxUtils;
 import org.springframework.stereotype.Component;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,7 +29,6 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 @Component
 @Slf4j
@@ -67,7 +67,6 @@ public class AlarmProvider implements SubscriberProvider {
 
     }
 
-
     protected Mono<Subscriber> doCreateSubscriber(String id,
                                                   Authentication authentication,
                                                   String topic) {
@@ -76,21 +75,26 @@ public class AlarmProvider implements SubscriberProvider {
             .as(FluxUtils.distinct(Notify::getDataId, Duration.ofSeconds(10))));
     }
 
-    protected String getAlarmId( Map<String, Object> config) {
+    protected String getAlarmId(Map<String, Object> config) {
         ValueObject configs = ValueObject.of(config);
         return configs.getString("alarmConfigId").orElse("*");
     }
 
     private Flux<Notify> createSubscribe(Locale locale,
                                          String id,
-                                         String[] topics) {
-        Subscription.Feature[] features = new Subscription.Feature[]{Subscription.Feature.local};
-        return Flux
-            .defer(() -> this
-                .eventBus
-                .subscribe(Subscription.of("alarm:" + id, topics, features))
-                .map(msg -> {
-                    JSONObject json = msg.bodyToJson();
+                                         String[] topic) {
+        return this
+            .eventBus
+            .subscribe(
+                Subscription
+                    .builder()
+                    .justLocal()
+                    .subscriberId("alarm:" + id)
+                    .topics(topic)
+                    .build())
+            .mapNotNull(payload -> {
+                try {
+                    JSONObject json = payload.bodyToJson();
                     return Notify.of(
                         getNotifyMessage(locale, json),
                         //告警记录ID
@@ -99,9 +103,12 @@ public class AlarmProvider implements SubscriberProvider {
                         "alarm",
                         json
                     );
-                }));
+                } catch (Throwable error) {
+                    log.warn("handle alarm notify error", error);
+                }
+                return null;
+            });
     }
-
 
     private static String getNotifyMessage(Locale locale, JSONObject json) {
 
@@ -109,7 +116,7 @@ public class AlarmProvider implements SubscriberProvider {
         TargetType targetType = TargetType.of(json.getString("targetType"));
         String targetName = json.getString("targetName");
         String alarmName = json.getString("alarmConfigName");
-        if (targetType == TargetType.other) {
+        if (targetType == TargetType.scene) {
             message = String.format("[%s]发生告警:[%s]!", targetName, alarmName);
         } else {
             message = String.format("%s[%s]发生告警:[%s]!", targetType.getText(), targetName, alarmName);
@@ -123,7 +130,11 @@ public class AlarmProvider implements SubscriberProvider {
         return Flux.just(
             SimplePropertyMetadata.of("targetType", "告警类型", StringType.GLOBAL),
             SimplePropertyMetadata.of("alarmConfigName", "告警名称", StringType.GLOBAL),
-            SimplePropertyMetadata.of("targetName", "目标名称", StringType.GLOBAL)
+            SimplePropertyMetadata.of("targetName", "告警目标名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("level", "告警级别", IntType.GLOBAL),
+            SimplePropertyMetadata.of("alarmTime", "告警时间", LongType.GLOBAL),
+            SimplePropertyMetadata.of("sourceType", "告警源类型", StringType.GLOBAL),
+            SimplePropertyMetadata.of("sourceName", "告警源名称", StringType.GLOBAL)
         );
     }
 
@@ -132,7 +143,7 @@ public class AlarmProvider implements SubscriberProvider {
     enum TargetType {
         device("设备"),
         product("产品"),
-        other("其它");
+        scene("场景");
 
         private final String text;
 
@@ -142,7 +153,7 @@ public class AlarmProvider implements SubscriberProvider {
                     return value;
                 }
             }
-            return TargetType.other;
+            return TargetType.scene;
         }
     }
 }

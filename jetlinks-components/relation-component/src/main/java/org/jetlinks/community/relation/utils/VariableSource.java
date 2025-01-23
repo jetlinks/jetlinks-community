@@ -84,6 +84,25 @@ public class VariableSource implements Serializable {
         return variableSource;
     }
 
+    public static Object resolveStatic(Object value, Map<String, Object> ctx) {
+        if (value instanceof VariableSource) {
+            return ((VariableSource) value).resolveStatic(ctx);
+        }
+        if (value instanceof Map) {
+            Map<?, ?> mapVal = ((Map<?, ?>) value);
+            if (!mapVal.containsKey("$noVariable")) {
+                Object sourceName = mapVal.get("source");
+                if (sourceName != null && VariableSource.Source.of(String.valueOf(sourceName)).isPresent()) {
+                    VariableSource source = FastBeanCopier.copy(mapVal, new VariableSource());
+                    if (source.getSource() != null) {
+                        return source.resolveStatic(ctx);
+                    }
+                }
+            }
+        }
+        return value;
+    }
+
     public static VariableSource of(Object value) {
         if (value instanceof VariableSource) {
             return ((VariableSource) value);

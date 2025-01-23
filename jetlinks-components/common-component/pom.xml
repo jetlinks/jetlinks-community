@@ -20,6 +20,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.jetlinks</groupId>
+            <artifactId>jetlinks-supports</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-authorization-api</artifactId>
             <version>${hsweb.framework.version}</version>

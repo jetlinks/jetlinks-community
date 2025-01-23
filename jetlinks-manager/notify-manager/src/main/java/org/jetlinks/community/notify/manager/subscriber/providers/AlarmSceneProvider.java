@@ -12,9 +12,9 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class AlarmOtherProvider extends AlarmProvider {
+public class AlarmSceneProvider extends AlarmProvider {
 
-    public AlarmOtherProvider(EventBus eventBus) {
+    public AlarmSceneProvider(EventBus eventBus) {
         super(eventBus);
     }
 
@@ -25,12 +25,12 @@ public class AlarmOtherProvider extends AlarmProvider {
 
     @Override
     public String getName() {
-        return "其他告警";
+        return "场景告警";
     }
 
     @Override
     public Mono<Subscriber> createSubscriber(String id, Authentication authentication, Map<String, Object> config) {
-        String topic = Topics.alarm(TargetType.other.name(), "*", getAlarmId(config));
+        String topic = Topics.alarm(TargetType.scene.name(), "*", getAlarmId(config));
         return doCreateSubscriber(id, authentication, topic);
     }
 

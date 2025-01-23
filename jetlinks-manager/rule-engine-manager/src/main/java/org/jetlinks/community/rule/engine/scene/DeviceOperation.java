@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.rule.engine.utils.TermColumnUtils;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
@@ -129,18 +130,21 @@ public class DeviceOperation {
             || operator == Operator.reportProperty
             || operator == Operator.writeProperty) {
             terms.addAll(
-                this.createTerm(
+                TermColumnUtils.createTerm(
                     metadata.getProperties(),
-                    (property, column) -> column.setChildren(createTermColumn("properties", property, true, PropertyValueType.values())),
+                    (property, column) -> column.setChildren(TermColumnUtils.createTermColumn("properties",
+                                                                                              property,
+                                                                                              true,
+                                                                                              PropertyValueType.values())),
                     LocaleUtils.resolveMessage("message.device_metadata_property", "属性"))
             );
         } else {
             //其他操作只能获取属性的上一次的值
             terms.addAll(
-                this.createTerm(
+                TermColumnUtils.createTerm(
                     metadata.getProperties(),
                     (property, column) -> column.setChildren(
-                        createTermColumn(
+                        TermColumnUtils.createTermColumn(
                             "properties",
                             property,
                             true,
@@ -151,7 +155,7 @@ public class DeviceOperation {
         //事件上报
         if (operator == Operator.reportEvent) {
             terms.addAll(
-                this.createTerm(
+                TermColumnUtils.createTerm(
                     metadata.getEvent(eventId)
                             .<List<PropertyMetadata>>map(event -> Collections
                                 .singletonList(
@@ -160,13 +164,13 @@ public class DeviceOperation {
                                        event.getType())
                                 ))
                             .orElse(Collections.emptyList()),
-                    (property, column) -> column.setChildren(createTermColumn("event", property, false)),
+                    (property, column) -> column.setChildren(TermColumnUtils.createTermColumn("event", property, false)),
                     LocaleUtils.resolveMessage("message.device_metadata_event", "事件")));
         }
         //调用功能
         if (operator == Operator.invokeFunction) {
             terms.addAll(
-                this.createTerm(
+                TermColumnUtils.createTerm(
                     metadata.getFunction(functionId)
                             //过滤掉异步功能和无返回值功能的参数输出
                             .filter(fun -> !fun.isAsync() && !(fun.getOutput() instanceof UnknownType))
@@ -176,74 +180,11 @@ public class DeviceOperation {
                                    meta.getOutput()))
                             )
                             .orElse(Collections.emptyList()),
-                    (property, column) -> column.setChildren(createTermColumn("function", property, false)),
+                    (property, column) -> column.setChildren(TermColumnUtils.createTermColumn("function", property, false)),
                     LocaleUtils.resolveMessage("message.device_metadata_function", "功能调用")));
         }
 
         return TermColumn.refactorTermsInfo("properties", terms);
-    }
-
-    private String resolveI18n(String key, String name) {
-        return LocaleUtils.resolveMessage(key, name);
-    }
-
-    private List<TermColumn> createTermColumn(String prefix, PropertyMetadata property, boolean last, PropertyValueType... valueTypes) {
-        //对象类型嵌套
-        if (property.getValueType() instanceof ObjectType) {
-            ObjectType objType = ((ObjectType) property.getValueType());
-            return this.createTerm(
-                objType.getProperties(),
-                (prop, column) -> {
-                    String _prefix = prefix == null ? property.getId() : prefix + "." + property.getId();
-                    if (!last && !(prop.getValueType() instanceof ObjectType)) {
-                        TermColumn term = createTermColumn(_prefix, prop, false, valueTypes).get(0);
-                        column.setColumn(term.getColumn());
-                        column.setName(term.getName());
-                        column.setOptions(term.getOptions());
-                        column.withOthers(term.getOthers());
-                    } else {
-                        column.setChildren(createTermColumn(_prefix, prop, last, valueTypes));
-                    }
-                });
-
-        } else {
-            if (!last) {
-                return Collections.singletonList(
-                    TermColumn.of(SceneUtils.appendColumn(prefix, property.getId()),
-                                  property.getName(), property.getValueType())
-                              .withMetrics(property)
-                              .withMetadataTrue()
-                );
-            }
-            return Arrays
-                .stream(valueTypes)
-                .map(type -> TermColumn
-                    .of(SceneUtils
-                            .appendColumn(prefix,
-                                          property.getId(),
-                                          type.name()),
-                        type.getKey(),
-                        null,
-                        type.dataType == null ? property.getValueType() : type.dataType)
-                    .withMetrics(property)
-                    .withMetadataTrue()
-                )
-                .collect(Collectors.toList());
-
-        }
-    }
-
-    private List<TermColumn> createTerm(List<PropertyMetadata> metadataList,
-                                        BiConsumer<PropertyMetadata, TermColumn> consumer,
-                                        String... description) {
-        List<TermColumn> columns = new ArrayList<>(metadataList.size());
-        for (PropertyMetadata metadata : metadataList) {
-            TermColumn column = TermColumn.of(metadata);
-            column.setDescription(String.join("", description));
-            consumer.accept(metadata, column);
-            columns.add(column.withMetadataTrue());
-        }
-        return columns;
     }
 
     public void validate() {
