@@ -1,5 +1,7 @@
 package org.jetlinks.community.rule.engine.alarm;
 
+import org.jetlinks.community.rule.engine.scene.internal.triggers.DeviceTriggerProvider;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
@@ -7,7 +9,7 @@ import java.util.Map;
 /**
  * @author bestfeng
  */
-
+@Component
 public class DeviceAlarmTarget extends AbstractAlarmTarget {
 
     @Override
@@ -32,5 +34,10 @@ public class DeviceAlarmTarget extends AbstractAlarmTarget {
 
         return Flux.just(AlarmTargetInfo.of(deviceId, deviceName, getType()));
     }
+
+    @Override
+    public boolean isSupported(String trigger) {
+        return DeviceTriggerProvider.PROVIDER.equals(trigger);
+    };
 
 }

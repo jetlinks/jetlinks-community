@@ -16,6 +16,10 @@ public interface AlarmTarget {
 
     Flux<AlarmTargetInfo> convert(AlarmData data);
 
+    default boolean isSupported(String trigger) {
+        return true;
+    };
+
     static AlarmTarget of(String type) {
         return AlarmTargetSupplier
             .get()

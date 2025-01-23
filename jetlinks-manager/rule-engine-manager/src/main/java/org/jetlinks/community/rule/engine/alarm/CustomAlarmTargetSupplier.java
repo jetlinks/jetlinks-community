@@ -13,12 +13,6 @@ public class CustomAlarmTargetSupplier implements AlarmTargetSupplier {
 
     public static CustomAlarmTargetSupplier defaultSupplier = new CustomAlarmTargetSupplier();
 
-    static {
-        register(new ProductAlarmTarget());
-        register(new DeviceAlarmTarget());
-        register(new OtherAlarmTarget());
-    }
-
     public static void register(AlarmTarget target) {
         targets.put(target.getType(), target);
     }

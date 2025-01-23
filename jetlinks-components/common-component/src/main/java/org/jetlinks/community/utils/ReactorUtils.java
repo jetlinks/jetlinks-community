@@ -3,6 +3,7 @@ package org.jetlinks.community.utils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.AbstractTermsFragmentBuilder;
+import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.reactorql.term.FixedTermTypeSupport;
@@ -130,6 +131,13 @@ public class ReactorUtils {
                                                               Function<T, Map<String, Object>> converter) {
 
         return createFilter(terms, converter, (arg, data) -> arg);
+    }
+
+    public static SqlFragments createFilterSql(List<Term> terms) {
+        if (CollectionUtils.isEmpty(terms)) {
+            return EmptySqlFragments.INSTANCE;
+        }
+        return termBuilder.createTermFragments(null, terms);
     }
 
     @SuppressWarnings("all")

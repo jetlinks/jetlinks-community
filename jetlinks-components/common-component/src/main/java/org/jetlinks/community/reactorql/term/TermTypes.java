@@ -18,6 +18,7 @@ public class TermTypes {
         for (FixedTermTypeSupport value : FixedTermTypeSupport.values()) {
             register(value);
         }
+        register(new ExistsTermSupport());
     }
 
     public static void register(TermTypeSupport support){
@@ -35,6 +36,9 @@ public class TermTypes {
     }
 
     public static Optional<TermTypeSupport> lookupSupport(String type) {
+        if (type == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(supports.get(type));
     }
 }

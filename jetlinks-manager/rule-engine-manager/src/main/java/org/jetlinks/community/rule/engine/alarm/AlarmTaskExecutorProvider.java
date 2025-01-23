@@ -23,7 +23,6 @@ import java.io.Serializable;
 import java.util.function.Function;
 
 @AllArgsConstructor
-@Component
 @Slf4j
 public class AlarmTaskExecutorProvider implements TaskExecutorProvider {
     public static final String executor = "alarm";

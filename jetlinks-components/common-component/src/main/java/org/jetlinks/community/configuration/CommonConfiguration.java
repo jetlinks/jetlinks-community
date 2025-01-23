@@ -20,6 +20,8 @@ import org.jetlinks.community.config.ConfigScopeProperties;
 import org.jetlinks.community.config.SimpleConfigManager;
 import org.jetlinks.community.config.entity.ConfigEntity;
 import org.jetlinks.community.dictionary.DictionaryJsonDeserializer;
+import org.jetlinks.community.reactorql.aggregation.InternalAggregationSupports;
+import org.jetlinks.community.reactorql.function.InternalFunctionSupport;
 import org.jetlinks.community.reference.DataReferenceManager;
 import org.jetlinks.community.reference.DataReferenceProvider;
 import org.jetlinks.community.reference.DefaultDataReferenceManager;
@@ -32,10 +34,12 @@ import org.jetlinks.community.service.DefaultUserBindService;
 import org.jetlinks.community.utils.TimeUtils;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.types.DataTypes;
 import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.reactor.ql.feature.Feature;
 import org.jetlinks.reactor.ql.supports.DefaultReactorQLMetadata;
 import org.jetlinks.reactor.ql.utils.CastUtils;
+import org.jetlinks.supports.official.JetLinksDataTypeCodecs;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -47,6 +51,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.util.unit.DataSize;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Hooks;
@@ -59,6 +64,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Map;
 
 @Configuration
 @SuppressWarnings("all")
@@ -66,6 +72,9 @@ import java.util.Date;
 public class CommonConfiguration {
 
     static {
+        InternalAggregationSupports.register();
+        InternalFunctionSupport.register();
+
         BeanUtilsBean.getInstance().getConvertUtils().register(new Converter() {
             @Override
             public <T> T convert(Class<T> aClass, Object o) {
@@ -149,6 +158,23 @@ public class CommonConfiguration {
             }
         }, EnumDict.class);
 
+        BeanUtilsBean.getInstance().getConvertUtils().register(new Converter() {
+            @Override
+            @Generated
+            public <T> T convert(Class<T> type, Object value) {
+                if (value instanceof Map) {
+                    Map<String, Object> map = ((Map) value);
+                    String typeId = (String) map.get("type");
+                    if (StringUtils.isEmpty(typeId)) {
+                        return null;
+                    }
+                    return (T) JetLinksDataTypeCodecs.decode(DataTypes.lookup(typeId).get(), map);
+                }
+                return null;
+
+            }
+        }, DataType.class);
+
         //捕获jvm错误,防止Flux被挂起
         Hooks.onOperatorError((err, val) -> {
             if (Exceptions.isJvmFatal(err)) {
@@ -180,6 +206,7 @@ public class CommonConfiguration {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer(){
         return builder->{
+            builder.deserializerByType(DataType.class, new DataTypeJSONDeserializer());
             builder.deserializerByType(Date.class,new SmartDateDeserializer());
             builder.deserializerByType(EnumDict.class, new DictionaryJsonDeserializer());
         };

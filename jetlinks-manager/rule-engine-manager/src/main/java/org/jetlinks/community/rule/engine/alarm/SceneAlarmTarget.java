@@ -1,21 +1,24 @@
 package org.jetlinks.community.rule.engine.alarm;
 
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 /**
  * @author bestfeng
  */
+@Component
+public class SceneAlarmTarget implements AlarmTarget {
 
-public class OtherAlarmTarget implements AlarmTarget {
+    public static final String TYPE = "scene";
 
     @Override
     public String getType() {
-        return "other";
+        return TYPE;
     }
 
     @Override
     public String getName() {
-        return "其它";
+        return "场景";
     }
 
     @Override
@@ -23,7 +26,8 @@ public class OtherAlarmTarget implements AlarmTarget {
         return Flux.just(AlarmTargetInfo
                              .of(data.getRuleId(),
                                  data.getRuleName(),
-                                 getType()));
+                                 getType())
+                             .withSource(TYPE, data.getRuleId(), data.getRuleName()));
     }
 
 }

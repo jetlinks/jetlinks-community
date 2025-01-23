@@ -9,6 +9,7 @@ import org.jetlinks.community.rule.engine.commons.ShakeLimitResult;
 import org.jetlinks.community.rule.engine.commons.impl.SimpleShakeLimitProvider;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.terms.TermSpec;
+import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import reactor.core.publisher.Flux;
@@ -97,6 +98,11 @@ public interface SceneTriggerProvider<E extends SceneTriggerProvider.TriggerConf
      * @return 变量信息
      */
     List<Variable> createDefaultVariable(E config);
+
+    default List<Variable> parseVariable(List<Term> terms,
+                                         List<TermColumn> columns) {
+        return SceneUtils.parseVariable(terms, columns);
+    }
 
     /**
      * 应用规则节点配置

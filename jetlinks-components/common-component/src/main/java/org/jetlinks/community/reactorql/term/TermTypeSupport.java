@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 
 public interface TermTypeSupport {
 
@@ -39,6 +40,18 @@ public interface TermTypeSupport {
      * @return SQL片段
      */
     SqlFragments createSql(String column, Object value, Term term);
+
+    /**
+     * 重构条件
+     *
+     * @param tableName 表名
+     * @param term      条件
+     * @param refactor   重构函数
+     * @return 重构后的条件
+     */
+    default Term refactorTerm(String tableName, Term term, BiFunction<String,Term,Term> refactor){
+        return refactor.apply(tableName,term);
+    }
 
     /**
      * 判断是否已经过时,过时的条件应当不可选择.
