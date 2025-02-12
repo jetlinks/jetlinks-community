@@ -68,10 +68,8 @@ services:
       - "8800-8810:8800-8810" # 预留
       - "5060-5061:5060-5061" # 预留
     volumes:
-      - "./data/jetlinks:/application/static/upload"  # 持久化上传的文件
-      - "./data/jetlinks/:/application/data/files"
-      - "./data/jetlinks/:/application/data/protocols"
-      - "./entrypoint.sh:/entrypoint.sh"
+      - "./data/jetlinks/upload:/application/static/upload"
+      - "./data/jetlinks:/application/data"
     #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
     environment:
      # - "SLEEP_SECOND=4"
