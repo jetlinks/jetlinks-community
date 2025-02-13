@@ -14,6 +14,7 @@ import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.dict.defaults.DefaultItemDefine;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.JvmErrorException;
+import org.jetlinks.community.command.register.CommandServiceEndpointRegister;
 import org.jetlinks.community.config.ConfigManager;
 import org.jetlinks.community.config.ConfigScopeCustomizer;
 import org.jetlinks.community.config.ConfigScopeProperties;
@@ -249,6 +250,12 @@ public class CommonConfiguration {
 
         return referenceManager;
     }
+
+    @Bean
+    public CommandServiceEndpointRegister commandServiceEndpointRegister() {
+        return new CommandServiceEndpointRegister();
+    }
+
 
     @Configuration
     @ConditionalOnClass(ReactiveRedisOperations.class)
