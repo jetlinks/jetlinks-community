@@ -16,15 +16,18 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>2.7.18</spring.boot.version>
-        <spring.framework.version>5.3.39</spring.framework.version>
-        <java.version>1.8</java.version>
+        <spring.boot.version>3.4.3</spring.boot.version>
+        <spring.framework.version>6.2.3</spring.framework.version>
+        <java.version>17</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
         <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
+
         <!-- https://github.com/hs-web/hsweb-framework -->
-        <hsweb.framework.version>4.0.18-SNAPSHOT</hsweb.framework.version>
+        <hsweb.framework.version>5.0.0-SNAPSHOT</hsweb.framework.version>
         <!-- https://github.com/hs-web/hsweb-easy-orm -->
-        <easyorm.version>4.1.3-SNAPSHOT</easyorm.version>
+        <easyorm.version>4.2.0-SNAPSHOT</easyorm.version>
         <!-- https://github.com/jetlinks/jetlinks -->
         <jetlinks.version>1.2.3-SNAPSHOT</jetlinks.version>
         <!-- https://github.com/hs-web/reactor-excel -->
@@ -32,34 +35,40 @@
         <!-- https://github.com/jetlinks/reactor-ql -->
         <reactor.ql.version>1.0.18-SNAPSHOT</reactor.ql.version>
         <!-- https://github.com/jetlinks/jetlinks-plugin -->
-        <jetlinks.plugin.version>1.0.2</jetlinks.plugin.version>
+        <jetlinks.plugin.version>1.0.3-SNAPSHOT</jetlinks.plugin.version>
         <!-- https://github.com/jetlinks/jetlinks-sdk -->
-        <jetlinks.sdk.version>1.0.0</jetlinks.sdk.version>
+        <jetlinks.sdk.version>1.0.1-SNAPSHOT</jetlinks.sdk.version>
+        <!-- https://github.com/jetlinks/zlmedia4j -->
+        <zlmedia4j.version>1.1.0-SNAPSHOT</zlmedia4j.version>
 
         <!-- 第三方依赖版本 -->
         <r2dbc.version>Borca-SR2</r2dbc.version>
         <hsweb.expands.version>3.0.2</hsweb.expands.version>
-        <netty.version>4.1.104.Final</netty.version>
-        <elasticsearch.version>7.17.23</elasticsearch.version>
-        <californium.version>3.7.0</californium.version>
+        <netty.version>4.1.111.Final</netty.version>
+        <elasticsearch.version>8.15.4</elasticsearch.version>
+        <elasticsearch7x.version>7.17.26</elasticsearch7x.version>
+        <californium.version>3.12.0</californium.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <reactor.version>2020.0.38</reactor.version>
-        <vertx.version>4.3.8</vertx.version>
-        <log4j.version>2.18.0</log4j.version>
-        <logback.version>1.2.11</logback.version>
-        <springdoc.version>1.6.11</springdoc.version>
-        <jackson.version>2.14.3</jackson.version>
-        <gson.version>2.9.1</gson.version>
-        <opentelemetry.version>1.26.0</opentelemetry.version>
-        <swagger.version>2.2.8</swagger.version>
+        <reactor.version>2024.0.1</reactor.version>
+        <vertx.version>4.5.11</vertx.version>
+        <log4j.version>2.24.3</log4j.version>
+        <slf4j.version>2.0.16</slf4j.version>
+        <logback.version>1.5.12</logback.version>
+        <springdoc.version>1.8.0</springdoc.version>
+        <jackson.version>2.17.1</jackson.version>
+        <gson.version>2.11.0</gson.version>
+        <opentelemetry.version>1.39.0</opentelemetry.version>
+        <swagger.version>2.2.22</swagger.version>
         <jna.version>5.12.1</jna.version>
         <aliyun.sdk.core>4.5.2</aliyun.sdk.core>
         <jsonata.version>2.4.1</jsonata.version>
-        <spring.cloud.version>2021.0.3</spring.cloud.version>
+        <spring.cloud.version>2024.0.0</spring.cloud.version>
+        <spring.cloud.k8s.version>2.1.9</spring.cloud.k8s.version>
         <fst.version>2.57</fst.version>
-        <grpc.version>1.53.0</grpc.version>
+        <grpc.version>1.65.0</grpc.version>
         <rsocket.version>1.1.4</rsocket.version>
-        <micrometer.version>1.11.8</micrometer.version>
+        <micrometer.version>1.14.1</micrometer.version>
+        <alibaba.cloud.version>2023.0.3.2</alibaba.cloud.version>
     </properties>
 
 
@@ -225,7 +234,37 @@
             <dependency>
                 <groupId>io.asyncer</groupId>
                 <artifactId>r2dbc-mysql</artifactId>
-                <version>0.9.3</version>
+                <version>1.3.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>r2dbc-postgresql</artifactId>
+                <version>1.0.7.RELEASE</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.r2dbc</groupId>
+                <artifactId>r2dbc-h2</artifactId>
+                <version>1.0.0.RELEASE</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.r2dbc</groupId>
+                <artifactId>r2dbc-spi</artifactId>
+                <version>1.0.0.RELEASE</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.r2dbc</groupId>
+                <artifactId>r2dbc-pool</artifactId>
+                <version>1.0.2.RELEASE</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.glassfish.expressly</groupId>
+                <artifactId>expressly</artifactId>
+                <version>6.0.0-M1</version>
             </dependency>
 
             <dependency>
@@ -399,11 +438,6 @@
                 <version>${reactor.excel.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>io.vavr</groupId>
-                <artifactId>vavr</artifactId>
-                <version>0.9.2</version>
-            </dependency>
 
             <dependency>
                 <groupId>ch.qos.logback</groupId>
@@ -585,6 +619,12 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.mail</groupId>
+                <artifactId>jakarta.mail-api</artifactId>
+                <version>2.1.3</version>
             </dependency>
 
 
