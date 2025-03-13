@@ -1150,7 +1150,7 @@ public class DeviceInstanceController implements
         return partMono
             .flatMap(part -> DataBufferUtils
                 .join(part.content())
-                .map(DataBuffer::asInputStream)
+                .map(buffer->buffer.asInputStream(true))
                 .flatMap(inputStream -> metadataManager
                     .getMetadataExpandsConfig(productId, DeviceMetadataType.property, "*", "*", DeviceConfigScope.device)
                     .collectList()

@@ -66,7 +66,7 @@ public class CertificateController implements ReactiveServiceCrudController<Cert
                 .content()
                 .collectList()
                 .flatMap(all -> Mono.fromCallable(() ->
-                    Base64.encodeBase64String(StreamUtils.copyToByteArray(factory.join(all).asInputStream()))))
+                    Base64.encodeBase64String(StreamUtils.copyToByteArray(factory.join(all).asInputStream(true)))))
                 ;
         } else {
             return Mono.error(() -> new IllegalArgumentException("[file] part is not a file"));
