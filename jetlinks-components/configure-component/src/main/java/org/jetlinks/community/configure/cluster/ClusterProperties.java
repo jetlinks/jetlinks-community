@@ -6,6 +6,7 @@ import org.jetlinks.core.trace.TraceHolder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @ConfigurationProperties(prefix = "jetlinks.cluster")
@@ -41,7 +42,7 @@ public class ClusterProperties {
 
     public void setId(String id) {
         this.id = id;
-        Cluster.ID = id;
+        Cluster.setup(id, id, Collections.emptyMap());
         TraceHolder.setupGlobalName(id);
     }
 
