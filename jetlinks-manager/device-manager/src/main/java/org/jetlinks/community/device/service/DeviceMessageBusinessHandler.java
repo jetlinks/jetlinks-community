@@ -115,7 +115,8 @@ public class DeviceMessageBusinessHandler {
                 boolean selfManageState = CastUtils
                     .castBoolean(tps.getT5().getOrDefault(DeviceConfigKey.selfManageState.getKey(), false));
 
-                instance.setState(selfManageState ? DeviceState.offline : DeviceState.online);
+                boolean offline = selfManageState || message.getHeaderOrDefault(Headers.ignoreSession);
+                instance.setState(offline ? DeviceState.offline : DeviceState.online);
                 //合并配置
                 instance.mergeConfiguration(tps.getT5());
 
@@ -123,7 +124,7 @@ public class DeviceMessageBusinessHandler {
                     .save(instance)
                     .then(Mono.defer(() -> registry
                         .register(instance.toDeviceInfo()
-                                          .addConfig("state", selfManageState
+                                          .addConfig("state", offline
                                               ? org.jetlinks.core.device.DeviceState.offline
                                               : org.jetlinks.core.device.DeviceState.online))));
             });
