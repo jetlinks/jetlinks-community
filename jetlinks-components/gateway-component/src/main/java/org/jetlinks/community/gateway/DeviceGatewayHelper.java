@@ -123,7 +123,9 @@ public class DeviceGatewayHelper {
                 }
             }
             //子设备会话处理
-            Mono<DeviceSession> sessionHandler = sessionManager
+            Mono<DeviceSession> sessionHandler = children.getHeaderOrDefault(Headers.ignoreSession)
+                ? Mono.empty()
+                : sessionManager
                 .getSession(deviceId)
                 .flatMap(parentSession -> this
                     .createOrUpdateSession(
@@ -211,16 +213,16 @@ public class DeviceGatewayHelper {
 
         //忽略会话管理,比如一个设备存在多种接入方式时,其中一种接入方式收到的消息设置忽略会话来防止会话冲突
         if (message.getHeaderOrDefault(Headers.ignoreSession)) {
-            if (!isDoRegister(message)) {
-                return ctx
-                    .execute(handleMessage(null, message))
-                    .then(registry.getDevice(deviceId))
-                    .contextWrite(context);
-            }
+//            if (!isDoRegister(message)) {
             return ctx
-                .execute(Mono.empty())
+                .execute(handleMessage(null, message))
                 .then(registry.getDevice(deviceId))
                 .contextWrite(context);
+//            }
+//            return ctx
+//                .execute(Mono.empty())
+//                .then(registry.getDevice(deviceId))
+//                .contextWrite(context);
         }
 
         if (doHandle) {
@@ -246,8 +248,7 @@ public class DeviceGatewayHelper {
     private Mono<Void> handleMessage(DeviceOperator device, Message message) {
         return messageHandler
             .handleMessage(device, message)
-            //转换为empty,减少触发discard
-            .flatMap(ignore -> Mono.empty());
+            .then();
     }
 
     private Mono<DeviceSession> createOrUpdateSession(String deviceId,
@@ -474,7 +475,6 @@ public class DeviceGatewayHelper {
         }
 
     }
-
 
 
 }
