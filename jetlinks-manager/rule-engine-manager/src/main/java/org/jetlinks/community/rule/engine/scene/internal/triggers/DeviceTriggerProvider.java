@@ -1,29 +1,57 @@
 package org.jetlinks.community.rule.engine.scene.internal.triggers;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
-import org.jetlinks.core.things.ThingsRegistry;
+import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.command.CommandSupportManagerProvider;
 import org.jetlinks.community.rule.engine.scene.AbstractSceneTriggerProvider;
 import org.jetlinks.community.rule.engine.scene.Variable;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
+import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
+import org.jetlinks.sdk.server.SdkServices;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 @ConfigurationProperties(prefix = "rule.scene.trigger.device")
 public class DeviceTriggerProvider extends AbstractSceneTriggerProvider<DeviceTrigger> {
 
+    private static boolean sharedSupported;
+
+    static {
+        try {
+            Class.forName("org.jetlinks.community.device.entity.DeviceInstanceEntity");
+            sharedSupported = false;
+        } catch (ClassNotFoundException e) {
+            //当前不在设备模块,默认使用共享订阅
+            sharedSupported = true;
+        }
+    }
+
     public static final String PROVIDER = "device";
 
     private final ThingsRegistry registry;
+
+    @Getter
+    @Setter
+    private boolean sharedMod = sharedSupported;
+
+    @Getter
+    @Setter
+    private Set<String> customHeaders = new HashSet<>();
 
     @Override
     public String getProvider() {
@@ -32,7 +60,8 @@ public class DeviceTriggerProvider extends AbstractSceneTriggerProvider<DeviceTr
 
     @Override
     public String getName() {
-        return "设备触发";
+        return LocaleUtils
+            .resolveMessage("message.scene_trigger_name_device","设备触发");
     }
 
     @Override
@@ -42,7 +71,15 @@ public class DeviceTriggerProvider extends AbstractSceneTriggerProvider<DeviceTr
 
     @Override
     public SqlRequest createSql(DeviceTrigger config, List<Term> terms, boolean hasFilter) {
-        return config.createSql(terms, hasFilter);
+        return config.createSql(terms, customHeaders, hasFilter);
+    }
+
+    @Override
+    public Mono<Boolean> isSupported() {
+        // 支持 deviceService则支持设备触发.
+        return Mono.justOrEmpty(
+            CommandSupportManagerProvider.supports.get(SdkServices.deviceService).isPresent()
+        );
     }
 
     @Override

@@ -4,17 +4,17 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.DefaultConfigMetadata;
+import org.jetlinks.core.metadata.types.IntType;
+import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.DefaultConfigMetadata;
-import org.jetlinks.core.metadata.types.IntType;
-import org.jetlinks.core.metadata.types.StringType;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
@@ -69,15 +69,14 @@ public class AlarmRecordRankMeasurement extends StaticMeasurement {
         }
 
         public AggregationQueryParam createQueryParam(MeasurementParameter parameter) {
-            return AggregationQueryParam
-                .of()
+            AggregationQueryParam aggregationQueryParam = AggregationQueryParam.of();
+            aggregationQueryParam.setTimeProperty("alarmTime");
+
+            return aggregationQueryParam
                 .groupBy(parameter.getString("group", "targetId"))
-                .sum("count", "count")
+                .count("targetId", "count")
                 .agg("targetId", Aggregation.TOP)
-                .filter(query -> query
-                    .where("name", "record-agg")
-                    .where("targetType", parameter.getString("targetType", null))
-                )
+                .agg("targetName", Aggregation.TOP)
                 .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter
                           .getDate("from")

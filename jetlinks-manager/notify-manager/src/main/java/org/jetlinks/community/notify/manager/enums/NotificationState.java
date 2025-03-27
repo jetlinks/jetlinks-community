@@ -2,11 +2,11 @@ package org.jetlinks.community.notify.manager.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.hswebframework.web.dict.EnumDict;
+import org.hswebframework.web.dict.I18nEnumDict;
 
 @Getter
 @AllArgsConstructor
-public enum NotificationState implements EnumDict<String> {
+public enum NotificationState implements I18nEnumDict<String> {
 
     unread("未读"),
     read("已读");

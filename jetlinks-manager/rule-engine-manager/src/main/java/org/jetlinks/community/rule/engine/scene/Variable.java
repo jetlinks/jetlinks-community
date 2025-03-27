@@ -21,6 +21,8 @@ import java.util.Map;
 @Setter
 public class Variable {
     public static final String OPTION_PRODUCT_ID = "productId";
+    //用于标记前端从后续请求接口（如告警）内取参名称
+    public static final String OPTION_PARAMETER = "parameter";
     @Schema(description = "变量ID")
     private String id;
 

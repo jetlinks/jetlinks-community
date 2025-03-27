@@ -11,11 +11,6 @@ import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
-import org.jetlinks.core.config.ConfigStorage;
-import org.jetlinks.core.config.ConfigStorageManager;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.event.Subscription;
-import org.jetlinks.core.utils.CompositeSet;
 import org.jetlinks.community.command.rule.data.AlarmResult;
 import org.jetlinks.community.command.rule.data.RelieveInfo;
 import org.jetlinks.community.gateway.annotation.Subscribe;
@@ -30,6 +25,11 @@ import org.jetlinks.community.rule.engine.service.AlarmConfigService;
 import org.jetlinks.community.rule.engine.service.AlarmRecordService;
 import org.jetlinks.community.terms.TermSpec;
 import org.jetlinks.community.utils.ConverterUtils;
+import org.jetlinks.core.config.ConfigStorage;
+import org.jetlinks.core.config.ConfigStorageManager;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.utils.CompositeSet;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.jetlinks.rule.engine.api.RuleData;
 import org.jetlinks.rule.engine.api.RuleDataHelper;
@@ -48,6 +48,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static org.jetlinks.community.rule.engine.scene.SceneTriggerProvider.OUTPUT_KEY_BINDINGS;
 
 @Slf4j
 @AllArgsConstructor
@@ -84,27 +86,43 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
     public Flux<Result> triggered(ExecutionContext context, RuleData data) {
         return this
             .parseAlarmInfo(context, data)
-            .flatMap(alarmInfo -> alarmHandler
-                .triggerAlarm(FastBeanCopier
-                                  .copy(alarmInfo, new org.jetlinks.community.command.rule.data.AlarmInfo()))
-                .map(info -> {
-                    Result result = FastBeanCopier.copy(alarmInfo, new Result());
-                    FastBeanCopier.copy(info, result);
-                    return result;
-                }));
+            .flatMap(alarmInfo -> {
+                org.jetlinks.community.command.rule.data.AlarmInfo copy = FastBeanCopier
+                    .copy(alarmInfo, new org.jetlinks.community.command.rule.data.AlarmInfo());
+                copy.setAlarmTime(getTimestampFromData(data));
+                return alarmHandler
+                    .triggerAlarm(copy)
+                    .map(info -> {
+                        Result result = FastBeanCopier.copy(alarmInfo, new Result());
+                        FastBeanCopier.copy(info, result);
+                        return result;
+                    });
+            });
+    }
+
+
+    private long getTimestampFromData(RuleData data) {
+        Object _data = data.getData();
+        if (_data instanceof Map) {
+            @SuppressWarnings("all")
+            Map<Object, Object> map = (Map<Object, Object>) _data;
+            return CastUtils
+                .castNumber(map.getOrDefault("timestamp", System.currentTimeMillis()))
+                .longValue();
+        }
+        return System.currentTimeMillis();
     }
 
     @Override
     public Flux<Result> relieved(ExecutionContext context, RuleData data) {
         return this
             .parseAlarmInfo(context, data)
-            .flatMap(alarmInfo -> {
-                // 已经被解除不重复更新
-                if (alarmInfo.isCached() && !alarmInfo.isAlarming()) {
-                    return Mono.empty();
-                }
+            .concatMap(alarmInfo -> {
+                RelieveInfo relieveInfo = FastBeanCopier.copy(alarmInfo, new RelieveInfo());
+                relieveInfo.setRelieveTime(getTimestampFromData(data));
+
                 return alarmHandler
-                    .relieveAlarm(FastBeanCopier.copy(alarmInfo, new RelieveInfo()))
+                    .relieveAlarm(relieveInfo)
                     .map(info -> {
                         Result result = FastBeanCopier.copy(alarmInfo, new Result());
                         FastBeanCopier.copy(info, result);
@@ -172,22 +190,25 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         }
     }
 
-
+    @SuppressWarnings("all")
     private Flux<AlarmInfo> parseAlarm(ExecutionContext context, ConfigStorage alarm, Map<String, Object> contextMap) {
         return this
             .getAlarmInfo(alarm)
             .flatMapMany(result -> {
-
+                Object _bindings = contextMap.get(OUTPUT_KEY_BINDINGS);
+                if (_bindings != null) {
+                    result.setBindings((List<Map<String, Object>>) _bindings);
+                }
                 String ruleName = RuleEngineConstants
                     .getRuleName(context)
                     .orElse(result.getAlarmName());
-
                 AlarmData alarmData = AlarmData.of(
                     result.getAlarmConfigId(),
                     result.getAlarmName(),
                     context.getInstanceId(),
                     ruleName,
-                    contextMap);
+                    contextMap,
+                    result.ownerId);
 
                 result.setData(alarmData);
                 result.setTermSpec(AlarmInfo.parseAlarmTrigger(context, contextMap));
@@ -197,6 +218,7 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
                     .map(result::copyWith);
             });
     }
+
 
     private Mono<AlarmInfo> getAlarmInfo(ConfigStorage alarm) {
         return alarm
@@ -357,9 +379,9 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
             .doOnNext(this::handleBind)
             //加载告警配置数据到缓存
             .thenMany(alarmConfigService
-                          .createQuery()
-                          .fetch()
-                          .doOnNext(this::handleAlarmConfig)
+                .createQuery()
+                .fetch()
+                .flatMap(this::handleAlarmConfig)
             )
             .subscribe();
 
@@ -372,6 +394,11 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
          * 告警所有者用户ID,表示告警是属于哪个用户的,用于进行数据权限控制
          */
         private String ownerId;
+
+        /**
+         * 告警触发源创建者用户ID，表示告警是属于哪个用户的资产触发的，用于进行数据权限控制
+         */
+        private String sourceCreatorId;
 
         private AlarmData data;
 
@@ -389,13 +416,15 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
             Map<String, Object> configuration = context.getJob().getConfiguration();
             Object termSpecs = configuration.get(AlarmConstants.ConfigKey.alarmFilterTermSpecs);
             if (termSpecs != null) {
-                termSpec.setChildren(ConverterUtils.convertToList(termSpecs,o -> FastBeanCopier.copy(o, TermSpec.class)));
-                return termSpec.apply(contextMap);
-
+                termSpec.setChildren(ConverterUtils.convertToList(termSpecs, o -> FastBeanCopier.copy(o, TermSpec.class)));
+                Map<String, Object> actualContext = new HashMap<>(contextMap);
+                if (contextMap.get(SceneRule.CONTEXT_KEY_SCENE_OUTPUT) != null) {
+                    FastBeanCopier.copy(contextMap.get(SceneRule.CONTEXT_KEY_SCENE_OUTPUT), actualContext);
+                }
+                return termSpec.apply(actualContext);
             }
             return termSpec;
         }
-
 
         @Override
         public AlarmInfo copyWith(AlarmTargetInfo targetInfo) {
@@ -407,12 +436,13 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
             result.setSourceId(targetInfo.getSourceId());
             result.setSourceType(targetInfo.getSourceType());
             result.setSourceName(targetInfo.getSourceName());
+            result.setSourceCreatorId(targetInfo.getCreatorId());
 
             return result;
         }
     }
 
-
+    @Deprecated
     public static class RecordCache implements Externalizable {
 
         static final byte stateNormal = 0x01;
@@ -467,5 +497,4 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
             lastAlarmTime = in.readLong();
         }
     }
-
 }

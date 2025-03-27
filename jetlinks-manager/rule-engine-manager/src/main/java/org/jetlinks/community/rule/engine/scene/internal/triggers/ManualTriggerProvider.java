@@ -7,18 +7,25 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.EmptySqlFragments
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.metadata.types.DateTimeType;
+import org.jetlinks.community.reactorql.term.FixedTermTypeSupport;
 import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.AbstractSceneTriggerProvider;
 import org.jetlinks.community.rule.engine.scene.Variable;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
+import org.jetlinks.community.terms.I18nSpec;
+import org.jetlinks.community.terms.TermSpec;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
+
+import static org.jetlinks.community.rule.engine.scene.SceneRule.TRIGGER_TYPE;
 
 @Component
 @ConfigurationProperties(prefix = "rule.scene.trigger.manual")
@@ -33,7 +40,8 @@ public class ManualTriggerProvider extends AbstractSceneTriggerProvider<ManualTr
 
     @Override
     public String getName() {
-        return "手动触发";
+        return LocaleUtils
+            .resolveMessage("message.scene_trigger_name_manual", "手动触发");
     }
 
     @Override
@@ -52,6 +60,31 @@ public class ManualTriggerProvider extends AbstractSceneTriggerProvider<ManualTr
     }
 
     @Override
+    public Mono<List<TermSpec>> createFilterSpec(ManualTrigger config,
+                                                 List<Term> terms,
+                                                 BiConsumer<Term, TermSpec> customizer) {
+        TermSpec spec = new TermSpec();
+        spec.setColumn(TRIGGER_TYPE);
+        spec.setTermType(FixedTermTypeSupport.eq.name());
+        spec.setTriggerSpec(
+            I18nSpec.of("message.term_type_scene_manual_trigger_desc", "系统在接收到手动触发指令时，触发场景")
+        );
+        spec.setActualSpec(
+            I18nSpec.of("message.term_type_scene_manual_actual_desc", "手动触发告警")
+        );
+        spec.setDisplayCode(I18nSpec.of("message.scene_trigger_type", "场景触发类型"));
+        spec.setExpected(PROVIDER);
+        spec.setActual(PROVIDER);
+        spec.setMatched(true);
+
+        if (!terms.isEmpty()) {
+            spec.setChildren(TermSpec.of(terms, customizer));
+        }
+
+        return Mono.just(Collections.singletonList(spec));
+    }
+
+    @Override
     public List<Variable> createDefaultVariable(ManualTrigger config) {
         return Collections.singletonList(
             Variable
@@ -59,9 +92,14 @@ public class ManualTriggerProvider extends AbstractSceneTriggerProvider<ManualTr
                     LocaleUtils.resolveMessage(
                         "message.scene_term_column_now",
                         "服务器时间"))
+                .withDescription(
+                    LocaleUtils.resolveMessage(
+                        "message.scene_term_column_now_desc",
+                        "服务器时间"))
                 .withType(DateTimeType.ID)
                 .withTermType(TermTypes.lookup(DateTimeType.GLOBAL))
                 .withColumn("_now")
+                .withFullNameCode(I18nSpec.of("message.scene_term_column_now", "服务器时间"))
         );
     }
 
