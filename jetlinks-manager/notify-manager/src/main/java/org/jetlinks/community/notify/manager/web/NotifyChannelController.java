@@ -22,10 +22,10 @@ import org.jetlinks.community.notify.manager.entity.NotifySubscriberChannelEntit
 import org.jetlinks.community.notify.manager.entity.NotifySubscriberProviderEntity;
 import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.jetlinks.community.notify.manager.service.NotifySubscriberProviderService;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannelProvider;
 import org.jetlinks.community.notify.subscription.SubscribeType;
-import org.jetlinks.community.notify.subscription.SubscriberProvider;
-import org.jetlinks.community.notify.subscription.SubscriberProviders;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
