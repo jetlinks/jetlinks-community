@@ -37,8 +37,6 @@ import static org.jetlinks.community.rule.engine.scene.SceneRule.SOURCE_ID_KEY;
  */
 public interface SceneTriggerProvider<E extends SceneTriggerProvider.TriggerConfig> {
 
-    String OUTPUT_KEY_BINDINGS = "_bindings";
-
     /**
      * @return 提供商唯一标识
      */

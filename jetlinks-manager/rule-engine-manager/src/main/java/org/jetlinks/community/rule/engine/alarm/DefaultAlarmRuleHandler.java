@@ -48,9 +48,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.jetlinks.community.rule.engine.scene.SceneTriggerProvider.OUTPUT_KEY_BINDINGS;
-
 @Slf4j
 @AllArgsConstructor
 @Component
@@ -195,10 +192,6 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         return this
             .getAlarmInfo(alarm)
             .flatMapMany(result -> {
-                Object _bindings = contextMap.get(OUTPUT_KEY_BINDINGS);
-                if (_bindings != null) {
-                    result.setBindings((List<Map<String, Object>>) _bindings);
-                }
                 String ruleName = RuleEngineConstants
                     .getRuleName(context)
                     .orElse(result.getAlarmName());
@@ -408,8 +401,6 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
         private TermSpec termSpec;
 
         private boolean cached;
-
-        private List<Map<String, Object>> bindings;
 
         public static TermSpec parseAlarmTrigger(ExecutionContext context, Map<String, Object> contextMap) {
             TermSpec termSpec = new TermSpec();

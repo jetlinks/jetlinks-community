@@ -9,9 +9,7 @@ import org.jetlinks.community.rule.engine.scene.SceneData;
 import org.jetlinks.community.terms.TermSpec;
 
 import java.io.Serializable;
-import java.util.*;
 
-import static org.jetlinks.community.rule.engine.scene.SceneTriggerProvider.OUTPUT_KEY_BINDINGS;
 
 @Getter
 @Setter

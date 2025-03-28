@@ -3,8 +3,7 @@ package org.jetlinks.community.utils;
 import com.google.common.collect.Sets;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.MapUtils;
-import org.jetlinks.core.Configurable;
-import org.jetlinks.core.Values;
+import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.core.lang.SeparatedCharSequence;
 import org.jetlinks.core.lang.SharedPathString;
 import org.jetlinks.core.message.*;
@@ -12,126 +11,22 @@ import org.jetlinks.core.message.collector.ReportCollectorDataMessage;
 import org.jetlinks.core.message.event.ThingEventMessage;
 import org.jetlinks.core.message.module.ThingModuleMessage;
 import org.jetlinks.core.utils.StringBuilderUtils;
-import org.jetlinks.community.PropertyConstants;
 import org.springframework.util.StringUtils;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.function.Consumer3;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class TopicUtils {
 
     public static final List<Consumer3<Map<String, Object>, String, Consumer<String>>> TOPIC_REFACTOR_HOOK
         = new CopyOnWriteArrayList<>();
-
-    public static final Set<String> KIND_OF_ASSETS_CONFIG_KEY = new HashSet<>(
-        Arrays.asList(
-            PropertyConstants.creatorId.getKey()
-        )
-    );
-
-    /**
-     * 注册topic重构钩子,用于自定义重构逻辑.
-     *
-     * <pre>{@code
-     *
-     *  TopicUtils.addTopicRefactorHook((configs,original,topics)=>{
-     *      //configs 为配置信息
-     *      //original 为原始topic
-     *      //topics 为topic容器,可添加更多topic到容器中.
-     *
-     *       topics.add(createCustomTopic(configs,original));
-     *  })
-     *
-     *
-     * }</pre>
-     *
-     * @param hook hook
-     */
-    public static void addTopicRefactorHook(Consumer3<Map<String, Object>, String, Consumer<String>> hook) {
-        TOPIC_REFACTOR_HOOK.add(hook);
-    }
-
-    public static Flux<String> refactorTopic(Configurable configurable, String original) {
-        return refactorTopic(configurable::getConfigs, original);
-    }
-
-    public static Flux<String> refactorTopic(Function<Collection<String>, Mono<Values>> configurable,
-                                             String original) {
-        return configurable
-            .apply(TopicUtils.KIND_OF_ASSETS_CONFIG_KEY)
-            .flatMapIterable(values -> TopicUtils.refactorTopic(values.getAllValues(), original));
-    }
-
-    public static Flux<SeparatedCharSequence> refactorTopic(Configurable configurable, SeparatedCharSequence original) {
-        return refactorTopic(configurable::getConfigs, original);
-    }
-
-    public static Flux<SeparatedCharSequence> refactorTopic(Function<Collection<String>, Mono<Values>> configurable,
-                                                            SeparatedCharSequence original) {
-        return configurable
-            .apply(TopicUtils.KIND_OF_ASSETS_CONFIG_KEY)
-            .flatMapIterable(values -> TopicUtils.refactorTopic(values.getAllValues(), original));
-    }
-
-    public static void refactorTopic(Map<String, Object> configs,
-                                     SeparatedCharSequence original,
-                                     Consumer<SeparatedCharSequence> consumer) {
-        if (MapUtils.isEmpty(configs)) {
-            consumer.accept(original);
-            return;
-        }
-        consumer.accept(original);
-
-        //创建人
-        String creatorId = PropertyConstants.getFromMapOrElse(PropertyConstants.creatorId, configs, () -> null);
-        if (StringUtils.hasText(creatorId)) {
-            consumer.accept(
-                org.jetlinks.community.topic.Topics.creator(creatorId, original)
-            );
-        }
-
-        // 执行hooks
-        if (!TOPIC_REFACTOR_HOOK.isEmpty()) {
-            for (Consumer3<Map<String, Object>, String, Consumer<String>> hook : TOPIC_REFACTOR_HOOK) {
-                hook.accept(configs, original.toString(), (str) -> consumer.accept(SharedPathString.of(str)));
-            }
-        }
-    }
-
-    public static Set<SeparatedCharSequence> refactorTopic(Map<String, Object> configs, SeparatedCharSequence original) {
-        if (MapUtils.isEmpty(configs)) {
-            return Collections.singleton(original);
-        }
-        Set<SeparatedCharSequence> container = Sets.newHashSetWithExpectedSize(2);
-        container.add(original);
-
-        //创建人
-        String creatorId = PropertyConstants.getFromMapOrElse(PropertyConstants.creatorId, configs, () -> null);
-        if (StringUtils.hasText(creatorId)) {
-            container.add(
-                org.jetlinks.community.topic.Topics.creator(creatorId, original)
-            );
-        }
-
-        // 执行hooks
-        if (!TOPIC_REFACTOR_HOOK.isEmpty()) {
-            for (Consumer3<Map<String, Object>, String, Consumer<String>> hook : TOPIC_REFACTOR_HOOK) {
-                hook.accept(configs, original.toString(), (str) -> container.add(SharedPathString.of(str)));
-            }
-        }
-        return container;
-    }
-
-    public static Set<SeparatedCharSequence> refactorTopic(DeviceMessage message, SeparatedCharSequence original) {
-        return refactorTopic(message.getHeaders(), original);
-    }
 
     public static Set<String> refactorTopic(Map<String, Object> configs, String original) {
         if (MapUtils.isEmpty(configs)) {
@@ -155,10 +50,6 @@ public class TopicUtils {
             }
         }
         return topics;
-    }
-
-    public static Set<String> refactorTopic(ThingMessage message, String original) {
-        return refactorTopic(message.getHeaders(), original);
     }
 
     private static final TopicBuilder[] TOPIC_BUILDERS;
@@ -354,11 +245,6 @@ public class TopicUtils {
     }
 
     private static void createFastBuilder(MessageType messageType,
-                                          TopicBuilder builderBiConsumer) {
-        TOPIC_BUILDERS[messageType.ordinal()] = builderBiConsumer;
-    }
-
-    private static void createFastBuilder(MessageType messageType,
                                           BiConsumer<Message, StringBuilder> builderBiConsumer,
                                           BiFunction<Message, SeparatedCharSequence, SeparatedCharSequence> builderBiConsumer2) {
         TOPIC_BUILDERS[messageType.ordinal()] = new TopicBuilder() {
@@ -372,15 +258,6 @@ public class TopicUtils {
                 return builderBiConsumer2.apply(message, prefix);
             }
         };
-    }
-
-
-    public static String createMessageTopic(Message message, String prefix) {
-        return StringBuilderUtils
-            .buildString(message, prefix, (msg, _prefix, builder) -> {
-                builder.append(_prefix);
-                TopicUtils.appendMessageTopic(msg, builder);
-            });
     }
 
     @SneakyThrows
