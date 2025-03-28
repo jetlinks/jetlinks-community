@@ -21,11 +21,11 @@ public class DeviceMessageMeasurementProvider extends StaticMeasurementProvider 
 
     public DeviceMessageMeasurementProvider(EventBus eventBus,
                                             MeterRegistryManager registryManager,
+                                            DeviceRegistry deviceRegistry,
                                             TimeSeriesManager timeSeriesManager) {
-        super(DeviceDashboardDefinition.instance, DeviceObjectDefinition.message);
+        super(DeviceDashboardDefinition.device, DeviceObjectDefinition.message);
 
-        registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId(),
-            "target", "msgType", "productId");
+        registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId());
 
         addMeasurement(new DeviceMessageMeasurement(eventBus, timeSeriesManager));
 
@@ -50,4 +50,5 @@ public class DeviceMessageMeasurementProvider extends StaticMeasurementProvider 
             "productId", message.getHeader("productId").map(String::valueOf).orElse("unknown")
         };
     }
+
 }

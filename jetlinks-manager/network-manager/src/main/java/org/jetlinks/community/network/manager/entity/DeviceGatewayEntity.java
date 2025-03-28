@@ -12,10 +12,10 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
-import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProperties;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
 import org.jetlinks.community.network.manager.enums.DeviceGatewayState;
+import org.jetlinks.core.ProtocolSupport;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
@@ -108,6 +108,13 @@ public class DeviceGatewayEntity extends GenericEntity<String> implements Record
     )
     private Long createTime;
 
+    @Column(name = "creator_name", updatable = false)
+    @Schema(
+        description = "创建者名称(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorName;
+
     @Column(length = 64)
     @Schema(
         description = "修改人ID"
@@ -123,14 +130,18 @@ public class DeviceGatewayEntity extends GenericEntity<String> implements Record
     )
     private Long modifyTime;
 
+    @Column(length = 64)
+    @Schema(description = "修改人名称")
+    private String modifierName;
+
     @Column
     @DefaultValue(generator = Generators.CURRENT_TIME)
     @Schema(description = "状态变更时间")
     private Long stateTime;
 
-
-    public DeviceGatewayProperties toProperties(){
-
-        return FastBeanCopier.copy(this, new DeviceGatewayProperties());
+    public DeviceGatewayProperties toProperties() {
+        DeviceGatewayProperties properties = FastBeanCopier.copy(this, new DeviceGatewayProperties());
+        properties.setEnabled(DeviceGatewayState.enabled.equals(state));
+        return properties;
     }
 }

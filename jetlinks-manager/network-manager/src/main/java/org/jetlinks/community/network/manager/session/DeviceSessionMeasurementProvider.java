@@ -2,15 +2,6 @@ package org.jetlinks.community.network.manager.session;
 
 import com.google.common.collect.Maps;
 import org.hswebframework.web.utils.DigestUtils;
-import org.jetlinks.core.device.DeviceConfigKey;
-import org.jetlinks.core.device.session.DeviceSessionManager;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.DefaultConfigMetadata;
-import org.jetlinks.core.metadata.SimplePropertyMetadata;
-import org.jetlinks.core.metadata.types.*;
-import org.jetlinks.core.server.session.DeviceSession;
-import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
@@ -21,6 +12,14 @@ import org.jetlinks.community.timeseries.TimeSeriesMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.jetlinks.community.utils.TimeUtils;
+import org.jetlinks.core.device.DeviceConfigKey;
+import org.jetlinks.core.device.session.DeviceSessionManager;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.DefaultConfigMetadata;
+import org.jetlinks.core.metadata.SimplePropertyMetadata;
+import org.jetlinks.core.metadata.types.*;
+import org.jetlinks.core.server.session.DeviceSession;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.reactivestreams.Publisher;
@@ -184,6 +183,7 @@ public class DeviceSessionMeasurementProvider extends StaticMeasurementProvider 
                     SimplePropertyMetadata.of("name", "name", StringType.GLOBAL),
                     SimplePropertyMetadata.of("duration", "duration", LongType.GLOBAL),
                     SimplePropertyMetadata.of("count", "count", LongType.GLOBAL),
+                    SimplePropertyMetadata.of("bindings", "bindings", new ArrayType().elementType(StringType.GLOBAL)),
                     SimplePropertyMetadata.of("connectTime", "connectTime", DateTimeType.GLOBAL)
                 ))
             .block(Duration.ofSeconds(30));
@@ -226,7 +226,7 @@ public class DeviceSessionMeasurementProvider extends StaticMeasurementProvider 
     }
 
     private long computeDuration(long timestamp) {
-        return System.currentTimeMillis() - timestamp;
+       return System.currentTimeMillis() - timestamp;
     }
 
     protected Mono<Void> reportDeviceSession(DeviceSession session, String type) {

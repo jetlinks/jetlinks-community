@@ -1,13 +1,9 @@
 package org.jetlinks.community.device.service.data;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.hswebframework.ezorm.core.ValueCodec;
-import org.hswebframework.ezorm.rdb.codec.ClobValueCodec;
-import org.hswebframework.ezorm.rdb.codec.DateTimeCodec;
-import org.hswebframework.ezorm.rdb.codec.JsonValueCodec;
-import org.hswebframework.ezorm.rdb.codec.NumberValueCodec;
 import org.hswebframework.ezorm.rdb.executor.wrapper.ResultWrappers;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.ezorm.rdb.mapping.defaults.record.Record;
@@ -20,6 +16,15 @@ import org.hswebframework.ezorm.rdb.operator.dml.SelectColumnSupplier;
 import org.hswebframework.ezorm.rdb.operator.dml.query.Selects;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.exception.ValidationException;
+import org.jetlinks.community.buffer.BufferProperties;
+import org.jetlinks.community.buffer.BufferSettings;
+import org.jetlinks.community.buffer.PersistenceBuffer;
+import org.jetlinks.community.device.entity.DeviceLatestData;
+import org.jetlinks.community.gateway.DeviceMessageUtils;
+import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.community.things.utils.ThingsDatabaseUtils;
+import org.jetlinks.community.timeseries.query.Aggregation;
+import org.jetlinks.community.timeseries.query.AggregationColumn;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.event.EventMessage;
@@ -27,19 +32,10 @@ import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.types.*;
+import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.core.utils.SerializeUtils;
 import org.jetlinks.core.utils.StringBuilderUtils;
-import org.jetlinks.community.ConfigMetadataConstants;
-import org.jetlinks.community.buffer.BufferProperties;
-import org.jetlinks.community.buffer.BufferSettings;
-import org.jetlinks.community.buffer.PersistenceBuffer;
-import org.jetlinks.community.device.entity.DeviceLatestData;
-import org.jetlinks.community.gateway.DeviceMessageUtils;
-import org.jetlinks.community.gateway.annotation.Subscribe;
-import org.jetlinks.community.timeseries.query.Aggregation;
-import org.jetlinks.community.timeseries.query.AggregationColumn;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -112,17 +108,15 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
                 //批量更新
                 .flatMap(sameTableData -> {
                     Buffer first = sameTableData.get(0);
-                    List<Map<String, Object>> data = sameTableData
-                        .stream()
-                        .map(Buffer::getProperties)
-                        .collect(Collectors.toList());
+                    List<Map<String, Object>> data = Lists.transform(sameTableData, Buffer::getProperties);
                     return this
                         .doUpdateLatestData(first.table, data)
                         .onErrorResume((err) -> {
                             log.error("save device latest data error", err);
                             return Mono.empty();
                         });
-                }))
+                }, 8, 8)
+            )
             .then(Reactors.ALWAYS_FALSE);
 
     }
@@ -142,137 +136,6 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
     public void destroy() {
         writer.stop();
     }
-
-    static GeoCodec geoCodec = new GeoCodec();
-
-    static StringCodec stringCodec = new StringCodec();
-
-    @Override
-    public void run(String... args) throws Exception {
-        writer.start();
-        SpringApplication
-            .getShutdownHandlers()
-            .add(writer::dispose);
-    }
-
-    static class GeoCodec implements ValueCodec<String, GeoPoint> {
-
-        @Override
-        public String encode(Object value) {
-            return String.valueOf(value);
-        }
-
-        @Override
-        public GeoPoint decode(Object data) {
-            return GeoPoint.of(data);
-        }
-    }
-
-    static class StringCodec implements ValueCodec<String, String> {
-
-        @Override
-        public String encode(Object value) {
-            return String.valueOf(value);
-        }
-
-        @Override
-        public String decode(Object data) {
-            return String.valueOf(data);
-        }
-    }
-
-    Class<?> getJavaType(DataType dataType) {
-        if (null == dataType) {
-            return Map.class;
-        }
-        switch (dataType.getType()) {
-            case IntType.ID:
-                return Integer.class;
-            case LongType.ID:
-                return Long.class;
-            case FloatType.ID:
-                return Float.class;
-            case DoubleType.ID:
-                return Double.class;
-            case BooleanType.ID:
-                return Boolean.class;
-            case DateTimeType.ID:
-                return Date.class;
-            case ArrayType.ID:
-                return List.class;
-            case GeoType.ID:
-            case ObjectType.ID:
-                return Map.class;
-            default:
-                return String.class;
-        }
-    }
-
-    RDBColumnMetadata convertColumn(PropertyMetadata metadata) {
-        RDBColumnMetadata column = new RDBColumnMetadata();
-        column.setName(metadata.getId());
-        column.setComment(metadata.getName());
-        DataType type = metadata.getValueType();
-        if (type instanceof NumberType) {
-            column.setLength(32);
-            column.setPrecision(32);
-            if (type instanceof DoubleType) {
-                column.setScale(Optional.ofNullable(((DoubleType) type).getScale()).orElse(2));
-                column.setValueCodec(new NumberValueCodec(Double.class));
-                column.setJdbcType(JDBCType.NUMERIC, Double.class);
-            } else if (type instanceof FloatType) {
-                column.setScale(Optional.ofNullable(((FloatType) type).getScale()).orElse(2));
-                column.setValueCodec(new NumberValueCodec(Float.class));
-                column.setJdbcType(JDBCType.NUMERIC, Float.class);
-            } else if (type instanceof LongType) {
-                column.setValueCodec(new NumberValueCodec(Long.class));
-                column.setJdbcType(JDBCType.NUMERIC, Long.class);
-            } else {
-                column.setValueCodec(new NumberValueCodec(IntType.class));
-                column.setJdbcType(JDBCType.NUMERIC, Integer.class);
-            }
-        } else if (type instanceof ObjectType) {
-            column.setJdbcType(JDBCType.CLOB, String.class);
-            column.setValueCodec(JsonValueCodec.of(Map.class));
-        } else if (type instanceof ArrayType) {
-            column.setJdbcType(JDBCType.CLOB, String.class);
-            ArrayType arrayType = ((ArrayType) type);
-            column.setValueCodec(JsonValueCodec.ofCollection(ArrayList.class, getJavaType(arrayType.getElementType())));
-        } else if (type instanceof DateTimeType) {
-            column.setJdbcType(JDBCType.TIMESTAMP, Long.class);
-            String format = ((DateTimeType) type).getFormat();
-            if (DateTimeType.TIMESTAMP_FORMAT.equals(format)) {
-                format = "yyyy-MM-dd HH:mm:ss";
-            }
-            column.setValueCodec(new DateTimeCodec(format, Long.class));
-        } else if (type instanceof GeoType) {
-            column.setJdbcType(JDBCType.VARCHAR, String.class);
-            column.setValueCodec(geoCodec);
-            column.setLength(128);
-        } else if (type instanceof EnumType) {
-            column.setJdbcType(JDBCType.VARCHAR, String.class);
-            column.setValueCodec(stringCodec);
-            column.setLength(64);
-        } else {
-            int len = type
-                .getExpand(ConfigMetadataConstants.maxLength.getKey())
-                .filter(o -> !StringUtils.isEmpty(o))
-                .map(CastUtils::castNumber)
-                .map(Number::intValue)
-                .orElse(255);
-            if (len > 2048) {
-                column.setJdbcType(JDBCType.LONGVARBINARY, String.class);
-                column.setValueCodec(ClobValueCodec.INSTANCE);
-            } else {
-                column.setJdbcType(JDBCType.VARCHAR, String.class);
-                column.setLength(len);
-                column.setValueCodec(stringCodec);
-            }
-        }
-
-        return column;
-    }
-
 
     public Mono<Void> reloadMetadata(String productId, DeviceMetadata metadata) {
         return Mono
@@ -299,13 +162,13 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
                 table.addColumn(deviceName);
 
                 for (PropertyMetadata property : metadata.getProperties()) {
-                    table.addColumn(convertColumn(property));
+                    table.addColumn(ThingsDatabaseUtils.convertColumn(property));
                 }
                 for (EventMetadata event : metadata.getEvents()) {
                     DataType type = event.getType();
                     if (type instanceof ObjectType) {
                         for (PropertyMetadata property : ((ObjectType) type).getProperties()) {
-                            RDBColumnMetadata column = convertColumn(property);
+                            RDBColumnMetadata column = ThingsDatabaseUtils.convertColumn(property);
                             column.setName(getEventColumn(event.getId(), property.getId()));
                             table.addColumn(column);
                         }
@@ -320,7 +183,6 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
             });
     }
 
-    @Transactional(propagation = Propagation.NEVER)
     public Mono<Void> upgradeMetadata(String productId, DeviceMetadata metadata, boolean ddl) {
         return Mono
             .defer(() -> {
@@ -335,13 +197,13 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
                     .allowAlter(ddl);
 
                 for (PropertyMetadata property : metadata.getProperties()) {
-                    builder.addColumn(convertColumn(property));
+                    builder.addColumn(ThingsDatabaseUtils.convertColumn(property));
                 }
                 for (EventMetadata event : metadata.getEvents()) {
                     DataType type = event.getType();
                     if (type instanceof ObjectType) {
                         for (PropertyMetadata property : ((ObjectType) type).getProperties()) {
-                            RDBColumnMetadata column = convertColumn(property);
+                            RDBColumnMetadata column = ThingsDatabaseUtils.convertColumn(property);
                             column.setName(getEventColumn(event.getId(), property.getId()));
                             builder.addColumn(column);
                         }
@@ -355,12 +217,14 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
             });
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Mono<Void> upgradeMetadata(String productId, DeviceMetadata metadata) {
         return upgradeMetadata(productId, metadata, true);
     }
 
+    @Override
     @Subscribe(topics = "/device/**", features = Subscription.Feature.local)
-    public void save(DeviceMessage message) {
+    public Mono<Void> saveAsync(DeviceMessage message) {
         try {
             Map<String, Object> properties = DeviceMessageUtils
                 .tryGetProperties(message)
@@ -380,7 +244,7 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
                     return null;
                 });
             if (CollectionUtils.isEmpty(properties)) {
-                return;
+                return Mono.empty();
             }
             String productId = message.getHeader("productId").map(String::valueOf).orElse("null");
             String deviceName = message.getHeader("deviceName").map(String::valueOf).orElse(message.getDeviceId());
@@ -394,6 +258,19 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
+        return Mono.empty();
+    }
+
+    public void save(DeviceMessage message) {
+        saveAsync(message).subscribe();
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        writer.start();
+        SpringApplication
+            .getShutdownHandlers()
+            .add(writer::dispose);
     }
 
     @Getter
@@ -475,15 +352,15 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
             .getMetadata()
             .getCurrentSchema()
             .getTableReactive(table, false)
-            .flatMap(ignore -> {
+            .flatMap(_table -> {
                 //没有deviceName,说明可能在同步表结构的时候发生了错误。
-                if (!ignore.getColumn("deviceName").isPresent()) {
+                if (!_table.getColumn("deviceName").isPresent()) {
                     log.warn("设备最新数据表[{}]结构错误", table);
                     return Mono.empty();
                 }
                 return databaseOperator
                     .dml()
-                    .upsert(table)
+                    .upsert(_table)
                     .ignoreUpdate("id")
                     .values(properties)
                     .execute()

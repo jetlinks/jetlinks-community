@@ -1,6 +1,9 @@
 package org.jetlinks.community;
 
 import org.jetlinks.core.config.ConfigKey;
+import org.jetlinks.core.metadata.MergeOption;
+
+import java.util.Map;
 
 /**
  * 数据验证配置常量类
@@ -19,5 +22,9 @@ public interface ConfigMetadataConstants {
     ConfigKey<Boolean> required = ConfigKey.of("required", "是否必填", Boolean.TYPE);
 
     ConfigKey<String> format = ConfigKey.of("format", "格式", String.class);
+
+    ConfigKey<String> defaultValue = ConfigKey.of("defaultValue", "默认值", String.class);
+
+    ConfigKey<Boolean> indexEnabled = ConfigKey.of("indexEnabled", "开启索引", Boolean.TYPE);
 
 }

@@ -1,5 +1,6 @@
 package org.jetlinks.community.protocol.configuration;
 
+import org.hswebframework.web.crud.annotation.EnableEasyormRepository;
 import org.jetlinks.community.protocol.*;
 import org.jetlinks.community.protocol.local.LocalProtocolSupportLoader;
 import org.jetlinks.core.ProtocolSupport;
@@ -26,6 +27,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration(proxyBeanMethods = false)
 @AutoConfigureBefore(DeviceClusterConfiguration.class)
+@EnableEasyormRepository("org.jetlinks.community.protocol.ProtocolSupportEntity")
 public class ProtocolAutoConfiguration {
 
 //    @Bean

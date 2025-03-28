@@ -4,6 +4,8 @@ import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.*;
 import org.jetlinks.community.things.data.ThingsDataConstants;
+import org.jetlinks.core.things.ThingMetadata;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,5 +36,10 @@ public abstract class RowModeDDLOperationsBase extends AbstractDDLOperations{
 
 
         return props;
+    }
+
+    @Override
+    public Mono<Void> validateMetadata(ThingMetadata metadata) {
+        return Mono.empty();
     }
 }

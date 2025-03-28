@@ -1,7 +1,6 @@
 package org.jetlinks.community.device.entity;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.annotation.JSONField;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -11,7 +10,8 @@ import org.jetlinks.community.device.enums.DeviceLogType;
 import org.jetlinks.community.things.data.ThingMessageLog;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author bsetfeng

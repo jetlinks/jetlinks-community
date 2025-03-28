@@ -17,10 +17,16 @@ import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.ProductInfo;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.metadata.DeviceMetadata;
+import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimpleDeviceMetadata;
+import org.jetlinks.core.metadata.SimplePropertyMetadata;
+import org.jetlinks.core.metadata.types.EnumType;
+import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
+import org.jetlinks.community.things.data.ThingsDataConstants;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.util.StringUtils;
 
@@ -31,9 +37,7 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.sql.JDBCType;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.jetlinks.community.device.enums.DeviceType.gateway;
 
@@ -139,6 +143,13 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
     @DefaultValue(generator = Generators.CURRENT_TIME)
     private Long createTime;
 
+    @Column(name = "creator_name", updatable = false)
+    @Schema(
+        description = "创建者名称(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorName;
+
     @Column(name = "org_id", length = 64)
     @Schema(description = "机构ID")
     @Deprecated
@@ -178,6 +189,10 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
     @Schema(description = "修改时间")
     private Long modifyTime;
 
+    @Column(length = 64)
+    @Schema(description = "修改人名称")
+    private String modifierName;
+
     public Optional<Transport> getTransportEnum(Collection<? extends Transport> candidates) {
         for (Transport transport : candidates) {
             if (transport.isSame(transportProtocol)) {
@@ -195,11 +210,13 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
             .metadata(getMetadata())
             .build()
             .addConfig(DeviceConfigKey.isGatewayDevice, getDeviceType() == gateway)
-            .addConfig("storePolicy", storePolicy)
+            .addConfig(ThingsDataConstants.storePolicyConfigKey, storePolicy)
             .addConfig("storePolicyConfiguration", storePolicyConfiguration)
             .addConfig("deviceType", deviceType == null ? "device" : deviceType.getValue())
             .addConfig(PropertyConstants.accessId, accessId)
+            .addConfig(PropertyConstants.productName, name)
             .addConfig(PropertyConstants.accessProvider, accessProvider)
+            .addConfig(PropertyConstants.creatorId,creatorId)
             .addConfigs(configuration);
     }
 
@@ -212,5 +229,35 @@ public class DeviceProductEntity extends GenericEntity<String> implements Record
 
     public void validateId() {
         tryValidate(DeviceProductEntity::getId, CreateGroup.class);
+    }
+
+    public static List<PropertyMetadata> createMetadata(){
+        return Arrays.asList(
+            SimplePropertyMetadata.of("id", "产品id", StringType.GLOBAL),
+            SimplePropertyMetadata.of("name", "产品名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("deviceType", "设备类型", new EnumType()
+                .addElement(EnumType.Element.of("device", "直连设备"))
+                .addElement(EnumType.Element.of("childrenDevice", "网关子设备"))
+                .addElement(EnumType.Element.of("gateway", "网关设备"))),
+            SimplePropertyMetadata.of("describe", "说明", StringType.GLOBAL),
+            SimplePropertyMetadata.of("projectId", "所属项目", StringType.GLOBAL),
+            SimplePropertyMetadata.of("projectName", "项目名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("classifiedId", "所属品类id", StringType.GLOBAL),
+            SimplePropertyMetadata.of("classifiedName", "所属品类名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("messageProtocol", "消息协议ID", StringType.GLOBAL),
+            SimplePropertyMetadata.of("protocolName", "消息协议名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("metadata", "物模型定义", StringType.GLOBAL),
+            SimplePropertyMetadata.of("transportProtocol", "传输协议", StringType.GLOBAL),
+            SimplePropertyMetadata.of("networkWay", "入网方式", StringType.GLOBAL),
+            SimplePropertyMetadata.of("accessId", "设备接入方式ID", StringType.GLOBAL),
+            SimplePropertyMetadata.of("accessName", "设备接入方式名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("accessProvider", "设备接入方式", StringType.GLOBAL),
+            SimplePropertyMetadata.of("storePolicy", "数据存储策略", StringType.GLOBAL),
+            SimplePropertyMetadata.of("configuration", "配置", new ObjectType()),
+            SimplePropertyMetadata.of("state", "产品状态", new EnumType()
+                .addElement(EnumType.Element.of("0", "禁用"))
+                .addElement(EnumType.Element.of("1", "离线"))),
+            SimplePropertyMetadata.of("orgId", "机构id", StringType.GLOBAL)
+        );
     }
 }

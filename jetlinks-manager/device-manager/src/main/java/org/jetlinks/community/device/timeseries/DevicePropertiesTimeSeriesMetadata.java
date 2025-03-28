@@ -1,13 +1,10 @@
 package org.jetlinks.community.device.timeseries;
 
-import org.jetlinks.community.timeseries.TimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
-import org.jetlinks.core.metadata.types.DateTimeType;
-import org.jetlinks.core.metadata.types.DoubleType;
-import org.jetlinks.core.metadata.types.ObjectType;
-import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.core.metadata.types.*;
+import org.jetlinks.community.timeseries.TimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesMetric;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +20,13 @@ class DevicePropertiesTimeSeriesMetadata implements TimeSeriesMetadata {
     }
 
     static {
-
+        {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("id");
+            property.setValueType(StringType.GLOBAL);
+            property.setName("id");
+            metadata.add(property);
+        }
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("property");
@@ -43,6 +46,14 @@ class DevicePropertiesTimeSeriesMetadata implements TimeSeriesMetadata {
             property.setId("value");
             property.setValueType(new StringType());
             property.setName("原始值");
+            metadata.add(property);
+        }
+
+        {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId("geoValue");
+            property.setValueType(new GeoType());
+            property.setName("地理位置");
             metadata.add(property);
         }
 
@@ -84,28 +95,28 @@ class DevicePropertiesTimeSeriesMetadata implements TimeSeriesMetadata {
             property.setName("设备ID");
             metadata.add(property);
         }
+//
+//        {
+//            SimplePropertyMetadata property = new SimplePropertyMetadata();
+//            property.setId("productId");
+//            property.setValueType(new StringType());
+//            property.setName("产品ID");
+//            metadata.add(property);
+//        }
 
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
-            property.setId("productId");
+            property.setId("type");
             property.setValueType(new StringType());
-            property.setName("型号ID");
-            metadata.add(property);
-        }
-
-        {
-            SimplePropertyMetadata property = new SimplePropertyMetadata();
-            property.setId("orgId");
-            property.setValueType(new StringType());
-            property.setName("组织ID");
+            property.setName("类型");
             metadata.add(property);
         }
 
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("createTime");
-            property.setValueType(new DateTimeType());
-            property.setName("创建事件");
+            property.setValueType(DateTimeType.GLOBAL);
+            property.setName("创建时间");
             metadata.add(property);
         }
     }
