@@ -7,10 +7,10 @@ import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.PropertyConstants;
-import org.jetlinks.community.rule.engine.RuleEngineConstants;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.trace.TraceHolder;
+import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.rule.engine.api.RuleData;
@@ -23,8 +23,8 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import static org.jetlinks.community.rule.engine.scene.SceneRule.TRIGGER_TYPE;
 
@@ -119,7 +119,9 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                     if (table.startsWith("/")) {
                         //来自事件总线
                         return this
-                            .subscribe(table);
+                            .subscribe(table)
+                            //有效期去重,同一个设备在多个部门的场景下,可能收到2条相同的数据问题
+                            .as(FluxUtils.distinct(this::getDataId, Duration.ofSeconds(1)));
                     } else {
                         //来自上游(定时等)
                         return context
@@ -217,17 +219,6 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
         }
 
         private Flux<Map<String, Object>> subscribe(String topic) {
-            SceneTriggerProvider<SceneTriggerProvider.TriggerConfig> provider = rule.getTrigger().provider();
-            String userId = RuleEngineConstants.getCreatorId(context).orElse(null);
-
-            return provider
-                .subscribe(
-                    eventBus, "scene:" + rule.getId(), userId, topic
-                );//有效期去重,同一个设备在多个部门的场景下,可能收到2条相同的数据问题
-        }
-
-        private Disposable startSubscribe(String topic, Consumer<Map<String, Object>> sink) {
-            SceneTriggerProvider<SceneTriggerProvider.TriggerConfig> provider = rule.getTrigger().provider();
             return eventBus
                 .subscribe(
                     Subscription
@@ -235,8 +226,14 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                         .justLocal()
                         .topics(topic)
                         .subscriberId("scene:" + rule.getId())
-                        .build(),
-                    topicPayload -> provider.handleSqlResult(topicPayload, sink));
+                        .build())
+                .handle((topicPayload, synchronousSink) -> {
+                    try {
+                        synchronousSink.next(topicPayload.bodyToJson(true));
+                    } catch (Throwable err) {
+                        log.warn("decode payload error {}", topicPayload.getTopic(), err);
+                    }
+                });
         }
 
         private Mono<Void> handleOutput(RuleData data) {
