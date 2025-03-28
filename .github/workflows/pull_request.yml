@@ -19,7 +19,7 @@ jobs:
       with:
         java-version: 1.8
     - name: Cache Maven Repository
-      uses: actions/cache@v3
+      uses: actions/cache@v4.2.3
       with:
         path: ~/.m2
         key: jetlinks-community-maven-repository
