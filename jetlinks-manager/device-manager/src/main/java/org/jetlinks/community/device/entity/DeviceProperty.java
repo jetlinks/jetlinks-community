@@ -66,6 +66,9 @@ public class DeviceProperty implements Serializable {
     @Schema(description = "属性值")
     private Object value;
 
+    @Schema(description = "原始值")
+    private Object originValue;
+
     @Schema(description = "格式化值")
     private Object formatValue;
 
@@ -85,6 +88,13 @@ public class DeviceProperty implements Serializable {
      */
     @Schema(description = "状态值")
     private String state;
+
+    public Object getOriginValue(){
+        if (originValue == null){
+            return value;
+        }
+        return originValue;
+    }
 
     public DeviceProperty deviceId(String deviceId) {
         this.deviceId = deviceId;

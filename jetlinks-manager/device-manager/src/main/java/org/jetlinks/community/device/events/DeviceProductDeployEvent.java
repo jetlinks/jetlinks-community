@@ -1,8 +1,11 @@
 package org.jetlinks.community.device.events;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Generated;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.event.DefaultAsyncEvent;
+import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
 
 import java.util.Map;
 
@@ -12,6 +15,7 @@ import java.util.Map;
  **/
 @Getter
 @Setter
+@Generated
 public class DeviceProductDeployEvent extends DefaultAsyncEvent {
 
     private String id;
@@ -42,5 +46,16 @@ public class DeviceProductDeployEvent extends DefaultAsyncEvent {
 
     private Long createTime;
 
+    @Deprecated
     private String orgId;
+
+    @Schema(description = "设备接入方式ID")
+    private String accessId;
+
+    /**
+     * @see DeviceGatewayProvider#getId()
+     */
+    @Schema(description = "设备接入方式")
+    private String accessProvider;
+
 }

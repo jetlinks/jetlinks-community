@@ -32,7 +32,7 @@ public class ProtocolDataReferenceProvider implements DataReferenceProvider {
             .where()
             .is(DeviceGatewayEntity::getProtocol, protocolId)
             .fetch()
-            .map(e -> DataReferenceInfo.of(e.getId(),DataReferenceManager.TYPE_PROTOCOL, e.getProtocol(), e.getName()));
+            .map(e -> DataReferenceInfo.of(e.getProtocol(), DataReferenceManager.TYPE_DEVICE_GATEWAY, e.getId(), e.getName()));
     }
 
     @Override
@@ -40,8 +40,8 @@ public class ProtocolDataReferenceProvider implements DataReferenceProvider {
         return deviceGatewayService
             .createQuery()
             .where()
-            .notNull(DeviceGatewayEntity::getChannelId)
+            .notNull(DeviceGatewayEntity::getProtocol)
             .fetch()
-            .map(e -> DataReferenceInfo.of(e.getId(),DataReferenceManager.TYPE_PROTOCOL, e.getChannelId(), e.getName()));
+            .map(e -> DataReferenceInfo.of(e.getProtocol(), DataReferenceManager.TYPE_DEVICE_GATEWAY,  e.getId(), e.getName()));
     }
 }

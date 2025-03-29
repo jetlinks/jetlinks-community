@@ -3,17 +3,18 @@ package org.jetlinks.community.device.relation;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.jetlinks.core.device.DeviceConfigKey;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.message.DeviceDataManager;
-import org.jetlinks.core.things.relation.ObjectType;
-import org.jetlinks.core.things.relation.PropertyOperation;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.relation.RelationObjectProvider;
 import org.jetlinks.community.relation.impl.SimpleObjectType;
 import org.jetlinks.community.relation.impl.property.PropertyOperationStrategy;
+import org.jetlinks.core.device.DeviceConfigKey;
+import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.message.DeviceDataManager;
+import org.jetlinks.core.things.relation.ObjectProperty;
+import org.jetlinks.core.things.relation.ObjectType;
+import org.jetlinks.core.things.relation.PropertyOperation;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -47,6 +48,7 @@ public class DeviceObjectProvider implements RelationObjectProvider {
                     .simple(registry.getDevice(id),
                             strategy -> strategy
                                 .addMapper("id", DeviceOperator::getDeviceId)
+                                .addAsyncMapper(ObjectProperty.name, (opt,ignore)->opt.getSelfConfig(PropertyConstants.deviceName))
                                 .addAsyncMapper(PropertyConstants.deviceName, DeviceOperator::getSelfConfig)
                                 .addAsyncMapper(PropertyConstants.productName, DeviceOperator::getSelfConfig)
                                 .addAsyncMapper(PropertyConstants.productId, DeviceOperator::getSelfConfig)

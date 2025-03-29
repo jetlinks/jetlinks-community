@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.measurements;
 
+import lombok.Generated;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
@@ -16,7 +17,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 class DeviceEventsMeasurement extends StaticMeasurement {
 
@@ -40,15 +40,16 @@ class DeviceEventsMeasurement extends StaticMeasurement {
         addDimension(new RealTimeDevicePropertyDimension());
     }
 
-    static AtomicLong num = new AtomicLong();
-
     Flux<SimpleMeasurementValue> fromHistory(String deviceId, int history) {
-        return history <= 0 ? Flux.empty() : Flux.fromIterable(metadata.getEvents())
-            .flatMap(event -> QueryParamEntity.newQuery()
-                .doPaging(0, history)
-                .execute(q -> deviceDataService.queryEvent(deviceId, event.getId(), q, false))
-                .map(data -> SimpleMeasurementValue.of(createValue(event.getId(), data), data.getTimestamp()))
-                .sort(MeasurementValue.sort()));
+        return history <= 0
+            ? Flux.empty()
+            : Flux.fromIterable(metadata.getEvents())
+                  .flatMap(event -> QueryParamEntity
+                      .newQuery()
+                      .doPaging(0, history)
+                      .execute(q -> deviceDataService.queryEvent(deviceId, event.getId(), q, false))
+                      .map(data -> SimpleMeasurementValue.of(createValue(event.getId(), data), data.getTimestamp()))
+                      .sort(MeasurementValue.sort()));
     }
 
     Map<String, Object> createValue(String event, Object value) {
@@ -87,6 +88,7 @@ class DeviceEventsMeasurement extends StaticMeasurement {
         }
 
         @Override
+        @Generated
         public DataType getValueType() {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("event");
@@ -104,11 +106,13 @@ class DeviceEventsMeasurement extends StaticMeasurement {
         }
 
         @Override
+        @Generated
         public ConfigMetadata getParams() {
             return configMetadata;
         }
 
         @Override
+        @Generated
         public boolean isRealTime() {
             return true;
         }

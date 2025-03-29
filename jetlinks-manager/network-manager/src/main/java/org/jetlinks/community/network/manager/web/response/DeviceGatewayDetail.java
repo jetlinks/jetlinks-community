@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
@@ -14,6 +15,8 @@ import org.jetlinks.community.network.manager.enums.DeviceGatewayState;
 import org.jetlinks.community.protocol.ProtocolDetail;
 import org.jetlinks.community.protocol.TransportDetail;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @Getter
 @Setter
@@ -67,18 +70,25 @@ public class DeviceGatewayDetail {
     @Schema(description = "传输协议详情")
     private TransportDetail transportDetail;
 
+    @Schema(description = "配置信息(根据类型不同而不同)")
+    private Map<String, Object> configuration;
+
     public static DeviceGatewayDetail of(DeviceGatewayEntity entity) {
         return FastBeanCopier.copy(entity, new DeviceGatewayDetail());
     }
 
     public Mono<DeviceGatewayDetail> with(ProtocolSupport protocol) {
-        this.protocolDetail = new ProtocolDetail(protocol.getId(), protocol.getName(), protocol.getDescription(), null);
-
-        return TransportDetail
-            .of(protocol, Transport.of(transport))
-            .doOnNext(this::setTransportDetail)
-            .thenReturn(this)
-            ;
+        return Mono
+            .zip(
+                TransportDetail
+                    .of(protocol, Transport.of(transport))
+                    .doOnNext(this::setTransportDetail),
+                ProtocolDetail
+                    .of(protocol)
+                    .doOnNext(this::setProtocolDetail)
+            )
+            .as(LocaleUtils::transform)
+            .thenReturn(this);
     }
 
     public DeviceGatewayDetail with(ChannelInfo channelInfo) {

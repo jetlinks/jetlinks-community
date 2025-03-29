@@ -1,11 +1,12 @@
 package org.jetlinks.community.device.timeseries;
 
-import org.jetlinks.community.timeseries.TimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.ConfigMetadataConstants;
+import org.jetlinks.community.timeseries.TimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesMetric;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,7 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
     }
 
     static {
+
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("id");
@@ -40,7 +42,9 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("content");
-            property.setValueType(new StringType());
+            property.setValueType(new StringType().expand(
+                ConfigMetadataConstants.maxLength,
+                Long.getLong("jetlinks.device.log.content.max-length",4096L)));
             property.setName("日志内容");
             metadata.add(property);
         }
@@ -48,7 +52,7 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("deviceId");
-            property.setValueType(new StringType());
+            property.setValueType(StringType.GLOBAL);
             property.setName("设备ID");
             metadata.add(property);
         }
@@ -56,19 +60,10 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("productId");
-            property.setValueType(new StringType());
+            property.setValueType(StringType.GLOBAL);
             property.setName("产品ID");
             metadata.add(property);
         }
-
-        {
-            SimplePropertyMetadata property = new SimplePropertyMetadata();
-            property.setId("orgId");
-            property.setValueType(new StringType());
-            property.setName("组织ID");
-            metadata.add(property);
-        }
-
 
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
@@ -77,13 +72,15 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
             property.setName("消息ID");
             metadata.add(property);
         }
+
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("createTime");
-            property.setValueType(new DateTimeType());
-            property.setName("创建事件");
+            property.setValueType(DateTimeType.GLOBAL);
+            property.setName("创建时间");
             metadata.add(property);
         }
+
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
             property.setId("timestamp");
@@ -91,6 +88,7 @@ class DeviceLogTimeSeriesMetadata implements TimeSeriesMetadata {
             property.setName("数据时间");
             metadata.add(property);
         }
+
     }
 
     @Override

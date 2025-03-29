@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.annotation.*;
+import org.hswebframework.web.api.crud.entity.EntityFactoryHolder;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.api.crud.entity.RecordModifierEntity;
@@ -17,13 +18,18 @@ import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceInfo;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.MergeOption;
+import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.SimplePropertyMetadata;
+import org.jetlinks.core.metadata.types.EnumType;
+import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.device.enums.DeviceFeature;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
+import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Mono;
 
 import javax.persistence.Column;
@@ -75,7 +81,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     @Schema(description = "说明")
     private String describe;
 
-    @Column(name = "product_id", length = 64)
+    @Column(name = "product_id", length = 64, updatable = false)
     @NotBlank(message = "产品ID不能为空", groups = CreateGroup.class)
     @Schema(description = "产品ID")
     private String productId;
@@ -203,13 +209,10 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         if (!CollectionUtils.isEmpty(configuration)) {
             info.addConfigs(configuration);
         }
-        if (StringUtils.hasText(deriveMetadata)) {
-            info.addConfig(DeviceConfigKey.metadata, deriveMetadata);
-        }
         info.addConfig(DeviceConfigKey.parentGatewayId, this.getParentId());
         info.addConfig(PropertyConstants.deviceName, name);
         info.addConfig(PropertyConstants.productName, productName);
-        info.addConfig(PropertyConstants.creatorId,creatorId);
+        info.addConfig(PropertyConstants.creatorId, creatorId);
         if (hasFeature(DeviceFeature.selfManageState)) {
             info.addConfig(DeviceConfigKey.selfManageState, true);
         }
@@ -264,7 +267,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
     public Mono<String> mergeMetadata(DeviceMetadata metadata) {
         JetLinksDeviceMetadataCodec codec = JetLinksDeviceMetadataCodec.getInstance();
 
-        if (StringUtils.isEmpty(this.getDeriveMetadata())) {
+        if (ObjectUtils.isEmpty(this.getDeriveMetadata())) {
             return codec.encode(metadata)
                         .doOnNext(this::setDeriveMetadata);
         }
@@ -283,7 +286,7 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
         if (this.features == null) {
             this.features = features;
         }
-        if (features.length > 0) {
+        else if (features.length > 0) {
             this.features = Stream
                 .concat(Stream.of(this.features), Stream.of(features))
                 .toArray(DeviceFeature[]::new);
@@ -310,5 +313,31 @@ public class DeviceInstanceEntity extends GenericEntity<String> implements Recor
 
     public void validateId() {
         tryValidate(DeviceInstanceEntity::getId, CreateGroup.class);
+    }
+
+    public static DeviceInstanceEntity of(){
+        return EntityFactoryHolder.newInstance(DeviceInstanceEntity.class,DeviceInstanceEntity::new);
+    }
+
+    public static List<PropertyMetadata> createMetadata(){
+        return Arrays.asList(
+            SimplePropertyMetadata.of("id", "设备id", StringType.GLOBAL),
+            SimplePropertyMetadata.of("name", "设备名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("deviceType", "设备类型", new EnumType()
+                .addElement(EnumType.Element.of("device", "直连设备"))
+                .addElement(EnumType.Element.of("childrenDevice", "网关子设备"))
+                .addElement(EnumType.Element.of("gateway", "网关设备"))),
+            SimplePropertyMetadata.of("describe", "说明", StringType.GLOBAL),
+            SimplePropertyMetadata.of("productId", "产品id", StringType.GLOBAL),
+            SimplePropertyMetadata.of("productName", "产品名称", StringType.GLOBAL),
+            SimplePropertyMetadata.of("configuration", "配置", new ObjectType()),
+            SimplePropertyMetadata.of("state", "设备状态", new EnumType()
+                .addElement(EnumType.Element.of("notActive", "禁用"))
+                .addElement(EnumType.Element.of("offline", "离线"))
+                .addElement(EnumType.Element.of("online", "在线"))),
+            SimplePropertyMetadata.of("orgId", "机构id", StringType.GLOBAL),
+            SimplePropertyMetadata.of("parentId", "父设备id", StringType.GLOBAL),
+            SimplePropertyMetadata.of("deriveMetadata", "独立物模型", StringType.GLOBAL)
+        );
     }
 }
