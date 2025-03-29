@@ -9,6 +9,4 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class AlarmHandleHistoryService extends GenericReactiveCrudService<AlarmHandleHistoryEntity, String> {
 
-
-
 }

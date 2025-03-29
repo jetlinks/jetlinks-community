@@ -1,8 +1,9 @@
 package org.jetlinks.community.notify.manager.subscriber.channel;
 
 import lombok.AllArgsConstructor;
-import org.jetlinks.community.notify.manager.entity.Notification;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.event.EventBus;
+import org.jetlinks.community.notify.manager.entity.Notification;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -33,7 +34,8 @@ public class InsideMailChannelProvider implements NotifyChannelProvider, NotifyC
 
     @Override
     public String getName() {
-        return "站内信";
+        return LocaleUtils
+            .resolveMessage("message.subscriber.provider.inside-mail", "站内信");
     }
 
     @Override

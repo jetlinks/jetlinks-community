@@ -39,8 +39,7 @@ public class AlarmRecordTrendMeasurement extends StaticMeasurement {
         .add("to", "时间至", "", StringType.GLOBAL);
 
 
-
-    class AggRecordTrendDimension implements MeasurementDimension{
+    class AggRecordTrendDimension implements MeasurementDimension {
 
         @Override
         public DimensionDefinition getDefinition() {
@@ -67,13 +66,7 @@ public class AlarmRecordTrendMeasurement extends StaticMeasurement {
                 .of()
                 .groupBy(parameter.getInterval("time", null),
                          parameter.getString("format").orElse("MM月dd日 HH时"))
-                .sum("count", "count")
-                .filter(query -> query
-                    .where("name", "record-agg")
-                    .and("targetType",parameter.getString("targetType").orElse(null))
-                    .and("targetId",parameter.getString("targetId").orElse(null))
-                    .is("alarmConfigId", parameter.getString("alarmConfigId").orElse(null))
-                )
+                .count("targetId", "count")
                 .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter
                           .getDate("from")
@@ -97,5 +90,6 @@ public class AlarmRecordTrendMeasurement extends StaticMeasurement {
                     index)))
                 .take(param.getLimit());
         }
+
     }
 }

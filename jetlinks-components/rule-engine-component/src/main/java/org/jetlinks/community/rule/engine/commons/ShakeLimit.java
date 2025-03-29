@@ -19,6 +19,29 @@ import java.util.function.BiFunction;
  * 抖动限制
  * <a href="https://github.com/jetlinks/jetlinks-community/issues/8">https://github.com/jetlinks/jetlinks-community/issues/8</a>
  *
+ * <pre>{@code
+ *  // [每][10]秒内[连续]出现[3]次及以上[立即]输出[第一次]
+ * {
+ *
+ *    "rolling":false, //每,无论是否满足条件都要等到时间到了才重新计时
+ *    "time":10, //10秒
+ *    "continuous":true, //连续, false则表示总共出现3次
+ *    "threshold":3, //3次
+ *    "alarmFirst":true, //立即输出
+ *    "outputFirst":true // 输出第一次
+ * }
+ *
+ *  // [滚动][10]秒内[总共]出现[3]次及以上[延迟]输出[最后一次]
+ * {
+ *    "rolling":true, //滚动,满足条件或者超时后重新计时
+ *    "time":10, //10秒
+ *    "continuous":false, //总共
+ *    "threshold":3, //3次
+ *    "alarmFirst":true, //延迟输出
+ *    "outputFirst":false // 输出最后一次
+ * }
+ * }</pre>
+ *
  * @since 1.3
  */
 @Getter
@@ -37,9 +60,18 @@ public class ShakeLimit implements Serializable {
     @Schema(description = "触发阈值(次)")
     private int threshold;
 
+    @Schema(description = "是否连续出现才触发")
+    private boolean continuous;
+
     //当发生第一次告警时就触发,为false时表示最后一次才触发(告警有延迟,但是可以统计出次数)
     @Schema(description = "是否第一次满足条件就触发")
     private boolean alarmFirst;
+
+    @Schema(description = "是否输出第一次为结果")
+    private boolean outputFirst;
+
+    @Schema(description = "是否滚动计算,触发后重新计时.")
+    private boolean rolling;
 
     /**
      * 利用窗口函数,将ReactorQL语句包装为支持抖动限制的SQL.
@@ -111,5 +143,15 @@ public class ShakeLimit implements Serializable {
                     totalConsumer.accept(next, tp3.getT1());
                     return next;
                 }), Integer.MAX_VALUE);
+    }
+
+    @Override
+    public String toString() {
+        return (rolling ? "每" : "滚动" )+
+            time + "秒内" +
+            (continuous ? "连续" : "总共") +
+            "出现" + threshold + "次及以上"
+            + (alarmFirst ? "立即" : "延迟")
+            + "输出" + (outputFirst ? "第一次" : "最后一次");
     }
 }

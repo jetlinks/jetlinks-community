@@ -17,7 +17,8 @@ public class StaticTemplateManager extends AbstractTemplateManager implements Be
 
     private StaticNotifyProperties properties;
 
-    public StaticTemplateManager(StaticNotifyProperties properties) {
+    public StaticTemplateManager(StaticNotifyProperties properties, EventBus eventBus) {
+        super(eventBus);
         this.properties = properties;
     }
 

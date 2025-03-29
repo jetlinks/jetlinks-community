@@ -71,18 +71,18 @@ public class NotifierCacheManager {
 
     protected Mono<Void> reloadConfig(List<NotifyConfigEntity> entities) {
         return Flux.fromIterable(entities)
-                   .map(NotifyConfigEntity::getId)
-                   .doOnNext(id -> log.info("clear notifier config [{}] cache", id))
-                   .flatMap(notifierManager::reload)
-                   .then();
+            .map(NotifyConfigEntity::getId)
+            .doOnNext(id -> log.info("clear notifier config [{}] cache", id))
+            .flatMap(notifierManager::reload)
+            .then();
     }
 
     protected Mono<Void> reloadTemplate(List<NotifyTemplateEntity> entities) {
         return Flux.fromIterable(entities)
-                   .map(NotifyTemplateEntity::getId)
-                   .doOnNext(id -> log.info("clear template [{}] cache", id))
-                   .flatMap(templateManager::reload)
-                   .then();
+            .map(NotifyTemplateEntity::getId)
+            .doOnNext(id -> log.info("clear template [{}] cache", id))
+            .flatMap(templateManager::reload)
+            .then();
     }
 
 }

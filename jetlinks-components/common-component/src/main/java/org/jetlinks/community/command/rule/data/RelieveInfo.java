@@ -18,6 +18,9 @@ public class RelieveInfo extends AlarmInfo{
     @Schema(description = "解除原因")
     private String relieveReason;
 
+    @Schema(description = "解除时间")
+    private Long relieveTime;
+
     @Schema(description = "解除说明")
     private String describe;
 

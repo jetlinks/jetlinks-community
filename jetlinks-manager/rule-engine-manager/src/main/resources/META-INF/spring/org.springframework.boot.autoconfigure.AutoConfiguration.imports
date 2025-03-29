@@ -1,2 +1,3 @@
 org.jetlinks.community.rule.engine.configuration.RuleEngineManagerConfiguration
 org.jetlinks.community.rule.engine.configuration.AlarmTargetConfiguration
+org.jetlinks.community.rule.engine.configuration.AlarmConfiguration

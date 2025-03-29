@@ -68,13 +68,19 @@ public class RuleInstanceEntity extends GenericEntity<String> implements RecordC
     @DefaultValue("1")
     private Integer modelVersion;
 
-    @Column(name = "create_time")
-    @Schema(description = "创建时间")
+    @Column(name = "create_time", updatable = false)
     @DefaultValue(generator = Generators.CURRENT_TIME)
+    @Schema(
+        description = "创建时间(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
     private Long createTime;
 
-    @Column(name = "creator_id")
-    @Schema(description = "创建者ID")
+    @Column(name = "creator_id", updatable = false)
+    @Schema(
+        description = "创建者ID(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
     private String creatorId;
 
     @Column(length = 64)

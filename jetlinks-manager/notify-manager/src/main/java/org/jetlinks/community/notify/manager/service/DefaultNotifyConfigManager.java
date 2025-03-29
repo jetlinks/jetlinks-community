@@ -20,6 +20,6 @@ public class DefaultNotifyConfigManager implements NotifyConfigManager {
     @Override
     public Mono<NotifierProperties> getNotifyConfig(@Nonnull NotifyType notifyType, @Nonnull String configId) {
         return configService.findById(configId)
-                .map(NotifyConfigEntity::toProperties);
+                            .map(NotifyConfigEntity::toProperties);
     }
 }

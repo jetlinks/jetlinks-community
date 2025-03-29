@@ -1,27 +1,28 @@
 package org.jetlinks.community.rule.engine.scene;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
-import org.hswebframework.ezorm.rdb.executor.SqlRequest;
-import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
 import org.jetlinks.community.PropertyMetric;
-import org.jetlinks.community.reactorql.function.FunctionSupport;
-import org.jetlinks.community.reactorql.term.TermType;
+import org.jetlinks.community.reactorql.term.TermUtils;
+import org.jetlinks.community.reactorql.term.TermValue;
+import org.jetlinks.community.relation.utils.VariableSource;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
+import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
-import org.jetlinks.community.rule.engine.scene.value.TermValue;
 import org.jetlinks.community.rule.engine.web.response.SelectorInfo;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SceneUtils {
 
+    //关键字，用于重构别名时条件判断
+    private final static List<String> keys = Lists.newArrayList("current", "recent", "last", "lastTime");
 
     public static String createColumnAlias(String prefix, String column, boolean wrapColumn) {
         if (!column.contains(".")) {
@@ -29,15 +30,28 @@ public class SceneUtils {
         }
         String[] arr = column.split("[.]");
         String alias;
-        //prefix.temp.current
-        if (prefix.equals(arr[0])) {
-            String property = arr[1];
-            alias = property + "_" + arr[arr.length - 1];
-        } else {
-            if (arr.length > 1) {
-                alias = String.join("_", Arrays.copyOfRange(arr, 1, arr.length));
+        //prefix.temp.current -> temp_current
+        if (StringUtils.hasText(prefix) && prefix.equals(arr[0])) {
+            if (arr.length == 2) {
+                alias = arr[1];
             } else {
-                alias = column.replace(".", "_");
+                alias = String.join("_", Arrays.copyOfRange(arr, 1, arr.length));
+            }
+        } else {
+            if (!isContainThis(arr)) {
+                //someObj.obj.column -> obj_column
+                if (arr.length > 1 && !isContainKey(arr, keys)) {
+                    alias = String.join("_", Arrays.copyOfRange(arr, 1, arr.length));
+                } else {
+                    //someObj.obj.column.recent -> someObj_obj_column_recent
+                    alias = column.replace(".", "_");
+                }
+            } else {
+                //直接将 xx.this.recent 解析中间的this忽略解析为 xx_recent， latest同理
+                String[] array = Arrays.stream(arr)
+                    .filter(str -> !"this".equals(str))
+                    .toArray(String[]::new);
+                alias = String.join("_", array);
             }
         }
         return wrapColumn ? wrapColumnName(alias) : alias;
@@ -71,7 +85,7 @@ public class SceneUtils {
     public static List<Variable> parseVariable(List<Term> terms,
                                                List<TermColumn> columns) {
         //平铺条件
-        Map<String, List<Term>> termCache = expandTerm(terms);
+        Map<String, List<Term>> termCache = TermUtils.expandTerm(terms);
 
         //解析变量
         List<Variable> variables = new ArrayList<>(termCache.size());
@@ -80,34 +94,6 @@ public class SceneUtils {
         }
 
         return variables;
-    }
-
-    public static Map<String, List<Term>> expandTerm(List<Term> terms) {
-        Map<String, List<Term>> termCache = new LinkedHashMap<>();
-        expandTerm(terms, termCache);
-        return termCache;
-    }
-
-    private static void expandTerm(List<Term> terms, Map<String, List<Term>> container) {
-        if (terms == null) {
-            return;
-        }
-        for (Term term : terms) {
-            if (StringUtils.hasText(term.getColumn())) {
-                List<Term> termList = container.get(term.getColumn());
-                if (termList == null){
-                    List<Term> list = new ArrayList<>();
-                    list.add(term);
-                    container.put(term.getColumn(),list);
-                } else {
-                    termList.add(term);
-                    container.put(term.getColumn(), termList);
-                }
-            }
-            if (term.getTerms() != null) {
-                expandTerm(term.getTerms(), container);
-            }
-        }
     }
 
     private static List<Variable> columnToVariable(String prefixName,
@@ -119,7 +105,7 @@ public class SceneUtils {
         if (CollectionUtils.isEmpty(column.getChildren())) {
             List<Term> termList = termSupplier.apply(column.getColumn());
             variables.add(Variable.of(column.getVariable("_"), variableName)
-                                  .with(column)
+                .with(column)
             );
             if (termList != null && !termList.isEmpty()) {
                 for (Term term : termList) {
@@ -130,13 +116,13 @@ public class SceneUtils {
                         if (property != null && metric != null && termValue.getSource() == TermValue.Source.metric) {
                             // temp_metric
                             variables.add(Variable.of(
-                                                      property + "_metric_" + termValue.getMetric(),
-                                                      (prefixName == null ? column.getName() : prefixName) + "_指标_" + metric.getName())
-                                                  .withTermType(column.getTermTypes())
-                                                  .withColumn(column.getColumn())
-                                                  .withCode(column.getCode())
-                                                  .withFullNameCode(column.getFullNameCode().copy())
-                                                  .withMetadata(column.isMetadata())
+                                    property + "_metric_" + termValue.getMetric(),
+                                    (prefixName == null ? column.getName() : prefixName) + "_指标_" + metric.getName())
+                                .withTermType(column.getTermTypes())
+                                .withColumn(column.getColumn())
+                                .withCode(column.getCode())
+                                .withFullNameCode(column.getFullNameCode().copy())
+                                .withMetadata(column.isMetadata())
                             );
                         }
                     }
@@ -158,13 +144,16 @@ public class SceneUtils {
     }
 
     public static Flux<SceneTriggerProvider<SceneTriggerProvider.TriggerConfig>> getSupportTriggers() {
-        return Flux.fromIterable(SceneProviders.triggerProviders());
+        return Flux
+            .fromIterable(SceneProviders.triggerProviders())
+            .filterWhen(SceneTriggerProvider::isSupported);
     }
 
     public static Flux<SceneActionProvider<?>> getSupportActions() {
-        return Flux.fromIterable(SceneProviders.actionProviders());
+        return Flux
+            .fromIterable(SceneProviders.actionProviders())
+            .filterWhen(SceneActionProvider::isSupported);
     }
-
 
     public static Flux<TermColumn> parseTermColumns(SceneRule ruleMono) {
         Trigger trigger = ruleMono.getTrigger();
@@ -182,9 +171,9 @@ public class SceneUtils {
                 cache,
                 (columns, rule) -> rule
                     .createVariables(columns,
-                                     branch,
-                                     branchGroup,
-                                     action))
+                        branch,
+                        branchGroup,
+                        action))
             .flatMapMany(Function.identity());
     }
 
@@ -196,68 +185,8 @@ public class SceneUtils {
             .map(SelectorInfo::of);
     }
 
-    public static Term refactorTerm(String tableName,
-                                    Term term,
-                                    BiFunction<String, String, String> columnRefactor) {
-        if (term.getColumn() == null) {
-            return term;
-        }
-        String[] arr = term.getColumn().split("[.]");
-
-        List<TermValue> values = TermValue.of(term);
-        if (values.isEmpty()) {
-            return term;
-        }
-
-        Function<TermValue, Object> parser = value -> {
-            //上游变量
-            if (value.getSource() == TermValue.Source.variable
-                || value.getSource() == TermValue.Source.upper) {
-                term.getOptions().add(TermType.OPTIONS_NATIVE_SQL);
-                return tableName + "['" + value.getValue() + "']";
-            }
-            //指标
-            else if (value.getSource() == TermValue.Source.metric) {
-                term.getOptions().add(TermType.OPTIONS_NATIVE_SQL);
-                return tableName + "['" + arr[1] + "_metric_" + value.getMetric() + "']";
-            }
-            //函数, 如: array_len() , device_prop()
-            else if (value.getSource() == TermValue.Source.function) {
-                SqlRequest request = FunctionSupport
-                    .supports
-                    .getNow(value.getFunction())
-                    .createSql(columnRefactor.apply(tableName, value.getColumn()), value.getArgs())
-                    .toRequest();
-                return NativeSql.of(request.getSql(), request.getParameters());
-            }
-            //手动设置值
-            else {
-                return value.getValue();
-            }
-        };
-        Object val;
-        if (values.size() == 1) {
-            val = parser.apply(values.get(0));
-        } else {
-            val = values
-                .stream()
-                .map(parser)
-                .collect(Collectors.toList());
-        }
-
-        if (term.getOptions().contains(TermType.OPTIONS_NATIVE_SQL) && !(val instanceof NativeSql)) {
-            val = NativeSql.of(String.valueOf(val));
-        }
-
-        term.setColumn(columnRefactor.apply(tableName, term.getColumn()));
-
-        term.setValue(val);
-
-        return term;
-    }
-
     public static Term refactorTerm(String tableName, Term term) {
-        return refactorTerm(tableName, term, SceneUtils::refactorColumn);
+        return TermUtils.refactorTerm(tableName, term, SceneUtils::refactorColumn);
     }
 
     private static String refactorColumn(String tableName, String column) {
@@ -265,22 +194,55 @@ public class SceneUtils {
         // fixme 重构 条件列解析逻辑
         // properties.xxx.last的场景
         if (arr.length > 3 && arr[0].equals("properties")) {
-            return tableName + "['" + createColumnAlias("properties", column, false)
-                + "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1)) + "']";
+            String refactorColumn =  tableName + "['" + createColumnAlias("properties", column, false);
+            // 上一次上报时间不需要计算
+            if (!DeviceOperation.PropertyValueType.lastTime.name().equals(arr[arr.length -1])) {
+                refactorColumn += "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1));
+            }
+            refactorColumn += "']";
+            return refactorColumn;
         } else if (!isDirectTerm(arr[0])) {
             return tableName + "['" + createColumnAlias(arr[0], column, false) + "']";
         } else {
             // scene.obj1.xx.val1.current => t['scene.obj1_current.val1']
-            if (arr.length > 3 && isSceneTerm(column)) {
-                return tableName + "['" + arr[0] + "." + createColumnAlias(arr[0], column, false) +
-                    "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1))
-                    + "']";
+            if (isSceneTerm(column)) {
+                String refactorColumn = tableName + "['" + arr[0] + "." + createColumnAlias(arr[0], column, false);
+                if (arr.length > 3) {
+                    refactorColumn = refactorColumn +
+                        "." + String.join(".", Arrays.copyOfRange(arr, 2, arr.length - 1));
+                }
+                refactorColumn += "']";
+                return refactorColumn;
             } else {
                 return tableName + "['" + column + "']";
             }
         }
     }
 
+    public static void refactorUpperKey(DeviceSelectorSpec deviceSelectorSpec) {
+        // 将变量格式改为与查询的别名一致
+        if (VariableSource.Source.upper.equals(deviceSelectorSpec.getSource())) {
+            // scene.xx.current -> scene.scene_xx_current
+            if (deviceSelectorSpec.getUpperKey().startsWith("scene.")) {
+                String alias = SceneUtils.createColumnAlias("properties", deviceSelectorSpec.getUpperKey(), false);
+                deviceSelectorSpec.setUpperKey("scene." + alias);
+            }
+        }
+    }
+
+    private static boolean isContainThis(String[] arr) {
+        return Arrays.stream(arr)
+            .collect(Collectors.toList())
+            .contains("this")
+            ;
+    }
+
+    private static boolean isContainKey(String[] arr, List<String> keys) {
+        return !Collections.disjoint(Arrays.stream(arr)
+            .collect(Collectors.toList()), keys)
+
+            ;
+    }
 
     private static boolean isDirectTerm(String column) {
         //直接term,构建Condition输出条件时使用

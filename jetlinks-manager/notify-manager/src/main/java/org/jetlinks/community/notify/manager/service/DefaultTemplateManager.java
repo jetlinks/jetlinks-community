@@ -8,7 +8,6 @@ import org.jetlinks.community.notify.template.TemplateProperties;
 import org.jetlinks.community.notify.template.TemplateProvider;
 import org.jetlinks.core.event.EventBus;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -19,17 +18,16 @@ public class DefaultTemplateManager extends AbstractTemplateManager implements B
 
     private final NotifyTemplateService templateService;
 
-    public DefaultTemplateManager(NotifyTemplateService templateService) {
+    public DefaultTemplateManager(EventBus eventBus, NotifyTemplateService templateService) {
+        super(eventBus);
         this.templateService = templateService;
     }
 
     @Override
     protected Mono<TemplateProperties> getProperties(NotifyType type, String id) {
-        return templateService
-            .findById(Mono.just(id))
-            .map(NotifyTemplateEntity::toTemplateProperties);
+        return templateService.findById(Mono.just(id))
+                .map(NotifyTemplateEntity::toTemplateProperties);
     }
-
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof TemplateProvider) {
@@ -37,4 +35,5 @@ public class DefaultTemplateManager extends AbstractTemplateManager implements B
         }
         return bean;
     }
+
 }

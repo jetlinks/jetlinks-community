@@ -11,10 +11,10 @@ import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.NativeSql;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.reactorql.term.TermTypeSupport;
-import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.core.metadata.Jsonable;
 import org.jetlinks.core.utils.SerializeUtils;
+import org.jetlinks.community.reactorql.term.TermTypeSupport;
+import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.reactor.ql.supports.DefaultPropertyFeature;
 import org.springframework.util.StringUtils;
 
@@ -67,6 +67,12 @@ public class TermSpec implements Jsonable, Serializable {
     @Schema(description = "是否为物模型变量")
     private boolean metadata;
 
+    @Schema(description = "触发条件描述")
+    private I18nSpec triggerSpec;
+
+    @Schema(description = "实际触发描述")
+    private I18nSpec actualSpec;
+
     @Override
     public JSONObject toJson() {
         @SuppressWarnings("all")
@@ -100,11 +106,36 @@ public class TermSpec implements Jsonable, Serializable {
                 .ifPresent(support -> termSpec.matched = support.matchBlocking(termSpec.getExpected(),termSpec.getActual()));
         }
         if (termSpec.matched != null && termSpec.matched) {
-            actualDesc.add(termSpec.getDisplayName() + " = " + termSpec.getActual());
+
+            actualDesc.add(
+                termSpec.getActualSpec() != null
+                    ? termSpec.getActualSpec().resolveI18nMessage()
+                    : TermTypes
+                    .lookupSupport(termSpec.getTermType())
+                    .map(support -> support.createActualDesc(termSpec.getDisplayName(), termSpec.getActual()))
+                    .orElse(termSpec.getDisplayName() + " = " + termSpec.getActual())
+            );
         }
         if (CollectionUtils.isNotEmpty(termSpec.children)) {
+            boolean conditionMatch = true;
+            Set<String> andConditionDesc = new HashSet<>();
             for (TermSpec child : termSpec.children) {
-                actualDesc.addAll(parseTermSpecActualDesc(child));
+                Set<String> desc = parseTermSpecActualDesc(child);
+                // 任一条件不满足，则不添加and条件的描述
+                if (child.getColumn() != null && CollectionUtils.isEmpty(desc)) {
+                    conditionMatch = false;
+                }
+                if (child.getType() == Term.Type.or) {
+                    actualDesc.addAll(desc);
+                }
+                if (child.getType() == Term.Type.and) {
+                    andConditionDesc.addAll(desc);
+                }
+            }
+
+            // 所有条件都满足时，再添加and条件匹配的描述
+            if (conditionMatch) {
+                actualDesc.addAll(andConditionDesc);
             }
         }
         return actualDesc;
@@ -113,6 +144,15 @@ public class TermSpec implements Jsonable, Serializable {
     public static List<TermSpec> of(List<Term> terms) {
         return of(terms, (term, spec) -> {
         });
+    }
+
+    public static TermSpec ofTermSpecs(List<TermSpec> termSpecs) {
+        TermSpec spec = new TermSpec();
+        if (CollectionUtils.isEmpty(termSpecs)) {
+            return spec;
+        }
+        spec.setChildren(new ArrayList<>(termSpecs));
+        return spec;
     }
 
     public static List<TermSpec> of(List<Term> terms, BiConsumer<Term, TermSpec> customizer) {
@@ -156,7 +196,7 @@ public class TermSpec implements Jsonable, Serializable {
             this.actual = DefaultPropertyFeature
                 .GLOBAL
                 .getProperty(this.column, context)
-                .orElse(null);
+                .orElse(this.actual);
             if (expectIsExpr) {
                 this.expected = DefaultPropertyFeature
                     .GLOBAL
@@ -164,10 +204,10 @@ public class TermSpec implements Jsonable, Serializable {
                     .orElse(null);
                 expectIsExpr = false;
             }
+
             TermTypes
                 .lookupSupport(getTermType())
                 .ifPresent(support -> this.matched = support.matchBlocking(expected, actual));
-
         }
         if (this.children != null) {
             for (TermSpec child : this.children) {
@@ -222,7 +262,11 @@ public class TermSpec implements Jsonable, Serializable {
                 .orElse(null);
             if (support != null) {
                 hasSpec = true;
-                builder.append(support.createDesc(getDisplayName(), expected, actual));
+                builder.append(
+                    triggerSpec != null
+                        ? triggerSpec.resolveI18nMessage()
+                        : support.createDesc(getDisplayName(), expected, actual)
+                );
             }
         }
         List<TermSpec> children = compressChildren();
@@ -240,11 +284,25 @@ public class TermSpec implements Jsonable, Serializable {
                     builder.append('!');
                 }
             }
-            builder.append("( ");
-            toString(builder, children);
-            builder.append(" )");
+            if (StringUtils.hasText(builder)) {
+                builder.append("( ");
+                toString(builder, children);
+                builder.append(" )");
+            } else {
+                toString(builder, children);
+            }
         }
 
+    }
+
+    public void compress() {
+        List<TermSpec> children = compressChildren();
+        if (children != this.children) {
+            setChildren(children);
+        }
+        for (TermSpec child : children) {
+            child.compress();
+        }
     }
 
 

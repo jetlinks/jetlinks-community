@@ -1,15 +1,22 @@
 package org.jetlinks.community.rule.engine.scene;
 
-import org.jetlinks.core.utils.Reactors;
-import org.jetlinks.core.utils.SerializeUtils;
 import org.jetlinks.community.rule.engine.alarm.AlarmConstants;
 import org.jetlinks.community.terms.TermSpec;
+import org.jetlinks.core.utils.Reactors;
+import org.jetlinks.core.utils.SerializeUtils;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+/**
+ * 场景动作提供商,用于提供场景动作的配置,变量,规则节点等信息
+ *
+ * @param <C> 配置类型
+ * @author zhouhao
+ * @since 2.1
+ */
 public interface SceneActionProvider<C> {
 
     /**
@@ -61,6 +68,16 @@ public interface SceneActionProvider<C> {
             AlarmConstants.ConfigKey.alarmFilterTermSpecs,
             SerializeUtils.convertToSafelySerializable(specs)
         );
+    }
+
+    /**
+     * 判断当前服务是否支持此触发器
+     *
+     * @return 是否支持
+     * @since 2.3
+     */
+    default Mono<Boolean> isSupported() {
+        return Reactors.ALWAYS_TRUE;
     }
 
     /**

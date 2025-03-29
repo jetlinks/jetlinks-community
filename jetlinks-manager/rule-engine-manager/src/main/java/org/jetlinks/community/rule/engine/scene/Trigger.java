@@ -41,6 +41,7 @@ public class Trigger implements Serializable {
     private String type;
 
     /**
+     * @see SceneTriggerProvider#shakeLimit(String)
      * @deprecated {@link SceneConditionAction#getShakeLimit()}
      */
     @Deprecated
@@ -57,9 +58,10 @@ public class Trigger implements Serializable {
     private Map<String, Object> configuration;
 
 
-    public String getTypeName(){
+    public String getTypeName() {
         return provider().getName();
     }
+
     /**
      * 重构查询条件,替换为实际将要输出的变量.
      *
@@ -103,8 +105,8 @@ public class Trigger implements Serializable {
         return config == null ? EmptySqlFragments.INSTANCE : provider().createFilter(config, terms);
     }
 
-    public Mono<List<TermSpec>> createFilterSpec(List<Term> terms, BiConsumer<Term,TermSpec> customizer){
-        return provider().createFilterSpec(triggerConfig(), terms,customizer);
+    public Mono<List<TermSpec>> createFilterSpec(List<Term> terms, BiConsumer<Term, TermSpec> customizer) {
+        return provider().createFilterSpec(triggerConfig(), terms, customizer);
     }
 
     public Flux<TermColumn> parseTermColumns() {

@@ -3,23 +3,24 @@ package org.jetlinks.community.rule.engine.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
-import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
-import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
-import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
-import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
+import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.dict.EnumDict;
+import org.hswebframework.web.utils.DigestUtils;
 import org.jetlinks.community.dictionary.Dictionary;
 import org.jetlinks.community.rule.engine.alarm.AlarmHandleInfo;
-import org.jetlinks.community.rule.engine.enums.AlarmHandleType;
+import org.jetlinks.community.rule.engine.enums.AlarmHandleState;
 import org.jetlinks.community.rule.engine.service.AlarmHandleTypeDictInit;
+import org.jetlinks.community.terms.TermSpec;
 import org.springframework.util.StringUtils;
 
 import javax.persistence.Column;
 import javax.persistence.Index;
 import javax.persistence.Table;
+import java.sql.JDBCType;
 
 @Getter
 @Setter
@@ -43,17 +44,74 @@ public class AlarmHandleHistoryEntity extends GenericEntity<String> implements R
     @ColumnType(javaType = String.class)
     private EnumDict<String> handleType;
 
-    @Column(length = 256, nullable = false, updatable = false)
+    @Column(length = 256, nullable = false)
     @Schema(description = "说明")
     private String description;
 
-    @Column(updatable = false)
+    @Column
     @Schema(description = "处理时间")
     private Long handleTime;
 
     @Column(updatable = false)
     @Schema(description = "告警时间")
     private Long alarmTime;
+
+    @Column(length = 32)
+    @Schema(description = "告警处理状态")
+    @EnumCodec
+    @ColumnType(javaType = String.class)
+    @DefaultValue("unprocessed")
+    private AlarmHandleState state;
+
+    @Column(length = 32, updatable = false)
+    @Schema(description = "告警目标类型")
+    private String targetType;
+
+    @Column(length = 64, updatable = false)
+    @Schema(description = "告警目标Id")
+    private String targetId;
+
+    @Column
+    @Schema(description = "告警目标名称")
+    private String targetName;
+
+    @Column(length = 32)
+    @Schema(description = "告警源类型")
+    private String sourceType;
+
+    @Column(length = 64)
+    @Schema(description = "告警源Id")
+    private String sourceId;
+
+    @Column
+    @Schema(description = "告警源名称")
+    private String sourceName;
+
+    @Column
+    @Schema(description = "告警级别")
+    private Integer level;
+
+    @Column
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR)
+    @JsonCodec
+    @Schema(description = "触发条件")
+    private TermSpec termSpec;
+
+    @Column(length = 1024)
+    @Schema(description = "触发条件描述")
+    private String triggerDesc;
+
+    @Column(length = 1024)
+    @Schema(description = "告警原因描述")
+    private String actualDesc;
+
+    /**
+     * 告警流水。每次告警到结束告警唯一
+     */
+    @Column
+    @Schema(description = "告警流水号")
+    private String serialNumber;
+
 
     @Column(updatable = false)
     @Schema(
@@ -77,17 +135,28 @@ public class AlarmHandleHistoryEntity extends GenericEntity<String> implements R
     )
     private String creatorName;
 
-    @SuppressWarnings("all")
-    public static AlarmHandleHistoryEntity of(AlarmHandleInfo handleInfo) {
-        AlarmHandleHistoryEntity entity = new AlarmHandleHistoryEntity();
-        entity.setAlarmId(handleInfo.getAlarmConfigId());
-        entity.setAlarmRecordId(handleInfo.getAlarmRecordId());
-        entity.setAlarmTime(handleInfo.getAlarmTime());
-        String type = handleInfo.getType();
-        entity.setHandleType(StringUtils.hasText(type) ? EnumDict.create(type) : AlarmHandleType.system);
-        entity.setDescription(handleInfo.getDescribe());
-        entity.setHandleTime(handleInfo.getHandleTime() == null ? System.currentTimeMillis() : handleInfo.getHandleTime());
-        return entity;
+
+    public static String generateId(String... args) {
+        return DigestUtils.md5Hex(String.join("-", args));
     }
 
+    public void generateId() {
+        if (alarmTime != null) {
+            setId(generateId(alarmRecordId, alarmTime.toString()));
+        }
+    }
+
+    @SuppressWarnings("all")
+    public static AlarmHandleHistoryEntity of(AlarmHandleInfo handleInfo) {
+        AlarmHandleHistoryEntity entity = FastBeanCopier.copy(handleInfo, new AlarmHandleHistoryEntity());
+        entity.setAlarmId(handleInfo.getAlarmConfigId());
+        String type = handleInfo.getType();
+        if (StringUtils.hasText(type)) {
+            entity.setHandleType(EnumDict.create(type));
+        }
+        entity.setDescription(handleInfo.getDescribe() == null ? "" : handleInfo.getDescribe());
+        entity.setState(handleInfo.getHandleState());
+        entity.generateId();
+        return entity;
+    }
 }

@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 
 /**
  *
- * @author zhangji 2025/1/22
+ * @author zhangji 2025/1/15
  * @since 2.3
  */
 @AutoConfiguration

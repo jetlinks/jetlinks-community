@@ -21,6 +21,7 @@ import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
+import reactor.core.scheduler.Scheduler;
 
 import javax.annotation.Nonnull;
 import java.io.*;
@@ -46,11 +47,13 @@ import java.util.function.Supplier;
  *
  * <pre>{@code
  *
- *    BufferWriter<Data> writer = BufferWriter
+ *    PersistenceBuffer<Data> writer = PersistenceBuffer
  *    .<Data>create(
  *       "./data/buffer", //文件目录
  *      "my-data.queue", //文件名
+ *      Data::new,
  *      buffer->{
+ *           // 返回false表示不重试
  *           return saveData(buffer);
  *      })
  *    .bufferSize(1000)//缓冲大小,当缓冲区超过此数量时将会立即执行写出操作.
@@ -66,7 +69,7 @@ import java.util.function.Supplier;
  *
  * @param <T> 数据类型,需要实现Serializable接口
  * @author zhouhao
- * @since pro 2.0
+ * @since 2.0
  */
 public class PersistenceBuffer<T extends Serializable> implements Disposable {
     @SuppressWarnings("all")
@@ -124,6 +127,9 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
 
     //刷新缓冲区定时任务
     private Disposable intervalFlush;
+
+    //独立的读写调度器
+    private Scheduler writer, reader;
 
     private Throwable lastError;
 
@@ -319,6 +325,19 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
         drain();
     }
 
+    //异步写入数据到buffer
+    public Mono<Void> writeAsync(Collection<T> data) {
+        if (isDisposed()) {
+            return Mono.fromRunnable(() -> data.forEach(this::write));
+        }
+        return Mono
+            .fromRunnable(() -> data.forEach(this::write))
+            .subscribeOn(writer)
+            .then();
+    }
+
+    //写入数据到buffer,此操作可能阻塞
+    @Deprecated
     public void write(T data) {
         write(new Buf<>(data, instanceBuilder));
     }
@@ -327,6 +346,9 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
         started = false;
         if (this.intervalFlush != null) {
             this.intervalFlush.dispose();
+        }
+        for (FlushSubscriber subscriber : new ArrayList<>(flushing)) {
+            subscriber.doCancel();
         }
     }
 
@@ -446,7 +468,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
                     logger.debug("write {} data,size:{},remainder:{},requeue: {}.take up time: {} ms",
                                  name,
                                  buffer.size(),
-                                 queue.size(),
+                                 size(),
                                  doRequeue,
                                  System.currentTimeMillis() - startWith);
                 }
@@ -556,7 +578,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
         if (!started) {
             return;
         }
-        //当前未执行完成的操作小于并行度才请求
+        // 当前未执行完成的操作小于并行度才请求
         if (WIP.incrementAndGet(this) <= settings.getParallelism()) {
             int size = settings.getBufferSize();
             for (int i = 0; i < size; i++) {
@@ -739,7 +761,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
             if (obj.data instanceof String) {
                 return ((String) obj.data).length() * 2;
             }
-            return 10_000;
+            return 4096;
         }
 
         @Override

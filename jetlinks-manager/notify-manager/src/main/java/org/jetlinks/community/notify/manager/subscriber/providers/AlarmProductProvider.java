@@ -2,11 +2,11 @@ package org.jetlinks.community.notify.manager.subscriber.providers;
 
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.Authentication;
+import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.community.topic.Topics;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;

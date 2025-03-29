@@ -11,7 +11,7 @@ import java.util.Locale;
 /**
  * 聚合函数类型.
  *
- * @author zhangji 2025/1/22
+ * @author zhangji 2025/1/10
  * @since 2.3
  */
 @Getter
@@ -29,9 +29,9 @@ public class SceneAggregationInfo {
         SceneAggregationInfo aggregationInfo = new SceneAggregationInfo();
         aggregationInfo.setId(id);
         aggregationInfo.setName(LocaleUtils
-                                    .resolveMessage("message.scene_aggregation_name_" + id,
-                                                    locale,
-                                                    support.getName()));
+                                .resolveMessage("message.scene_aggregation_name_" + id,
+                                                locale,
+                                                support.getName()));
         return aggregationInfo;
     }
 

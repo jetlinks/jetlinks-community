@@ -70,9 +70,6 @@ public class AlarmConfigDetail {
     @Schema(description = "更新时间")
     private Long modifyTime;
 
-    @Schema(description = "修改人名称")
-    private String modifierName;
-
     public static AlarmConfigDetail of(AlarmConfigEntity entity) {
         return FastBeanCopier.copy(entity, new AlarmConfigDetail(), "sceneTriggerType");
     }

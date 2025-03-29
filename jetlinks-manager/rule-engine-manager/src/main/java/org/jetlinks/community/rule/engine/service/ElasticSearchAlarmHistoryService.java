@@ -2,19 +2,21 @@ package org.jetlinks.community.rule.engine.service;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.AllArgsConstructor;
-import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.elastic.search.index.DefaultElasticSearchIndexMetadata;
+import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
+import org.jetlinks.community.elastic.search.service.AggregationService;
+import org.jetlinks.community.elastic.search.service.ElasticSearchService;
+import org.jetlinks.community.rule.engine.entity.AlarmHistoryInfo;
+import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.jetlinks.core.metadata.types.ArrayType;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.PropertyConstants;
-import org.jetlinks.community.elastic.search.index.DefaultElasticSearchIndexMetadata;
-import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
-import org.jetlinks.community.elastic.search.service.ElasticSearchService;
-import org.jetlinks.community.rule.engine.entity.AlarmHistoryInfo;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,10 +36,17 @@ public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
     private final ElasticSearchIndexManager indexManager;
 
     private final ElasticSearchService elasticSearchService;
-
+    private final AggregationService aggregationService;
 
     public Mono<PagerResult<AlarmHistoryInfo>> queryPager(QueryParam queryParam) {
         return elasticSearchService.queryPager(ALARM_HISTORY_INDEX, queryParam, AlarmHistoryInfo.class);
+    }
+
+    @Override
+    public Flux<AggregationData> aggregation(AggregationQueryParam param) {
+        return aggregationService
+            .aggregation(ALARM_HISTORY_INDEX, param)
+            .map(AggregationData::of);
     }
 
     public Mono<Void> save(AlarmHistoryInfo historyInfo) {
@@ -50,6 +59,17 @@ public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
 
     public Mono<Void> save(Mono<AlarmHistoryInfo> historyInfo) {
         return elasticSearchService.save(ALARM_HISTORY_INDEX, historyInfo.map(this::createData));
+    }
+
+    @Override
+    public Flux<AlarmHistoryInfo> query(QueryParam param) {
+        return elasticSearchService
+            .query(ALARM_HISTORY_INDEX,param,AlarmHistoryInfo.class);
+    }
+
+    @Override
+    public Mono<Long> count(QueryParam queryParam) {
+        return elasticSearchService.count(ALARM_HISTORY_INDEX,queryParam);
     }
 
     private Map<String, Object> createData(AlarmHistoryInfo info) {
@@ -84,7 +104,6 @@ public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
                 .addProperty("triggerDesc", StringType.GLOBAL)
                 .addProperty("actualDesc", StringType.GLOBAL)
                 .addProperty("alarmConfigSource", StringType.GLOBAL)
-                .addProperty("bindings", new ArrayType().elementType(StringType.GLOBAL))
         ).block(Duration.ofSeconds(10));
     }
 }

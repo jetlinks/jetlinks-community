@@ -6,14 +6,11 @@ import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
-import org.hswebframework.web.crud.events.*;
+import org.hswebframework.web.crud.events.EntityPrepareCreateEvent;
+import org.hswebframework.web.crud.events.EntityPrepareSaveEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.event.Subscription;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.utils.CompositeMap;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.notify.manager.configuration.NotifySubscriberProperties;
 import org.jetlinks.community.notify.manager.entity.Notification;
@@ -26,8 +23,11 @@ import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 import org.jetlinks.community.topic.Topics;
-import org.jetlinks.community.utils.ReactorUtils;
-import org.springframework.beans.factory.ObjectProvider;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.utils.CompositeMap;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -63,9 +63,9 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
     private final Map<String, NotifySubscriberProviderCache> providerChannels = new ConcurrentHashMap<>();
 
     public NotifySubscriberService(EventBus eventBus,
-                                   ObjectProvider<SubscriberProvider> providers,
                                    ApplicationEventPublisher eventPublisher,
                                    NotifySubscriberProviderService providerService,
+                                   @SuppressWarnings("all")
                                    ReactiveRepository<NotifySubscriberChannelEntity, String> channelRepository,
                                    NotifySubscriberProperties properties) {
         this.eventBus = eventBus;
@@ -73,184 +73,8 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
         this.providerService = providerService;
         this.properties = properties;
         this.channelRepository = channelRepository;
-        for (SubscriberProvider provider : providers) {
-            SubscriberProviders.register(provider);
-        }
     }
 
-    @EventListener
-    public void handleChannelEvent(EntityCreatedEvent<NotifySubscriberChannelEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity ->
-                         providerChannels
-                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
-                             .addChannel(providerEntity)
-                )
-        );
-    }
-
-    @EventListener
-    public void handleChannelEvent(EntityModifyEvent<NotifySubscriberChannelEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getAfter())
-                .map(providerEntity ->
-                         providerChannels
-                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
-                             .addChannel(providerEntity)
-                )
-        );
-    }
-
-    @EventListener
-    public void handleChannelEvent(EntitySavedEvent<NotifySubscriberChannelEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity ->
-                         providerChannels
-                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
-                             .addChannel(providerEntity)
-                )
-        );
-    }
-
-    @EventListener
-    public void handleChannelEvent(EntityDeletedEvent<NotifySubscriberChannelEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity ->
-                         providerChannels
-                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
-                             .removeChannel(providerEntity)
-                )
-        );
-    }
-
-    @EventListener
-    public void handleEvent(EntityCreatedEvent<NotifySubscriberProviderEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity ->
-                         providerChannels
-                             .computeIfAbsent(providerEntity.getId(), ignore -> new NotifySubscriberProviderCache())
-                             .update(providerEntity)
-                )
-        );
-    }
-
-    @EventListener
-    public void handleEvent(EntityModifyEvent<NotifySubscriberProviderEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getAfter())
-                .map(providerEntity ->
-                         providerChannels
-                             .computeIfAbsent(providerEntity.getId(), ignore -> new NotifySubscriberProviderCache())
-                             .update(providerEntity)
-                )
-        );
-    }
-
-    @EventListener
-    public void handleEvent(EntitySavedEvent<NotifySubscriberProviderEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity ->
-                         providerChannels
-                             .computeIfAbsent(providerEntity.getId(), ignore -> new NotifySubscriberProviderCache())
-                             .update(providerEntity)
-                )
-        );
-    }
-
-    @EventListener
-    public void handleEvent(EntityDeletedEvent<NotifySubscriberProviderEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity -> {
-                    ReactorUtils.dispose(providerChannels.remove(providerEntity.getId()));
-                    return Mono.empty();
-                })
-        );
-    }
-
-
-    @EventListener
-    public void handleSubscriberEvent(EntityDeletedEvent<NotifySubscriberEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity -> {
-                    providerEntity.setState(SubscribeState.disabled);
-                    handleSubscribe(providerEntity);
-                    return Mono.empty();
-                })
-        );
-    }
-
-    @EventListener
-    public void handleSubscriberEvent(EntitySavedEvent<NotifySubscriberEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity -> {
-                    handleSubscribe(providerEntity);
-                    return Mono.empty();
-                })
-        );
-    }
-
-    @EventListener
-    public void handleSubscriberEvent(EntityModifyEvent<NotifySubscriberEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getAfter())
-                .map(providerEntity -> {
-                    handleSubscribe(providerEntity);
-                    return Mono.empty();
-                })
-        );
-    }
-
-    @EventListener
-    public void handleSubscriberEvent(EntityCreatedEvent<NotifySubscriberEntity> entity) {
-        entity.async(
-            Flux.fromIterable(entity.getEntity())
-                .map(providerEntity -> {
-                    handleSubscribe(providerEntity);
-                    return Mono.empty();
-                })
-        );
-    }
-
-
-    @EventListener
-    public void handleEvent(EntityPrepareCreateEvent<NotifySubscriberEntity> entity) {
-        //填充语言
-        entity.async(
-            LocaleUtils
-                .currentReactive()
-                .doOnNext(locale -> {
-                    for (NotifySubscriberEntity subscriber : entity.getEntity()) {
-                        if (subscriber.getLocale() == null) {
-                            subscriber.setLocale(locale.toLanguageTag());
-                        }
-                    }
-                })
-        );
-    }
-
-    @EventListener
-    public void handleEvent(EntityPrepareSaveEvent<NotifySubscriberEntity> entity) {
-        //填充语言
-        entity.async(
-            LocaleUtils
-                .currentReactive()
-                .doOnNext(locale -> {
-                    for (NotifySubscriberEntity subscriber : entity.getEntity()) {
-                        if (subscriber.getLocale() == null) {
-                            subscriber.setLocale(locale.toLanguageTag());
-                        }
-                    }
-                })
-        );
-    }
 
     public Mono<SubscriberProvider> getProvider(NotifySubscriberEntity entity) {
 
@@ -293,11 +117,50 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
         }
 
         @Override
+        public Flux<PropertyMetadata> getDetailProperties(Map<String, Object> config) {
+            if (MapUtils.isNotEmpty(this.config)) {
+                config = new CompositeMap<>(config, this.config);
+            }
+            return proxy.getDetailProperties(config);
+        }
+
+        @Override
         public ConfigMetadata getConfigMetadata() {
             return proxy.getConfigMetadata();
         }
     }
 
+    @EventListener
+    public void handleEvent(EntityPrepareCreateEvent<NotifySubscriberEntity> entity) {
+        //填充语言
+        entity.async(
+            LocaleUtils
+                .currentReactive()
+                .doOnNext(locale -> {
+                    for (NotifySubscriberEntity subscriber : entity.getEntity()) {
+                        if (subscriber.getLocale() == null) {
+                            subscriber.setLocale(locale.toLanguageTag());
+                        }
+                    }
+                })
+        );
+    }
+
+    @EventListener
+    public void handleEvent(EntityPrepareSaveEvent<NotifySubscriberEntity> entity) {
+        //填充语言
+        entity.async(
+            LocaleUtils
+                .currentReactive()
+                .doOnNext(locale -> {
+                    for (NotifySubscriberEntity subscriber : entity.getEntity()) {
+                        if (subscriber.getLocale() == null) {
+                            subscriber.setLocale(locale.toLanguageTag());
+                        }
+                    }
+                })
+        );
+    }
 
     private void handleSubscribe(NotifySubscriberEntity entity) {
 
@@ -327,9 +190,10 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
                 entity.setTopicName(provider.getName());
                 return entity;
             })
+            .as(LocaleUtils::transform)
             .flatMap(subEntity -> {
                 if (!StringUtils.hasText(entity.getId())) {
-                    entity.setId(null);
+                    entity.setId(entity.generateId());
                     return save(entity);
                 } else {
                     return createUpdate()
@@ -345,7 +209,9 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
     }
 
     //用户权限变更时重新订阅
-    @Subscribe(value = Topics.Authentications.allUserAuthenticationChanged, features = Subscription.Feature.local)
+    @Subscribe(value = Topics.Authentications.allUserAuthenticationChanged, features = {
+        Subscription.Feature.local, Subscription.Feature.broker
+    })
     public void handleAuthenticationChanged(Authentication auth) {
 
         SubTable table = subscribers.get(auth.getUser().getId());
@@ -361,7 +227,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
         //订阅信息 key为订阅id
         private final Map<String, Node> subs = new ConcurrentHashMap<>();
 
-        private final Disposable.Composite disposable = Disposables.composite();
+        private final Composite disposable = Disposables.composite();
 
         public SubTable(String subscriber) {
             this.subscriber = subscriber;
@@ -449,8 +315,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
                 return;
             }
 
-            subs.computeIfAbsent(entity.getId(), ignore -> new Node())
-                .init(entity);
+            subs.computeIfAbsent(entity.getId(), ignore -> new Node()).init(entity);
         }
 
         @Override
@@ -493,6 +358,9 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
                         initNotifyChannels(tp2.getT1());
                         return tp2.getT2().createSubscriber(entity.getId(), tp2.getT1(), entity.getTopicConfig());
                     })
+                    //没有订阅者则移除订阅信息释放内存
+                    //在微服务下当不同微服务都引入了此模块时可能存在此情况
+                    .switchIfEmpty(Mono.fromRunnable(() -> subs.remove(entity.getId(), this)))
                     .flatMap(subscriber ->
                                  subscriber
                                      .subscribe(entity.toLocale())
@@ -551,7 +419,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
 
             public synchronized void resubscribe(NotifySubscriberProviderEntity e, Authentication auth) {
                 if (e.getState() == NotifyChannelState.disabled
-                    || (!properties.isAllowAllNotify(auth)  && e.getGrant() != null && !e.getGrant().isGranted(auth))) {
+                    || (!properties.isAllowAllNotify(auth) && e.getGrant() != null && !e.getGrant().isGranted(auth))) {
                     removeChannels();
                 } else {
                     //重新设置通知通道
@@ -575,7 +443,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
                 Set<String> newChannels = new HashSet<>(effectNotifyChannel);
                 //通道被禁用或者没有权限则删除此通道
                 if (e.getState() == NotifyChannelState.disabled
-                    || (!properties.isAllowAllNotify(auth)  && e.getGrant() != null && !e.getGrant().isGranted(auth))) {
+                    || (!properties.isAllowAllNotify(auth) && e.getGrant() != null && !e.getGrant().isGranted(auth))) {
                     newChannels.remove(e.getId());
                 } else {
                     if (userConfigureNotifyChannels.contains(e.getId())) {
@@ -586,10 +454,16 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
             }
 
             @Override
+            public boolean isDisposed() {
+                return disposable == null || disposable.isDisposed();
+            }
+
+            @Override
             public void dispose() {
+                Disposable disposable = this.disposable;
+                this.disposable = null;
                 if (null != disposable) {
                     disposable.dispose();
-                    disposable = null;
                 }
             }
         }

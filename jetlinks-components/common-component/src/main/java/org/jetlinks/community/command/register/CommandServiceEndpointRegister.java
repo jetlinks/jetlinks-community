@@ -1,7 +1,6 @@
 package org.jetlinks.community.command.register;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetlinks.community.annotation.command.CommandService;
 import org.jetlinks.community.command.CommandSupportManagerProvider;
 import org.jetlinks.community.command.CommandSupportManagerProviders;
 import org.jetlinks.community.command.CompositeCommandSupportManagerProvider;
@@ -11,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.util.ClassUtils;
+import org.jetlinks.community.annotation.command.CommandService;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;

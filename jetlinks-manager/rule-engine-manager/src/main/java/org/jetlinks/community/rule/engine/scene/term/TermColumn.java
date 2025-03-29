@@ -8,19 +8,20 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.reactorql.function.FunctionInfo;
 import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.MetadataConstants;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.EnumType;
 import org.jetlinks.community.PropertyMetadataConstants;
 import org.jetlinks.community.PropertyMetric;
+import org.jetlinks.community.reactorql.function.FunctionInfo;
+import org.jetlinks.community.reactorql.function.FunctionSupport;
+import org.jetlinks.community.reactorql.term.TermType;
+import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.DeviceOperation;
 import org.jetlinks.community.terms.I18nSpec;
 import org.springframework.util.StringUtils;
-
-import org.jetlinks.community.reactorql.term.TermType;
-import org.jetlinks.community.reactorql.term.TermTypes;
 
 import java.util.*;
 import java.util.function.Function;
@@ -130,7 +131,7 @@ public class TermColumn {
         if (column == null) {
             return null;
         }
-        String[] arr = column.split("[.]");
+        String[] arr = column.split("[.]",2);
         if (arr.length == 1) {
             return arr[0];
         }
@@ -167,6 +168,12 @@ public class TermColumn {
         setDataType(metadata.getValueType().getId());
         withMetrics(metadata);
         setTermTypes(TermTypes.lookup(metadata.getValueType()));
+        setFunctions(FunctionSupport.lookup(metadata.getValueType()));
+        if (!StringUtils.hasText(this.getCode())) {
+            String localeName = MetadataConstants.Expand.getLocaleName(metadata, LocaleUtils.current());
+            setFullNameCode(I18nSpec.of(null, localeName));
+            setFullName(fullNameCode.resolveI18nMessage());
+        }
         return this;
     }
 
@@ -184,7 +191,7 @@ public class TermColumn {
     }
 
     public static TermColumn of(String column, String code, String defaultName, DataType type) {
-        TermColumn termColumn = of(column, defaultName, type, null);
+        TermColumn termColumn = of(column, resolveI18n(code, defaultName), type, null);
         termColumn.setCode(code);
         return termColumn;
     }
@@ -195,7 +202,9 @@ public class TermColumn {
                                 String defaultName,
                                 DataType type,
                                 String defaultDescription) {
-        TermColumn termColumn = of(column, defaultName, type, resolveI18n(getDescriptionByCode(code), defaultDescription));
+        TermColumn termColumn = of(
+            column, resolveI18n(code, defaultName), type, resolveI18n(getDescriptionByCode(code), defaultDescription)
+        );
         termColumn.setCode(code);
         termColumn.setCodeDesc(getDescriptionByCode(code));
         return termColumn;
@@ -209,6 +218,7 @@ public class TermColumn {
         termColumn.setDataType(type.getId());
         termColumn.setDescription(description);
         termColumn.setTermTypes(TermTypes.lookup(type));
+        termColumn.setFunctions(FunctionSupport.lookup(type));
         if (type instanceof EnumType) {
             List<EnumType.Element> elements = ((EnumType) type).getElements();
             if (CollectionUtils.isNotEmpty(elements)) {
@@ -295,12 +305,8 @@ public class TermColumn {
         } else {
             this.fullName = name;
             if (CollectionUtils.isEmpty(children)) {
-                if (StringUtils.hasText(code)) {
-                    this.fullNameCode = I18nSpec.of(code, name);
-                    this.fullName = fullNameCode.resolveI18nMessage();
-                } else {
-                    this.fullName = name;
-                }
+                this.fullNameCode = I18nSpec.of(code, name);
+                this.fullName = fullNameCode.resolveI18nMessage();
             }
         }
         if (CollectionUtils.isNotEmpty(children)) {

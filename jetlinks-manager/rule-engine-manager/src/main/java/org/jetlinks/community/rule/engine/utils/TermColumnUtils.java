@@ -9,7 +9,6 @@ import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.ArrayType;
-import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.LongType;
 import org.jetlinks.core.metadata.types.ObjectType;
 
@@ -23,9 +22,7 @@ import java.util.stream.Collectors;
 import static org.jetlinks.core.metadata.SimplePropertyMetadata.of;
 
 /**
- *
- * @author zhangji 2025/1/22
- * @since 2.3
+ * @author bestfeng
  */
 public class TermColumnUtils {
 
@@ -48,8 +45,14 @@ public class TermColumnUtils {
                 of("this",
                    resolveI18n("message.term_element_of_array",
                                "数组元素"),
-                   (arrayType.getElementType() instanceof ArrayType) ? IntType.GLOBAL : arrayType.getElementType());
+                   arrayType.getElementType());
             columns.addAll(TermColumnUtils.createTermColumn(prefix, prop, false));
+            // 移除第二层嵌套数组的复杂条件
+            if (arrayType.getElementType() instanceof ArrayType) {
+                for (TermColumn column : columns) {
+                    column.getTermTypes().removeIf(termType -> ComplexExistsFunction.function.equals(termType.getId()));
+                }
+            }
         }
 
         return columns;

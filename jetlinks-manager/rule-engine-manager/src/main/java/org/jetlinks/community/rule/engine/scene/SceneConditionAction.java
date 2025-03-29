@@ -10,12 +10,18 @@ import org.jetlinks.community.rule.engine.commons.ShakeLimit;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Getter
 @Setter
 public class SceneConditionAction implements Serializable {
 
+    /**
+     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
+     * @see org.jetlinks.community.reactorql.term.TermType
+     * @see org.jetlinks.community.reactorql.term.TermValue
+     */
     @Schema(description = "条件")
     private List<Term> when;
 
@@ -30,6 +36,12 @@ public class SceneConditionAction implements Serializable {
 
     @Schema(description = "分支ID")
     private Integer branchId;
+
+    @Schema(description = "分支名称")
+    private String branchName;
+
+    @Schema(description = "拓展信息")
+    private Map<String, Object> options;
 
     //仅用于设置到reactQl sql的column中
     public List<Term> createContextTerm() {
@@ -50,6 +62,16 @@ public class SceneConditionAction implements Serializable {
         if (CollectionUtils.isNotEmpty(when)) {
             contextTerm.addAll(when);
         }
+        // 分支触发条件需要查询的列
+        contextTerm.addAll(SceneAction
+                               .parseColumnFromOptions(options)
+                               .stream()
+                               .map(column -> {
+                                   Term term = new Term();
+                                   term.setColumn(column);
+                                   return term;
+                               })
+                               .collect(Collectors.toList()));
         return contextTerm;
     }
 }

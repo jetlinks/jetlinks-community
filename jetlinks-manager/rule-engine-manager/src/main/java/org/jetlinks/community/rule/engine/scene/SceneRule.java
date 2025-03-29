@@ -35,6 +35,7 @@ import org.jetlinks.rule.engine.api.model.RuleLink;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.jetlinks.rule.engine.defaults.AbstractExecutionContext;
+import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -68,6 +69,7 @@ public class SceneRule implements Serializable {
     public static final String SOURCE_ID_KEY = "sourceId";
     public static final String SOURCE_NAME_KEY = "sourceName";
 
+    public static final String TRIGGER_TYPE = "triggerType";
 
     @Schema(description = "场景ID")
     @NotBlank(message = "error.scene_rule_id_cannot_be_blank")
@@ -81,6 +83,11 @@ public class SceneRule implements Serializable {
     @NotNull(message = "error.scene_rule_trigger_cannot_be_null")
     private Trigger trigger;
 
+    /**
+     * @see org.jetlinks.community.rule.engine.scene.term.TermColumn
+     * @see org.jetlinks.community.reactorql.term.TermType
+     * @see org.jetlinks.community.reactorql.term.TermValue
+     */
     @Schema(description = "触发条件")
     private List<Term> terms;
 
@@ -241,6 +248,8 @@ public class SceneRule implements Serializable {
                                });
             //满足条件后的输出操作
             List<Function<Map<String, Object>, Mono<Void>>> outs = new ArrayList<>();
+            //不满足时执行
+            Function<Map<String, Object>, Mono<Void>> nonMatch = null;
 
             List<SceneActions> groups = branch.getThen();
             int thenIndex = 0;
@@ -283,6 +292,20 @@ public class SceneRule implements Serializable {
                         .unicast()
                         .onBackpressureBuffer(Queues.<Map<String, Object>>unboundedMultiproducer().get());
 
+                    Flux<Map<String, Object>> resetSignal = Flux.never();
+                    //连续满足条件才触发,不满足则立即重置
+                    if (shakeLimit.isContinuous()) {
+                        Sinks.Many<Map<String, Object>> resetSinks = Sinks
+                            .many()
+                            .multicast()
+                            .directBestEffort();
+                        resetSignal = resetSinks.asFlux();
+                        nonMatch = data -> {
+                            resetSinks.tryEmitNext(data);
+                            return Mono.empty();
+                        };
+                    }
+
                     //动作输出
                     Flux<Function<Map<String, Object>, Mono<Void>>> _outs = Flux.fromIterable(new ArrayList<>(actionOuts));
                     Function<Map<String, Object>, Mono<Void>> handler =
@@ -292,9 +315,11 @@ public class SceneRule implements Serializable {
                     disposable.add(
                         trigger
                             .provider()
-                            .shakeLimit(DigestUtils.md5Hex(id + ":" + _branchIndex),
-                                        sinks.asFlux(),
-                                        shakeLimit)
+                            .shakeLimit(
+                                DigestUtils.md5Hex(id + ":" + _branchIndex),
+                                sinks.asFlux(),
+                                shakeLimit,
+                                resetSignal)
                             .flatMap(res -> {
                                 res.getElement().put("_total", res.getTimes());
                                 return handler.apply(res.getElement());
@@ -317,7 +342,7 @@ public class SceneRule implements Serializable {
             Flux<Function<Map<String, Object>, Mono<Void>>> outFlux = Flux.fromIterable(outs);
 
             Function<Map<String, Object>, Mono<Void>> fOut = out -> outFlux.flatMap(fun -> fun.apply(out)).then();
-
+            Function<Map<String, Object>, Mono<Void>> fNonMatch = nonMatch;
 
             Function<Map<String, Object>, Mono<Boolean>> handler =
                 data -> filter
@@ -325,7 +350,14 @@ public class SceneRule implements Serializable {
                     .flatMap(match -> {
                         // 满足条件后执行输出
                         if (match) {
-                            return fOut.apply(data).thenReturn(true);
+                            return fOut
+                                .apply(data)
+                                .then(Reactors.ALWAYS_TRUE);
+                        }
+                        if (fNonMatch != null) {
+                            return fNonMatch
+                                .apply(data)
+                                .then(Reactors.ALWAYS_FALSE);
                         }
                         return Reactors.ALWAYS_FALSE;
                     });
@@ -364,10 +396,13 @@ public class SceneRule implements Serializable {
 
         disposable.add(
             sourceData
-                .flatMap(data -> fLast
-                    .apply(data)
-                    .as(tracer)
-                    .contextWrite(ctx -> TraceHolder.readToContext(ctx, data)))
+                .flatMap(
+                    data -> fLast
+                        .apply(data)
+                        .as(tracer)
+                        .contextWrite(ctx -> TraceHolder.readToContext(ctx, data)),
+                    8,
+                    8)
                 .subscribe()
         );
 
@@ -520,7 +555,7 @@ public class SceneRule implements Serializable {
                                     .expand(var -> var.getChildren() == null
                                         ? Flux.empty()
                                         : Flux.fromIterable(var.getChildren()))
-                                    .collectMap(Variable::getColumn, Function.identity());
+                                    .collectMap(Variable::getId, Function.identity());
 
                                 RuleNodeModel actionNode = new RuleNodeModel();
                                 actionNode.setId(createBranchActionId(branchIndex, groupIndex, actionIndex));
@@ -633,9 +668,15 @@ public class SceneRule implements Serializable {
         }
 
         if (var != null) {
-            spec.setColumn(var.getId());
+            spec.setColumn(var.getColumn());
             spec.setMetadata(var.isMetadata());
             spec.setDisplayCode(var.getFullNameCode());
+        }
+
+        // 重构条件字段名，用于后续获取告警原因触发字段取不到
+        if (CollectionUtils.isEmpty(spec.getChildren()) && StringUtils.hasText(spec.getColumn())) {
+            spec.setColumn(newTerm.getColumn().substring(newTerm.getColumn().indexOf("['") + 2,
+                                                         newTerm.getColumn().length() - 2));
         }
 
     }

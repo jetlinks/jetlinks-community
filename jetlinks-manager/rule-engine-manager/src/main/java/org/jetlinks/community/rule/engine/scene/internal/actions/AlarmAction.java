@@ -3,21 +3,29 @@ package org.jetlinks.community.rule.engine.scene.internal.actions;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.rule.engine.alarm.AlarmConstants;
+import org.jetlinks.community.rule.engine.alarm.AlarmTaskExecutorProvider;
+import org.jetlinks.community.rule.engine.scene.Variable;
 import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.rule.engine.alarm.AlarmConstants;
-import org.jetlinks.community.rule.engine.alarm.AlarmTaskExecutorProvider;
-import org.jetlinks.community.rule.engine.scene.Variable;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.jetlinks.community.rule.engine.scene.Variable.OPTION_PARAMETER;
 
 @Getter
 @Setter
 public class AlarmAction extends AlarmTaskExecutorProvider.Config {
 
+    public static final String OPTION_ALARM_ID = "id";
+    public static final String OPTION_ALARM_NAME = "name";
+    public static final String OPTION_ALARM_LEVEL = "level";
+    /**
+     * @see org.jetlinks.community.rule.engine.alarm.AlarmRuleHandler.Result
+     */
     public List<Variable> createVariables() {
 
         List<Variable> variables = new ArrayList<>();
@@ -26,18 +34,22 @@ public class AlarmAction extends AlarmTaskExecutorProvider.Config {
             Variable.of(AlarmConstants.ConfigKey.alarmConfigId,
                         LocaleUtils.resolveMessage("message.alarm_config_id", "告警配置ID"))
                     .withType(StringType.GLOBAL)
+                //用于前端
+                    .withOption(OPTION_PARAMETER,OPTION_ALARM_ID)
         );
 
         variables.add(
             Variable.of(AlarmConstants.ConfigKey.alarmName,
                         LocaleUtils.resolveMessage("message.alarm_config_name", "告警配置名称"))
                     .withType(StringType.GLOBAL)
+                    .withOption(OPTION_PARAMETER,OPTION_ALARM_NAME)
         );
 
         variables.add(
             Variable.of(AlarmConstants.ConfigKey.level,
                         LocaleUtils.resolveMessage("message.alarm_level", "告警级别"))
                     .withType(IntType.GLOBAL)
+                    .withOption(OPTION_PARAMETER,OPTION_ALARM_LEVEL)
         );
 
 //            variables.add(

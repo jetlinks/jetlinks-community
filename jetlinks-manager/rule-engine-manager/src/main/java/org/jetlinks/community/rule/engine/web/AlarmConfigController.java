@@ -13,18 +13,21 @@ import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.service.ReactiveCrudService;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.jetlinks.community.rule.engine.alarm.AlarmLevelInfo;
+import org.jetlinks.community.rule.engine.alarm.AlarmTarget;
 import org.jetlinks.community.rule.engine.alarm.AlarmTargetSupplier;
 import org.jetlinks.community.rule.engine.entity.AlarmConfigDetail;
 import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
 import org.jetlinks.community.rule.engine.entity.AlarmLevelEntity;
-import org.jetlinks.community.rule.engine.scene.SceneUtils;
 import org.jetlinks.community.rule.engine.scene.SceneTriggerProvider;
+import org.jetlinks.community.rule.engine.scene.SceneUtils;
 import org.jetlinks.community.rule.engine.service.AlarmConfigService;
 import org.jetlinks.community.rule.engine.service.AlarmLevelService;
 import org.jetlinks.community.rule.engine.web.response.AlarmTargetTypeInfo;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Comparator;
 
 @RestController
 @RequestMapping(value = "/alarm/config")
@@ -66,7 +69,8 @@ public class AlarmConfigController implements ReactiveServiceCrudController<Alar
                               .get()
                               .getAll()
                               .values())
-            .flatMap(alarmTarget -> triggerCache
+            .sort(Comparator.comparing(AlarmTarget::getOrder))
+            .concatMap(alarmTarget -> triggerCache
                 .filter(alarmTarget::isSupported)
                 .collectList()
                 .map(supportTriggers -> AlarmTargetTypeInfo

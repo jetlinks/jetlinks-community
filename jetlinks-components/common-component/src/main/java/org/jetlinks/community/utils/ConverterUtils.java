@@ -1,23 +1,33 @@
 package org.jetlinks.community.utils;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
+import io.micrometer.core.instrument.Tags;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
+import io.netty.util.CharsetUtil;
+import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ComparatorUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.core.param.Sort;
 import org.hswebframework.ezorm.core.param.Term;
-import org.hswebframework.web.api.crud.entity.TermExpressionParser;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.core.utils.StringBuilderUtils;
 import org.jetlinks.reactor.ql.utils.CompareUtils;
+import org.springframework.util.ConcurrentReferenceHashMap;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ConverterUtils {
-
+    private static final Pattern HEX_PATTERN = Pattern.compile("^[0-9a-fA-F]+$");
     /**
      * 尝试转换值为集合,如果不是集合格式则直接返回该值
      *
@@ -28,7 +38,7 @@ public class ConverterUtils {
     public static Object tryConvertToList(Object value, Function<Object, Object> converter) {
         List<Object> list = convertToList(value, converter);
         if (list.size() == 1) {
-            return list.get(0);
+            return converter.apply(list.get(0));
         }
         return list;
     }
@@ -92,15 +102,45 @@ public class ConverterUtils {
      * @return 排序后的流
      */
     public static <T> Flux<T> convertSortedStream(Flux<T> flux, Collection<Sort> sorts) {
+        return convertSortedStream(flux, FastBeanCopier::getProperty, sorts);
+    }
+
+    /**
+     * 根据排序参数对指定对Flux流进行排序
+     *
+     * @param flux           Flux
+     * @param sorts          排序参数
+     * @param propertyGetter 对比字段获取器,用于获取元素中的字段数据.
+     * @param <R>            流中元素类型
+     * @return 排序后的流
+     */
+    public static <R> Flux<R> convertSortedStream(Flux<R> flux,
+                                                  BiFunction<R, String, Object> propertyGetter,
+                                                  Collection<Sort> sorts) {
         if (CollectionUtils.isEmpty(sorts)) {
             return flux;
         }
-        List<Comparator<T>> comparators = new ArrayList<>(sorts.size());
+        return flux.sort(convertComparator(sorts, propertyGetter));
+    }
+
+    /**
+     * 将排序参数转为Comparator
+     *
+     * @param sorts 排序参数
+     * @param <R>   元素类型
+     * @return Comparator
+     */
+    public static <R> Comparator<R> convertComparator(Collection<Sort> sorts,
+                                                      BiFunction<R, String, Object> propertyGetter) {
+        if (CollectionUtils.isEmpty(sorts)) {
+            return Comparator.comparing(k -> 0);
+        }
+        List<Comparator<R>> comparators = new ArrayList<>(sorts.size());
         for (Sort sort : sorts) {
             String column = sort.getName();
-            Comparator<T> comparator = (left, right) -> {
-                Object leftVal = FastBeanCopier.copy(left, new HashMap<>()).get(column);
-                Object rightVal = FastBeanCopier.copy(right, new HashMap<>()).get(column);
+            Comparator<R> comparator = (left, right) -> {
+                Object leftVal = propertyGetter.apply(left, column);
+                Object rightVal = propertyGetter.apply(right, column);
                 return CompareUtils.compare(leftVal, rightVal);
             };
             if (sort.getOrder().equalsIgnoreCase("desc")) {
@@ -109,7 +149,18 @@ public class ConverterUtils {
             comparators.add(comparator);
 
         }
-        return flux.sort(ComparatorUtils.chainedComparator(comparators));
+        return ComparatorUtils.chainedComparator(comparators);
+    }
+
+    private static final String[] EMPTY_TAG = new String[0];
+
+    private static final Map<Map<String, Object>, Tags> tagCache = new ConcurrentReferenceHashMap<>();
+
+    public static Tags convertMapToTagsInfo(Map<String, Object> map) {
+        if (MapUtils.isEmpty(map)) {
+            return Tags.empty();
+        }
+        return tagCache.computeIfAbsent(map, m -> Tags.of(convertMapToTags(m)));
     }
 
     /**
@@ -121,29 +172,9 @@ public class ConverterUtils {
      * @param map map
      * @return tags
      */
+    @SneakyThrows
     public static String[] convertMapToTags(Map<String, Object> map) {
-        if (MapUtils.isEmpty(map)) {
-            return new String[0];
-        }
-        String[] tags = new String[map.size() * 2];
-        int index = 0;
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (value == null) {
-                continue;
-            }
-            String strValue = value instanceof String
-                ? String.valueOf(value)
-                : JSON.toJSONString(value);
-
-            tags[index++] = key;
-            tags[index++] = strValue;
-        }
-        if (tags.length > index) {
-            return Arrays.copyOf(tags, index);
-        }
-        return tags;
+       return org.jetlinks.sdk.server.utils.ConverterUtils.convertMapToTags(map);
     }
 
     /**
@@ -152,27 +183,146 @@ public class ConverterUtils {
      *   //name = xxx and age > 10
      *   convertTerms("name is xxx and age gt 10")
      *
+     *   convertTerms({"name":"xxx","age$gt":10})
      * </pre>
      *
      * @param value
      * @return 条件集合
      */
     @SuppressWarnings("all")
+    @SneakyThrows
     public static List<Term> convertTerms(Object value) {
-        if (value instanceof String) {
-            String strVal = String.valueOf(value);
-            //json字符串
-            if (strVal.startsWith("[")) {
-                value = JSON.parseArray(strVal);
+        return org.jetlinks.sdk.server.utils.ConverterUtils.convertTerms(value);
+    }
+
+    public static String byteBufToString(ByteBuf buf,
+                                         Charset charset) {
+        return StringBuilderUtils
+            .buildString(
+                buf, charset,
+                (_buf, _charset, builder) -> byteBufToString(builder, _buf, _charset));
+    }
+
+
+    /**
+     * 将字符串转为ByteBuf,字符串中包含\x开头的内容将按16进制解析为byte.
+     *
+     * @param str     字符串
+     * @param charset 字符集
+     */
+    public static ByteBuf stringToByteBuf(CharSequence str, Charset charset) {
+        ByteBuf buf = Unpooled.buffer(str.length());
+        stringToByteBuf(str, buf, charset);
+        return buf;
+    }
+
+    /**
+     * 将字符串转为ByteBuf,字符串中包含\x开头的内容将按16进制解析为byte.
+     *
+     * @param str     字符串
+     * @param buf     ByteBuf
+     * @param charset 字符集
+     */
+    public static void stringToByteBuf(CharSequence str,
+                                       ByteBuf buf,
+                                       Charset charset) {
+
+        int idx = 0;
+        int len = str.length();
+        while (idx < len) {
+            char c = str.charAt(idx);
+            if (c == '\\' && str.charAt(idx + 1) == 'x') {
+                buf.writeByte(ByteBufUtil.decodeHexByte(str, idx + 2));
+                idx += 4;
             } else {
-                //表达式
-                return TermExpressionParser.parse(strVal);
+                buf.writeCharSequence(String.valueOf(c), charset);
+                idx++;
             }
         }
-        if (value instanceof List) {
-            return new JSONArray(((List) value)).toJavaList(Term.class);
-        } else {
-            throw new UnsupportedOperationException("unsupported term value:" + value);
+
+    }
+
+    private static final Set<Character>
+        visibleChar = new HashSet<>(
+        Arrays.asList(
+            ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
+            '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            '[', '\\', ']', '^', '_', '`',
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+            '{', '|', '}', '~', '`', '[', ']', '{', '}', ';', '\'', ',', '.', '/', '?', '<', '>', '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '+', '=', '|',
+            '·', '！', '@', '#', '￥', '%', '…', '&', '*', '（', '）', '—', '+', '|', '：', '“', '”', '《', '》', '？', '、',
+            '。', '，', '；', '‘', '’', '【', '】', '、', '·', '～', '·', '！', '@', '#', '￥', '%', '…', '&', '*', '（', '）',
+            '—', '+', '|', '：', '“', '”'
+        )
+    );
+
+
+    /**
+     * 将netty的ByteBuf转为字符串,buf中包含非指定字符集的字符,则转换为16进制如: \x00
+     *
+     * @param builder StringBuilder 用于接收字符串
+     * @param buf     ByteBuf
+     * @param charset 字符集
+     */
+    public static void byteBufToString(StringBuilder builder,
+                                       ByteBuf buf,
+                                       Charset charset) {
+
+
+        int len = buf.readableBytes();
+        int idx = buf.readerIndex();
+
+        CharsetEncoder encoder = CharsetUtil.encoder(charset);
+        int avgPerChar = (int) encoder.averageBytesPerChar();
+
+        int maxPerChar = (int) encoder.maxBytesPerChar();
+
+        while (len > 0) {
+
+            if (len >= avgPerChar && ByteBufUtil.isText(buf, idx, avgPerChar, charset)) {
+                CharSequence cs = buf.getCharSequence(idx, avgPerChar, charset);
+                int clen = cs.length();
+                for (int i = 0; i < clen; i++) {
+                    char c = cs.charAt(i);
+                    if (visibleChar.contains(c)) {
+                        builder.append(c);
+                    } else {
+                        builder
+                            .append("\\x")
+                            .append(ByteBufUtil.hexDump(buf, idx + i, 1));
+                    }
+                }
+                len -= avgPerChar;
+                idx += avgPerChar;
+                continue;
+            }
+
+
+            if (len >= maxPerChar && ByteBufUtil.isText(buf, idx, maxPerChar, charset)) {
+                CharSequence cs = buf.getCharSequence(idx, maxPerChar, charset);
+                builder.append(cs);
+                len -= maxPerChar;
+                idx += maxPerChar;
+                continue;
+            }
+
+            //不可识别的转为hex
+            builder
+                .append("\\x")
+                .append(ByteBufUtil.hexDump(buf, idx, 1));
+            len--;
+            idx++;
         }
     }
+
+    public static ByteBuf convertBuffer(Object obj) {
+        return org.jetlinks.sdk.server.utils.ConverterUtils.convertNettyBuffer(obj);
+    }
+
+    public static boolean isHexEncoded(String str) {
+            return StringUtils.hasText(str) &&
+                str.length() % 2 == 0 &&
+                HEX_PATTERN.matcher(str).matches();
+        }
 }

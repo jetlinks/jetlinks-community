@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.rule.engine.utils.TermColumnUtils;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.property.ReadPropertyMessage;
@@ -14,17 +13,18 @@ import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.BooleanType;
 import org.jetlinks.core.metadata.types.DateTimeType;
-import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.UnknownType;
 import org.jetlinks.core.things.ThingMetadata;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
+import org.jetlinks.community.rule.engine.utils.TermColumnUtils;
 import org.springframework.util.Assert;
 
 import javax.validation.constraints.NotNull;
-import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.jetlinks.core.metadata.SimplePropertyMetadata.of;
 

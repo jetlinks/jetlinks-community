@@ -36,7 +36,7 @@ public abstract class AbstractAlarmTarget implements AlarmTarget {
 
     protected abstract Flux<AlarmTargetInfo> doConvert(AlarmData data);
 
-    static Optional<Object> getFromOutput(String key, Map<String, Object> output) {
+    protected static Optional<Object> getFromOutput(String key, Map<String, Object> output) {
         //优先从场景输出中获取
         Object sceneOutput = output.get(SceneRule.CONTEXT_KEY_SCENE_OUTPUT);
         if (sceneOutput instanceof Map) {

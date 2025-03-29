@@ -3,14 +3,23 @@ package org.jetlinks.community.reactorql.term;
 import lombok.SneakyThrows;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.utils.ReactorUtils;
 import org.jetlinks.core.metadata.DataType;
 import reactor.core.publisher.Mono;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
+/**
+ * 查询条件类型支持
+ *
+ * @author zhouhao
+ * @see org.jetlinks.community.utils.ReactorUtils#createFilter(List)
+ * @since 2.0
+ */
 public interface TermTypeSupport {
 
     /**
@@ -71,8 +80,21 @@ public interface TermTypeSupport {
         return TermType.of(getType(), getName());
     }
 
+
     default String createDesc(String property, Object expect, Object actual) {
-        return String.format("%s%s(%s)", property, getName(), expect);
+
+        return LocaleUtils.resolveMessage(
+            "message.term_" + getType() + "_desc",
+            String.format("%s%s(%s)", property, getName(), expect),
+            property,
+            getName(),
+            expect,
+            actual
+        );
+    }
+
+    default String createActualDesc(String property, Object actual) {
+        return property + " = " + actual;
     }
 
     /**

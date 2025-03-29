@@ -59,7 +59,7 @@ public class DeviceAction extends DeviceSelectorSpec {
         variables.add(Variable
                           .of("success",
                               resolveMessage(
-                                  "message.action_execute_success",
+                                  "message.scene.variable.execute_success",
                                   "执行是否成功"
                               ))
                           .withType(BooleanType.ID)
@@ -71,7 +71,7 @@ public class DeviceAction extends DeviceSelectorSpec {
         variables.add(Variable
                           .of("deviceId",
                               resolveMessage(
-                                  "message.device_id",
+                                  "message.device.variable.device_id",
                                   "设备ID"
                               ))
                           .withType(StringType.ID)
@@ -130,6 +130,12 @@ public class DeviceAction extends DeviceSelectorSpec {
         }
         DeviceMessage msg = (DeviceMessage) MessageType.convertMessage(message).orElse(null);
 
+        List<String> columns = new ArrayList<>();
+        // 按变量获取设备的条件列
+        if (Source.upper.equals(getSource())) {
+            columns.add(getUpperKey());
+        }
+
         Collection<Object> readyToParse;
 
         if (msg instanceof WritePropertyMessage) {
@@ -137,13 +143,14 @@ public class DeviceAction extends DeviceSelectorSpec {
         } else if (msg instanceof FunctionInvokeMessage) {
             readyToParse = Lists.transform(((FunctionInvokeMessage) msg).getInputs(), FunctionParameter::getValue);
         } else {
-            return Collections.emptyList();
+            readyToParse = Collections.emptyList();
         }
 
 
-        return readyToParse
+        columns.addAll(readyToParse
             .stream()
             .flatMap(val -> parseColumnFromOptions(VariableSource.of(val).getOptions()).stream())
-            .collect(Collectors.toList());
+            .collect(Collectors.toList()));
+        return columns;
     }
 }

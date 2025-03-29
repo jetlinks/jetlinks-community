@@ -20,7 +20,7 @@ public class InDatabaseNotifyHistoryRepository implements NotifyHistoryRepositor
     public Mono<Void> handleNotify(SerializableNotifierEvent event) {
 
         return historyService
-            .insert(Mono.just(NotifyHistoryEntity.of(event)))
+            .save(NotifyHistoryEntity.of(event))
             .then();
     }
 

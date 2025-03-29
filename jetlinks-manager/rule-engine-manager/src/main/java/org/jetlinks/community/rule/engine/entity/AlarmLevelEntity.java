@@ -35,7 +35,6 @@ public class AlarmLevelEntity extends GenericEntity<String> {
     @Schema(description = "说明")
     private String description;
 
-
     public static AlarmLevelEntity of(List<AlarmLevelInfo> levels){
         AlarmLevelEntity entity = new AlarmLevelEntity();
         entity.setLevels(levels);

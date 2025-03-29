@@ -9,6 +9,7 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.notify.event.SerializableNotifierEvent;
 import org.jetlinks.community.notify.manager.enums.NotifyState;
+import org.jetlinks.community.utils.ObjectMappers;
 
 import java.util.Map;
 
@@ -50,10 +51,12 @@ public class NotifyHistory {
 
     public static NotifyHistory of(SerializableNotifierEvent event) {
         NotifyHistory history = FastBeanCopier.copy(event, new NotifyHistory());
-        history.setId(IDGenerator.SNOW_FLAKE_STRING.generate());
-        history.setNotifyTime(System.currentTimeMillis());
+        if (null == event.getId()) {
+            history.setId(IDGenerator.RANDOM.generate());
+        }
+        history.setNotifyTime(event.getSendTime());
         if (null != event.getTemplate()) {
-            history.setTemplate(JSON.toJSONString(event.getTemplate()));
+            history.setTemplate(ObjectMappers.toJsonString(event.getTemplate()));
         }
         if (event.isSuccess()) {
             history.setState(NotifyState.success);
@@ -65,8 +68,8 @@ public class NotifyHistory {
     }
 
     public JSONObject toJson() {
-        JSONObject obj = FastBeanCopier.copy(this,new JSONObject());
-        obj.put("state",state.getValue());
+        JSONObject obj = FastBeanCopier.copy(this, new JSONObject());
+        obj.put("state", state.getValue());
         obj.put("context", JSON.toJSONString(context));
         return obj;
     }
