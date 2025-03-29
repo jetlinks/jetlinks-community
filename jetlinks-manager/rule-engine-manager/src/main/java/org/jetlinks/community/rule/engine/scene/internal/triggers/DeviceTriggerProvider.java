@@ -75,14 +75,6 @@ public class DeviceTriggerProvider extends AbstractSceneTriggerProvider<DeviceTr
     }
 
     @Override
-    public Mono<Boolean> isSupported() {
-        // 支持 deviceService则支持设备触发.
-        return Mono.justOrEmpty(
-            CommandSupportManagerProvider.supports.get(SdkServices.deviceService).isPresent()
-        );
-    }
-
-    @Override
     public SqlFragments createFilter(DeviceTrigger config, List<Term> terms) {
         return config.createFragments(terms);
     }

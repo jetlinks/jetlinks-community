@@ -104,7 +104,6 @@ public class ElasticSearchAlarmHistoryService implements AlarmHistoryService {
                 .addProperty("triggerDesc", StringType.GLOBAL)
                 .addProperty("actualDesc", StringType.GLOBAL)
                 .addProperty("alarmConfigSource", StringType.GLOBAL)
-                .addProperty("bindings", new ArrayType().elementType(StringType.GLOBAL))
         ).block(Duration.ofSeconds(10));
     }
 }
