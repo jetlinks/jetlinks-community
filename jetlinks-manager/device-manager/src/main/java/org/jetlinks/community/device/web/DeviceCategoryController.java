@@ -1,6 +1,5 @@
 package org.jetlinks.community.device.web;
 
-
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
@@ -59,10 +58,10 @@ public class DeviceCategoryController implements ReactiveServiceCrudController<D
     @Authorize(merge = false)
     public Flux<DeviceCategoryEntity> getAllCategoryTreeByQueryParam(@RequestBody Mono<QueryParamEntity> query) {
         return this
-            .categoryService
-            .query(query)
-            .collectList()
-            .flatMapMany(all-> Flux.fromIterable(TreeSupportEntity.list2tree(all, DeviceCategoryEntity::setChildren)));
+                .categoryService
+                .query(query)
+                .collectList()
+                .flatMapMany(all-> Flux.fromIterable(TreeSupportEntity.list2tree(all, DeviceCategoryEntity::setChildren)));
     }
 
     @Override

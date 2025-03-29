@@ -23,7 +23,7 @@ public interface DeviceExcelConstants {
     /**
      * 最大长度
      */
-    String maxLength = "macLength";
+    String maxLength = "maxLength";
 
     /**
      * 单位
@@ -39,4 +39,9 @@ public interface DeviceExcelConstants {
      * 标签
      */
     String tags = "tags";
+
+    /**
+     * 拓展配置
+     */
+    String expands = "expands";
 }

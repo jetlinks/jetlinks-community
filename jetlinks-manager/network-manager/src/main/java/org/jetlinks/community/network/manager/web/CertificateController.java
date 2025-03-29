@@ -14,8 +14,7 @@ import org.jetlinks.community.network.manager.entity.CertificateEntity;
 import org.jetlinks.community.network.manager.service.CertificateService;
 import org.jetlinks.community.network.security.Certificate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.http.codec.multipart.Part;
 import org.springframework.util.StreamUtils;
@@ -24,7 +23,6 @@ import reactor.core.publisher.Mono;
 
 /**
  * @author wangzheng
- * @see
  * @since 1.0
  */
 @RestController
@@ -41,9 +39,6 @@ public class CertificateController implements ReactiveServiceCrudController<Cert
     public CertificateService getService() {
         return certificateService;
     }
-
-    @Autowired(required = false)
-    DataBufferFactory factory = new DefaultDataBufferFactory();
 
     @GetMapping("/{id}/detail")
     @QueryAction
@@ -62,14 +57,13 @@ public class CertificateController implements ReactiveServiceCrudController<Cert
                                @Parameter(name = "file", description = "文件") Part part) {
 
         if (part instanceof FilePart) {
-            return (part)
-                .content()
-                .collectList()
-                .flatMap(all -> Mono.fromCallable(() ->
-                    Base64.encodeBase64String(StreamUtils.copyToByteArray(factory.join(all).asInputStream(true)))))
+            return DataBufferUtils
+                .join(part.content())
+                .flatMap(buffer -> Mono
+                    .fromCallable(() -> Base64.encodeBase64String(StreamUtils.copyToByteArray(buffer.asInputStream(true)))))
                 ;
         } else {
-            return Mono.error(() -> new IllegalArgumentException("[file] part is not a file"));
+            return Mono.error(() -> new IllegalArgumentException("error.not_file"));
         }
 
     }

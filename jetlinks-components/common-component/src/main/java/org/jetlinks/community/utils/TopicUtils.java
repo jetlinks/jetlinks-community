@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.MapUtils;
 import org.jetlinks.community.PropertyConstants;
+import org.jetlinks.community.topic.Topics;
 import org.jetlinks.core.lang.SeparatedCharSequence;
 import org.jetlinks.core.lang.SharedPathString;
 import org.jetlinks.core.message.*;
@@ -50,6 +51,40 @@ public class TopicUtils {
             }
         }
         return topics;
+    }
+
+    public static Set<SeparatedCharSequence> refactorTopic(DeviceMessage message, SeparatedCharSequence original) {
+        return refactorTopic(message.getHeaders(), original);
+    }
+
+    public static Set<SeparatedCharSequence> refactorTopic(Map<String, Object> configs, SeparatedCharSequence original) {
+        if (MapUtils.isEmpty(configs)) {
+            return Collections.singleton(original);
+        }
+
+        Set<SeparatedCharSequence> container = Sets.newHashSetWithExpectedSize(2);
+        container.add(original);
+
+        //创建人
+        String creatorId = PropertyConstants.getFromMapOrElse(PropertyConstants.creatorId, configs, () -> null);
+        if (StringUtils.hasText(creatorId)) {
+            container.add(
+                Topics.creator(creatorId, original)
+            );
+        }
+
+        // 执行hooks
+        if (!TOPIC_REFACTOR_HOOK.isEmpty()) {
+            for (Consumer3<Map<String, Object>, String, Consumer<String>> hook : TOPIC_REFACTOR_HOOK) {
+                hook.accept(configs, original.toString(), (str) -> container.add(SharedPathString.of(str)));
+            }
+        }
+        return container;
+    }
+
+
+    public static Set<String> refactorTopic(ThingMessage message, String original) {
+        return refactorTopic(message.getHeaders(), original);
     }
 
     private static final TopicBuilder[] TOPIC_BUILDERS;
@@ -258,6 +293,14 @@ public class TopicUtils {
                 return builderBiConsumer2.apply(message, prefix);
             }
         };
+    }
+
+    public static String createMessageTopic(Message message, String prefix) {
+        return StringBuilderUtils
+            .buildString(message, prefix, (msg, _prefix, builder) -> {
+                builder.append(_prefix);
+                TopicUtils.appendMessageTopic(msg, builder);
+            });
     }
 
     @SneakyThrows

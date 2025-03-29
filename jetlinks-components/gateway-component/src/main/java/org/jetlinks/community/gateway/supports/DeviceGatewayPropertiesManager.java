@@ -20,4 +20,8 @@ public interface DeviceGatewayPropertiesManager {
 
     Flux<DeviceGatewayProperties> getPropertiesByChannel(String channel);
 
+    default Flux<DeviceGatewayProperties> getAllProperties() {
+        return Flux.empty();
+    }
+
 }

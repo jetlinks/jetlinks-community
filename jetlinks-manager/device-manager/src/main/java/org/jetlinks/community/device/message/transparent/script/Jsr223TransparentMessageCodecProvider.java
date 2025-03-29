@@ -2,6 +2,7 @@ package org.jetlinks.community.device.message.transparent.script;
 
 import lombok.RequiredArgsConstructor;
 import org.hswebframework.web.exception.ValidationException;
+import org.jetlinks.community.OperationSource;
 import org.jetlinks.community.device.message.transparent.SimpleTransparentMessageCodec;
 import org.jetlinks.community.device.message.transparent.TransparentMessageCodec;
 import org.jetlinks.community.device.message.transparent.TransparentMessageCodecProvider;
@@ -31,16 +32,13 @@ public class Jsr223TransparentMessageCodecProvider implements TransparentMessage
         String script = (String) configuration.get("script");
         Assert.hasText(lang, "lang can not be null");
         Assert.hasText(script, "script can not be null");
-
         ScriptFactory factory = Scripts.getFactory(lang);
 
         CodecContext context = new CodecContext(factory);
 
-        SimpleTransparentMessageCodec.Codec codec = factory.bind(
-            Script.of("jsr223-transparent", script),
-            SimpleTransparentMessageCodec.Codec.class,
-            ExecutionContext.create(Collections.singletonMap("codec", context)));
-
+        SimpleTransparentMessageCodec.Codec codec = factory.bind(Script.of("jsr223-transparent", script),
+                                                                 SimpleTransparentMessageCodec.Codec.class,
+                                                                 ExecutionContext.create(Collections.singletonMap("codec", context)));
 
         if (context.encoder == null && codec != null) {
             context.onDownstream(codec::encode);
