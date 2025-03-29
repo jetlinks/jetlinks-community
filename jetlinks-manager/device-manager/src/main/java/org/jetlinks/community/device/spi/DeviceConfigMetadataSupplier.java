@@ -2,6 +2,7 @@ package org.jetlinks.community.device.spi;
 
 import lombok.Generated;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.ConfigScope;
 import org.jetlinks.core.metadata.DeviceMetadataType;
 import org.jetlinks.core.metadata.Feature;
 import reactor.core.publisher.Flux;
@@ -32,16 +33,6 @@ public interface DeviceConfigMetadataSupplier {
     Flux<ConfigMetadata> getProductConfigMetadata(String productId);
 
     /**
-     * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getMetadataExpandsConfig(String, DeviceMetadataType, String, String)
-     */
-    default Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
-                                                          DeviceMetadataType metadataType,
-                                                          String metadataId,
-                                                          String typeId) {
-        return Flux.empty();
-    }
-
-    /**
      * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getProductConfigMetadataByAccessId(String, String)
      */
     @Generated
@@ -49,6 +40,16 @@ public interface DeviceConfigMetadataSupplier {
         return Flux.empty();
     }
 
+    /**
+     * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getMetadataExpandsConfig(String, DeviceMetadataType, String, String, ConfigScope...)
+     */
+    @Generated
+    default Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
+                                                          DeviceMetadataType metadataType,
+                                                          String metadataId,
+                                                          String typeId) {
+        return Flux.empty();
+    }
 
     /**
      * @see org.jetlinks.community.device.service.DeviceConfigMetadataManager#getProductFeatures(String)

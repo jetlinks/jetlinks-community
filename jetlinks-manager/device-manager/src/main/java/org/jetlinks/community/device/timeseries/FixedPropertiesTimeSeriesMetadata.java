@@ -1,11 +1,12 @@
 package org.jetlinks.community.device.timeseries;
 
-import org.jetlinks.community.timeseries.TimeSeriesMetadata;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.community.device.service.data.StorageConstants;
+import org.jetlinks.community.timeseries.TimeSeriesMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesMetric;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,18 @@ class FixedPropertiesTimeSeriesMetadata implements TimeSeriesMetadata {
 
     public FixedPropertiesTimeSeriesMetadata(String productId, List<PropertyMetadata> fixed) {
         this.metric = DeviceTimeSeriesMetric.devicePropertyMetric(productId);
-        this.fixed = new ArrayList<>(fixed);
+        this.fixed = new ArrayList<>(fixed.size() + metadata.size());
+        for (PropertyMetadata propertyMetadata : fixed) {
+            SimplePropertyMetadata property = new SimplePropertyMetadata();
+            property.setId(propertyMetadata.getId());
+            property.setName(propertyMetadata.getName());
+            if (StorageConstants.propertyIsJsonStringStorage(propertyMetadata)) {
+                property.setValueType(StringType.GLOBAL);
+            } else {
+                property.setValueType(propertyMetadata.getValueType());
+            }
+            this.fixed.add(property);
+        }
         this.fixed.addAll(metadata);
     }
 
@@ -42,13 +54,13 @@ class FixedPropertiesTimeSeriesMetadata implements TimeSeriesMetadata {
             metadata.add(property);
         }
 
-        {
-            SimplePropertyMetadata property = new SimplePropertyMetadata();
-            property.setId("productId");
-            property.setValueType(new StringType());
-            property.setName("产品ID");
-            metadata.add(property);
-        }
+//        {
+//            SimplePropertyMetadata property = new SimplePropertyMetadata();
+//            property.setId("productId");
+//            property.setValueType(new StringType());
+//            property.setName("产品ID");
+//            metadata.add(property);
+//        }
 
         {
             SimplePropertyMetadata property = new SimplePropertyMetadata();

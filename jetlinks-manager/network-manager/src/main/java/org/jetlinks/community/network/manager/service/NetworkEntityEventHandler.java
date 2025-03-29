@@ -55,7 +55,8 @@ public class NetworkEntityEventHandler {
     public void handleNetworkDelete(EntityBeforeDeleteEvent<NetworkConfigEntity> event) {
         event.async(
             Flux.fromIterable(event.getEntity())
-                .flatMap(e -> referenceManager.assertNotReferenced(DataReferenceManager.TYPE_NETWORK, e.getId()))
+                .flatMap(e -> referenceManager
+                    .assertNotReferenced(DataReferenceManager.TYPE_NETWORK, e.getId(), "error.network_referenced"))
         );
 
     }

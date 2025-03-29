@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Generated;
 import lombok.Getter;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.utils.StringUtils;
@@ -16,18 +17,16 @@ import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.BusinessException;
-import org.jetlinks.community.device.entity.ProtocolSupportEntity;
-import org.jetlinks.community.device.service.LocalProtocolSupportService;
-import org.jetlinks.community.device.web.protocol.ProtocolDetail;
-import org.jetlinks.community.device.web.protocol.ProtocolInfo;
-import org.jetlinks.community.device.web.protocol.TransportInfo;
 import org.jetlinks.community.device.web.request.ProtocolDecodeRequest;
 import org.jetlinks.community.device.web.request.ProtocolEncodeRequest;
 import org.jetlinks.community.io.file.FileManager;
+import org.jetlinks.community.protocol.ProtocolDetail;
+import org.jetlinks.community.protocol.ProtocolInfo;
+import org.jetlinks.community.protocol.ProtocolSupportEntity;
 import org.jetlinks.community.protocol.TransportDetail;
+import org.jetlinks.community.protocol.service.LocalProtocolSupportService;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
-import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.unit.ValueUnit;
 import org.jetlinks.core.metadata.unit.ValueUnits;
@@ -59,6 +58,7 @@ public class ProtocolSupportController
 
     @Autowired
     @Getter
+    @Generated
     private LocalProtocolSupportService service;
 
     @Autowired
@@ -76,6 +76,7 @@ public class ProtocolSupportController
     @PostMapping("/{id}/_deploy")
     @SaveAction
     @Operation(summary = "发布协议")
+    @Deprecated
     public Mono<Boolean> deploy(@PathVariable String id) {
         return service.deploy(id);
     }
@@ -83,8 +84,19 @@ public class ProtocolSupportController
     @PostMapping("/{id}/_un-deploy")
     @SaveAction
     @Operation(summary = "取消发布")
+    @Deprecated
     public Mono<Boolean> unDeploy(@PathVariable String id) {
         return service.unDeploy(id);
+    }
+
+    @GetMapping("/{id:.+}/exists")
+    @QueryAction
+    @Operation(summary = "验证协议ID是否存在")
+    public Mono<Boolean> idValidate(@PathVariable @Parameter(description = "协议ID") String id) {
+        return Flux.merge(service.findById(id),
+                          protocolSupports.getProtocols()
+                                          .filter(protocol -> protocol.getId().equals(id)))
+                   .hasElements();
     }
 
     //获取支持的协议类型
@@ -105,15 +117,24 @@ public class ProtocolSupportController
             .getProtocols()
             .collectMap(ProtocolSupport::getId)
             .flatMapMany(protocols -> service.createQuery()
-                                             .setParam(query)
-                                             .fetch()
-                                             .index()
-                                             .flatMap(tp2 -> Mono
-                                                 .justOrEmpty(protocols.get(tp2.getT2().getId()))
-                                                 .map(ProtocolInfo::of)
-                                                 .map(protocolInfo -> Tuples.of(tp2.getT1(), protocolInfo))))
+                .setParam(query)
+                .fetch()
+                .index()
+                .flatMap(tp2 -> Mono
+                    .justOrEmpty(protocols.get(tp2.getT2().getId()))
+                    .map(ignore -> ProtocolInfo.of(tp2.getT2()))
+                    .map(protocolInfo -> Tuples.of(tp2.getT1(), protocolInfo))))
             .sort(Comparator.comparingLong(Tuple2::getT1))
             .map(Tuple2::getT2);
+
+    }
+
+    @GetMapping("/supports/{transport}")
+    @Authorize(merge = false)
+    @Operation(summary = "获取支持指定传输协议的消息协议")
+    public Flux<ProtocolInfo> getSupportTransportProtocols(@PathVariable String transport,
+                                                           @Parameter(hidden = true) QueryParamEntity query) {
+        return service.getSupportTransportProtocols(transport,query);
     }
 
     @GetMapping("/{id}/{transport}/configuration")
@@ -122,8 +143,7 @@ public class ProtocolSupportController
     @Operation(summary = "获取协议对应使用传输协议的配置元数据")
     public Mono<ConfigMetadata> getTransportConfiguration(@PathVariable @Parameter(description = "协议ID") String id,
                                                           @PathVariable @Parameter(description = "传输协议") String transport) {
-        return protocolSupports.getProtocol(id)
-            .flatMap(support -> support.getConfigMetadata(Transport.of(transport)));
+        return service.getTransportConfiguration(id, transport);
     }
 
     @GetMapping("/{id}/{transport}/metadata")
@@ -132,33 +152,50 @@ public class ProtocolSupportController
     @Operation(summary = "获取协议设置的默认物模型")
     public Mono<String> getDefaultMetadata(@PathVariable @Parameter(description = "协议ID") String id,
                                            @PathVariable @Parameter(description = "传输协议") String transport) {
-        return protocolSupports
-            .getProtocol(id)
-            .flatMap(support ->support
-                .getDefaultMetadata(Transport.of(transport))
-                .flatMap(metadata-> support.getMetadataCodec().encode(metadata))
-            ).defaultIfEmpty("{}");
+        return service.getDefaultMetadata(id,transport);
     }
 
     @GetMapping("/{id}/transports")
     @Authorize(merge = false)
     @Operation(summary = "获取协议支持的传输协议")
-    public Flux<TransportInfo> getAllTransport(@PathVariable @Parameter(description = "协议ID") String id) {
+    public Flux<TransportDetail> getAllTransport(@PathVariable @Parameter(description = "协议ID") String id) {
         return protocolSupports
             .getProtocol(id)
-            .flatMapMany(ProtocolSupport::getSupportedTransport)
-            .distinct()
-            .map(TransportInfo::of);
+            .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, id))
+            .flatMapMany(protocol -> protocol
+                .getSupportedTransport()
+                .distinct()
+                .flatMap(transport -> TransportDetail.of(protocol, transport)));
+    }
+
+    @GetMapping("/{id}/transport/{transport}")
+    @Authorize(merge = false)
+    @Operation(summary = "获取消息协议对应的传输协议信息")
+    public Mono<TransportDetail> getTransportDetail(@PathVariable @Parameter(description = "协议ID") String id,
+                                                    @PathVariable @Parameter(description = "传输协议") String transport) {
+        return service.getTransportDetail(id, transport);
+    }
+
+    @PostMapping("/{id}/detail")
+    @QueryAction
+    @Operation(summary = "获取协议详情")
+    public Mono<ProtocolDetail> protocolDetail(@PathVariable String id) {
+        return protocolSupports
+            .getProtocol(id)
+            .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, id))
+            .flatMap(ProtocolDetail::of);
     }
 
     @PostMapping("/convert")
     @QueryAction
     @Hidden
-    public Mono<ProtocolDetail> convertToDetail(@RequestBody Mono<ProtocolSupportEntity> entity) {
+    public Mono<ProtocolDetail> convertToDetail(@RequestParam(required = false) String transport, @RequestBody Mono<ProtocolSupportEntity> entity) {
         return entity.map(ProtocolSupportEntity::toDeployDefinition)
-            .doOnNext(def -> def.setId("_debug"))
-            .flatMap(def -> supportLoader.load(def))
-            .flatMap(ProtocolDetail::of);
+                     .doOnNext(def -> def.setId("_debug"))
+                     .flatMap(def -> supportLoader.load(def))
+                     .flatMap(support -> ProtocolDetail
+                         .of(support, transport)
+                         .doFinally(s -> support.dispose()));
     }
 
     @PostMapping("/decode")
@@ -169,10 +206,14 @@ public class ProtocolSupportController
             .<Object>flatMapMany(request -> {
                 ProtocolSupportDefinition supportEntity = request.getEntity().toDeployDefinition();
                 supportEntity.setId("_debug");
-                return supportLoader.load(supportEntity)
-                    .flatMapMany(protocol -> request
-                        .getRequest()
-                        .doDecode(protocol, null));
+                return supportLoader
+                    .load(supportEntity)
+                    .flatMapMany(protocol -> Flux
+                        .defer(() -> request
+                            .getRequest()
+                            .doDecode(protocol, null))
+                        .doFinally(s -> protocol.dispose())
+                    );
             })
             .collectList()
             .map(JSON::toJSONString)
@@ -187,73 +228,27 @@ public class ProtocolSupportController
             .flatMapMany(request -> {
                 ProtocolSupportDefinition supportEntity = request.getEntity().toDeployDefinition();
                 supportEntity.setId("_debug");
-                return supportLoader.load(supportEntity)
-                    .flatMapMany(protocol -> request
-                        .getRequest()
-                        .doEncode(protocol, null));
+                return supportLoader
+                    .load(supportEntity)
+                    .flatMapMany(protocol -> Flux
+                        .defer(() -> request
+                            .getRequest()
+                            .doEncode(protocol, null))
+                        .doFinally(s -> protocol.dispose()));
             })
             .collectList()
             .map(JSON::toJSONString)
             .onErrorResume(err -> Mono.just(StringUtils.throwable2String(err)));
     }
 
+
     @GetMapping("/units")
     @Authorize(merge = false)
     @Operation(summary = "获取单位数据")
     public Flux<ValueUnit> allUnits() {
-        return Flux.fromIterable(ValueUnits.getAllUnit());
-    }
-
-
-    @GetMapping("/supports/{transport}")
-    @Authorize(merge = false)
-    @Operation(summary = "获取支持指定传输协议的消息协议")
-    public Flux<ProtocolInfo> getSupportTransportProtocols(@PathVariable String transport,
-                                                           @Parameter(hidden = true) QueryParamEntity query) {
-        return protocolSupports
-            .getProtocols()
-            .collectMap(ProtocolSupport::getId)
-            .flatMapMany(protocols -> service.createQuery()
-                                             .setParam(query)
-                                             .fetch()
-                                             .index()
-                                             .flatMap(tp2 -> Mono
-                                                 .justOrEmpty(protocols.get(tp2.getT2().getId()))
-                                                 .filterWhen(support -> support
-                                                     .getSupportedTransport()
-                                                     .filter(t -> t.isSame(transport))
-                                                     .hasElements())
-                                                 .map(ProtocolInfo::of)
-                                                 .map(protocolInfo -> Tuples.of(tp2.getT1(), protocolInfo))))
-            .sort(Comparator.comparingLong(Tuple2::getT1))
-            .map(Tuple2::getT2);
-    }
-
-    @GetMapping("/{id}/transport/{transport}")
-    @Authorize(merge = false)
-    @Operation(summary = "获取消息协议对应的传输协议信息")
-    public Mono<TransportDetail> getTransportDetail(@PathVariable @Parameter(description = "协议ID") String id,
-                                                    @PathVariable @Parameter(description = "传输协议") String transport) {
-        return protocolSupports
-            .getProtocol(id)
-            .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, id))
-            .flatMapMany(protocol -> protocol
-                .getSupportedTransport()
-                .filter(trans -> trans.isSame(transport))
-                .distinct()
-                .flatMap(_transport -> TransportDetail.of(protocol, _transport)))
-            .singleOrEmpty();
-    }
-
-
-    @PostMapping("/{id}/detail")
-    @QueryAction
-    @Operation(summary = "获取协议详情")
-    public Mono<ProtocolDetail> protocolDetail(@PathVariable String id) {
-        return protocolSupports
-            .getProtocol(id)
-            .onErrorMap(e -> new BusinessException("error.unable_to_load_protocol_by_access_id", 404, id))
-            .flatMap(ProtocolDetail::of);
+        return Flux
+            .fromIterable(ValueUnits.getAllUnit())
+            .distinct(ValueUnit::getId);
     }
 
 

@@ -1,13 +1,13 @@
 package org.jetlinks.community.device.events.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.jetlinks.community.device.events.DeviceProductDeployEvent;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.service.data.DeviceLatestDataService;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.event.Subscription;
-import org.jetlinks.core.metadata.DeviceMetadataCodec;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 import javax.annotation.PreDestroy;
 
 /**
- * 处理设备产品发布事件
+ * 处理设备型号发布事件
  *
  * @author bsetfeng
  * @author zhouhao
@@ -96,8 +96,7 @@ public class DeviceProductDeployHandler implements CommandLineRunner {
         return codec
             .decode(metadataString)
             .flatMap(metadata -> Flux
-                .mergeDelayError(2,
-                                 dataService.reloadMetadata(productId, metadata),
+                .concatDelayError(dataService.reloadMetadata(productId, metadata),
                                  latestDataService.reloadMetadata(productId, metadata))
                 .then());
     }
@@ -106,9 +105,8 @@ public class DeviceProductDeployHandler implements CommandLineRunner {
         return codec
             .decode(metadataString)
             .flatMap(metadata -> Flux
-                .mergeDelayError(2,
-                                 dataService.registerMetadata(productId, metadata),
-                                 latestDataService.upgradeMetadata(productId, metadata))
+                .concatDelayError(dataService.registerMetadata(productId, metadata),
+                       latestDataService.upgradeMetadata(productId, metadata))
                 .then());
     }
 

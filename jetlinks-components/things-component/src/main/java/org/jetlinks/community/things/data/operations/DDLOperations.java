@@ -9,4 +9,5 @@ public interface DDLOperations {
 
     Mono<Void> reloadMetadata(ThingMetadata metadata);
 
+    Mono<Void> validateMetadata(ThingMetadata metadata);
 }

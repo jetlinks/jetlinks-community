@@ -1,10 +1,6 @@
-package org.jetlinks.community.device.response;
+package org.jetlinks.community.device.web.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Generated;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 
 @Getter

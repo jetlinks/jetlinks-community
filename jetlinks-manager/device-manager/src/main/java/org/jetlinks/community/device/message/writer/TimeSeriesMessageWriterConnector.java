@@ -1,10 +1,11 @@
 package org.jetlinks.community.device.message.writer;
 
 import lombok.AllArgsConstructor;
+import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.gateway.annotation.Subscribe;
-import org.jetlinks.core.message.DeviceMessage;
 import reactor.core.publisher.Mono;
 
 /**
@@ -16,18 +17,20 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @AllArgsConstructor
 public class TimeSeriesMessageWriterConnector {
+
+
     private final DeviceDataService dataService;
 
 
-    /**
-     * 订阅设备消息 入库
-     *
-     * @param message 设备消息
-     * @return void
-     */
     @Subscribe(topics = "/device/**", id = "device-message-ts-writer")
+    @Generated
     public Mono<Void> writeDeviceMessageToTs(DeviceMessage message) {
-        return dataService.saveDeviceMessage(message);
+        return dataService
+            .saveDeviceMessage(message)
+            .onErrorResume(err -> {
+                log.warn("write device message error {}", message, err);
+                return Mono.empty();
+            });
     }
 
 

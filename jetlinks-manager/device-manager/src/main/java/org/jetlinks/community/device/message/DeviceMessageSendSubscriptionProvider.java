@@ -1,9 +1,10 @@
 package org.jetlinks.community.device.message;
 
 import lombok.AllArgsConstructor;
+import lombok.Generated;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
-import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.gateway.external.Message;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.gateway.external.SubscriptionProvider;
@@ -27,19 +28,22 @@ public class DeviceMessageSendSubscriptionProvider implements SubscriptionProvid
 
     private final DeviceRegistry registry;
 
-    private final LocalDeviceInstanceService instanceService;
+    private final ReactiveRepository<DeviceInstanceEntity, String> deviceRepository;
 
     @Override
+    @Generated
     public String id() {
         return "device-message-sender";
     }
 
     @Override
+    @Generated
     public String name() {
         return "设备消息发送";
     }
 
     @Override
+    @Generated
     public String[] getTopicPattern() {
         return new String[]{
             "/device-message-sender/*/*"
@@ -47,6 +51,7 @@ public class DeviceMessageSendSubscriptionProvider implements SubscriptionProvid
     }
 
     @Override
+    @SuppressWarnings("all")
     public Flux<Message> subscribe(SubscribeRequest request) {
 
         String topic = request.getTopic();
@@ -57,7 +62,8 @@ public class DeviceMessageSendSubscriptionProvider implements SubscriptionProvid
 
         //发给所有设备
         if ("*".equals(deviceId)) {
-            return instanceService.createQuery()
+            return deviceRepository
+                .createQuery()
                 .select(DeviceInstanceEntity::getId)
                 .where(DeviceInstanceEntity::getProductId, productId)
                 //.and(DeviceInstanceEntity::getState, DeviceState.online)
@@ -71,13 +77,14 @@ public class DeviceMessageSendSubscriptionProvider implements SubscriptionProvid
     }
 
     public Flux<Message> doSend(String requestId, String topic, String deviceId, Map<String, Object> message) {
-        message.put("messageId", IDGenerator.SNOW_FLAKE_STRING.generate());
+        message.putIfAbsent("messageId", IDGenerator.SNOW_FLAKE_STRING.generate());
         message.put("deviceId", deviceId);
 
-        RepayableDeviceMessage<?> msg = MessageType.convertMessage(message)
+        RepayableDeviceMessage<?> msg = MessageType
+            .convertMessage(message)
             .filter(RepayableDeviceMessage.class::isInstance)
             .map(RepayableDeviceMessage.class::cast)
-            .orElseThrow(() -> new UnsupportedOperationException("不支持的消息格式"));
+            .orElseThrow(() -> new UnsupportedOperationException("error.unsupported_message_format"));
         return registry
             .getDevice(deviceId)
             .switchIfEmpty(Mono.error(() -> new DeviceOperationException(ErrorCode.CLIENT_OFFLINE)))

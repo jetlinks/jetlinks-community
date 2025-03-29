@@ -13,6 +13,7 @@ import org.jetlinks.community.relation.RelationManagerHolder;
 import org.jetlinks.community.relation.RelationObjectProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
+import org.jetlinks.community.rule.engine.executor.device.SelectorValue;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -39,7 +40,7 @@ public class RelationDeviceSelectorProvider implements DeviceSelectorProvider {
         return this
             .applyCondition(
                 source.resolve(ctx).map(String::valueOf),
-                Flux.fromIterable(source.getSelectorValues()).map(RelationSpec::of),
+                Flux.fromIterable(source.getSelectorValues()).mapNotNull(SelectorValue::getValue).map(RelationSpec::of),
                 conditional
             );
     }
@@ -58,6 +59,8 @@ public class RelationDeviceSelectorProvider implements DeviceSelectorProvider {
     public <T extends Conditional<T>> Mono<NestConditional<T>> applyCondition(Flux<String> source,
                                                                               Flux<RelationSpec> relations,
                                                                               NestConditional<T> conditional) {
+        // 和上游设备相同关系的设备
+
         return source
             .flatMap(deviceId -> relations
                 .flatMap(spec -> {

@@ -20,6 +20,8 @@ public interface DataReferenceManager {
 
     //数据类型: 设备接入网关
     String TYPE_DEVICE_GATEWAY = "device-gateway";
+    //数据类型: 产品
+    String TYPE_PRODUCT = "product";
     //数据类型: 网络组件
     String TYPE_NETWORK = "network";
     //数据类型：关系配置
@@ -53,7 +55,6 @@ public interface DataReferenceManager {
      */
     Flux<DataReferenceInfo> getReferences(String dataType);
 
-
     /**
      * 断言数据没有被引用,如果存在引用，则抛出异常: {@link DataReferencedException}
      *
@@ -69,4 +70,18 @@ public interface DataReferenceManager {
             .flatMap(list -> Mono.error(new DataReferencedException(dataType, dataId, list)));
     }
 
+    /**
+     * 断言数据没有被引用,如果存在引用，则抛出异常: {@link DataReferencedException}
+     *
+     * @param dataType 数据类型
+     * @param dataId   数据ID
+     * @return void
+     */
+    default Mono<Void> assertNotReferenced(String dataType, String dataId, String code, Object... args) {
+        return this
+            .getReferences(dataType, dataId)
+            .collectList()
+            .filter(CollectionUtils::isNotEmpty)
+            .flatMap(list -> Mono.error(new DataReferencedException(dataType, dataId, list, code, args)));
+    }
 }

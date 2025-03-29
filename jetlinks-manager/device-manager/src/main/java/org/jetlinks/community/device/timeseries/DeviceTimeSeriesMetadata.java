@@ -1,8 +1,8 @@
 package org.jetlinks.community.device.timeseries;
 
-import org.jetlinks.community.timeseries.TimeSeriesMetadata;
 import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.community.timeseries.TimeSeriesMetadata;
 
 import java.util.List;
 
@@ -27,6 +27,8 @@ public interface DeviceTimeSeriesMetadata {
     static TimeSeriesMetadata properties(String productId, List<PropertyMetadata> properties) {
         return new FixedPropertiesTimeSeriesMetadata(productId, properties);
     }
+
+
     /**
      * 获取设备事件时序数据元数据
      *

@@ -1,6 +1,8 @@
 package org.jetlinks.community.topic;
 
 import lombok.Generated;
+import org.jetlinks.core.lang.SeparatedCharSequence;
+import org.jetlinks.core.lang.SharedPathString;
 import org.jetlinks.core.utils.StringBuilderUtils;
 
 public interface Topics {
@@ -15,6 +17,13 @@ public interface Topics {
 
     static String creator(String creatorId, String topic) {
         return StringBuilderUtils.buildString(creatorId, topic, Topics::creator);
+    }
+
+    static SeparatedCharSequence creator(String creatorId, SeparatedCharSequence topic) {
+        // /user/{creatorId}/{topic}
+        return SharedPathString
+            .of(new String[]{"", "user", creatorId})
+            .append(topic);
     }
 
     static void creator(String creatorId, String topic, StringBuilder builder) {

@@ -17,18 +17,25 @@ import org.jetlinks.rule.engine.executor.PayloadType;
 @Setter
 public class MqttMessageRequest {
 
+    @Generated
     private String topic;
 
+    @Generated
     private int qosLevel;
 
+    @Generated
     private Object data;
 
+    @Generated
     private int messageId;
 
+    @Generated
     private boolean will;
 
+    @Generated
     private boolean dup;
 
+    @Generated
     private boolean retain;
 
     public static MqttMessage of(MqttMessageRequest request, PayloadType type) {

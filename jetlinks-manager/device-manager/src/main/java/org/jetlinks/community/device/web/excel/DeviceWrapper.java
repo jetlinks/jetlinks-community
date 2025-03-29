@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.web.excel;
 
+import lombok.Generated;
 import org.hswebframework.reactor.excel.Cell;
 import org.hswebframework.reactor.excel.converter.RowWrapper;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
@@ -14,8 +15,11 @@ import java.util.Map;
  * 设备数据导入包装器
  *
  * @author zhouhao
- * @see 1.0
+ * @since  1.0
+ * @deprecated 使用 {@link DeviceExcelImporter}导入
  */
+@Generated
+@Deprecated
 public class DeviceWrapper extends RowWrapper<DeviceExcelInfo> {
 
     Map<String, PropertyMetadata> tagMapping = new HashMap<>();

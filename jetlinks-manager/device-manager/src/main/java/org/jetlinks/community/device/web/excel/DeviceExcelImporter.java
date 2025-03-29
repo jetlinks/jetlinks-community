@@ -1,9 +1,11 @@
 package org.jetlinks.community.device.web.excel;
 
 import lombok.Getter;
+import org.hswebframework.web.api.crud.entity.EntityFactoryHolder;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.io.excel.AbstractImporter;
 import org.jetlinks.community.io.excel.ImportHelper;
 import org.jetlinks.community.io.file.FileManager;
@@ -20,7 +22,7 @@ import java.util.Map;
 /**
  * 设备导入.
  *
- * @author zhangji 2023/6/28
+ * @author zhangji 2023/6/25
  * @since 2.1
  */
 public class DeviceExcelImporter extends AbstractImporter<DeviceExcelInfo> {
@@ -34,13 +36,17 @@ public class DeviceExcelImporter extends AbstractImporter<DeviceExcelInfo> {
 
     private final Authentication auth;
 
+    private final LocalDeviceInstanceService deviceService;
+
     public DeviceExcelImporter(FileManager fileManager,
                                WebClient client,
                                DeviceProductEntity product,
                                List<ConfigPropertyMetadata> configs,
+                               LocalDeviceInstanceService deviceService,
                                Authentication auth) {
         super(fileManager, client);
         this.product = product;
+        this.deviceService = deviceService;
         this.auth = auth;
         List<PropertyMetadata> tags = product.parseMetadata().getTags();
         for (PropertyMetadata tag : tags) {
@@ -55,13 +61,13 @@ public class DeviceExcelImporter extends AbstractImporter<DeviceExcelInfo> {
     protected Mono<Void> handleData(Flux<DeviceExcelInfo> data) {
         return data
             .doOnNext(ValidatorUtils::tryValidate)
-            .map(deviceExcelInfo -> deviceExcelInfo.initDeviceInstance(product, auth))
+            .map(deviceExcelInfo -> deviceExcelInfo.initDeviceInstance(product,auth))
             .then();
     }
 
     @Override
     protected DeviceExcelInfo newInstance() {
-        DeviceExcelInfo deviceExcelInfo = new DeviceExcelInfo();
+        DeviceExcelInfo deviceExcelInfo = EntityFactoryHolder.newInstance(DeviceExcelInfo.class,DeviceExcelInfo::new);
         deviceExcelInfo.setTagMapping(tagMapping);
         deviceExcelInfo.setConfigMapping(configMapping);
         return deviceExcelInfo;

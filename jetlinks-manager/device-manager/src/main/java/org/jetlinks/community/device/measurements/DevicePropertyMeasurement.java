@@ -1,5 +1,6 @@
 package org.jetlinks.community.device.measurements;
 
+import lombok.Generated;
 import org.hswebframework.utils.time.DateFormatter;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.jetlinks.community.Interval;
@@ -16,6 +17,7 @@ import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.NumberType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.core.metadata.unit.ValueUnit;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -26,6 +28,7 @@ import reactor.core.publisher.Mono;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 class DevicePropertyMeasurement extends StaticMeasurement {
 
@@ -60,6 +63,12 @@ class DevicePropertyMeasurement extends StaticMeasurement {
         value = type instanceof Converter ? ((Converter<?>) type).convert(value) : value;
         values.put("value", value);
         values.put("formatValue", type.format(value));
+        if (type instanceof UnitSupported) {
+            UnitSupported unitSupported = (UnitSupported) type;
+            values.put("unit", Optional.ofNullable(unitSupported.getUnit())
+                                       .map(ValueUnit::getSymbol)
+                                       .orElse(null));
+        }
         return values;
     }
 
@@ -113,11 +122,13 @@ class DevicePropertyMeasurement extends StaticMeasurement {
     private class AggDevicePropertyDimension implements MeasurementDimension {
 
         @Override
+        @Generated
         public DimensionDefinition getDefinition() {
             return CommonDimensionDefinition.agg;
         }
 
         @Override
+        @Generated
         public DataType getValueType() {
             return new ObjectType()
                 .addProperty("value", "数据", new ObjectType()
@@ -128,11 +139,13 @@ class DevicePropertyMeasurement extends StaticMeasurement {
         }
 
         @Override
+        @Generated
         public ConfigMetadata getParams() {
             return aggConfigMetadata;
         }
 
         @Override
+        @Generated
         public boolean isRealTime() {
             return false;
         }
@@ -181,11 +194,13 @@ class DevicePropertyMeasurement extends StaticMeasurement {
     private class HistoryDevicePropertyDimension implements MeasurementDimension {
 
         @Override
+        @Generated
         public DimensionDefinition getDefinition() {
             return CommonDimensionDefinition.history;
         }
 
         @Override
+        @Generated
         public DataType getValueType() {
             return new ObjectType()
                 .addProperty("property", "属性", StringType.GLOBAL)
@@ -194,18 +209,21 @@ class DevicePropertyMeasurement extends StaticMeasurement {
         }
 
         @Override
+        @Generated
         public ConfigMetadata getParams() {
             return configMetadata;
         }
 
         @Override
+        @Generated
         public boolean isRealTime() {
             return false;
         }
 
         @Override
         public Flux<MeasurementValue> getValue(MeasurementParameter parameter) {
-            return Mono.justOrEmpty(parameter.getString("deviceId"))
+            return Mono
+                .justOrEmpty(parameter.getString("deviceId"))
                 .flatMapMany(deviceId -> {
                     int history = parameter.getInt("history").orElse(1);
                     return  QueryParamEntity.newQuery()
@@ -229,11 +247,13 @@ class DevicePropertyMeasurement extends StaticMeasurement {
     private class RealTimeDevicePropertyDimension implements MeasurementDimension {
 
         @Override
+        @Generated
         public DimensionDefinition getDefinition() {
             return CommonDimensionDefinition.realTime;
         }
 
         @Override
+        @Generated
         public DataType getValueType() {
             return new ObjectType()
                 .addProperty("property", "属性", StringType.GLOBAL)
@@ -242,11 +262,13 @@ class DevicePropertyMeasurement extends StaticMeasurement {
         }
 
         @Override
+        @Generated
         public ConfigMetadata getParams() {
             return configMetadata;
         }
 
         @Override
+        @Generated
         public boolean isRealTime() {
             return true;
         }

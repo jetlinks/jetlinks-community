@@ -1,11 +1,13 @@
 package org.jetlinks.community.device.measurements;
 
 import lombok.AllArgsConstructor;
+import lombok.Generated;
 import lombok.Getter;
 import org.jetlinks.community.dashboard.ObjectDefinition;
 
 @Getter
 @AllArgsConstructor
+@Generated
 public enum DeviceObjectDefinition implements ObjectDefinition {
     status("设备状态"),
     message("设备消息");

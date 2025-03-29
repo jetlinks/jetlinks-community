@@ -29,6 +29,7 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
     }
 
     private static final String category_splitter = "-";
+
     @Override
     public void setChildren(DeviceCategoryEntity entity, List<DeviceCategoryEntity> children) {
         entity.setChildren(children);
@@ -50,10 +51,12 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
         if (children == null) {
             return;
         }
+        long sortIndex = 1;
         for (DeviceCategoryEntity child : children) {
             String id = child.getId();
-            child.setId(parentId + category_splitter + id +category_splitter);
-            child.setParentId(parentId +category_splitter);
+            child.setId(parentId + category_splitter + id + category_splitter);
+            child.setParentId(parentId + category_splitter);
+            child.setSortIndex(sortIndex++);
             rebuild(parentId + category_splitter + id, child.getChildren());
         }
     }
@@ -69,7 +72,7 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
                     List<DeviceCategoryEntity> all = JSON.parseArray(json, DeviceCategoryEntity.class);
 
                     List<DeviceCategoryEntity> root = TreeSupportEntity.list2tree(all, DeviceCategoryEntity::setChildren);
-
+                    long i = 1;
                     for (DeviceCategoryEntity category : root) {
                         String id = category.getId();
                         category.setId(category_splitter + id + category_splitter);
@@ -78,6 +81,7 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
                             .ifPresent(parentId -> {
                                 category.setParentId(category_splitter + parentId + category_splitter);
                             });
+                        category.setSortIndex(i++);
                         rebuild(category_splitter + id, category.getChildren());
                     }
                     return root;

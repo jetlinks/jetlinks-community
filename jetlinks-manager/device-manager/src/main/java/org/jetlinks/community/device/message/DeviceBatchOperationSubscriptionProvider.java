@@ -2,12 +2,13 @@ package org.jetlinks.community.device.message;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import lombok.Generated;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.jetlinks.core.utils.TopicUtils;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.gateway.external.SubscribeRequest;
 import org.jetlinks.community.gateway.external.SubscriptionProvider;
-import org.jetlinks.core.utils.TopicUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -15,6 +16,7 @@ import reactor.core.scheduler.Schedulers;
 import java.util.Map;
 
 @Component
+@Generated
 public class DeviceBatchOperationSubscriptionProvider implements SubscriptionProvider {
 
     private final LocalDeviceInstanceService instanceService;
@@ -54,7 +56,6 @@ public class DeviceBatchOperationSubscriptionProvider implements SubscriptionPro
                 }
             }).map(json -> json.toJavaObject(QueryParamEntity.class))
             .orElseGet(QueryParamEntity::new);
-
 
         Map<String, String> var = TopicUtils.getPathVariables("/device-batch/{type}", topic);
         String type = var.get("type");

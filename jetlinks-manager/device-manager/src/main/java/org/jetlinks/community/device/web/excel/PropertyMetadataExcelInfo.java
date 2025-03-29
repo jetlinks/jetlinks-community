@@ -3,6 +3,7 @@ package org.jetlinks.community.device.web.excel;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import io.netty.util.internal.ThreadLocalRandom;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,14 +14,12 @@ import org.hswebframework.reactor.excel.ExcelHeader;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.exception.BusinessException;
-import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.metadata.types.*;
 import org.jetlinks.core.metadata.unit.ValueUnit;
 import org.jetlinks.core.metadata.unit.ValueUnits;
 import org.jetlinks.supports.official.JetLinksDataTypeCodecs;
-import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 
 import javax.validation.constraints.NotBlank;
@@ -33,7 +32,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PropertyMetadataExcelInfo {
 
-    @NotBlank(message = "属性ID不能为空")
+    @NotBlank(message = "属性标识不能为空")
     private String property;
 
     @NotBlank(message = "属性名称不能为空")
@@ -59,7 +58,22 @@ public class PropertyMetadataExcelInfo {
 
     private long rowNumber;
     //读写类型
-    private List<String> type;
+    @NotBlank(message = "读写类型不能为空")
+    private String type;
+
+    public static String typeListToString(List<String> type) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < type.size() - 1; i++) {
+            sb.append(type.get(i));
+            sb.append(",");
+        }
+        sb.append(type.get(type.size() - 1));
+        return sb.toString();
+    }
+
+    private List<String> parseType(){
+        return Arrays.stream(this.type.split(",")).collect(Collectors.toList());
+    }
 
     /**
      * 单位
@@ -67,17 +81,24 @@ public class PropertyMetadataExcelInfo {
     private static final List<ValueUnit> idList = ValueUnits.getAllUnit();
 
     /**
-     * 所有数据类型
+     * 示例数据类型
      */
-    private static final List<String> DATA_TYPES = Lists.newArrayList(ArrayType.ID, BooleanType.ID,
+    private static final List<String> DATA_TYPES = Lists.newArrayList(BooleanType.ID,
         DateTimeType.ID, DoubleType.ID, EnumType.ID, FloatType.ID, IntType.ID, LongType.ID,
-        ObjectType.ID, StringType.ID, GeoType.ID, FileType.ID, PasswordType.ID, GeoShapeType.ID);
+        StringType.ID, GeoType.ID, FileType.ID, PasswordType.ID);
 
     private static final List<String> OBJECT_NOT_HAVE = Lists.newArrayList(DateTimeType.ID, FileType.ID, ObjectType.ID, PasswordType.ID);
     /**
-     * 简单模板支持类型
+     * 数字类型
      */
-    private static final List<String> SIMPLE = Lists.newArrayList(IntType.ID, FloatType.ID, DoubleType.ID, LongType.ID);
+    private static final List<String> numbers = Lists.newArrayList(IntType.ID, FloatType.ID, DoubleType.ID, LongType.ID);
+
+
+    /**
+     * 小数类型
+     */
+    private static final List<String> decimalNumbers = Lists.newArrayList(FloatType.ID, DoubleType.ID);
+
 
     public void with(String key, Object value) {
         FastBeanCopier.copy(Collections.singletonMap(key, value), this);
@@ -87,9 +108,6 @@ public class PropertyMetadataExcelInfo {
         SimplePropertyMetadata metadata = new SimplePropertyMetadata();
         try {
             ValidatorUtils.tryValidate(this);
-            if (CollectionUtils.isEmpty(type) || type.size() == 1 && StringUtils.isEmpty(type.get(0))) {
-                throw new ValidationException("读写类型不能为空");
-            }
             metadata.setId(property);
             metadata.setName(name);
             metadata.setValueType(parseDataType());
@@ -97,13 +115,13 @@ public class PropertyMetadataExcelInfo {
             metadata.setDescription(description);
             return metadata;
         } catch (Throwable e) {
-            throw new BusinessException("第" + this.getRowNumber() + "行错误：" + e.getMessage());
+            throw new BusinessException("第" + this.getRowNumber() + "行错误：" + e.getMessage(),e);
         }
     }
 
     public static List<ExcelHeader> getTemplateHeaderMapping(List<ConfigMetadata> configMetadataList) {
         List<ExcelHeader> arr = new ArrayList<>(Arrays.asList(
-            new ExcelHeader("property", "属性ID", CellDataType.STRING),
+            new ExcelHeader("property", "属性标识", CellDataType.STRING),
             new ExcelHeader("name", "属性名称", CellDataType.STRING),
             new ExcelHeader("dataType", "数据类型", CellDataType.STRING),
             new ExcelHeader("unit", "单位", CellDataType.STRING),
@@ -134,11 +152,11 @@ public class PropertyMetadataExcelInfo {
         //默认先使用json格式的数据解析物模型，没有json则使用简单模板，只支持int long double float
         if (!StringUtils.isEmpty(this.valueType)) {
             dataTypeJson = JSON.parseObject(this.valueType);
-            this.dataType = dataTypeJson.getString("type");
+            this.dataType = dataTypeJson.getString(DeviceExcelConstants.type);
         } else {
-            dataTypeJson.put("type", this.dataType);
-            dataTypeJson.put("unit", this.unit);
-            dataTypeJson.put("scale", this.scale);
+            dataTypeJson.put(DeviceExcelConstants.type, this.dataType);
+            dataTypeJson.put(DeviceExcelConstants.unit, this.unit);
+            dataTypeJson.put(DeviceExcelConstants.scale, this.scale);
         }
         DataType dataType = Optional.ofNullable(this.dataType)
             .map(DataTypes::lookup)
@@ -153,10 +171,12 @@ public class PropertyMetadataExcelInfo {
 
     protected Map<String, Object> parseExpands() {
         Map<String, Object> map = new HashMap<>(4);
-        map.put("source", PropertySource.getValue(source));
-        map.put("storageType", PropertyStorage.getValue(storageType));
-        map.put("tags", "");
-        map.put("type", type.stream().map(PropertyType::getValue).collect(Collectors.toList()));
+        map.put(DeviceExcelConstants.source, PropertySource.getValue(source));
+        Map<String, Object> storageTypeMap = new HashMap<>();
+        storageTypeMap.put(DeviceExcelConstants.storageType, PropertyStorage.getValue(storageType));
+        expands.put(DeviceExcelConstants.expands, storageTypeMap);
+        map.put(DeviceExcelConstants.tags, "");
+        map.put(DeviceExcelConstants.type, parseType().stream().map(PropertyType::getValue).collect(Collectors.toList()));
         return map;
     }
 
@@ -170,20 +190,23 @@ public class PropertyMetadataExcelInfo {
                 excelInfo.setDataType(dataType.getId());
                 excelInfo.setUnit("");
                 excelInfo.setScale("");
-                Random random = new Random();
-                excelInfo.setStorageType(random.nextBoolean() ? "direct" : "ignore");
-                excelInfo.setSource(random.nextInt(2) == 1 ? "manual" : random.nextInt(2) < 1 ? "device" : "rule");
+                ThreadLocalRandom random = ThreadLocalRandom.current();
+                excelInfo.setStorageType(random.nextBoolean() ? PropertyStorage.direct.getText() : PropertyStorage.ignore.getText());
+                excelInfo.setSource(PropertySource.device.getText());
                 excelInfo.setDescription(excelInfo.getName() + "的说明");
-                if (SIMPLE.contains(dt)) {
+                if (numbers.contains(dt)) {
                     excelInfo.setUnit(idList.get(0).getId());
                     excelInfo.setDataType(dt);
-                    excelInfo.setScale(String.valueOf(random.nextInt(2)));
-                    excelInfo.setDescription(excelInfo.getName() + "的说明,优先使用json数据类型配置，没有则使用简单模板，仅支持int double float long四种");
+                    excelInfo.setDescription(excelInfo.getName() + "的说明。数据类型配置可以为空");
+                    if (decimalNumbers.contains(dt)){
+                        excelInfo.setScale(String.valueOf(random.nextInt(2) + 1));
+                    }
                 }
                 Map<String, Object> valueType = JetLinksDataTypeCodecs.encode(buildValueType(dataType, random)).orElse(Collections.emptyMap());
                 excelInfo.setValueType(JSONObject.toJSONString(valueType));
-                excelInfo.setExpands(Collections.singletonMap("storageType", excelInfo.getStorageType()));
-                excelInfo.setType(Arrays.asList("read", "write", "report"));
+                excelInfo.setExpands(Collections.singletonMap(DeviceExcelConstants.storageType, excelInfo.getStorageType()));
+                List<String> typeList = Arrays.asList(PropertyType.read.getText(), PropertyType.write.getText(), PropertyType.report.getText());
+                excelInfo.setType(typeListToString(typeList));
                 return Flux.just(excelInfo);
             }).doOnError(e -> {
                 log.error("填充模板异常:", e);
@@ -228,10 +251,10 @@ public class PropertyMetadataExcelInfo {
                 }
                 break;
             case StringType.ID:
-                ((StringType) dataType).expand("maxLength", random.nextInt(2000));
+                ((StringType) dataType).expand(DeviceExcelConstants.maxLength, random.nextInt(2000));
                 break;
             case PasswordType.ID:
-                ((PasswordType) dataType).expand("maxLength", random.nextInt(30));
+                ((PasswordType) dataType).expand(DeviceExcelConstants.maxLength, random.nextInt(30));
                 break;
             default:
                 break;
@@ -243,12 +266,45 @@ public class PropertyMetadataExcelInfo {
     public Map<String, Object> toMap() {
         setSource(PropertySource.getText(source));
         setStorageType(PropertyStorage.getText(storageType));
-        setExpands(Collections.singletonMap("storageType", storageType));
+        setExpands(Collections.singletonMap(DeviceExcelConstants.storageType, storageType));
         Map<String, Object> map = FastBeanCopier.copy(this, new HashMap<>(8));
-        map.put("type", type.stream()
+        map.put(DeviceExcelConstants.type, parseType()
+            .stream()
             .map(PropertyType::getText)
             .collect(Collectors.joining(",")));
         return map;
+    }
+
+    public static List<PropertyMetadataExcelInfo> getExcelInfoContent(List<PropertyMetadata> properties) {
+        List<PropertyMetadataExcelInfo> excelInfoList = new ArrayList<>();
+        for (PropertyMetadata property : properties) {
+            PropertyMetadataExcelInfo excelInfo = new PropertyMetadataExcelInfo();
+            excelInfo.setProperty(property.getId());
+            excelInfo.setName(property.getName());
+            excelInfo.setDataType(property.getValueType().getId());
+            if (PropertyMetadataExcelInfo.numbers.contains(property.getValueType().getType())) {
+                NumberType type = (NumberType) property.getValueType();
+                excelInfo.setUnit(type.getUnit() == null ? "" : type.getUnit().getName());
+                if (PropertyMetadataExcelInfo.decimalNumbers.contains(property.getValueType().getType())){
+                    excelInfo.setScale(type.getScale() == null ? "0" : String.valueOf(type.getScale().intValue()));
+                }
+            } else {
+                excelInfo.setUnit("");
+                excelInfo.setScale("");
+            }
+            property.getValueType();
+            Map<String, Object> expands = property.getExpands();
+            excelInfo.setSource(String.valueOf(expands.getOrDefault(DeviceExcelConstants.source, "")));
+            excelInfo.setStorageType(String.valueOf(expands.getOrDefault(DeviceExcelConstants.storageType, "")));
+            excelInfo.setDescription(property.getDescription());
+            Map<String, Object> valueType = JetLinksDataTypeCodecs
+                .encode(property.getValueType()).orElse(Collections.emptyMap());
+            excelInfo.setValueType(JSONObject.toJSONString(valueType));
+            excelInfo.setExpands(Collections.singletonMap(DeviceExcelConstants.storageType, excelInfo.getStorageType()));
+            excelInfo.setType(property.getExpand(DeviceExcelConstants.type).orElse("").toString());
+            excelInfoList.add(excelInfo);
+        }
+        return excelInfoList;
     }
 
     @AllArgsConstructor

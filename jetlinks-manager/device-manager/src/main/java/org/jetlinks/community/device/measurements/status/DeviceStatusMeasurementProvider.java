@@ -1,63 +1,38 @@
 package org.jetlinks.community.device.measurements.status;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.event.EventBus;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
+import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.measurements.DeviceDashboardDefinition;
 import org.jetlinks.community.device.measurements.DeviceObjectDefinition;
-import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
-import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.message.DeviceMessage;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 @Component
 public class DeviceStatusMeasurementProvider extends StaticMeasurementProvider {
 
-
     private final MeterRegistry registry;
 
+    private final DeviceRegistry deviceRegistry;
+
     public DeviceStatusMeasurementProvider(MeterRegistryManager registryManager,
-                                           LocalDeviceInstanceService instanceService,
+                                           ReactiveRepository<DeviceInstanceEntity,String> deviceRepository,
                                            TimeSeriesManager timeSeriesManager,
-                                           EventBus eventBus) {
-        super(DeviceDashboardDefinition.instance, DeviceObjectDefinition.status);
+                                           EventBus eventBus,
+                                           DeviceRegistry deviceRegistry) {
+        super(DeviceDashboardDefinition.device, DeviceObjectDefinition.status);
 
-        addMeasurement(new DeviceStatusChangeMeasurement(timeSeriesManager, eventBus));
+        addMeasurement(new DeviceStatusChangeMeasurement(timeSeriesManager, eventBus, deviceRegistry));
 
-        addMeasurement(new DeviceStatusRecordMeasurement(instanceService, timeSeriesManager));
+        addMeasurement(new DeviceStatusRecordMeasurement(deviceRepository, timeSeriesManager));
 
-        registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId(),
-                                                    "target", "msgType", "productId");
+        registry = registryManager.getMeterRegister(DeviceTimeSeriesMetric.deviceMetrics().getId());
+        this.deviceRegistry = deviceRegistry;
     }
 
-    @Subscribe("/device/*/*/online")
-    public Mono<Void> incrementOnline(DeviceMessage msg) {
-        return Mono.fromRunnable(() -> {
-            String productId = parseProductId(msg);
-            registry
-                .counter("online", "productId", productId)
-                .increment();
-        });
-    }
-
-    @Subscribe("/device/*/*/offline")
-    public Mono<Void> incrementOffline(DeviceMessage msg) {
-        return Mono.fromRunnable(() -> {
-            String productId = parseProductId(msg);
-            registry
-                .counter("offline", "productId", productId)
-                .increment();
-        });
-    }
-
-    private String parseProductId(DeviceMessage msg) {
-        return msg
-            .getHeader("productId")
-            .map(String::valueOf)
-            .orElse("unknown");
-    }
 }

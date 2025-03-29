@@ -30,7 +30,7 @@
         <!-- https://github.com/hs-web/reactor-excel -->
         <reactor.excel.version>1.0.6</reactor.excel.version>
         <!-- https://github.com/jetlinks/reactor-ql -->
-        <reactor.ql.version>1.0.18-SNAPSHOT</reactor.ql.version>
+        <reactor.ql.version>1.0.18</reactor.ql.version>
         <!-- https://github.com/jetlinks/jetlinks-plugin -->
         <jetlinks.plugin.version>1.0.2</jetlinks.plugin.version>
         <!-- https://github.com/jetlinks/jetlinks-sdk -->

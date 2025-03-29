@@ -4,25 +4,23 @@ import lombok.AllArgsConstructor;
 import org.hswebframework.ezorm.core.NestConditional;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveQuery;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
-import org.jetlinks.core.device.DeviceOperator;
-import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.rule.engine.executor.DeviceSelector;
 import org.jetlinks.community.rule.engine.executor.DeviceSelectorBuilder;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
+import org.jetlinks.core.device.DeviceOperator;
+import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
 import org.jetlinks.reactor.ql.ReactorQLRecord;
 import org.jetlinks.reactor.ql.feature.FromFeature;
-import org.springframework.data.util.Lazy;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * 基于ReactorQL的设备选择器,通过自定义{@link FromFeature}来实现设备数据源.
@@ -37,7 +35,7 @@ import java.util.function.Function;
  * </pre>
  *
  * @author zhouhao
- * @since 2.0
+ * @since 1.5
  */
 @AllArgsConstructor
 public class ReactorQLDeviceSelectorBuilder implements DeviceSelectorBuilder {

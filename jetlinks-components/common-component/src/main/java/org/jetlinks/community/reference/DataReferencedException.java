@@ -27,4 +27,17 @@ public class DataReferencedException extends I18nSupportException {
         super.setI18nCode("error.data.referenced");
     }
 
+    public DataReferencedException(String dataType,
+                                   String dataId,
+                                   List<DataReferenceInfo> referenceList,
+                                   String code,
+                                   Object... args) {
+        this.dataType = dataType;
+        this.dataId = dataId;
+        this.referenceList = referenceList;
+
+        super.setI18nCode(code);
+        super.setArgs(args);
+    }
+
 }

@@ -6,9 +6,11 @@ import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.api.crud.entity.RecordModifierEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
+import org.jetlinks.community.network.manager.enums.CertificateAuthenticationMethod;
 import org.jetlinks.community.network.manager.enums.CertificateFormat;
 import org.jetlinks.community.network.manager.enums.CertificateMode;
 import org.jetlinks.community.network.manager.enums.CertificateType;
@@ -29,7 +31,7 @@ import java.sql.JDBCType;
 @Table(name = "certificate_info")
 @Comment("证书信息表")
 @EnableEntityEvent
-public class CertificateEntity extends GenericEntity<String> implements RecordCreationEntity {
+public class CertificateEntity extends GenericEntity<String> implements RecordCreationEntity, RecordModifierEntity {
 
     @Column
     @Schema(description = "证书名称")
@@ -59,6 +61,14 @@ public class CertificateEntity extends GenericEntity<String> implements RecordCr
     @NotNull(groups = CreateGroup.class)
     private CertificateMode mode;
 
+    @Column(length = 16)
+    @EnumCodec
+    @ColumnType(javaType = String.class)
+    @Schema(description = "证书认证方式,Single or Binomial")
+    @DefaultValue("single")
+    @NotNull(groups = CreateGroup.class)
+    private CertificateAuthenticationMethod authenticationMethod;
+
     @Column
     @ColumnType(jdbcType = JDBCType.CLOB)
     @JsonCodec
@@ -85,6 +95,26 @@ public class CertificateEntity extends GenericEntity<String> implements RecordCr
         , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
+
+    @Column(name = "creator_name", updatable = false)
+    @Schema(
+        description = "创建者名称(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorName;
+
+    @Column(length = 64)
+    @Schema(description = "修改人")
+    private String modifierId;
+
+    @Column
+    @Schema(description = "修改时间")
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    private Long modifyTime;
+
+    @Column(length = 64)
+    @Schema(description = "修改人名称")
+    private String modifierName;
 
     @Getter
     @Setter

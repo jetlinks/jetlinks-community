@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.exception.BusinessException;
+import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
@@ -19,6 +20,8 @@ import org.jetlinks.core.metadata.unit.ValueUnit;
 import org.jetlinks.core.metadata.unit.ValueUnits;
 import org.jetlinks.supports.official.JetLinksDataTypeCodecs;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -28,20 +31,26 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PropertyMetadataExcelImportInfo {
 
+    @Pattern(regexp = "^[a-zA-Z0-9_-]+$",message = "error.import_property_metadata_id_validate_error")
+    @NotBlank(message = "error.import_property_metadata_id_not_null")
     private String property;
 
+    @NotBlank(message = "error.import_property_metadata_name_not_null")
     private String name;
 
     private String valueType;
 
     private Map<String, Object> expands = new HashMap<>();
+
     //数据类型
+    @NotBlank(message = "error.import_property_metadata_data_type_not_null")
     private String dataType;
     //单位
     private String unit;
     //精度
     private String scale;
     //来源
+    @NotBlank(message = "error.import_property_metadata_source_not_null")
     private String source;
 
     private String description;
@@ -50,7 +59,12 @@ public class PropertyMetadataExcelImportInfo {
 
     private long rowNumber;
     //读写类型
-    private List<String> type;
+    @NotBlank(message = "error.import_property_metadata_type_not_null")
+    private String type;
+
+    private List<String> parseType(){
+        return Arrays.stream(this.type.split(",")).collect(Collectors.toList());
+    }
 
     /**
      * 单位
@@ -80,12 +94,20 @@ public class PropertyMetadataExcelImportInfo {
 
     public PropertyMetadata toMetadata() {
         SimplePropertyMetadata metadata = new SimplePropertyMetadata();
+        try {
+            ValidatorUtils.tryValidate(this);
             metadata.setId(property);
             metadata.setName(name);
             metadata.setValueType(parseDataType());
             metadata.setExpands(parseExpands());
             metadata.setDescription(description);
             return metadata;
+        } catch (Throwable e) {
+            throw new BusinessException.NoStackTrace("error.import_property_metadata_error_index",
+                                                     400,
+                                                     getRowNumber(),
+                                                     e.getLocalizedMessage());
+        }
     }
 
     protected DataType parseDataType() {
@@ -113,9 +135,11 @@ public class PropertyMetadataExcelImportInfo {
     protected Map<String, Object> parseExpands() {
         // 处理系统默认的扩展信息（中文转换），合并到导入模板的expands中
         expands.put(DeviceExcelConstants.source, PropertySource.getValue(source));
-        expands.put(DeviceExcelConstants.storageType, PropertyStorage.getValue(storageType));
+        Map<String, Object> storageTypeMap = new HashMap<>();
+        storageTypeMap.put(DeviceExcelConstants.storageType, PropertyStorage.getValue(storageType));
+        expands.put(DeviceExcelConstants.expands, storageTypeMap);
         expands.put(DeviceExcelConstants.tags, "");
-        expands.put(DeviceExcelConstants.type, type.stream().map(PropertyType::getValue).collect(Collectors.toList()));
+        expands.put(DeviceExcelConstants.type, parseType().stream().map(PropertyType::getValue).collect(Collectors.toList()));
         return expands;
     }
 
@@ -125,7 +149,8 @@ public class PropertyMetadataExcelImportInfo {
         setStorageType(PropertyStorage.getText(storageType));
         setExpands(Collections.singletonMap(DeviceExcelConstants.storageType, storageType));
         Map<String, Object> map = FastBeanCopier.copy(this, new HashMap<>(8));
-        map.put(DeviceExcelConstants.type, type.stream()
+        map.put(DeviceExcelConstants.type, parseType()
+            .stream()
             .map(PropertyType::getText)
             .collect(Collectors.joining(",")));
         return map;

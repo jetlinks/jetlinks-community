@@ -7,7 +7,6 @@ import lombok.Generated;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
-import org.hswebframework.web.api.crud.entity.EntityFactory;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.cache.ReactiveCacheManager;
 import org.hswebframework.web.dict.EnumDict;
@@ -33,10 +32,8 @@ import org.jetlinks.community.resource.TypeScriptDeclareResourceProvider;
 import org.jetlinks.community.resource.initialize.PermissionResourceProvider;
 import org.jetlinks.community.service.DefaultUserBindService;
 import org.jetlinks.community.utils.TimeUtils;
-import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.types.DataTypes;
-import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.reactor.ql.feature.Feature;
 import org.jetlinks.reactor.ql.supports.DefaultReactorQLMetadata;
 import org.jetlinks.reactor.ql.utils.CastUtils;
@@ -59,15 +56,11 @@ import reactor.core.publisher.Hooks;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
 
-@Configuration
+@AutoConfiguration
 @SuppressWarnings("all")
 @EnableConfigurationProperties({ConfigScopeProperties.class})
 public class CommonConfiguration {

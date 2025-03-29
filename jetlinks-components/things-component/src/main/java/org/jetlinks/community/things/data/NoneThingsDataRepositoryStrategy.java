@@ -138,4 +138,9 @@ public class NoneThingsDataRepositoryStrategy implements
     public Mono<Void> reloadMetadata(ThingMetadata metadata) {
         return Mono.empty();
     }
+
+    @Override
+    public Mono<Void> validateMetadata(ThingMetadata metadata) {
+        return Mono.empty();
+    }
 }

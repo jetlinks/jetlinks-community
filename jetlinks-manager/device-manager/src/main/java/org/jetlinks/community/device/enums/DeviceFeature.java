@@ -7,10 +7,13 @@ import org.hswebframework.web.dict.Dict;
 import org.hswebframework.web.dict.EnumDict;
 import org.jetlinks.core.metadata.Feature;
 
+import java.util.Arrays;
+
 @Dict("device-feature")
 @Getter
 @AllArgsConstructor
-public enum DeviceFeature implements EnumDict<String> , Feature {
+@Generated
+public enum DeviceFeature implements EnumDict<String>, Feature {
     selfManageState("子设备自己管理状态")
 
 
@@ -31,5 +34,12 @@ public enum DeviceFeature implements EnumDict<String> , Feature {
     @Override
     public String getName() {
         return text;
+    }
+
+    public static DeviceFeature get(String id) {
+        return Arrays.stream(values())
+            .filter(deviceFeature -> deviceFeature.getId().equals(id))
+            .findAny()
+            .orElse(null);
     }
 }

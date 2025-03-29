@@ -1,13 +1,9 @@
-package org.jetlinks.community.device.response;
+package org.jetlinks.community.device.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.MapUtils;
-import org.jetlinks.community.device.entity.DeviceInstanceEntity;
-import org.jetlinks.community.device.entity.DeviceProductEntity;
-import org.jetlinks.community.device.entity.DeviceTagEntity;
-import org.jetlinks.community.device.enums.DeviceFeature;
 import org.jetlinks.community.device.enums.DeviceState;
 import org.jetlinks.community.device.enums.DeviceType;
 import org.jetlinks.community.relation.service.response.RelatedInfo;

@@ -2,14 +2,16 @@ package org.jetlinks.community.device.message;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hswebframework.web.logger.ReactiveLogger;
-import org.jetlinks.community.PropertyMetadataConstants;
+import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.enums.ErrorCode;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.exception.DeviceOperationException;
-import org.jetlinks.core.message.*;
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.Headers;
+import org.jetlinks.core.message.Message;
+import org.jetlinks.core.message.RepayableDeviceMessage;
 import org.jetlinks.core.message.function.FunctionInvokeMessage;
 import org.jetlinks.core.message.function.FunctionParameter;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
@@ -18,10 +20,13 @@ import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.FunctionMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.ValidateResult;
+import org.jetlinks.community.PropertyConstants;
+import org.jetlinks.community.PropertyMetadataConstants;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -33,7 +38,7 @@ import java.util.stream.Collectors;
  * @since 1.1
  */
 @Component
-@Slf4j(topic = "system.device.message.sender")
+@Slf4j
 @AllArgsConstructor
 public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInterceptor {
 
@@ -42,17 +47,12 @@ public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInter
     private final DeviceRegistry registry;
 
     public Mono<Void> doPublish(Message message) {
-        Mono<Void> then = Mono.empty();
-        if(message.getHeader(Headers.dispatchToParent).orElse(false)){
-            return then;
-        }
-        if (message instanceof ChildDeviceMessage) {
-            then = doPublish(((ChildDeviceMessage) message).getChildDeviceMessage());
-        }
+        message.addHeader(PropertyConstants.uid, IDGenerator.RANDOM.generate());
         return DeviceMessageConnector
             .createDeviceMessageTopic(registry, message)
             .flatMap(topic -> eventBus.publish(topic, message))
-            .then(then);
+            .then()
+            ;
     }
 
     private Mono<DeviceMessage> convertParameterType(DeviceOperator device, FunctionInvokeMessage message) {
@@ -73,7 +73,7 @@ public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInter
                 message.addHeaderIfAbsent(Headers.async, function.isAsync());
                 for (PropertyMetadata input : function.getInputs()) {
                     FunctionParameter parameter = parameters.get(input.getId());
-                    if (parameter == null) {
+                    if (parameter == null || parameter.getValue() == null) {
                         continue;
                     }
                     ValidateResult result = input.getValueType().validate(parameter.getValue());
@@ -83,25 +83,44 @@ public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInter
             .thenReturn(message);
     }
 
-    private Mono<DeviceMessage> prepareMessage(DeviceOperator device, DeviceMessage message) {
+    private Mono<DeviceMessage> convertProperty(DeviceOperator device, WritePropertyMessage message) {
+        if (message.getHeader(Headers.force).orElse(false)) {
+            return Mono.just(message);
+        }
+        Map<String, Object> properties = new LinkedHashMap<>(message.getProperties());
+        //手动写值的属性则直接返回
+        return device
+            .getMetadata()
+            .doOnNext(metadata -> {
+                for (Map.Entry<String, Object> entry : properties.entrySet()) {
+                    PropertyMetadata propertyMetadata = metadata.getPropertyOrNull(entry.getKey());
+                    if (propertyMetadata == null || entry.getValue() == null) {
+                        continue;
+                    }
+                    entry.setValue(propertyMetadata
+                        .getValueType()
+                        .validate(entry.getValue())
+                        .assertSuccess());
+                    if (properties.size() == 1) {
+                        if (PropertyMetadataConstants.Source.isManual(propertyMetadata)) {
+                            //标记手动回复
+                            message.addHeader(
+                                PropertyMetadataConstants.Source.headerKey, PropertyMetadataConstants.Source.manual
+                            );
+                        }
+                    }
+                }
+                message.setProperties(properties);
+            })
+            .thenReturn(message);
+    }
+
+    protected Mono<DeviceMessage> prepareMessage(DeviceOperator device, DeviceMessage message) {
         if (message instanceof FunctionInvokeMessage) {
             return convertParameterType(device, ((FunctionInvokeMessage) message));
         }
         if (message instanceof WritePropertyMessage) {
-            Map<String, Object> properties = ((WritePropertyMessage) message).getProperties();
-            if (properties.size() == 1) {
-                String property = properties.keySet().iterator().next();
-//                Object value = properties.values().iterator().next();
-                //手动写值的属性则直接返回
-                return device
-                    .getMetadata()
-                    .doOnNext(metadata -> metadata
-                        .getProperty(property)
-                        .filter(PropertyMetadataConstants.Source::isManual)
-                        //标记手动回复
-                        .ifPresent(ignore -> message.addHeader(PropertyMetadataConstants.Source.headerKey, PropertyMetadataConstants.Source.manual)))
-                    .thenReturn(message);
-            }
+           return convertProperty(device, (WritePropertyMessage) message);
         }
         return Mono.just(message);
     }
@@ -128,16 +147,14 @@ public class DeviceMessageSendLogInterceptor implements DeviceMessageSenderInter
         if (message instanceof RepayableDeviceMessage) {
             return this
                 .prepareMessage(device, message)
-                .flatMap(msg -> this
-                    .doPublish(msg)
-                    .thenReturn(msg)
-                    .doOnEach(ReactiveLogger.onComplete(() -> {
-                        if (log.isDebugEnabled()) {
-                            log.debug("向设备[{}]发送指令:{}", msg.getDeviceId(), msg.toString());
-                        }
-                    })));
+                .flatMap(msg -> this.doPublish(msg).thenReturn(msg));
         } else {
             return Mono.just(message);
         }
+    }
+
+    @Override
+    public int getOrder() {
+        return Integer.MIN_VALUE+1000;
     }
 }

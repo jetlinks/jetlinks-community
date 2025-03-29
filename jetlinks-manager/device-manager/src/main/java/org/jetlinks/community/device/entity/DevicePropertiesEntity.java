@@ -3,6 +3,7 @@ package org.jetlinks.community.device.entity;
 import com.alibaba.fastjson.JSON;
 import lombok.*;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.*;
@@ -12,13 +13,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Optional.ofNullable;
-
 @Getter
 @Setter
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@Generated
 public class DevicePropertiesEntity {
 
     private String id;
@@ -43,8 +43,10 @@ public class DevicePropertiesEntity {
 
     private String value;
 
+    @Deprecated
     private String orgId;
 
+    @Deprecated
     private String productId;
 
     private Date timeValue;
@@ -68,7 +70,7 @@ public class DevicePropertiesEntity {
             return this;
         }
         setProperty(metadata.getId());
-        setPropertyName(metadata.getName());
+//        setPropertyName(metadata.getName());
         return withValue(metadata.getValueType(), value);
 
     }
@@ -84,7 +86,7 @@ public class DevicePropertiesEntity {
             NumberType<?> numberType = (NumberType<?>) type;
             Number number = numberType.convertNumber(value);
             if (number == null) {
-                throw new UnsupportedOperationException("无法将" + value + "转为" + type.getId());
+                throw new BusinessException("error.cannot_convert" , 500, value , type.getId());
             }
             convertedValue = number.toString();
             BigDecimal numberVal;
@@ -122,9 +124,9 @@ public class DevicePropertiesEntity {
         }
         setValue(convertedValue);
 
-        ofNullable(type.format(value))
-            .map(String::valueOf)
-            .ifPresent(this::setFormatValue);
+//        ofNullable(type.format(value))
+//            .map(String::valueOf)
+//            .ifPresent(this::setFormatValue);
 
         return this;
     }

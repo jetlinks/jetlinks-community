@@ -29,7 +29,7 @@ public class LocalNetworkConfigManager implements NetworkConfigManager {
     }
 
     @Override
-    public Mono<NetworkProperties> getConfig(NetworkType networkType,@Nonnull String id) {
+    public Mono<NetworkProperties> getConfig(NetworkType networkType, @Nonnull String id) {
         return reactiveRepository
             .findById(id)
             .flatMap(conf -> Mono.justOrEmpty(conf.toNetworkProperties()));

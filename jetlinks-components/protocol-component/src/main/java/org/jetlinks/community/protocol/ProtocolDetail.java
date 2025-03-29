@@ -3,8 +3,11 @@ package org.jetlinks.community.protocol;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import org.jetlinks.core.ProtocolSupport;
+import org.jetlinks.core.message.codec.Transport;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -24,13 +27,24 @@ public class ProtocolDetail {
 
     private List<TransportDetail> transports;
 
-    public static Mono<ProtocolDetail> of(ProtocolSupport support) {
+    public static Mono<ProtocolDetail> of(ProtocolSupport support, String transport) {
+        if (!StringUtils.hasText(transport)){
+            return of(support);
+        }
+        return getTransDetail(support, Transport.of(transport))
+            .map(detail -> new ProtocolDetail(support.getId(), support.getName(), support.getDescription(), Collections.singletonList(detail)));
+    }
 
+    public static Mono<ProtocolDetail> of(ProtocolSupport support) {
         return support
             .getSupportedTransport()
-            .flatMap(trans -> TransportDetail.of(support, trans))
+            .flatMap(trans -> getTransDetail(support, trans))
             .collectList()
-            .map(details -> new ProtocolDetail(support.getId(), support.getName(),support.getDescription(), details));
+            .map(details -> new ProtocolDetail(support.getId(), support.getName(), support.getDescription(), details));
+    }
+
+    private static Mono<TransportDetail> getTransDetail(ProtocolSupport support, Transport transport) {
+        return TransportDetail.of(support, transport);
     }
 }
 

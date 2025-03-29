@@ -6,10 +6,12 @@ import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
+import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.i18n.MultipleI18nSupportEntity;
 import org.hswebframework.web.validator.CreateGroup;
 
 import javax.persistence.Column;
@@ -20,13 +22,14 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.sql.JDBCType;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
 @Table(name = "dev_product_category")
 @Comment("产品分类信息表")
 @EnableEntityEvent
-public class DeviceCategoryEntity extends GenericTreeSortSupportEntity<String> implements RecordCreationEntity {
+public class DeviceCategoryEntity extends GenericTreeSortSupportEntity<String> implements RecordCreationEntity, MultipleI18nSupportEntity {
 
     @Override
     @Id
@@ -76,4 +79,14 @@ public class DeviceCategoryEntity extends GenericTreeSortSupportEntity<String> i
         , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
+
+    @Schema(title = "国际化信息定义")
+    @Column
+    @JsonCodec
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
+    private Map<String, Map<String, String>> i18nMessages;
+
+    public String getI18nName() {
+        return getI18nMessage("name", name);
+    }
 }

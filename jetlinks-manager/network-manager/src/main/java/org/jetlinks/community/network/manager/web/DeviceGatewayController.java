@@ -7,24 +7,20 @@ import lombok.AllArgsConstructor;
 import lombok.Generated;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.hswebframework.web.authorization.annotation.Authorize;
-import org.hswebframework.web.authorization.annotation.QueryAction;
-import org.hswebframework.web.authorization.annotation.Resource;
-import org.hswebframework.web.authorization.annotation.SaveAction;
+import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.network.manager.enums.DeviceGatewayState;
-import org.jetlinks.core.ProtocolSupports;
-import org.jetlinks.core.device.session.DeviceSessionInfo;
-import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.DeviceGatewayManager;
 import org.jetlinks.community.network.manager.entity.DeviceGatewayEntity;
-import org.jetlinks.community.network.manager.enums.NetworkConfigState;
+import org.jetlinks.community.network.manager.enums.DeviceGatewayState;
 import org.jetlinks.community.network.manager.service.DeviceGatewayService;
 import org.jetlinks.community.network.manager.web.response.DeviceGatewayDetail;
 import org.jetlinks.community.network.manager.web.response.DeviceGatewayProviderInfo;
 import org.jetlinks.community.utils.ReactorUtils;
+import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.device.session.DeviceSessionInfo;
+import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -42,9 +38,9 @@ import java.util.Comparator;
 public class DeviceGatewayController implements ReactiveServiceCrudController<DeviceGatewayEntity, String> {
 
     private final DeviceGatewayService deviceGatewayService;
-    private final ProtocolSupports protocolSupports;
     private final DeviceGatewayManager gatewayManager;
     private final DeviceSessionManager sessionManager;
+    private final ProtocolSupports protocolSupports;
 
     @Override
     @Generated
@@ -58,9 +54,9 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
     @Operation(summary = "启动网关")
     public Mono<Void> startup(@PathVariable
                               @Parameter(description = "网关ID") String id) {
-        return gatewayManager
-            .start(id)
-            .then(deviceGatewayService.updateState(id, DeviceGatewayState.enabled))
+        return deviceGatewayService
+            .updateState(id, DeviceGatewayState.enabled)
+            .then(gatewayManager.start(id))
             .then();
     }
 
@@ -167,7 +163,7 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
     @Operation(summary = "移除设备会话")
     @SaveAction
     public Mono<Long> removeSession(@PathVariable String deviceId) {
-        return sessionManager.remove(deviceId,false);
+        return sessionManager.remove(deviceId, false);
     }
 
 

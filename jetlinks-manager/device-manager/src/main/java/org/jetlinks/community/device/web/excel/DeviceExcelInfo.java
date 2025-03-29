@@ -1,19 +1,25 @@
 package org.jetlinks.community.device.web.excel;
 
 import com.alibaba.fastjson.JSONObject;
+import lombok.Generated;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.reactor.excel.CellDataType;
 import org.hswebframework.reactor.excel.ExcelHeader;
+import org.hswebframework.web.api.crud.entity.EntityFactoryHolder;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.validator.CreateGroup;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.community.device.entity.DeviceInstanceEntity;
-import org.jetlinks.community.device.entity.DeviceProductEntity;
-import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.Jsonable;
 import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.community.device.entity.DeviceInstanceEntity;
+import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.entity.DeviceTagEntity;
+import org.jetlinks.community.device.enums.DeviceType;
+import org.jetlinks.community.io.excel.ExcelUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotBlank;
@@ -22,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Getter
 @Setter
+@Generated
 public class DeviceExcelInfo implements Jsonable {
 
     @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "设备ID")
@@ -32,12 +39,17 @@ public class DeviceExcelInfo implements Jsonable {
     @NotBlank(message = "设备名称不能为空")
     private String name;
 
-    private String orgName;
-
+    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "产品名称", ignoreRead = true)
     private String productName;
 
-    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "父设备ID")
+    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "设备类型", ignoreRead = true)
+    private DeviceType deviceType;
+
+    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "父设备ID", ignoreRead = true)
     private String parentId;
+
+    @org.jetlinks.community.io.excel.annotation.ExcelHeader(value = "状态", ignoreRead = true)
+    private String state;
 
     private List<DeviceTagEntity> tags = new ArrayList<>();
 
@@ -51,8 +63,6 @@ public class DeviceExcelInfo implements Jsonable {
 
     private long rowNumber;
 
-    private String state;
-
     public void config(String key, Object value) {
         if (value == null || value instanceof String && !StringUtils.hasText((String) value)) {
             return;
@@ -60,8 +70,12 @@ public class DeviceExcelInfo implements Jsonable {
         configuration.put(key, value);
     }
 
+    public static DeviceExcelInfo of(){
+        return EntityFactoryHolder.newInstance(DeviceExcelInfo.class,DeviceExcelInfo::new);
+    }
+
     public void tag(String key, String name, Object value, String type) {
-        if (value == null) {
+        if (ObjectUtils.isEmpty(value)) {
             return;
         }
         DeviceTagEntity entity = new DeviceTagEntity();
@@ -70,7 +84,7 @@ public class DeviceExcelInfo implements Jsonable {
         entity.setName(name);
         entity.setDeviceId(id);
         entity.setType(type);
-        entity.setId(DeviceTagEntity.createTagId(id,key));
+        entity.setId(DeviceTagEntity.createTagId(id, key));
         tags.add(entity);
     }
 
@@ -78,7 +92,7 @@ public class DeviceExcelInfo implements Jsonable {
         this.id = id;
         for (DeviceTagEntity tag : tags) {
             tag.setDeviceId(id);
-            tag.setId(DeviceTagEntity.createTagId(tag.getDeviceId(),tag.getKey()));
+            tag.setId(DeviceTagEntity.createTagId(tag.getDeviceId(), tag.getKey()));
         }
     }
 
@@ -86,61 +100,71 @@ public class DeviceExcelInfo implements Jsonable {
         FastBeanCopier.copy(Collections.singletonMap(key, value), this);
     }
 
-    public Map<String,Object> toMap(){
-        Map<String,Object> val = FastBeanCopier.copy(this,new HashMap<>());
+    public DeviceExcelInfo with(DeviceInstanceEntity device){
+        FastBeanCopier.copy(device,this,"state");
+        this.setState(device.getState().getText());
+        return this;
+    }
+
+    public void withConfiguration(Map<String,Object> configuration){
+        this.configuration.putAll(configuration);
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> val = FastBeanCopier.copy(this, new HashMap<>());
         for (DeviceTagEntity tag : tags) {
-            val.put(tag.getKey(),tag.getValue());
+            val.put(tag.getKey(), tag.getValue());
         }
         return val;
+    }
+
+    @Override
+    public JSONObject toJson() {
+        return new JSONObject(toMap());
     }
 
     public static List<ExcelHeader> getTemplateHeaderMapping(DeviceExcelFilterColumns filterColumns,
                                                              List<PropertyMetadata> tags,
                                                              List<ConfigPropertyMetadata> configs) {
         List<ExcelHeader> arr =
-            Arrays.stream(new ExcelHeader[]{
-                    new ExcelHeader("id", "设备ID", CellDataType.STRING),
-                    new ExcelHeader("name", "设备名称", CellDataType.STRING),
-                    new ExcelHeader("parentId", "父设备ID", CellDataType.STRING)
-                })
-                .filter(a-> !filterColumns.getColumns().contains(a.getKey()))
-                .collect(Collectors.toList());
+            ExcelUtils.getHeadersForRead(
+                          EntityFactoryHolder.newInstance(DeviceExcelInfo.class,DeviceExcelInfo::new).getClass())
+                      .stream()
+                      .filter(a -> !filterColumns.getColumns().contains(a.getKey()))
+                      .collect(Collectors.toList());
+
+        return addExtHeaders(arr, tags, configs);
+    }
+
+    public static List<ExcelHeader> addExtHeaders(List<ExcelHeader> headers,
+                                                  List<PropertyMetadata> tags,
+                                                  List<ConfigPropertyMetadata> configs) {
         for (PropertyMetadata tag : tags) {
-            arr.add(new ExcelHeader(tag.getId(), StringUtils.isEmpty(tag.getName()) ? tag.getId() : tag.getName(), CellDataType.STRING));
+            headers.add(new ExcelHeader(tag.getId(), StringUtils.hasText(tag.getName()) ? tag.getName() : tag.getId(), CellDataType.STRING));
         }
 
         for (ConfigPropertyMetadata config : configs) {
-            arr.add(new ExcelHeader("configuration." + config.getProperty(), StringUtils.isEmpty(config.getName()) ? config
-                .getProperty() : config.getName(), CellDataType.STRING));
+            headers.add(new ExcelHeader("configuration." + config.getProperty(),
+                                        StringUtils.hasText(config.getName())
+                                            ? config.getName()
+                                            : config.getProperty(), CellDataType.STRING));
         }
-        return arr;
+        return headers;
     }
 
     public static List<ExcelHeader> getExportHeaderMapping(DeviceExcelFilterColumns filterColumns,
                                                            List<PropertyMetadata> tags,
                                                            List<ConfigPropertyMetadata> configs) {
         List<ExcelHeader> arr =
-            Arrays.stream(new ExcelHeader[]{
-                    new ExcelHeader("id", "设备ID", CellDataType.STRING),
-                    new ExcelHeader("name", "设备名称", CellDataType.STRING),
-                    new ExcelHeader("productName", "产品名称", CellDataType.STRING),
-                    new ExcelHeader("parentId", "父设备ID", CellDataType.STRING),
-                    new ExcelHeader("state", "状态", CellDataType.STRING)
-                })
-                .filter(a-> !filterColumns.getColumns().contains(a.getKey()))
-                .collect(Collectors.toList());
+            ExcelUtils.getHeadersForWrite(EntityFactoryHolder.newInstance(DeviceExcelInfo.class,DeviceExcelInfo::new).getClass())
+                      .stream()
+                      .filter(a -> !filterColumns.getColumns().contains(a.getKey()))
+                      .collect(Collectors.toList());
 
-        for (PropertyMetadata tag : tags) {
-            arr.add(new ExcelHeader(tag.getId(), StringUtils.isEmpty(tag.getName()) ? tag.getId() : tag.getName(), CellDataType.STRING));
-        }
-        for (ConfigPropertyMetadata config : configs) {
-            arr.add(new ExcelHeader("configuration." + config.getProperty(),
-                StringUtils.isEmpty(config.getName()) ? config.getProperty() : config.getName(),
-                CellDataType.STRING));
-        }
-        return arr;
+        return addExtHeaders(arr, tags, configs);
     }
 
+    @Deprecated
     public static Map<String, String> getImportHeaderMapping() {
         Map<String, String> mapping = new HashMap<>();
 
@@ -148,14 +172,16 @@ public class DeviceExcelInfo implements Jsonable {
         mapping.put("设备名称", "name");
         mapping.put("名称", "name");
 
-//        mapping.put("所属机构", "orgName");
+//        mapping.put("设备型号", "productName");
+//        mapping.put("产品型号", "productName");
+
         mapping.put("父设备ID", "parentId");
 
         return mapping;
     }
 
     public DeviceExcelInfo initDeviceInstance(DeviceProductEntity product, Authentication auth) {
-        DeviceInstanceEntity entity = FastBeanCopier.copy(this, new DeviceInstanceEntity());
+        DeviceInstanceEntity entity = FastBeanCopier.copy(this, DeviceInstanceEntity.of());
 
         entity.setProductId(product.getId());
         entity.setProductName(product.getName());
@@ -168,7 +194,7 @@ public class DeviceExcelInfo implements Jsonable {
         entity.setModifierId(auth.getUser().getId());
         entity.setModifierName(auth.getUser().getName());
 
-        ValidatorUtils.tryValidate(entity);
+        ValidatorUtils.tryValidate(entity, CreateGroup.class);
 
         this.device = entity;
         return this;
@@ -184,7 +210,7 @@ public class DeviceExcelInfo implements Jsonable {
                 tag(
                     maybeTag.getId(),
                     entry.getKey(),
-                    Optional.ofNullable(json.getString(maybeTag.getId())).orElse(null),
+                    json.getString(maybeTag.getId()),
                     maybeTag.getValueType().getId()
                 );
             }
@@ -195,7 +221,7 @@ public class DeviceExcelInfo implements Jsonable {
             if (maybeConfig != null) {
                 config(
                     maybeConfig.getProperty(),
-                    Optional.ofNullable(json.getString(maybeConfig.getProperty())).orElse(null)
+                    json.getString(maybeConfig.getProperty())
                 );
             }
         }

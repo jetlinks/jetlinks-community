@@ -8,6 +8,6 @@ public interface DeviceDashboard extends Dashboard {
 
     @Override
     default DashboardDefinition getDefinition() {
-        return DeviceDashboardDefinition.instance;
+        return DeviceDashboardDefinition.device;
     }
 }

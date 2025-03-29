@@ -3,18 +3,15 @@ package org.jetlinks.community.device.service;
 import lombok.AllArgsConstructor;
 import org.hswebframework.ezorm.core.dsl.Query;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
-import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityPrepareModifyEvent;
 import org.hswebframework.web.crud.events.EntityPrepareSaveEvent;
-import org.hswebframework.web.crud.events.EntitySavedEvent;
+import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.device.DeviceThingType;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.entity.DeviceTagEntity;
 import org.jetlinks.community.device.service.term.DeviceInstanceTerm;
-import org.jetlinks.community.things.data.ThingsDataWriter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -24,6 +21,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 设备标签自动删除.
@@ -38,8 +36,6 @@ public class DeviceTagHandler {
     private final DeviceRegistry deviceRegistry;
 
     private final ReactiveRepository<DeviceTagEntity, String> tagRepository;
-
-    private final ThingsDataWriter dataWriter;
 
     /**
      * 更新设备物模型时，若删除了标签，自动删除设备标签
@@ -69,15 +65,15 @@ public class DeviceTagHandler {
                                 .map(DeviceTagEntity::parseTagKey),
                         // tp2：设备ID
                         Mono.just(operator.getId()),
-                        // tp3：新的标签
-                        Mono.justOrEmpty(device.getDeriveMetadata())
-                            // 设备物模型为空，则获取产品物模型
-                            .filter(StringUtils::hasText)
-                            .map(metadata -> DeviceTagEntity.parseTagKey(device.getDeriveMetadata()))
-                            .switchIfEmpty(operator
-                                               .getProduct()
-                                               .flatMap(DeviceProductOperator::getMetadata)
-                                               .map(DeviceTagEntity::parseTagKey))
+
+                        Mono.zip(
+                            getDeviceTags(device),
+                            getProductTags(operator),
+                            (deviceTags, productTags) -> {
+                                deviceTags.addAll(productTags);
+                                return deviceTags;
+                            }
+                        )
                     ))
                 .flatMapMany(tp3 -> Flux
                     .fromIterable(tp3.getT1())
@@ -86,6 +82,20 @@ public class DeviceTagHandler {
                 ))
             .as(tagRepository::deleteById)
             .then();
+    }
+
+    private Mono<Set<String>> getDeviceTags(DeviceInstanceEntity device) {
+        return Mono.justOrEmpty(device.getDeriveMetadata())
+                   // 设备物模型为空，则获取产品物模型
+                   .filter(StringUtils::hasText)
+                   .map(metadata -> DeviceTagEntity.parseTagKey(device.getDeriveMetadata()));
+    }
+
+    private Mono<Set<String>> getProductTags(DeviceOperator operator){
+        return operator
+            .getProduct()
+            .flatMap(DeviceProductOperator::getMetadata)
+            .map(DeviceTagEntity::parseTagKey);
     }
 
     /**
@@ -136,31 +146,5 @@ public class DeviceTagHandler {
                    .then();
     }
 
-    @EventListener
-    public void handleDeviceTagEvent(EntityCreatedEvent<DeviceTagEntity> event) {
-        event.async(updateTag(event.getEntity()));
-    }
 
-    @EventListener
-    public void handleDeviceTagEvent(EntitySavedEvent<DeviceTagEntity> event) {
-        event.async(updateTag(event.getEntity()));
-    }
-
-    /**
-     * 更新标签消息
-     *
-     * @param entityList 标签
-     * @return Void
-     */
-    private Mono<Void> updateTag(List<DeviceTagEntity> entityList) {
-        return Flux
-            .fromIterable(entityList)
-            .flatMap(entity -> dataWriter
-                .updateTag(DeviceThingType.device.getId(),
-                           entity.getDeviceId(),
-                           entity.getKey(),
-                           System.currentTimeMillis(),
-                           entity.getValue()))
-            .then();
-    }
 }

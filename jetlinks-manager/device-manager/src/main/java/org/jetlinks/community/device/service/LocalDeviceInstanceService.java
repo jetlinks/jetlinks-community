@@ -9,25 +9,18 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveUpdate;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.hswebframework.web.api.crud.entity.TransactionManagers;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityEventHelper;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.I18nSupportException;
+import org.hswebframework.web.exception.NotFoundException;
 import org.hswebframework.web.exception.TraceSourceException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
-import org.jetlinks.community.device.entity.*;
-import org.jetlinks.community.device.enums.DeviceState;
-import org.jetlinks.community.device.events.DeviceDeployedEvent;
-import org.jetlinks.community.device.events.DeviceUnregisterEvent;
-import org.jetlinks.community.device.response.DeviceDeployResult;
-import org.jetlinks.community.device.response.DeviceDetail;
-import org.jetlinks.community.device.response.ResetDeviceConfigurationResult;
-import org.jetlinks.community.relation.RelationObjectProvider;
-import org.jetlinks.community.relation.service.RelationService;
-import org.jetlinks.community.relation.service.response.RelatedInfo;
-import org.jetlinks.community.utils.ErrorUtils;
+import org.jetlinks.core.ProtocolSupport;
+import org.jetlinks.core.Values;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
@@ -43,27 +36,45 @@ import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
 import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.metadata.ConfigPropertyMetadata;
 import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.MergeOption;
+import org.jetlinks.core.trace.FluxTracer;
+import org.jetlinks.core.trace.MonoTracer;
+import org.jetlinks.core.utils.CompositeMap;
 import org.jetlinks.core.utils.CyclicDependencyChecker;
+import org.jetlinks.community.device.entity.*;
+import org.jetlinks.community.device.enums.DeviceState;
+import org.jetlinks.community.device.events.DeviceDeployedEvent;
+import org.jetlinks.community.device.events.DeviceUnregisterEvent;
+import org.jetlinks.community.device.web.response.DeviceDeployResult;
+import org.jetlinks.community.relation.RelationObjectProvider;
+import org.jetlinks.community.relation.service.RelationService;
+import org.jetlinks.community.relation.service.response.RelatedInfo;
+import org.jetlinks.community.utils.ErrorUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.function.Function3;
+import reactor.util.context.Context;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -108,7 +119,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .from(entityPublisher)
             .flatMap(instance -> {
                 instance.setState(null);
-                if (StringUtils.isEmpty(instance.getId())) {
+                if (!StringUtils.hasText(instance.getId())) {
                     return handleCreateBefore(instance);
                 }
                 return registry
@@ -119,49 +130,8 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                     .defaultIfEmpty(DeviceState.notActive)
                     .doOnNext(instance::setState)
                     .thenReturn(instance);
-            })
+            }, 16, 16)
             .as(super::save);
-    }
-
-    private Flux<DeviceInstanceEntity> findByProductId(String productId) {
-        return createQuery()
-            .and(DeviceInstanceEntity::getProductId, productId)
-            .fetch();
-    }
-
-    private Set<String> getProductConfigurationProperties(DeviceProductEntity product) {
-        if (MapUtils.isNotEmpty(product.getConfiguration())) {
-            return product.getConfiguration()
-                          .keySet();
-        }
-        return new HashSet<>();
-    }
-
-    private Mono<Map<String, Object>> resetConfiguration(DeviceProductEntity product, DeviceInstanceEntity device) {
-        return metadataManager
-            .getProductConfigMetadataProperties(product.getId())
-            .defaultIfEmpty(getProductConfigurationProperties(product))
-            .flatMap(set -> {
-                if (set.size() > 0) {
-                    if (MapUtils.isNotEmpty(device.getConfiguration())) {
-                        set.forEach(device.getConfiguration()::remove);
-                    }
-                    //重置注册中心里的配置
-                    return registry
-                        .getDevice(device.getId())
-                        .flatMap(opts -> opts.removeConfigs(set))
-                        .then();
-                }
-                return Mono.empty();
-            })
-            .then(
-                //更新数据库
-                createUpdate()
-                    .set(device::getConfiguration)
-                    .where(device::getId)
-                    .execute()
-            )
-            .then(Mono.fromSupplier(device::getConfiguration));
     }
 
     /**
@@ -178,37 +148,36 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .flatMap(tp2 -> {
                 DeviceProductEntity product = tp2.getT2();
                 DeviceInstanceEntity device = tp2.getT1();
-                return resetConfiguration(product, device);
+                return Mono
+                    .defer(() -> {
+                        if (MapUtils.isNotEmpty(product.getConfiguration())) {
+                            if (MapUtils.isNotEmpty(device.getConfiguration())) {
+                                product.getConfiguration()
+                                       .keySet()
+                                       .forEach(device.getConfiguration()::remove);
+                            }
+                            //重置注册中心里的配置
+                            return registry
+                                .getDevice(deviceId)
+                                .flatMap(opts -> opts.removeConfigs(product.getConfiguration().keySet()))
+                                .then();
+                        }
+                        return Mono.empty();
+                    })
+                    .then(
+                        Mono.defer(() -> {
+                            //更新数据库
+                            return createUpdate()
+                                .when(device.getConfiguration() != null, update -> update.set(device::getConfiguration))
+                                .when(device.getConfiguration() == null, update -> update.setNull(DeviceInstanceEntity::getConfiguration))
+                                .where(device::getId)
+                                .execute();
+                        })
+                    )
+                    .then(Mono.fromSupplier(device::getConfiguration));
             })
-            .defaultIfEmpty(Collections.emptyMap());
-    }
-
-    public Mono<Long> resetConfiguration(Flux<String> payload) {
-        return payload
-            .flatMap(deviceId -> resetConfiguration(deviceId)).count();
-    }
-
-    /**
-     * 重置设备配置信息(根据产品批量重置，性能欠佳，慎用)
-     *
-     * @param productId 产品ID
-     * @return 数量
-     */
-    public Flux<ResetDeviceConfigurationResult> resetConfigurationByProductId(String productId) {
-        return deviceProductService
-            .findById(productId)
-            .flatMapMany(product -> this
-                .findByProductId(productId)
-                .flatMap(device -> {
-                    return resetConfiguration(product, device)
-                        .thenReturn(ResetDeviceConfigurationResult
-                            .success(SaveResult.of(0, 1)))
-                        .onErrorResume(throwable -> {
-                            String message = device.getId() + ":" + throwable.getMessage();
-                            return Mono.just(ResetDeviceConfigurationResult.error(message));
-                        });
-                })
-            );
+            .defaultIfEmpty(Collections.emptyMap())
+            ;
     }
 
     /**
@@ -217,10 +186,12 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      * @param id 设备ID
      * @return 发布结果
      */
+    @Transactional(rollbackFor = Throwable.class, transactionManager = TransactionManagers.reactiveTransactionManager)
     public Mono<DeviceDeployResult> deploy(String id) {
-        return findById(id)
+        return this
+            .findById(id)
             .flux()
-            .as(flux -> deploy(flux, Mono::error))
+            .as(flux -> deploy(flux, (err, device) -> Flux.error(err)))
             .singleOrEmpty();
     }
 
@@ -233,7 +204,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      */
     public Flux<DeviceDeployResult> deploy(Flux<DeviceInstanceEntity> flux) {
         return this
-            .deploy(flux, err -> Mono.empty());
+            .deploy(flux, this::retryDeploy);
 //            .contextWrite(TraceSourceException.deepTraceContext());
     }
 
@@ -243,19 +214,26 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      * @param flux 设备实例流
      * @return 发布数量
      */
-    public Flux<DeviceDeployResult> deploy(Flux<DeviceInstanceEntity> flux, Function<Throwable, Mono<Void>> fallback) {
+    public Flux<DeviceDeployResult> deploy(Flux<DeviceInstanceEntity> flux,
+                                           BiFunction<Throwable, List<DeviceInstanceEntity>, Flux<DeviceDeployResult>> fallback) {
         //设备回滚 key: deviceId value: 操作
         Map<String, Mono<Void>> rollback = new ConcurrentHashMap<>();
+        List<Flux<DeviceDeployResult>> fail = new CopyOnWriteArrayList<>();
 
         return flux
             //添加回滚操作,用于再触发DeviceDeployedEvent事件执行失败时进行回滚.
             .flatMap(device -> registry
                 .getDevice(device.getId())
+                .onErrorResume(TraceSourceException.transfer("operation.device.deploy", device))
+                .onErrorResume(err -> {
+                    fail.add(deployFail(err, 1));
+                    return Mono.empty();
+                })
                 .switchIfEmpty(Mono.fromRunnable(() -> {
                     //设备之前没有注册的回滚操作(注销)
                     rollback.put(device.getId(), registry.unregisterDevice(device.getId()));
                 }))
-                .thenReturn(device))
+                .thenReturn(device), 32, 32)
             //发布到注册中心
             .flatMap(instance -> registry
                 .register(instance.toDeviceInfo())
@@ -272,16 +250,22 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                         return Mono.just(true);
                     })
                     .flatMap(success -> success ? Mono.just(deviceOperator) : Mono.empty()))
+                .as(EntityEventHelper::setDoNotFireEvent)
                 .thenReturn(instance)
-                //激活失败,忽略错误,继续处理其他设备
-                .onErrorResume(e -> fallback.apply(e).then(Mono.empty()))
-            )
+                //激活失败,返回错误,继续处理其他设备
+                .onErrorResume(TraceSourceException.transfer("operation.device.deploy", instance))
+                .onErrorResume(err -> {
+                    fail.add(deployFail(err, 1));
+                    return Mono.empty();
+                }), 16, 16)
             .buffer(200)//每200条数据批量更新
             .publishOn(Schedulers.single())
             .concatMap(all -> Flux
                 .fromIterable(all)
                 .groupBy(DeviceInstanceEntity::getState)
                 .flatMap(group -> group
+                    // 检查协议相关配置的必填项
+                    .flatMap(device -> validateConfiguration(device).thenReturn(device), 16, 16)
                     .map(DeviceInstanceEntity::getId)
                     .collectList()
                     .flatMap(list -> createUpdate()
@@ -292,8 +276,10 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                         .is(DeviceInstanceEntity::getState, DeviceState.notActive)
                         .execute()
                         .map(r -> DeviceDeployResult.success(list.size()))))
+                .as(EntityEventHelper::setDoNotFireEvent)
                 //推送激活事件
-                .flatMap(res -> DeviceDeployedEvent.of(all).publish(eventPublisher).thenReturn(res))
+                .flatMap(res -> DeviceDeployedEvent.of(all).publish(eventPublisher).thenReturn(res),
+                         16, 16)
                 //传递国际化上下文
                 .as(LocaleUtils::transform)
                 .as(transactionalOperator::transactional)
@@ -301,22 +287,95 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                     .fromIterable(all)
                     .mapNotNull(device -> rollback.get(device.getId()))
                     .flatMap(Function.identity())
-                    .then(
-                        Mono.zip(
-                            I18nSupportException.tryGetLocalizedMessageReactive(err),
-                            TraceSourceException.tryGetOperationLocalizedReactive(err).defaultIfEmpty(""),
-                            (msg, opt) -> new DeviceDeployResult(all.size(),
-                                                                 false,
-                                                                 msg,
-                                                                 TraceSourceException.tryGetSource(err),
-                                                                 opt))
+                    .thenMany(fallback
+                                  .apply(err, all)
+                                  .switchIfEmpty(deployFail(err, all.size()))
                     )
-                    .flatMap(res -> fallback.apply(err).thenReturn(res))
+                    .as(EntityEventHelper::setDoNotFireEvent)
                 )
             )
-            //激活时不触发事件,单独处理DeviceDeployedEvent
-            .as(EntityEventHelper::setDoNotFireEvent)
+            .concatWith(Flux.fromIterable(fail).flatMap(Function.identity()))
             ;
+    }
+
+    /**
+     * 重试启用
+     * 将批量启用失败的设备，再次尝试单个启用
+     *
+     * @param err    异常
+     * @param device 设备列表
+     * @return 结果
+     */
+    private Flux<DeviceDeployResult> retryDeploy(Throwable err,
+                                                 List<DeviceInstanceEntity> device) {
+        if (device == null || device.size() == 1) {
+            // 单个启用错误时，直接返回错误结果
+            return deployFail(err, 1);
+        }
+        return Flux.fromIterable(device)
+                   // 启用单个设备
+                   .flatMap(d -> this.deploy(Flux.just(d), this::retryDeploy), 8)
+                   .groupBy(DeviceDeployResult::isSuccess)
+                   .flatMap(group -> {
+                       if (group.key()) {
+                           return group
+                               .count()
+                               .map(success -> DeviceDeployResult.success(success.intValue()));
+                       } else {
+                           return group;
+                       }
+                   });
+    }
+
+    private Flux<DeviceDeployResult> deployFail(Throwable err,
+                                                int total) {
+        return Flux
+            .zip(
+                I18nSupportException.tryGetLocalizedMessageReactive(err),
+                TraceSourceException.tryGetOperationLocalizedReactive(err).defaultIfEmpty(""),
+                (msg, opt) -> new DeviceDeployResult(total,
+                                                     false,
+                                                     msg,
+                                                     null,
+                                                     TraceSourceException.tryGetSource(err),
+                                                     opt)
+            );
+    }
+
+    private Mono<Void> validateConfiguration(DeviceInstanceEntity device) {
+        return metadataManager
+            .getDeviceConfigMetadata(device.getId())
+            .flatMap(configMetadata -> {
+                List<String> property = configMetadata
+                    .getProperties()
+                    .stream()
+                    .map(ConfigPropertyMetadata::getProperty)
+                    .collect(Collectors.toList());
+                return registry
+                    .getProduct(device.getProductId())
+                    .flatMap(product -> product.getConfigs(property))
+                    .map(Values::getAllValues)
+                    .defaultIfEmpty(new HashMap<>())
+                    .map(conf -> {
+                        if (MapUtils.isNotEmpty(device.getConfiguration())) {
+                            return new CompositeMap<>(conf, device.getConfiguration());
+                        }
+                        return conf;
+                    })
+                    .zipWith(Mono.just(configMetadata));
+            })
+            .flatMap(tp2 -> DeviceConfigMetadataManager.validate(tp2.getT2(), tp2.getT1()))
+            .filter(validateResult -> !validateResult.isSuccess())
+            .flatMap(validateResult -> {
+                if (log.isDebugEnabled()) {
+                    log.debug(validateResult.getErrorMsg());
+                }
+                return Mono
+                    .error(() -> new TraceSourceException("error.device_configuration_required_must_not_be_null")
+                        .withSource("operation.device.deploy", device));
+            })
+            .contextWrite(Context.of(DeviceInstanceEntity.class, device))
+            .then();
     }
 
     /**
@@ -338,6 +397,13 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
      * @return 注销结果
      */
     public Mono<Integer> unregisterDevice(Publisher<String> ids) {
+        return this
+            .handleUnregister(ids)
+            .count()
+            .map(Long::intValue);
+    }
+
+    public Flux<DeviceDeployResult> handleUnregister(Publisher<String> ids) {
         return Flux
             .from(ids)
             .buffer(200)
@@ -351,8 +417,10 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                           .set(DeviceInstanceEntity::getState, DeviceState.notActive.getValue())
                           .where().in(DeviceInstanceEntity::getId, list)
                           .execute()
+                          //注销不触发事件,单独处理DeviceDeployedEvent
+                          .as(EntityEventHelper::setDoNotFireEvent)
                           .thenReturn(list)
-                ))
+                ), 16)
             .flatMapIterable(Function.identity())
             //再注销
             .flatMap(id -> registry
@@ -360,11 +428,8 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                 .flatMap(DeviceOperator::disconnect)
                 .onErrorResume(err -> Mono.empty())
                 .then(registry.unregisterDevice(id))
-                .onErrorResume(err -> Mono.empty())
-                .thenReturn(id))
-            .count()
-            .map(Long::intValue)
-            //注销不触发事件,单独处理DeviceDeployedEvent
+                .thenReturn(DeviceDeployResult.success(1))
+                .onErrorResume(err -> Mono.just(DeviceDeployResult.error(err.getMessage(), id))))
             .as(EntityEventHelper::setDoNotFireEvent);
     }
 
@@ -478,9 +543,11 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                         //关系信息
                         , tp5.getT3().get(instance.getId())
                     )
+                    .as(MonoTracer.create("/LocalDeviceInstanceService/createDeviceDetail/" + instance.getId()))
                 ))
             //createDeviceDetail是异步操作,可能导致顺序错乱.进行重新排序.
             .sort(Comparator.comparingInt(detail -> deviceIdList.indexOf(detail.getId())))
+            .as(FluxTracer.create("/LocalDeviceInstanceService/convertDeviceInstanceToDetail"))
             ;
     }
 
@@ -556,7 +623,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                     return Mono.just(detail.notActive());
                 }).thenReturn(detail))
             .onErrorResume(err -> {
-                log.warn("get device detail error", err);
+                log.warn("get device detail error:{}", err.getLocalizedMessage(), err);
                 return Mono.just(detail);
             });
     }
@@ -590,7 +657,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                                                   String property) {
         return registry
             .getDevice(deviceId)
-            .switchIfEmpty(ErrorUtils.notFound("error.device_not_found_or_not_activated"))
+            .switchIfEmpty(handleDeviceNotFoundInRegistry(deviceId))
             .map(DeviceOperator::messageSender)//发送消息到设备
             .map(sender -> sender.readProperty(property).messageId(IDGenerator.SNOW_FLAKE_STRING.generate()))
             .flatMapMany(ReadPropertyMessageSender::send)
@@ -608,7 +675,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                                                        String property) {
         return registry
             .getDevice(deviceId)
-            .switchIfEmpty(ErrorUtils.notFound("error.device_not_found_or_not_activated"))
+            .switchIfEmpty(handleDeviceNotFoundInRegistry(deviceId))
             .flatMap(deviceOperator -> deviceOperator
                 .messageSender()
                 .readProperty(property)
@@ -635,7 +702,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
         return registry
             .getDevice(deviceId)
-            .switchIfEmpty(ErrorUtils.notFound("error.device_not_found_or_not_activated"))
+            .switchIfEmpty(handleDeviceNotFoundInRegistry(deviceId))
             .flatMap(operator -> operator
                 .messageSender()
                 .writeProperty()
@@ -667,7 +734,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
                                   boolean convertReply) {
         return registry
             .getDevice(deviceId)
-            .switchIfEmpty(ErrorUtils.notFound("error.device_not_found_or_not_activated"))
+            .switchIfEmpty(handleDeviceNotFoundInRegistry(deviceId))
             .flatMap(operator -> operator
                 .messageSender()
                 .invokeFunction(functionId)
@@ -685,18 +752,63 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     @SneakyThrows
     public Mono<Map<String, Object>> readProperties(String deviceId, List<String> properties) {
 
-        return registry.getDevice(deviceId)
-                       .switchIfEmpty(ErrorUtils.notFound("error.device_not_found_or_not_activated"))
-                       .map(DeviceOperator::messageSender)
-                       .flatMapMany((sender) -> sender.readProperty()
-                                                      .read(properties)
-                                                      .messageId(IDGenerator.SNOW_FLAKE_STRING.generate())
-                                                      .send())
-                       .flatMap(mapReply(ReadPropertyMessageReply::getProperties))
-                       .reduceWith(LinkedHashMap::new, (main, map) -> {
-                           main.putAll(map);
-                           return main;
-                       });
+        return registry
+            .getDevice(deviceId)
+            .switchIfEmpty(handleDeviceNotFoundInRegistry(deviceId))
+            .map(DeviceOperator::messageSender)
+            .flatMapMany((sender) -> sender.readProperty()
+                                           .read(properties)
+                                           .messageId(IDGenerator.SNOW_FLAKE_STRING.generate())
+                                           .send())
+            .flatMap(mapReply(ReadPropertyMessageReply::getProperties))
+            .reduceWith(LinkedHashMap::new, (main, map) -> {
+                main.putAll(map);
+                return main;
+            });
+    }
+
+    private Flux<Tuple2<DeviceSaveDetail, DeviceInstanceEntity>> prepareBatchSave(Flux<Tuple2<DeviceSaveDetail, DeviceInstanceEntity>> deviceStream) {
+        return deviceStream
+            .doOnNext(device -> {
+                if (!StringUtils.hasText(device.getT2().getProductId())) {
+                    throw new IllegalArgumentException("error.productId_cannot_be_empty");
+                }
+            })
+            .collect(Collectors.groupingBy(tp2 -> tp2.getT2().getProductId()))
+            .flatMapMany(deviceMap -> {
+                Set<String> productId = deviceMap.keySet();
+                return deviceProductService
+                    .findById(productId)
+                    .doOnNext(product -> deviceMap
+                        .getOrDefault(product.getId(), Collections.emptyList())
+                        .forEach(e -> e.getT2().setProductName(product.getName())))
+                    .thenMany(
+                        Flux.fromIterable(deviceMap.values())
+                            .flatMap(Flux::fromIterable)
+                    );
+            })
+            .doOnNext(device -> {
+                device.getT1().prepare();
+                if (!StringUtils.hasText(device.getT2().getProductName())) {
+                    throw new BusinessException("error.product_does_not_exist", 500, device.getT2().getProductId());
+                }
+            });
+
+    }
+
+    public Mono<Integer> batchSave(Flux<DeviceSaveDetail> deviceStream) {
+        return this
+            .prepareBatchSave(deviceStream.map(detail -> Tuples.of(detail, detail.toInstance())))
+            .collectList()
+            .flatMap(list -> Flux
+                .fromIterable(list)
+                .map(Tuple2::getT1)
+                .flatMapIterable(DeviceSaveDetail::getTags)
+                .as(tagRepository::save)
+                .then(Flux.fromIterable(list)
+                          .map(Tuple2::getT2)
+                          .as(this::save))
+            ).map(SaveResult::getTotal);
     }
 
     private static <R extends DeviceMessageReply, T> Function<R, Mono<T>> mapReply(Function<R, T> function) {
@@ -847,7 +959,12 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     @Override
     public Mono<Integer> insert(Publisher<DeviceInstanceEntity> entityPublisher) {
-        return super.insert(Flux.from(entityPublisher).flatMap(this::handleCreateBefore));
+        return super
+            .insert(Flux.from(entityPublisher)
+                        .flatMap(
+                            this::handleCreateBefore,
+                            16,
+                            16));
     }
 
     @Override
@@ -860,12 +977,13 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     private Mono<DeviceInstanceEntity> handleCreateBefore(DeviceInstanceEntity instanceEntity) {
         return Mono
             .zip(
-                deviceProductService.findById(instanceEntity.getProductId()),
+                deviceProductService.concurrentFindById(instanceEntity.getProductId()),
                 registry
                     .getProduct(instanceEntity.getProductId())
                     .flatMap(DeviceProductOperator::getProtocol),
                 (product, protocol) -> protocol.doBeforeDeviceCreate(
-                    Transport.of(product.getTransportProtocol()), instanceEntity.toDeviceInfo(false))
+                    Transport.of(product.getTransportProtocol()),
+                    instanceEntity.toDeviceInfo(false))
             )
             .flatMap(Function.identity())
             .doOnNext(info -> {
@@ -886,7 +1004,7 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
     }
 
     public Mono<Void> checkCyclicDependency(String id, String parentId) {
-        DeviceInstanceEntity instance = new DeviceInstanceEntity();
+        DeviceInstanceEntity instance = DeviceInstanceEntity.of();
         instance.setId(id);
         instance.setParentId(parentId);
         return checker.check(instance);
@@ -922,4 +1040,33 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
 
     }
 
+    public Mono<? extends DeviceOperator> handleDeviceNotFoundInRegistry(String deviceId) {
+        return Mono
+            .defer(() -> findById(deviceId)
+                .switchIfEmpty(Mono.error(() -> new NotFoundException.NoStackTrace("error.device_not_found", deviceId)))
+                .flatMap(ignore -> Mono.error(() -> new NotFoundException.NoStackTrace("error.device_not_activated", deviceId)))
+            );
+    }
+
+    public Mono<Void> handleUnbind(String gatewayId, List<String> deviceIdList) {
+        return this
+            .createUpdate()
+            .setNull(DeviceInstanceEntity::getParentId)
+            .in(DeviceInstanceEntity::getId, deviceIdList)
+            .and(DeviceInstanceEntity::getParentId, gatewayId)
+            .execute()
+            .then(handleBindUnbind(gatewayId, Flux.fromIterable(deviceIdList), ProtocolSupport::onChildUnbind));
+    }
+
+
+    private Mono<Void> handleBindUnbind(String gatewayId,
+                                        Flux<String> childId,
+                                        Function3<ProtocolSupport, DeviceOperator, Flux<DeviceOperator>, Mono<Void>> operator) {
+        return registry
+            .getDevice(gatewayId)
+            .flatMap(gateway -> gateway
+                .getProtocol()
+                .flatMap(protocol -> operator.apply(protocol, gateway, childId.flatMap(registry::getDevice)))
+            );
+    }
 }

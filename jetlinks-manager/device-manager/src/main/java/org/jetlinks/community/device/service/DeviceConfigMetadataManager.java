@@ -1,15 +1,19 @@
 package org.jetlinks.community.device.service;
 
+import org.hswebframework.utils.MapUtils;
+import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.metadata.*;
+import org.jetlinks.community.ConfigMetadataConstants;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.entity.DeviceProductEntity;
 import org.jetlinks.community.device.spi.DeviceConfigMetadataSupplier;
-import org.jetlinks.core.message.codec.Transport;
-import org.jetlinks.core.metadata.*;
+import org.jetlinks.reactor.ql.utils.CastUtils;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Set;
-
+import java.util.Map;
 
 /**
  * 设备配置信息管理器,用于获取产品或者设备在运行过程中所需要的配置信息。
@@ -44,7 +48,7 @@ public interface DeviceConfigMetadataManager {
      *
      * @param deviceId 产品ID
      * @return 配置信息
-     * @see org.jetlinks.core.metadata.DeviceConfigScope#device
+     * @see DeviceConfigScope#device
      */
     Flux<ConfigMetadata> getDeviceConfigMetadata(String deviceId);
 
@@ -65,28 +69,6 @@ public interface DeviceConfigMetadataManager {
     Flux<ConfigMetadata> getProductConfigMetadata(String productId);
 
     /**
-     * 获取物模型拓展配置定义
-     * @param productId 产品ID
-     * @param metadataType 物模型类型
-     * @param metadataId 物模型ID
-     * @param typeId 类型
-     * @return 配置定义信息
-     */
-    Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
-                                                  DeviceMetadataType metadataType,
-                                                  String metadataId,
-                                                  String typeId,
-                                                  ConfigScope... scopes);
-
-    /**
-     * 根据产品ID获取产品所需配置信息
-     *
-     * @param productId 产品ID
-     * @return 配置property集合
-     */
-    Mono<Set<String>> getProductConfigMetadataProperties(String productId);
-
-    /**
      * 根据产品ID和网关ID获取配置信息
      * <p>
      * 使用指定的接入方式查询，忽略产品当前绑定的接入方式
@@ -104,6 +86,56 @@ public interface DeviceConfigMetadataManager {
     Flux<ConfigMetadata> getProductConfigMetadataByAccessId(String productId,
                                                             String accessId);
 
+    /**
+     * 获取物模型拓展配置定义
+     * @param productId 产品ID
+     * @param metadataType 物模型类型
+     * @param metadataId 物模型ID
+     * @param typeId 类型
+     * @return 配置定义信息
+     */
+    Flux<ConfigMetadata> getMetadataExpandsConfig(String productId,
+                                                  DeviceMetadataType metadataType,
+                                                  String metadataId,
+                                                  String typeId,
+                                                  ConfigScope... scopes);
+
     Flux<Feature> getProductFeatures(String productId);
 
+    /**
+     * 检验配置中的属性必填项
+     * @param configMetadata 产品/设备所需配置信息
+     * @param configuration 产品/设备配置信息
+     * @return 验证结果
+     */
+    static Mono<ValidateResult> validate(ConfigMetadata configMetadata,
+                                         Map<String, Object> configuration) {
+        // 必填项配置为空，不进行校验
+        if (configMetadata == null || configMetadata.getProperties() == null) {
+            return Mono.just(ValidateResult.success());
+        }
+        return Flux
+            .fromIterable(configMetadata.getProperties())
+            .filter(propertyMetadata -> {
+                // 过滤出必填项
+                DataType dataType = propertyMetadata.getType();
+                if (dataType == null) {
+                    return false;
+                }
+                return dataType
+                    .getExpand(ConfigMetadataConstants.required.getKey())
+                    .map(CastUtils::castBoolean)
+                    .orElse(false);
+            })
+            .map(ConfigPropertyMetadata::getProperty)
+            // 配置为空或不包含必填项，都不通过校验
+            .filter(property -> MapUtils.isNullOrEmpty(configuration) || configuration.get(property) == null)
+            .collectList()
+            .filter(property -> !CollectionUtils.isEmpty(property))
+            .map(property -> ValidateResult
+                .builder()
+                .errorMsg(LocaleUtils.resolveMessage("error.config_metadata_required_must_not_be_null", property))
+                .value(property)
+                .build());
+    }
 }

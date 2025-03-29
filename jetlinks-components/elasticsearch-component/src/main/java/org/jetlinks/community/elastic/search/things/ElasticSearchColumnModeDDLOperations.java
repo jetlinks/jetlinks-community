@@ -6,6 +6,7 @@ import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
 import org.jetlinks.community.things.data.operations.ColumnModeDDLOperationsBase;
 import org.jetlinks.community.things.data.operations.DataSettings;
 import org.jetlinks.community.things.data.operations.MetricBuilder;
+import org.jetlinks.core.things.ThingMetadata;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
