@@ -5,11 +5,13 @@ import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
 import org.hswebframework.web.authorization.ReactiveAuthenticationManager;
+import org.hswebframework.web.authorization.token.UserTokenManager;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
+import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
 import org.hswebframework.web.system.authorization.api.event.UserDeletedEvent;
 import org.hswebframework.web.system.authorization.api.service.reactive.ReactiveUserService;
 import org.hswebframework.web.validator.ValidatorUtils;
@@ -19,6 +21,8 @@ import org.jetlinks.community.auth.enums.DefaultUserEntityType;
 import org.jetlinks.community.auth.enums.UserEntityTypes;
 import org.jetlinks.community.auth.service.request.SaveUserDetailRequest;
 import org.jetlinks.community.auth.service.request.SaveUserRequest;
+import org.jetlinks.core.things.ThingsRegistry;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +34,7 @@ import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * 用户详情管理
@@ -44,31 +49,42 @@ import java.util.List;
 @Service
 public class UserDetailService extends GenericReactiveCrudService<UserDetailEntity, String> {
 
+    public static final String recursiveTagContextKey = UserDetailService.class.getName() + "_RECURSIVE_TAG";
+
     private final ReactiveUserService userService;
 
     private final RoleService roleService;
-
     private final OrganizationService organizationService;
+    private final static UserDetailEntity emptyDetail = new UserDetailEntity();
 
+    private final ApplicationEventPublisher eventPublisher;
     private final ReactiveAuthenticationManager authenticationManager;
-
+    private final UserTokenManager userTokenManager;
+    private final UserSettingService userSettingService;
     private final QueryHelper queryHelper;
 
-    private final static UserDetailEntity emptyDetail = new UserDetailEntity();
+    private final ThingsRegistry registry;
 
     public UserDetailService(ReactiveUserService userService,
                              RoleService roleService,
                              OrganizationService organizationService,
+                             ApplicationEventPublisher eventPublisher,
                              ReactiveAuthenticationManager authenticationManager,
-                             QueryHelper queryHelper) {
+                             UserTokenManager userTokenManager,
+                             UserSettingService userSettingService,
+                             QueryHelper queryHelper,
+                             ThingsRegistry registry) {
         this.userService = userService;
         this.roleService = roleService;
         this.organizationService = organizationService;
-        this.authenticationManager = authenticationManager;
+        this.eventPublisher = eventPublisher;
+        this.userTokenManager = userTokenManager;
+        this.userSettingService = userSettingService;
         this.queryHelper = queryHelper;
+        this.registry = registry;
+        this.authenticationManager = authenticationManager;
         // 注册默认用户类型
         UserEntityTypes.register(Arrays.asList(DefaultUserEntityType.values()));
-
     }
 
     /**
@@ -77,6 +93,7 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
      * @param userId 用户id
      * @return 详情信息
      */
+    @Transactional(readOnly = true)
     public Mono<UserDetail> findUserDetail(String userId) {
         return Mono
             .zip(
@@ -103,6 +120,7 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
      * @param request 详情信息
      * @return void
      */
+    @Transactional(rollbackFor = Throwable.class)
     public Mono<Void> saveUserDetail(String userId, SaveUserDetailRequest request) {
         ValidatorUtils.tryValidate(request);
         UserDetailEntity entity = FastBeanCopier.copy(request, new UserDetailEntity());
@@ -128,7 +146,7 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
                     .as(UserEntity::getId, UserDetail::setId)
                     .as(UserEntity::getName, UserDetail::setName)
                     .as(UserEntity::getUsername, UserDetail::setUsername)
-                    // 兼容之前已有字段
+                    //兼容之前已有字段
                     .as(UserEntity::getType, UserDetail::setTypeId)
                     .as(UserEntity::getStatus, UserDetail::setStatus)
                     .as(UserEntity::getCreateTime, UserDetail::setCreateTime)
@@ -137,8 +155,10 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
                     .leftJoin(UserDetailEntity.class, j -> j.is(UserDetailEntity::getId, UserEntity::getId))
                     .where(query)
                     .fetchPaged(),
-                list -> this.fillUserDetail(list).
-                            collectList());
+                list -> this
+                    .fillUserDetail(list)
+                    .collectList()
+            );
     }
 
     private Flux<UserDetail> fillUserDetail(List<UserDetail> users) {
@@ -153,7 +173,7 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
                              .get(detail.getId())
                              .map(Authentication::getDimensions)
                              .defaultIfEmpty(Collections.emptyList())
-                             .map(dimensions -> detail.withDimension(dimensions).withType())
+                             .map(dimensions -> detail.withDimension(dimensions))
             );
     }
 
@@ -183,6 +203,10 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
                     .then(organizationService.bindUser(Collections.singleton(userId), request.getOrgIdList(), isUpdate))
                     .thenReturn(userId);
             })
+            //禁用上游产生的清空用户权限事件,因为可能会导致重复执行
+            .as(ClearUserAuthorizationCacheEvent::disable)
+            //只执行一次清空用户权限事件
+            .flatMap(userId -> ClearUserAuthorizationCacheEvent.of(userId).publish(eventPublisher).thenReturn(userId))
             .as(LocaleUtils::transform);
     }
 

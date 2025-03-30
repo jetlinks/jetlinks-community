@@ -1,6 +1,7 @@
 package org.jetlinks.community.auth.service;
 
 import lombok.AllArgsConstructor;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.DimensionProvider;
@@ -13,13 +14,16 @@ import org.jetlinks.community.auth.web.request.AuthorizationSettingDetail;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import javax.annotation.Nullable;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +56,7 @@ public class AuthorizationSettingDetailService {
             .flatMapMany(typeProviderMapping -> Mono
                 .justOrEmpty(typeProviderMapping.get(type))
                 .flatMapMany(provider -> provider.getUserIdByDimensionId(id)))
-            .collectList()
+            .<Set<String>>collect(HashSet::new, Set::add)
             .flatMap(lst-> ClearUserAuthorizationCacheEvent.of(lst).publish(eventPublisher))
             .then();
     }
@@ -67,17 +71,24 @@ public class AuthorizationSettingDetailService {
     @Transactional
     public Mono<Void> saveDetail(@Nullable Authentication currentAuthentication,
                                  Flux<AuthorizationSettingDetail> detailFlux) {
+        MultiValueMap<String,String> delDimension=new LinkedMultiValueMap<>();
         return detailFlux
-            //先删除旧的权限设置
-            .flatMap(detail -> settingService
-                .getRepository()
-                .createDelete()
-                .where(AuthorizationSettingEntity::getDimensionType, detail.getTargetType())
-                .and(AuthorizationSettingEntity::getDimensionTarget, detail.getTargetId())
-                .execute()
-                .thenReturn(detail))
-            .flatMap(detail -> addDetail(currentAuthentication, detailFlux))
-            .then();
+                .doOnNext(detail->delDimension.add(detail.getTargetType(),detail.getTargetId()))
+                .then(Mono.defer(()->{
+                    //先删除旧的权限设置
+                   return Flux
+                            .fromIterable(delDimension.entrySet())
+                            .filter(entry->CollectionUtils.isNotEmpty(entry.getValue()))
+                            .flatMap(entry-> settingService
+                                    .getRepository()
+                                    .createDelete()
+                                    .where(AuthorizationSettingEntity::getDimensionType, entry.getKey())
+                                    .in(AuthorizationSettingEntity::getDimensionTarget,entry.getValue())
+                                    .execute())
+                            .then();
+
+                }))
+                .then(addDetail(currentAuthentication, detailFlux));
     }
 
 
@@ -101,14 +112,55 @@ public class AuthorizationSettingDetailService {
                     .flatMap(type -> provider.getDimensionById(type, detail.getTargetId()))
                     .flatMapIterable(detail::toEntity))
                 .switchIfEmpty(Flux.defer(() -> Flux.fromIterable(detail.toEntity())))
-                .distinct(AuthorizationSettingEntity::getPermission)
             )
+            .as(this::mergePermissionActionAndDataAccesses)
             .map(entity -> null == currentAuthentication
                 ? entity
                 : permissionProperties.getFilter().handleSetting(currentAuthentication, entity))
             .filter(e -> CollectionUtils.isNotEmpty(e.getActions()))
             .as(settingService::save)
             .then();
+    }
+
+
+    public Flux<AuthorizationSettingEntity> mergePermissionActionAndDataAccesses(Flux<AuthorizationSettingEntity> entityFlux) {
+        return entityFlux
+                .doOnNext(AuthorizationSettingDetailService::generateId)
+                .groupBy(AuthorizationSettingEntity::getId)
+                .flatMap(entityGroup -> {
+                    AuthorizationSettingEntity newOne = new AuthorizationSettingEntity();
+                    return entityGroup
+                            .switchOnFirst((signal, entities) -> {
+                                if (signal.hasValue() && signal.get() != null) {
+                                    signal.get().copyTo(newOne);
+                                    newOne.setDataAccesses(new ArrayList<>());
+                                }
+                                return entities;
+                            })
+                            //根据权重排序
+                            .sort(Comparator.comparingInt(AuthorizationSettingEntity::getPriority))
+                            .doOnNext(entity -> {
+                                boolean merge = Boolean.TRUE.equals(entity.getMerge());
+                                newOne.setPriority(Math.max(newOne.getPriority(),entity.getPriority()));
+                                if (!merge) {
+                                    newOne.getActions().clear();
+                                }
+
+                                if (CollectionUtils.isNotEmpty(entity.getDataAccesses())) {
+                                    newOne.getDataAccesses().addAll(entity.getDataAccesses());
+                                }
+                                if (CollectionUtils.isNotEmpty(entity.getActions())) {
+                                    newOne.getActions().addAll(entity.getActions());
+                                }
+                            })
+                            .then(Mono.just(newOne));
+                });
+    }
+
+    public static void generateId(AuthorizationSettingEntity entity) {
+        if (StringUtils.isEmpty(entity.getId())) {
+            entity.setId(DigestUtils.md5Hex(entity.getPermission() + entity.getDimensionType() + entity.getDimensionTarget()));
+        }
     }
 
     /**

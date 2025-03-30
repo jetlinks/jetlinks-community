@@ -3,7 +3,6 @@ package org.jetlinks.community.auth.web;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
@@ -24,10 +23,7 @@ import reactor.core.publisher.Mono;
 @Tag(name = "第三方用户")
 public class ThirdPartyUserController {
 
-
     private final ThirdPartyUserBindService thirdPartyUserBindService;
-
-    private final ReactiveRepository<ThirdPartyUserBindEntity, String> repository;
 
     private final UserBindService userBindService;
 
@@ -48,31 +44,25 @@ public class ThirdPartyUserController {
                            @PathVariable String provider,
                            @RequestBody(required = false) Flux<ThirdPartyBindUserInfo> requestFlux) {
 
-        return requestFlux
-            .map(request -> {
-                ThirdPartyUserBindEntity entity = new ThirdPartyUserBindEntity();
-                entity.setType(type);
-                entity.setProvider(provider);
-                entity.setThirdPartyUserId(request.getThirdPartyUserId());
-                entity.setUserId(request.getUserId());
-                entity.setProviderName(request.getProviderName());
-                entity.generateId();
-                return entity;
-            })
-            .as(repository::save)
+        Flux<ThirdPartyBindUserInfo> cache = requestFlux.cache();
+        return cache
+            .mapNotNull(ThirdPartyBindUserInfo::getId)
+            .as(thirdPartyUserBindService::deleteById)
+            .flatMap(ignore -> cache
+                .map(request -> {
+                    ThirdPartyUserBindEntity entity = new ThirdPartyUserBindEntity();
+                    entity.setType(type);
+                    entity.setProvider(provider);
+                    entity.setThirdPartyUserId(request.getThirdPartyUserId());
+                    entity.setUserId(request.getUserId());
+                    entity.setProviderName(request.getProviderName());
+                    entity.generateId();
+                    return entity;
+                })
+                .as(thirdPartyUserBindService::save))
             .then();
     }
 
-
-    @PostMapping("/{id}/_unbind")
-    @Operation(summary = "解绑用户")
-    @SaveAction
-    public Mono<Void> unbind(@PathVariable String id) {
-
-        return repository
-            .deleteById(id)
-            .then();
-    }
 
     @PostMapping("/me/{type}/{provider}/{bindCode}/_bind")
     @Operation(summary = "根据绑定码绑定当前用户")
@@ -96,10 +86,20 @@ public class ThirdPartyUserController {
                     entity.generateId();
                     return entity;
                 }))
-            .as(thirdPartyUserBindService::save)
-            .then();
+        .as(thirdPartyUserBindService::save)
+        .then();
     }
 
+
+    @PostMapping("/{id}/_unbind")
+    @Operation(summary = "解绑用户")
+    @SaveAction
+    public Mono<Void> unbind(@PathVariable String id) {
+
+        return thirdPartyUserBindService
+            .deleteById(id)
+            .then();
+    }
 
     @GetMapping("/{type}/{provider}")
     @Operation(summary = "获取绑定信息")
@@ -107,13 +107,12 @@ public class ThirdPartyUserController {
     public Flux<ThirdPartyBindUserInfo> queryBindings(@PathVariable String type,
                                                       @PathVariable String provider) {
 
-        return repository
+        return thirdPartyUserBindService
             .createQuery()
             .where(ThirdPartyUserBindEntity::getType, type)
             .and(ThirdPartyUserBindEntity::getProvider, provider)
             .fetch()
-            .map(bind -> ThirdPartyBindUserInfo.of(
-                bind.getId(), bind.getUserId(), bind.getProviderName(), bind.getThirdPartyUserId()));
+            .map(bind -> ThirdPartyBindUserInfo.of(bind.getId(), bind.getUserId(), bind.getProviderName(), bind.getThirdPartyUserId()));
     }
 
     @GetMapping("/me")
@@ -122,7 +121,7 @@ public class ThirdPartyUserController {
     public Flux<ThirdPartyUserBindEntity> getCurrentUserBindings() {
         return Authentication
             .currentReactive()
-            .flatMapMany(auth -> repository
+            .flatMapMany(auth -> thirdPartyUserBindService
                 .createQuery()
                 .where(ThirdPartyUserBindEntity::getUserId, auth.getUser().getId())
                 .fetch());
@@ -134,7 +133,7 @@ public class ThirdPartyUserController {
     public Mono<Void> deleteBinding(@PathVariable String bindingId) {
         return Authentication
             .currentReactive()
-            .flatMap(auth -> repository
+            .flatMap(auth -> thirdPartyUserBindService
                 .createDelete()
                 .where(ThirdPartyUserBindEntity::getUserId, auth.getUser().getId())
                 .and(ThirdPartyUserBindEntity::getId, bindingId)
@@ -142,4 +141,5 @@ public class ThirdPartyUserController {
             )
             .then();
     }
+
 }

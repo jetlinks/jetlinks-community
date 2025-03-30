@@ -4,23 +4,29 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
+import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
+import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.i18n.MultipleI18nSupportEntity;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
+import java.sql.JDBCType;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Getter
 @Setter
 @Table(name = "s_role_group")
 @Comment("角色分组表")
 @EnableEntityEvent
-public class RoleGroupEntity extends GenericTreeSortSupportEntity<String> implements RecordCreationEntity {
+public class RoleGroupEntity extends GenericTreeSortSupportEntity<String> implements RecordCreationEntity, MultipleI18nSupportEntity {
 
     @Column(length = 64)
     @Length(min = 1, max = 64)
@@ -46,5 +52,21 @@ public class RoleGroupEntity extends GenericTreeSortSupportEntity<String> implem
     )
     private Long createTime;
 
+    @Schema(title = "国际化信息定义")
+    @Column
+    @JsonCodec
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
+    private Map<String, Map<String, String>> i18nMessages;
+
+
     private List<RoleGroupEntity> children;
+
+    public String getI18nName() {
+        return getI18nMessage("name", name);
+    }
+
+    public String getI18nName(Locale locale) {
+        return getI18nMessage("name", locale, name);
+    }
+
 }

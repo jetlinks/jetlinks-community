@@ -2,8 +2,6 @@ package org.jetlinks.community.auth.relation;
 
 import lombok.AllArgsConstructor;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
-import org.jetlinks.core.things.relation.ObjectType;
-import org.jetlinks.core.things.relation.PropertyOperation;
 import org.jetlinks.community.auth.entity.ThirdPartyUserBindEntity;
 import org.jetlinks.community.auth.entity.UserDetail;
 import org.jetlinks.community.auth.service.UserDetailService;
@@ -11,6 +9,8 @@ import org.jetlinks.community.relation.RelationConstants;
 import org.jetlinks.community.relation.RelationObjectProvider;
 import org.jetlinks.community.relation.impl.SimpleObjectType;
 import org.jetlinks.community.relation.impl.property.PropertyOperationStrategy;
+import org.jetlinks.core.things.relation.ObjectType;
+import org.jetlinks.core.things.relation.PropertyOperation;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
