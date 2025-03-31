@@ -58,14 +58,12 @@ public class OrgUserTermBuilder extends AbstractTermFragmentBuilder {
             fragments.add(SqlFragments.NOT);
         }
 
-        fragments.add(SqlFragments.LEFT_BRACKET);
-        fragments.addSql("exists(select 1 from",
-                         getTableName("s_dimension_user", column),
-                         "d where d.user_id =", columnFullName,
-                         "and (");
-
         // 组织绑定条件，options未指定时也查询
-        if (hasDimensionTypeOrNull("org", options)) {
+        if (options.contains("org")) {
+            fragments.addSql("exists(select 1 from",
+                             getTableName("s_dimension_user", column),
+                             "d where d.user_id =", columnFullName,
+                             "and (");
             fragments.addSql("d.dimension_type_id = ?")
                      .addParameter(OrgDimensionType.org.getId());
             if (!options.contains("any")) {
@@ -75,16 +73,13 @@ public class OrgUserTermBuilder extends AbstractTermFragmentBuilder {
                     .add(SqlFragments.RIGHT_BRACKET)
                     .addParameter(values);
             }
+        } else {
+            return fragments;
         }
 
         fragments.add(SqlFragments.RIGHT_BRACKET)
-                 .add(SqlFragments.RIGHT_BRACKET)
                  .add(SqlFragments.RIGHT_BRACKET);
 
         return fragments;
-    }
-
-    private boolean hasDimensionTypeOrNull(String dimensionType, List<String> options) {
-        return options.contains(dimensionType) || !options.contains("position") && !options.contains("org");
     }
 }
