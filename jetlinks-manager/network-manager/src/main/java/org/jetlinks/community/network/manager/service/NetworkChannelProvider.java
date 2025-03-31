@@ -1,7 +1,6 @@
 package org.jetlinks.community.network.manager.service;
 
 import lombok.AllArgsConstructor;
-import org.jetlinks.core.utils.FluxUtils;
 import org.jetlinks.community.network.ClientNetworkConfig;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.ServerNetworkConfig;
@@ -36,7 +35,7 @@ public class NetworkChannelProvider implements ChannelProvider {
             .flatMap(this::toChannelInfo);
     }
 
-    public Mono<ChannelInfo> toChannelInfo(NetworkConfigEntity entity){
+    public Mono<ChannelInfo> toChannelInfo(NetworkConfigEntity entity) {
         ChannelInfo info = new ChannelInfo();
         info.setId(entity.getId());
         info.setDescription(entity.getDescription());
@@ -46,7 +45,7 @@ public class NetworkChannelProvider implements ChannelProvider {
             .flatMap(provider -> Flux
                 .fromIterable(entity.toNetworkPropertiesList())
                 .flatMap(provider::createConfig)
-                .as(FluxUtils.safeMap(conf -> {
+                .mapNotNull(conf -> {
                     if (conf instanceof ClientNetworkConfig) {
                         //客户端则返回远程地址
                         return ((ClientNetworkConfig) conf).getRemoteAddress();
@@ -56,7 +55,7 @@ public class NetworkChannelProvider implements ChannelProvider {
                         return ((ServerNetworkConfig) conf).getPublicAddress();
                     }
                     return null;
-                }))
+                })
                 .distinct()
                 .map(address -> Address.of(address,
                                            //todo 真实状态检查?

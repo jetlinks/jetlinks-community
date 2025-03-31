@@ -3,13 +3,12 @@ package org.jetlinks.community.network.manager.service;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.crud.events.*;
 import org.hswebframework.web.id.IDGenerator;
-import org.jetlinks.core.ProtocolSupport;
-import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.DeviceGatewayManager;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
 import org.jetlinks.community.network.manager.entity.DeviceGatewayEntity;
 import org.jetlinks.community.network.manager.enums.DeviceGatewayState;
 import org.jetlinks.community.reference.DataReferenceManager;
+import org.jetlinks.core.ProtocolSupport;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
@@ -22,9 +21,8 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- *
- * @author zhouhao
- * @since 2.0
+ * @author wangzheng
+ * @since 1.0
  */
 @Order(1)
 @Component
@@ -72,7 +70,8 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
         //删除网关时检测是否已被使用
         event.async(
             Flux.fromIterable(event.getEntity())
-                .flatMap(gateway -> referenceManager.assertNotReferenced(DataReferenceManager.TYPE_DEVICE_GATEWAY, gateway.getId()))
+                .flatMap(gateway -> referenceManager
+                    .assertNotReferenced(DataReferenceManager.TYPE_DEVICE_GATEWAY, gateway.getId(), "error.device_gateway_referenced"))
         );
     }
 
@@ -109,7 +108,7 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
         );
     }
 
-    private Mono<Void> reloadGateway(Flux<DeviceGatewayEntity> gatewayEntities) {
+    private Mono<Void> reloadGateway(Flux<org.jetlinks.community.network.manager.entity.DeviceGatewayEntity> gatewayEntities) {
         return gatewayEntities
             .flatMap(gateway -> deviceGatewayManager.reload(gateway.getId()))
             .then();
@@ -119,14 +118,17 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
         for (DeviceGatewayEntity entity : entities) {
             DeviceGatewayProvider provider = deviceGatewayManager
                 .getProvider(entity.getProvider())
-                .orElseThrow(() -> new UnsupportedOperationException("error.unsupported_device_gateway_provider"));
+                .orElse(null);
+            if (provider == null) {
+                continue;
+            }
             if (!StringUtils.hasText(entity.getId())) {
                 entity.setId(IDGenerator.SNOW_FLAKE_STRING.generate());
             }
             //接入方式
             entity.setChannel(provider.getChannel());
 
-            //传输协议,如TCP,MQTT
+            //传输协议,如TCP,MQTT,ModBus
             if (!StringUtils.hasText(entity.getTransport())) {
                 entity.setTransport(provider.getTransport().getId());
             }
@@ -148,35 +150,36 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
                    .filter(entity -> entity.getConfiguration() != null)
                    .flatMap(entity ->
                                 Mono.justOrEmpty(deviceGatewayManager.getProvider(entity.getProvider()))
-                                    .switchIfEmpty(Mono.error(
-                                        () -> new UnsupportedOperationException("error.unsupported_device_gateway_provider")
-                                    ))
+                                    //当分布式部署时,每个服务支持的网关可能不同.
+//                                    .switchIfEmpty(Mono.error(
+//                                        () -> new UnsupportedOperationException("error.unsupported_device_gateway_provider")
+//                                    ))
                                     .flatMap(gatewayProvider -> gatewayProvider.createDeviceGateway(entity.toProperties())))
                    .then();
     }
 
     @Override
     public void run(String... args) {
-        log.debug("start device gateway in {} later", gatewayStartupDelay);
-        Mono.delay(gatewayStartupDelay)
-            .then(
-                Mono.defer(() -> deviceGatewayService
-                    .createQuery()
-                    .where()
-                    .and(DeviceGatewayEntity::getState, DeviceGatewayState.enabled)
-                    .fetch()
-                    .map(DeviceGatewayEntity::getId)
-                    .flatMap(id -> Mono
-                        .defer(() -> deviceGatewayManager
-                            .getGateway(id)
-                            .flatMap(DeviceGateway::startup))
-                        .onErrorResume((err) -> {
-                            log.error(err.getMessage(), err);
-                            return Mono.empty();
-                        })
-                    )
-                    .then())
-            )
-            .subscribe();
+//        log.debug("start device gateway in {} later", gatewayStartupDelay);
+//        Mono.delay(gatewayStartupDelay)
+//            .then(
+//                Mono.defer(() -> deviceGatewayService
+//                    .createQuery()
+//                    .where()
+//                    .and(DeviceGatewayEntity::getState, DeviceGatewayState.enabled)
+//                    .fetch()
+//                    .map(DeviceGatewayEntity::getId)
+//                    .flatMap(id -> Mono
+//                        .defer(() -> deviceGatewayManager
+//                            .getGateway(id)
+//                            .flatMap(DeviceGateway::startup))
+//                        .onErrorResume((err) -> {
+//                            log.error(err.getMessage(), err);
+//                            return Mono.empty();
+//                        })
+//                    )
+//                    .then())
+//            )
+//            .subscribe();
     }
 }

@@ -8,6 +8,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.api.crud.entity.RecordModifierEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.jetlinks.community.network.NetworkProperties;
@@ -19,10 +20,7 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.sql.JDBCType;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Getter
@@ -30,7 +28,7 @@ import java.util.stream.Collectors;
 @Table(name = "network_config")
 @Comment("网络组件信息表")
 @EnableEntityEvent
-public class NetworkConfigEntity extends GenericEntity<String> implements RecordCreationEntity {
+public class NetworkConfigEntity extends GenericEntity<String> implements RecordCreationEntity, RecordModifierEntity {
 
     @Column
     @NotNull(message = "名称不能为空")
@@ -49,7 +47,7 @@ public class NetworkConfigEntity extends GenericEntity<String> implements Record
      * @see NetworkType
      * @see org.jetlinks.community.network.NetworkTypes
      */
-    @Schema(description="组件类型")
+    @Schema(description = "组件类型")
     @Generated
     @Column(nullable = false)
     @NotNull(message = "类型不能为空")
@@ -79,6 +77,26 @@ public class NetworkConfigEntity extends GenericEntity<String> implements Record
     )
     @Generated
     private Long createTime;
+
+    @Column(name = "creator_name", updatable = false)
+    @Schema(
+        description = "创建者名称(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorName;
+
+    @Column(length = 64)
+    @Schema(description = "修改人")
+    private String modifierId;
+
+    @Column
+    @Schema(description = "修改时间")
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    private Long modifyTime;
+
+    @Column(length = 64)
+    @Schema(description = "修改人名称")
+    private String modifierName;
 
     @Column
     @Generated
@@ -123,6 +141,7 @@ public class NetworkConfigEntity extends GenericEntity<String> implements Record
         if (Boolean.FALSE.equals(shareCluster) && cluster != null) {
             return cluster
                 .stream()
+                .filter(Objects::nonNull)
                 .map(conf -> toNetworkProperties(conf.configuration))
                 .collect(Collectors.toList());
         } else {
@@ -135,8 +154,14 @@ public class NetworkConfigEntity extends GenericEntity<String> implements Record
     @Generated
     public static class Configuration implements Serializable {
         private String serverId;
-
+        private Map<String, String> tags;
         private Map<String, Object> configuration;
+    }
+
+    public Optional<NetworkProperties> toNetworkProperties(String serverId) {
+        return this
+            .getConfig(serverId)
+            .map(this::toNetworkProperties);
     }
 
     public NetworkProperties toNetworkProperties(Map<String, Object> conf) {
@@ -153,5 +178,4 @@ public class NetworkConfigEntity extends GenericEntity<String> implements Record
 
         return toNetworkProperties(configuration);
     }
-
 }

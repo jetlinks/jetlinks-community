@@ -6,6 +6,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
@@ -16,7 +17,6 @@ import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
 import org.jetlinks.community.device.web.response.GatewayDeviceInfo;
 import org.jetlinks.core.ProtocolSupport;
-import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/device/gateway")
 @Resource(id = "device-gateway", name = "网关设备管理")
+@Authorize
 @Tag(name = "网关设备管理")
 public class GatewayDeviceController {
 
@@ -95,8 +96,7 @@ public class GatewayDeviceController {
                                 //将父设备和分组的子设备合并在一起
                                 .map(children -> GatewayDeviceInfo.of(mapping.get(parentId), children));
                         })
-                        //收集所有有子设备的网关设备信息
-                        .collectMap(GatewayDeviceInfo::getId)
+                        .collectMap(GatewayDeviceInfo::getId)//收集所有有子设备的网关设备信息
                         .defaultIfEmpty(Collections.emptyMap())
                         .flatMapMany(map -> Flux
                             .fromIterable(mapping.values())
@@ -116,12 +116,13 @@ public class GatewayDeviceController {
     public Mono<GatewayDeviceInfo> getGatewayInfo(@PathVariable String id) {
         return Mono.zip(
             instanceService.findById(id),
-            instanceService.createQuery()
-                           .where()
-                           .is(DeviceInstanceEntity::getParentId, id)
-                           .fetch()
-                           .collectList()
-                           .defaultIfEmpty(Collections.emptyList()),
+            instanceService
+                .createQuery()
+                .where()
+                .is(DeviceInstanceEntity::getParentId, id)
+                .fetch()
+                .collectList()
+                .defaultIfEmpty(Collections.emptyList()),
             GatewayDeviceInfo::of);
     }
 
@@ -129,6 +130,7 @@ public class GatewayDeviceController {
     @PostMapping("/{gatewayId}/bind/{deviceId}")
     @SaveAction
     @QueryOperation(summary = "绑定单个子设备到网关设备")
+    @Transactional
     public Mono<GatewayDeviceInfo> bindDevice(@PathVariable @Parameter(description = "网关设备ID") String gatewayId,
                                               @PathVariable @Parameter(description = "子设备ID") String deviceId) {
         return instanceService
@@ -139,13 +141,10 @@ public class GatewayDeviceController {
                     .set(DeviceInstanceEntity::getParentId, gatewayId)
                     .where(DeviceInstanceEntity::getId, deviceId)
                     .execute()
-                    .then(registry.getDevice(gatewayId)
-                        .flatMap(gwOperator -> gwOperator.getProtocol()
-                            .flatMap(protocolSupport -> protocolSupport.onChildBind(gwOperator,
-                                Flux.from(registry.getDevice(deviceId)))
-                            )
-                        )
-                    )
+            )
+            .then(
+                //触发绑定
+                handleBindUnbind(gatewayId, Flux.just(deviceId), ProtocolSupport::onChildBind)
             )
             .then(getGatewayInfo(gatewayId));
     }
@@ -153,6 +152,7 @@ public class GatewayDeviceController {
     @PostMapping("/{gatewayId}/bind")
     @SaveAction
     @QueryOperation(summary = "绑定多个子设备到网关设备")
+    @Transactional
     public Mono<GatewayDeviceInfo> bindDevice(@PathVariable @Parameter(description = "网关设备ID") String gatewayId,
                                               @RequestBody @Parameter(description = "子设备ID集合") Mono<List<String>> deviceId) {
 
@@ -182,7 +182,8 @@ public class GatewayDeviceController {
 
     @PostMapping("/{gatewayId}/unbind/{deviceId}")
     @SaveAction
-    @QueryOperation(summary = "从网关设备中解绑子设备")
+    @QueryOperation(summary = "从网关设备中解绑单个子设备")
+    @Transactional
     public Mono<GatewayDeviceInfo> unBindDevice(@PathVariable @Parameter(description = "网关设备ID") String gatewayId,
                                                 @PathVariable @Parameter(description = "自设备ID") String deviceId) {
         return instanceService
@@ -231,5 +232,6 @@ public class GatewayDeviceController {
                 .flatMap(protocol -> operator.apply(protocol, gateway, childId.flatMap(registry::getDevice)))
             );
     }
+
 
 }

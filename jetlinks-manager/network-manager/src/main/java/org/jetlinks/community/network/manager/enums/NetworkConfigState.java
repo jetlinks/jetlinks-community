@@ -1,20 +1,22 @@
 package org.jetlinks.community.network.manager.enums;
 
 import lombok.AllArgsConstructor;
+import lombok.Generated;
 import lombok.Getter;
 import org.hswebframework.web.dict.Dict;
-import org.hswebframework.web.dict.EnumDict;
+import org.hswebframework.web.dict.I18nEnumDict;
 
 @AllArgsConstructor
 @Getter
-@Dict("network-config-state")
-public enum NetworkConfigState implements EnumDict<String> {
-    enabled("已启动", "enabled"),
+@Generated
+@Dict("device-gateway-state")
+public enum NetworkConfigState implements I18nEnumDict<String> {
+    enabled("正常", "enabled"),
     paused("已暂停", "paused"),
-    disabled("已停止", "disabled");
+    disabled("禁用", "disabled");
 
-    private String text;
+    private final String text;
 
-    private String value;
+    private final String value;
 
 }

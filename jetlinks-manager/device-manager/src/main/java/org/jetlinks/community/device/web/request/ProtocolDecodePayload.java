@@ -1,6 +1,7 @@
 package org.jetlinks.community.device.web.request;
 
 import com.alibaba.fastjson.JSON;
+import lombok.Generated;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.bean.FastBeanCopier;
@@ -10,8 +11,9 @@ import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.*;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.rule.engine.executor.PayloadType;
-import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @Getter
@@ -24,6 +26,8 @@ public class ProtocolDecodePayload {
 
     private String payload;
 
+    @SuppressWarnings("all")
+    @Generated
     public EncodedMessage toEncodedMessage() {
         if (transport == DefaultTransport.MQTT || transport == DefaultTransport.MQTT_TLS) {
             if (payload.startsWith("{")) {
@@ -34,13 +38,15 @@ public class ProtocolDecodePayload {
         } else if (transport == DefaultTransport.CoAP || transport == DefaultTransport.CoAP_DTLS) {
             return DefaultCoapMessage.of(payload);
         }
+
         return EncodedMessage.simple(payloadType.write(payload));
     }
 
-    public Publisher<? extends Message> doDecode(ProtocolSupport support, DeviceOperator deviceOperator) {
+    public Flux<? extends Message> doDecode(ProtocolSupport support, DeviceOperator deviceOperator) {
         return support
             .getMessageCodec(getTransport())
             .flatMapMany(codec -> codec.decode(new FromDeviceMessageContext() {
+                @Nonnull
                 @Override
                 public EncodedMessage getMessage() {
                     return toEncodedMessage();

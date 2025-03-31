@@ -1,13 +1,15 @@
 package org.jetlinks.community.device.measurements.status;
 
+import lombok.Generated;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.device.entity.DeviceInstanceEntity;
 import org.jetlinks.community.device.enums.DeviceState;
-import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
+import org.jetlinks.community.timeseries.query.AggregationData;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
@@ -16,6 +18,7 @@ import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.EnumType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.reactor.ql.ReactorQL;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -29,17 +32,17 @@ import java.util.Date;
 class DeviceStatusRecordMeasurement
     extends StaticMeasurement {
 
-    public LocalDeviceInstanceService instanceService;
+    public final ReactiveRepository<DeviceInstanceEntity,String> deviceRepository;
 
-    private TimeSeriesManager timeSeriesManager;
+    private final TimeSeriesManager timeSeriesManager;
 
     static MeasurementDefinition definition = MeasurementDefinition.of("record", "设备状态记录");
 
-    public DeviceStatusRecordMeasurement(LocalDeviceInstanceService deviceInstanceService,
+    public DeviceStatusRecordMeasurement(ReactiveRepository<DeviceInstanceEntity,String> deviceRepository,
                                          TimeSeriesManager timeSeriesManager) {
         super(definition);
         this.timeSeriesManager = timeSeriesManager;
-        this.instanceService = deviceInstanceService;
+        this.deviceRepository = deviceRepository;
         addDimension(new CurrentNumberOfDeviceDimension());
         addDimension(new AggNumberOfOnlineDeviceDimension());
     }
@@ -62,20 +65,29 @@ class DeviceStatusRecordMeasurement
         }
 
         @Override
+        @Generated
         public DataType getValueType() {
             return new IntType();
         }
 
         @Override
+        @Generated
         public ConfigMetadata getParams() {
             return aggConfigMetadata;
         }
 
         @Override
+        @Generated
         public boolean isRealTime() {
             return false;
         }
 
+        ReactorQL ql = ReactorQL
+            .builder()
+            .sql("select time,sum(value) value from dual group by time")
+            .build();
+
+        //select time,sum(value) value from dual group by time
         @Override
         public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
             String format = parameter.getString("format").orElse("yyyy年MM月dd日");
@@ -84,9 +96,7 @@ class DeviceStatusRecordMeasurement
             return AggregationQueryParam
                 .of()
                 .max("value")
-                .filter(query ->
-                            query.where("name", "gateway-server-session")
-                )
+                .filter(query -> query.where("name", "gateway-server-session"))
                 .from(parameter
                           .getDate("from")
                           .orElse(Date.from(LocalDateTime
@@ -95,20 +105,22 @@ class DeviceStatusRecordMeasurement
                                                 .atZone(ZoneId.systemDefault())
                                                 .toInstant())))
                 .to(parameter.getDate("to").orElse(new Date()))
-                .groupBy(parameter.getInterval("time").orElse(Interval.ofDays(1)),
-                         parameter.getString("format").orElse("yyyy年MM月dd日"))
+                .groupBy(parameter.getInterval("time").orElse(Interval.ofDays(1)), format)
+                .groupBy("server")
                 .limit(parameter.getInt("limit").orElse(10))
                 .execute(timeSeriesManager.getService(DeviceTimeSeriesMetric.deviceMetrics())::aggregation)
+                .map(AggregationData::asMap)
+                .as(ql::start)
                 .map(data -> {
-                    long ts = data.getString("time")
-                                  .map(time -> DateTime.parse(time, formatter).getMillis())
-                                  .orElse(System.currentTimeMillis());
+                    String timeStr = String.valueOf(data.get("time"));
+                    long ts = DateTime.parse(timeStr, formatter).getMillis();
                     return SimpleMeasurementValue.of(
-                        data.get("value").orElse(0),
-                        data.getString("time", ""),
+                        data.getOrDefault("value", 0),
+                        timeStr,
                         ts);
                 })
-                .sort();
+                .sort()
+                .take(parameter.getLong("limit").orElse(10L));
         }
     }
 
@@ -129,23 +141,26 @@ class DeviceStatusRecordMeasurement
         }
 
         @Override
+        @Generated
         public DataType getValueType() {
             return new IntType();
         }
 
         @Override
+        @Generated
         public ConfigMetadata getParams() {
             return currentMetadata;
         }
 
         @Override
+        @Generated
         public boolean isRealTime() {
             return false;
         }
 
         @Override
         public Mono<MeasurementValue> getValue(MeasurementParameter parameter) {
-            return instanceService
+            return deviceRepository
                 .createQuery()
                 .and(DeviceInstanceEntity::getProductId, parameter.getString("productId").orElse(null))
                 .and(DeviceInstanceEntity::getState, parameter.get("state", DeviceState.class).orElse(null))
