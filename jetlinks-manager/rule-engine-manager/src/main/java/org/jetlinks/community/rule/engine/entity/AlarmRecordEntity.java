@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
+import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.utils.DigestUtils;
 import org.jetlinks.community.dictionary.Dictionary;
@@ -19,12 +21,14 @@ import java.sql.JDBCType;
 
 @Getter
 @Setter
-@Table(name = "alarm_record",indexes = {
-    @Index(name = "idx_alarm_rec_t_type",columnList = "targetType"),
-    @Index(name = "idx_alarm_rec_t_key",columnList = "targetKey")
+@Table(name = "alarm_record", indexes = {
+    @Index(name = "idx_alarm_rec_t_idtype", columnList = "targetId,targetType"),
+    @Index(name = "idx_alarm_rec_t_id", columnList = "targetId"),
+    @Index(name = "idx_alarm_rec_t_type", columnList = "targetType"),
+    @Index(name = "idx_alarm_rec_t_key", columnList = "targetKey")
 })
 @Comment("告警记录")
-public class AlarmRecordEntity extends GenericEntity<String> {
+public class AlarmRecordEntity extends GenericEntity<String> implements RecordCreationEntity {
 
 
     @Column(length = 64, nullable = false, updatable = false)
@@ -78,8 +82,12 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     private String actualDesc;
 
     @Column
-    @Schema(description = "最近一次告警时间")
+    @Schema(description = "当前首次告警时间")
     private Long alarmTime;
+
+    @Column
+    @Schema(description = "最近一次告警时间")
+    private Long lastAlarmTime;
 
     @Column
     @Schema(description = "处理时间")
@@ -95,7 +103,6 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     @ColumnType(javaType = String.class)
     @DefaultValue("normal")
     private AlarmRecordState state;
-
 
     @Column(length = 32)
     @Dictionary(AlarmHandleTypeDictInit.DICT_ID)
@@ -134,4 +141,18 @@ public class AlarmRecordEntity extends GenericEntity<String> {
     }
 
 
+    @Column(updatable = false)
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    @Schema(
+        description = "创建时间(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private Long createTime;
+
+    @Column(length = 64, updatable = false)
+    @Schema(
+        description = "创建者ID(只读)"
+        , accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String creatorId;
 }

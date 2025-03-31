@@ -9,7 +9,7 @@ import org.jetlinks.community.rule.engine.scene.SceneData;
 import org.jetlinks.community.terms.TermSpec;
 
 import java.io.Serializable;
-import java.util.*;
+
 
 @Getter
 @Setter
@@ -106,29 +106,4 @@ public class AlarmHistoryInfo implements Serializable {
         info.setDescription(alarmConfig.getDescription());
         return info;
     }
-
-    @SuppressWarnings("all")
-    @Deprecated
-     static List<Map<String, Object>> convertBindings(AlarmTargetInfo targetInfo,
-                                                     SceneData data,
-                                                     AlarmConfigEntity alarmConfig) {
-        List<Map<String, Object>> bindings = new ArrayList<>();
-
-        bindings.addAll((List) data.getOutput().getOrDefault("_bindings", Collections.emptyList()));
-
-        //添加告警配置创建人到bindings中。作为用户维度信息
-        Map<String, Object> userDimension = new HashMap<>(2);
-        userDimension.put("type", "user");
-        userDimension.put("id", alarmConfig.getCreatorId());
-        bindings.add(userDimension);
-        //添加组织纬度信息
-        if ("org".equals(alarmConfig.getTargetType())) {
-            Map<String, Object> orgDimension = new HashMap<>(2);
-            userDimension.put("type", targetInfo.getTargetType());
-            userDimension.put("id", targetInfo.getTargetId());
-            bindings.add(userDimension);
-        }
-        return bindings;
-    }
-
 }

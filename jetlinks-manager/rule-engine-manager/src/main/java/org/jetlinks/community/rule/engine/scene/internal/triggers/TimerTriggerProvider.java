@@ -8,18 +8,25 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.metadata.types.DateTimeType;
+import org.jetlinks.community.reactorql.term.FixedTermTypeSupport;
 import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.SceneTriggerProvider;
 import org.jetlinks.community.rule.engine.scene.Variable;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
+import org.jetlinks.community.terms.I18nSpec;
+import org.jetlinks.community.terms.TermSpec;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.BiConsumer;
+
+import static org.jetlinks.community.rule.engine.scene.SceneRule.TRIGGER_TYPE;
 
 @Component
 public class TimerTriggerProvider implements SceneTriggerProvider<TimerTrigger> {
@@ -32,7 +39,8 @@ public class TimerTriggerProvider implements SceneTriggerProvider<TimerTrigger> 
 
     @Override
     public String getName() {
-        return "定时触发";
+        return LocaleUtils
+            .resolveMessage("message.scene_trigger_name_timer", "定时触发");
     }
 
     @Override
@@ -51,6 +59,31 @@ public class TimerTriggerProvider implements SceneTriggerProvider<TimerTrigger> 
     }
 
     @Override
+    public Mono<List<TermSpec>> createFilterSpec(TimerTrigger config,
+                                                 List<Term> terms,
+                                                 BiConsumer<Term, TermSpec> customizer) {
+        TermSpec spec = new TermSpec();
+        spec.setColumn(TRIGGER_TYPE);
+        spec.setTermType(FixedTermTypeSupport.eq.name());
+        spec.setTriggerSpec(
+            I18nSpec.of("message.term_type_scene_timer_trigger_desc", config.toString())
+        );
+        spec.setActualSpec(
+            I18nSpec.of("message.term_type_scene_timer_actual_desc", "定时触发告警")
+        );
+        spec.setDisplayCode(I18nSpec.of("message.scene_trigger_type", "场景触发类型"));
+        spec.setExpected(PROVIDER);
+        spec.setActual(PROVIDER);
+        spec.setMatched(true);
+
+        if (!terms.isEmpty()) {
+            spec.setChildren(TermSpec.of(terms, customizer));
+        }
+
+        return Mono.just(Collections.singletonList(spec));
+    }
+
+    @Override
     public List<Variable> createDefaultVariable(TimerTrigger config) {
         return Collections.singletonList(
             Variable
@@ -58,9 +91,14 @@ public class TimerTriggerProvider implements SceneTriggerProvider<TimerTrigger> 
                     LocaleUtils.resolveMessage(
                         "message.scene_term_column_now",
                         "服务器时间"))
+                .withDescription(
+                    LocaleUtils.resolveMessage(
+                        "message.scene_term_column_now_desc",
+                        "服务器时间"))
                 .withType(DateTimeType.ID)
                 .withTermType(TermTypes.lookup(DateTimeType.GLOBAL))
                 .withColumn("_now")
+                .withFullNameCode(I18nSpec.of("message.scene_term_column_now", "服务器时间"))
         );
     }
 

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
+import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
@@ -24,17 +25,21 @@ import java.sql.JDBCType;
     indexes = @Index(
         name = "idx_ntfc_subscribe", columnList = "subscriber_type,subscriber"
     ))
+@Comment("消息通知信息表")
 public class NotificationEntity extends GenericEntity<String> {
     private static final long serialVersionUID = -1L;
 
+    @Schema(description = "订阅者ID")
     @Column(length = 64, nullable = false, updatable = false)
     @Hidden
     private String subscribeId;
 
+    @Schema(description = "订阅类型")
     @Column(length = 32, nullable = false, updatable = false)
     @Hidden
     private String subscriberType;
 
+    @Schema(description = "订阅者")
     @Column(length = 64, nullable = false, updatable = false)
     @Hidden
     private String subscriber;
@@ -68,7 +73,6 @@ public class NotificationEntity extends GenericEntity<String> {
     @Schema(description = "详情")
     @ColumnType(jdbcType = JDBCType.CLOB, javaType = String.class)
     private String detailJson;
-
 
     @Column(length = 32)
     @EnumCodec

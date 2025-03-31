@@ -22,4 +22,6 @@ public class AlarmData implements Serializable {
     private String ruleName;
 
     private Map<String, Object> output;
+
+    private String creatorId;
 }

@@ -22,7 +22,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -91,35 +90,25 @@ public class SceneService extends GenericReactiveCrudService<SceneEntity, String
 
     @Transactional(rollbackFor = Throwable.class)
     public Mono<Void> enable(String id) {
-        return enable(Collections.singletonList(id));
-    }
-
-    @Transactional(rollbackFor = Throwable.class)
-    public Mono<Void> enable(Collection<String> id) {
-        Assert.notEmpty(id, "id can not be empty");
+        Assert.hasText(id, "id can not be empty");
         long now = System.currentTimeMillis();
         return this
             .createUpdate()
             .set(SceneEntity::getState, RuleInstanceState.started)
             .set(SceneEntity::getModifyTime, now)
             .set(SceneEntity::getStartTime, now)
-            .in(SceneEntity::getId, id)
+            .where(SceneEntity::getId, id)
             .execute()
             .then();
     }
 
     @Transactional
     public Mono<Void> disabled(String id) {
-        return disabled(Collections.singletonList(id));
-    }
-
-    @Transactional
-    public Mono<Void> disabled(Collection<String> id) {
-        Assert.notEmpty(id, "id can not be empty");
+        Assert.hasText(id, "id can not be empty");
         return this
             .createUpdate()
             .set(SceneEntity::getState, RuleInstanceState.disable)
-            .in(SceneEntity::getId, id)
+            .where(SceneEntity::getId, id)
             .execute()
             .then();
     }

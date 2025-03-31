@@ -9,6 +9,7 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.authorize.AuthenticationSpec;
@@ -20,7 +21,13 @@ import javax.validation.constraints.NotBlank;
 import java.sql.JDBCType;
 import java.util.Map;
 
-
+/**
+ * 通知订阅提供商,用于定义用户支持订阅何种通知.
+ *
+ * @author zhouhao
+ * @see org.jetlinks.pro.notify.subscription.SubscriberProvider
+ * @since 2.0
+ */
 @Getter
 @Setter
 @Table(name = "notify_subscriber_provider")
@@ -33,11 +40,17 @@ public class NotifySubscriberProviderEntity extends GenericEntity<String> implem
     @Schema(description = "名称")
     private String name;
 
+    /**
+     * @see org.jetlinks.pro.notify.subscription.SubscriberProvider#getId()
+     */
     @Column(length = 64, nullable = false, updatable = false)
     @Schema(description = "订阅提供商ID", accessMode = Schema.AccessMode.READ_ONLY)
     @NotBlank(groups = CreateGroup.class)
     private String provider;
 
+    /**
+     * @see org.jetlinks.pro.notify.subscription.SubscriberProvider#createSubscriber(String, Authentication, Map)
+     */
     @Column
     @JsonCodec
     @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)

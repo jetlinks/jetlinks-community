@@ -4,10 +4,7 @@ import com.alibaba.fastjson.JSON;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
-import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
-import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
-import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
-import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
+import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.generator.Generators;
@@ -23,14 +20,14 @@ import java.util.Date;
 import java.util.Map;
 
 @Table(name = "notify_history", indexes = {
-    @Index(name = "idx_nt_his_notifier_id", columnList = "notifier_id")
+    @Index(name = "idx_nt_his_notifier_id", columnList = "notifier_id,notify_time desc")
 })
+@Comment("消息通知记录表")
 @Getter
 @Setter
 public class NotifyHistoryEntity extends GenericEntity<String> {
 
     private static final long serialVersionUID = -6849794470754667710L;
-
 
     @Column(length = 32, nullable = false, updatable = false)
     @Schema(description = "通知ID")
@@ -87,7 +84,7 @@ public class NotifyHistoryEntity extends GenericEntity<String> {
     private Integer retryTimes;
 
     public static NotifyHistoryEntity of(SerializableNotifierEvent event) {
-       NotifyHistoryEntity entity = FastBeanCopier.copy(event, new NotifyHistoryEntity());
+        NotifyHistoryEntity entity = FastBeanCopier.copy(event, new NotifyHistoryEntity());
         if (null != event.getTemplate()) {
             entity.setTemplate(JSON.toJSONString(event.getTemplate()));
         }
@@ -103,4 +100,5 @@ public class NotifyHistoryEntity extends GenericEntity<String> {
     public NotifyHistory toHistory(){
         return FastBeanCopier.copy(this,new NotifyHistory());
     }
+
 }

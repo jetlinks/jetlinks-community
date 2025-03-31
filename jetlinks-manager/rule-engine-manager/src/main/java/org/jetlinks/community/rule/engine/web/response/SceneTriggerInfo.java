@@ -9,7 +9,7 @@ import org.jetlinks.community.rule.engine.scene.SceneTriggerProvider;
 /**
  * 触发器类型.
  *
- * @author zhangji 2025/1/22
+ * @author zhangji 2025/1/8
  * @since 2.3
  */
 @Getter
