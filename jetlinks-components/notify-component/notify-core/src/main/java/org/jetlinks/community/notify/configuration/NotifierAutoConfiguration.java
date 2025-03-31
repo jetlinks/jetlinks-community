@@ -30,8 +30,9 @@ public class NotifierAutoConfiguration {
     }
 
     @Bean
-    public StaticTemplateManager staticTemplateManager(StaticNotifyProperties properties) {
-        return new StaticTemplateManager(properties);
+    public StaticTemplateManager staticTemplateManager(StaticNotifyProperties properties,
+                                                       EventBus eventBus) {
+        return new StaticTemplateManager(properties, eventBus);
     }
 
     @Bean

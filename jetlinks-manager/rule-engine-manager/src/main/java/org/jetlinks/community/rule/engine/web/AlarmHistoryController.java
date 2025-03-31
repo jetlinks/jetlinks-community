@@ -28,23 +28,25 @@ public class AlarmHistoryController {
     @Operation(summary = "告警历史查询")
     @QueryAction
     @Deprecated
+    // 已弃用，改为通过告警记录的数据权限查询
     public Mono<PagerResult<AlarmHistoryInfo>> queryHandleHistoryPager(@RequestBody Mono<QueryParamEntity> query) {
         return query.flatMap(alarmHistoryService::queryPager);
     }
 
     @PostMapping("/{alarmConfigId}/_query")
-    @Operation(summary = "告警历史查询")
+    @Operation(summary = "按告警配置查询告警历史")
     @QueryAction
+    @Deprecated
+    // 已弃用，改为通过告警记录的数据权限查询
     public Mono<PagerResult<AlarmHistoryInfo>> queryHandleHistoryPager(
-        @PathVariable @Parameter(description = "告警配置ID") String alarmConfigId,
-        @RequestBody Mono<QueryParamEntity> query
-    ) {
+            @PathVariable @Parameter(description = "告警配置ID") String alarmConfigId,
+            @RequestBody Mono<QueryParamEntity> query) {
         return query
-            .map(q -> q
-                .toNestQuery()
-                .and(AlarmHistoryInfo::getAlarmConfigId, alarmConfigId)
-                .getParam())
-            .flatMap(alarmHistoryService::queryPager);
+                .map(q -> q
+                        .toNestQuery()
+                        .and(AlarmHistoryInfo::getAlarmConfigId, alarmConfigId)
+                        .getParam())
+                .flatMap(alarmHistoryService::queryPager);
     }
 
     @PostMapping("/alarm-record/{recordId}/_query")

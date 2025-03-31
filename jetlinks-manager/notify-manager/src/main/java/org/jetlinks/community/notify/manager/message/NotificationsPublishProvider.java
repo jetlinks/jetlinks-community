@@ -37,7 +37,7 @@ public class NotificationsPublishProvider implements SubscriptionProvider {
             .subscribe(Subscription.of(
                 "notifications-publisher",
                 "/notifications/user/" + request.getAuthentication().getUser().getId() + "/*/*",
-                Subscription.Feature.local, Subscription.Feature.broker
+                Subscription.Feature.local, Subscription.Feature.broker, Subscription.Feature.safetySerialization
             ))
             .map(msg -> Message.success(request.getId(), msg.getTopic(), msg.bodyToJson(true)));
     }

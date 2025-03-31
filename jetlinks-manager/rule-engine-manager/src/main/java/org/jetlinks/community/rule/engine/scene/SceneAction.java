@@ -8,13 +8,15 @@ import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.rule.engine.scene.internal.actions.*;
+import org.jetlinks.community.terms.I18nSpec;
 import org.jetlinks.community.terms.TermSpec;
 import org.jetlinks.community.utils.ConverterUtils;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.types.EnumType;
+import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import reactor.core.publisher.Flux;
 
@@ -29,6 +31,11 @@ import java.util.function.Consumer;
 import static org.hswebframework.web.i18n.LocaleUtils.resolveMessage;
 import static org.jetlinks.community.rule.engine.scene.SceneRule.createBranchActionId;
 
+/**
+ * @see org.jetlinks.community.rule.engine.executor.TimerTaskExecutorProvider
+ * @see org.jetlinks.community.rule.engine.executor.DelayTaskExecutorProvider
+ * @see org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider
+ */
 @Getter
 @Setter
 public class SceneAction implements Serializable {
@@ -121,9 +128,9 @@ public class SceneAction implements Serializable {
             .createVariable(actionConfig())
             .collectList()
             .filter(CollectionUtils::isNotEmpty)
+            .as(LocaleUtils::transform)
             .map(list -> SceneAction.createVariable(branchIndex, group, index, list))
-            .flux()
-            .as(LocaleUtils::transform);
+            .flux();
 
     }
 
@@ -216,6 +223,8 @@ public class SceneAction implements Serializable {
         variable.setType(dataType.getType());
         variable.setTermTypes(TermTypes.lookup(dataType));
         variable.setColumn(id);
+        variable.setFullNameCode(I18nSpec.of(null, variable.getName()));
+
         if (dataType instanceof ObjectType) {
             List<Variable> children = new ArrayList<>();
             for (PropertyMetadata property : ((ObjectType) dataType).getProperties()) {
@@ -229,6 +238,9 @@ public class SceneAction implements Serializable {
                 );
             }
             variable.setChildren(children);
+        }
+        if (dataType instanceof EnumType) {
+            variable.withOption("elements", ((EnumType) dataType).getElements());
         }
 
         return variable;

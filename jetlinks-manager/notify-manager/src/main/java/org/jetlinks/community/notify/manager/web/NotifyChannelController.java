@@ -1,5 +1,6 @@
 package org.jetlinks.community.notify.manager.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
@@ -7,13 +8,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.Authorize;
 import org.hswebframework.web.authorization.annotation.DeleteAction;
 import org.hswebframework.web.authorization.annotation.Resource;
-
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
 import org.hswebframework.web.id.IDGenerator;
@@ -26,15 +25,13 @@ import org.jetlinks.community.notify.manager.service.NotifySubscriberProviderSer
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannelProvider;
+import org.jetlinks.community.notify.subscription.SubscribeType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RestController
@@ -44,6 +41,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class NotifyChannelController {
 
+    @SuppressWarnings("all")
     private final ReactiveRepository<NotifySubscriberChannelEntity, String> repository;
 
     private final NotifySubscriberProviderService providerService;
@@ -66,22 +64,7 @@ public class NotifyChannelController {
     @SaveAction
     @Operation(summary = "保存通道配置")
     public Mono<Void> save(@RequestBody Flux<SubscriberProviderInfo> infoFlux) {
-        Flux<Tuple2<NotifySubscriberProviderEntity, List<NotifySubscriberChannelEntity>>>
-            cache = infoFlux
-            .map(pro -> Tuples.of(pro.toProviderEntity(), pro.toChannelEntities()))
-            .cache();
-
-        return providerService
-            .save(cache.map(Tuple2::getT1))
-            .then(repository
-                      .save(cache.flatMapIterable(tp2 -> {
-                          //provider保存后再回填ID
-                          for (NotifySubscriberChannelEntity entity : tp2.getT2()) {
-                              entity.setProviderId(tp2.getT1().getId());
-                          }
-                          return tp2.getT2();
-                      })))
-            .then();
+        return providerService.saveInfo(infoFlux);
     }
 
     @PatchMapping("/{providerId}")
@@ -143,55 +126,7 @@ public class NotifyChannelController {
     @SaveAction //有保存权限的才能查看全部
     @Operation(summary = "获取所有通道配置")
     public Flux<SubscriberProviderInfo> channels() {
-
-        Map<String, SubscriberProviderInfo> info = SubscriberProviders
-            .getProviders()
-            .stream()
-            .collect(Collectors.toMap(
-                SubscriberProvider::getId,
-                SubscriberProviderInfo::of));
-
-        Map<String, SubscriberProviderInfo> notSaveInfoMap = new HashMap<>(info);
-        return providerService
-            .createQuery()
-            .fetch()
-            .collectList()
-            .flatMap(providers -> {
-                Map<String, SubscriberProviderInfo> providerInfoMap = new HashMap<>();
-                for (NotifySubscriberProviderEntity provider : providers) {
-                    SubscriberProviderInfo channelInfo = info.get(provider.getProvider());
-                    if (channelInfo != null) {
-                        channelInfo.with(provider);
-                        providerInfoMap.put(channelInfo.getId(), channelInfo);
-                    }
-                    if (info.get(provider.getProvider()) != null) {
-                        notSaveInfoMap.remove(provider.getProvider());
-                    }
-                }
-                if (!MapUtils.isEmpty(notSaveInfoMap)) {
-                    List<NotifySubscriberProviderEntity> providerList = notSaveInfoMap
-                        .values()
-                        .stream()
-                        .map(SubscriberProviderInfo::toProviderEntity)
-                        .collect(Collectors.toList());
-                    return providerService
-                        .save(providerList)
-                        .thenReturn(providerInfoMap);
-                }
-                return Mono.just(providerInfoMap);
-            })
-            .filter(MapUtils::isNotEmpty)
-            .flatMapMany(mapping -> repository
-                .createQuery()
-                .in(NotifySubscriberChannelEntity::getProviderId, mapping.keySet())
-                .fetch()
-                .doOnNext(channel -> {
-                    SubscriberProviderInfo channelInfo = mapping.get(channel.getProviderId());
-                    if (channelInfo != null) {
-                        channelInfo.with(channel);
-                    }
-                }))
-            .thenMany(Flux.fromIterable(info.values()));
+        return providerService.channels();
     }
 
     @GetMapping("/all")
@@ -228,6 +163,8 @@ public class NotifyChannelController {
 
         private String provider;
 
+        private SubscribeTypeInfo type;
+
         private Map<String, Object> configuration;
 
         private AuthenticationSpec grant;
@@ -235,6 +172,26 @@ public class NotifyChannelController {
         private NotifyChannelState state;
 
         private List<NotifySubscriberChannelEntity> channels = new ArrayList<>();
+
+        private int order;
+
+        public SubscriberProviderInfo(String id,
+                                      String name,
+                                      String provider,
+                                      SubscribeTypeInfo type,
+                                      Map<String, Object> configuration,
+                                      AuthenticationSpec grant,
+                                      NotifyChannelState state,
+                                      List<NotifySubscriberChannelEntity> channels) {
+            this.id = id;
+            this.name = name;
+            this.provider = provider;
+            this.type = type;
+            this.configuration = configuration;
+            this.grant = grant;
+            this.state = state;
+            this.channels = channels;
+        }
 
         public SubscriberProviderInfo copyToProvidedUser(Authentication auth, NotifySubscriberProperties properties) {
             if (id == null
@@ -247,11 +204,17 @@ public class NotifyChannelController {
             info.setId(id);
             info.setName(name);
             info.setProvider(provider);
+            info.setType(type);
             info.setChannels(
                 channels
                     .stream()
-                    .filter(e -> e.getId() != null &&
-                        (properties.isAllowAllNotify(auth) || e.getGrant() == null || e.getGrant().isGranted(auth)))
+                    .filter(channel -> (
+                        (channel.getId() != null)
+                            && (
+                            properties.isAllowAllNotify(auth)
+                                || (channel.getGrant() != null && channel.getGrant().isGranted(auth))
+                        )
+                    ))
                     .collect(Collectors.toList())
             );
             return info;
@@ -262,10 +225,13 @@ public class NotifyChannelController {
                 IDGenerator.RANDOM.generate(),
                 info.getName(),
                 info.getId(),
+                SubscribeTypeInfo.of(info.getType()),
                 null,
                 null,
                 NotifyChannelState.disabled,
-                new ArrayList<>());
+                new ArrayList<>(),
+                info.getOrder()
+            );
         }
 
         public SubscriberProviderInfo with(List<NotifyChannelProvider> provider) {
@@ -296,9 +262,8 @@ public class NotifyChannelController {
 
         public SubscriberProviderInfo with(NotifySubscriberProviderEntity provider) {
             this.id = provider.getId();
-            this.name = provider.getName();
-            this.provider = provider.getProvider();
             this.grant = provider.getGrant();
+            this.provider = provider.getProvider();
             this.configuration = provider.getConfiguration();
             this.state = provider.getState();
             return this;
@@ -317,6 +282,24 @@ public class NotifyChannelController {
                 channel.setProviderId(this.id);
             }
             return channels;
+        }
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class SubscribeTypeInfo {
+        private String id;
+        @JsonIgnore
+        SubscribeType type;
+
+        public static SubscribeTypeInfo of(SubscribeType type) {
+            return new SubscribeTypeInfo(type.getId(), type);
+        }
+
+        public String getName() {
+            return type.getName();
         }
     }
 

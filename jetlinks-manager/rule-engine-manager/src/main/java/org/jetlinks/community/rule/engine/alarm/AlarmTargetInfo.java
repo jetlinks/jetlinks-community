@@ -26,8 +26,14 @@ public class AlarmTargetInfo {
 
     private String sourceName;
 
+    private String creatorId;
+
     public static AlarmTargetInfo of(String targetId, String targetName, String targetType) {
-        return AlarmTargetInfo.of(targetId, targetName, targetType, null, null, null);
+        return AlarmTargetInfo.of(targetId, targetName, targetType, null, null, null, null);
+    }
+
+    public static AlarmTargetInfo of(String targetId, String targetName, String targetType, String creatorId) {
+        return AlarmTargetInfo.of(targetId, targetName, targetType, null, null, null, creatorId);
     }
 
     public AlarmTargetInfo withTarget(String type, String id, String name) {

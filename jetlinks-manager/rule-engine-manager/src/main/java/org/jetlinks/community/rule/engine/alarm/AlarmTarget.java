@@ -14,6 +14,10 @@ public interface AlarmTarget {
 
     String getName();
 
+    default Integer getOrder(){
+        return Integer.MAX_VALUE;
+    };
+
     Flux<AlarmTargetInfo> convert(AlarmData data);
 
     default boolean isSupported(String trigger) {

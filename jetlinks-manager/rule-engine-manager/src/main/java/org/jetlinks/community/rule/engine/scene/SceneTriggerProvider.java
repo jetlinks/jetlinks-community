@@ -4,20 +4,27 @@ import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.event.TopicPayload;
+import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.rule.engine.commons.ShakeLimit;
 import org.jetlinks.community.rule.engine.commons.ShakeLimitResult;
 import org.jetlinks.community.rule.engine.commons.impl.SimpleShakeLimitProvider;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
 import org.jetlinks.community.terms.TermSpec;
-import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.jetlinks.community.rule.engine.scene.SceneRule.SOURCE_ID_KEY;
 
@@ -59,11 +66,61 @@ public interface SceneTriggerProvider<E extends SceneTriggerProvider.TriggerConf
     SqlRequest createSql(E config, List<Term> terms, boolean hasFilter);
 
     /**
+     * 订阅触发场景的原始数据流
+     *
+     * @param eventBus   事件总线
+     * @param subscriber 订阅者标识
+     * @param userId     用户ID
+     * @param topic      topic
+     * @return 数据流
+     * @since 2.3
+     */
+    default Flux<Map<String, Object>> subscribe(EventBus eventBus,
+                                                String subscriber,
+                                                String userId,
+                                                String topic) {
+        return Flux.error(new UnsupportedOperationException("not support"));
+    }
+
+
+    /**
+     * 判断当前服务是否支持此触发器
+     *
+     * @return 是否支持
+     * @since 2.3
+     */
+    default Mono<Boolean> isSupported() {
+        return Reactors.ALWAYS_TRUE;
+    }
+
+    /**
+     * 处理SQL执行收到的数据,
+     * 通过{@link SceneTriggerProvider#createSql(TriggerConfig, List, boolean)}和{@link EventBus}
+     * 订阅到的数据将调用此方法处理.
+     *
+     * <pre>{@code
+     *  select * from "/device/p1/d1/event/e1"
+     * }</pre>
+     *
+     * @param payload 事件数据
+     * @param output  处理结果接收器
+     * @return void
+     * @see SceneTriggerProvider#createSql(TriggerConfig, List, boolean)
+     * @see EventBus#subscribe(Subscription, Function)
+     * @since 2.3
+     */
+    default Mono<Void> handleSqlResult(TopicPayload payload,
+                                       Consumer<Map<String, Object>> output) {
+        return Mono.fromRunnable(() -> output.accept(payload.bodyToJson(true)));
+    }
+
+    /**
      * 创建过滤条件.不含where前缀.
      *
      * @param config 配置
      * @param terms  条件
      * @return 条件SQL语句
+     * @see org.jetlinks.community.utils.ReactorUtils#createFilter(List)
      */
     SqlFragments createFilter(E config, List<Term> terms);
 
@@ -122,18 +179,36 @@ public interface SceneTriggerProvider<E extends SceneTriggerProvider.TriggerConf
     Flux<TermColumn> parseTermColumns(E config);
 
     /**
-     * 配置信息
+     * 防抖
      */
     default Flux<ShakeLimitResult<Map<String, Object>>> shakeLimit(String key,
                                                                    Flux<Map<String, Object>> source,
                                                                    ShakeLimit limit) {
+        return shakeLimit(key,
+                          source,
+                          limit,
+                          Mono.never());
+    }
+
+
+    default Flux<ShakeLimitResult<Map<String, Object>>> shakeLimit(String key,
+                                                                   Flux<Map<String, Object>> source,
+                                                                   ShakeLimit limit,
+                                                                   Publisher<Map<String, Object>> resetSignal) {
         return SimpleShakeLimitProvider
             .GLOBAL
-            .shakeLimit(key,
-                        source.groupBy(
-                            data -> String.valueOf(data.getOrDefault(SOURCE_ID_KEY, "null")),
-                            Integer.MAX_VALUE),
-                        limit);
+            .shakeLimit(
+                key,
+                source.groupBy(
+                    data -> String.valueOf(data.getOrDefault(SOURCE_ID_KEY, "null")),
+                    Integer.MAX_VALUE),
+                limit,
+                groupKey -> Flux
+                    .from(resetSignal)
+                    .filter(map -> Objects.equals(
+                        String.valueOf(map.getOrDefault(SOURCE_ID_KEY, "null")),
+                        groupKey
+                    )));
     }
 
     interface TriggerConfig {
