@@ -51,7 +51,7 @@ public class ThirdPartyUserBindEntity extends GenericEntity<String> {
     private String providerName;
 
     @Schema(description = "第三方用户ID")
-    @Column(nullable = false, length = 64, updatable = false)
+    @Column(nullable = false, length = 64)
     @NotBlank(groups = CreateGroup.class)
     private String thirdPartyUserId;
 
@@ -61,7 +61,7 @@ public class ThirdPartyUserBindEntity extends GenericEntity<String> {
     private String userId;
 
     @Schema(description = "绑定时间")
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false)
     @DefaultValue(generator = Generators.CURRENT_TIME)
     private Long bindTime;
 
@@ -76,7 +76,7 @@ public class ThirdPartyUserBindEntity extends GenericEntity<String> {
     private Map<String, Object> others;
 
     public void generateId() {
-        setId(generateId(type, provider, thirdPartyUserId));
+        setId(generateId(type, provider, userId));
     }
 
     public static String generateId(String... arr) {

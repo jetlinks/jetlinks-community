@@ -15,6 +15,7 @@ import java.util.Set;
 public class MenuProperties {
 
     private Set<String> allowAllMenusUsers = new HashSet<>(Collections.singletonList("admin"));
+    private String allowPermission = "menu";
 
     public boolean isAllowAllMenu(Authentication auth) {
         return allowAllMenusUsers.contains(auth.getUser().getUsername());

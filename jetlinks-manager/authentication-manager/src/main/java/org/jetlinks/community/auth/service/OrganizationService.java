@@ -3,6 +3,7 @@ package org.jetlinks.community.auth.service;
 import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
+import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.service.GenericReactiveTreeSupportCrudService;
 import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntity;
@@ -10,6 +11,7 @@ import org.hswebframework.web.system.authorization.defaults.service.DefaultDimen
 import org.jetlinks.community.auth.dimension.OrgDimensionType;
 import org.jetlinks.community.auth.entity.OrganizationEntity;
 import org.jetlinks.community.auth.utils.DimensionUserBindUtils;
+import org.jetlinks.core.event.EventBus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -17,12 +19,22 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 @Service
 @AllArgsConstructor
 public class OrganizationService extends GenericReactiveTreeSupportCrudService<OrganizationEntity, String> {
 
     private DefaultDimensionUserService dimensionUserService;
+
+    private final EventBus eventBus;
+
+    private QueryHelper queryHelper;
+
+    private final Map<String, OrganizationEntity> inMemoryCache = new ConcurrentHashMap<>();
+
 
     @Override
     public IDGenerator<String> getIDGenerator() {
@@ -79,6 +91,7 @@ public class OrganizationService extends GenericReactiveTreeSupportCrudService<O
      * @param orgIdList     机构Id
      * @param removeOldBind 是否删除旧的绑定信息
      * @return void
+     * @see DimensionUserBindUtils#bindUser(DefaultDimensionUserService, Collection, String, Collection, boolean)
      */
     @Transactional
     public Mono<Void> bindUser(Collection<String> userIdList,

@@ -63,6 +63,10 @@ public class EmailTemplate extends AbstractTemplate<EmailTemplate> {
         public static String locationKey(int index) {
             return "_attach_location_" + index;
         }
+
+        public static String locationName(int index) {
+            return "_attach_name_" + index;
+        }
     }
 
 

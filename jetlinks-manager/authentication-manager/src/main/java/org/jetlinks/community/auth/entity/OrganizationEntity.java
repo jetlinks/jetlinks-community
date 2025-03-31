@@ -14,12 +14,15 @@ import org.hswebframework.web.authorization.simple.SimpleDimension;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
+import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.auth.dimension.OrgDimensionType;
+import org.jetlinks.core.things.ThingInfo;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
 import javax.validation.constraints.Pattern;
 import java.sql.JDBCType;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,9 +79,30 @@ public class OrganizationEntity extends GenericTreeSortSupportEntity<String> imp
 
     private List<OrganizationEntity> children;
 
+    public Dimension toDimension(boolean direct,Map<String,Object> _options) {
+        return SimpleDimension.of(getId(), getName(), OrgDimensionType.org, _options);
+
+    }
     public Dimension toDimension(boolean direct) {
-        Map<String, Object> options = new HashMap<>();
-        options.put("direct", direct);
-        return SimpleDimension.of(getId(), getName(), OrgDimensionType.org, options);
+        return toDimension(direct, Collections.emptyMap());
+    }
+
+    public Dimension toParentDimension(){
+        return toParentDimension(Collections.emptyMap());
+    }
+
+    public Dimension toParentDimension(Map<String,Object> _options) {
+        Map<String, Object> options = new HashMap<>(_options);
+        return SimpleDimension.of(getId(), getName(), OrgDimensionType.parentOrg, options);
+    }
+
+    public ThingInfo toThingInfo() {
+        return ThingInfo
+            .builder()
+            .name(name)
+            .id(getId())
+            .configuration(properties)
+            .build()
+            .addConfig(PropertyConstants.creatorId, getCreatorId());
     }
 }

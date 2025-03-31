@@ -1,6 +1,7 @@
 package org.jetlinks.community.auth.dimension;
 
-import lombok.AllArgsConstructor;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveQuery;
@@ -17,20 +18,17 @@ import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntit
 import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
 import org.hswebframework.web.system.authorization.defaults.service.terms.DimensionTerm;
+import org.jetlinks.community.auth.utils.DimensionUserBindUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.transaction.reactive.TransactionSynchronization;
-import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -113,14 +111,19 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
         return genType == null || !genType.isAssignableFrom(type);
     }
 
-
     @EventListener
     public void handleEvent(EntityDeletedEvent<T> event) {
         if (isNotSameType(event.getEntityType())) {
             return;
         }
+        // 删除绑定信息
         event.async(
-            clearUserAuthenticationCache(event.getEntity())
+            DimensionUserBindUtils.unbindUser(
+                dimensionUserService,
+                null,
+                getDimensionType().getId(),
+                Lists.transform(event.getEntity(), GenericEntity::getId))
+//            clearUserAuthenticationCache(event.getEntity())
         );
     }
 
@@ -162,11 +165,10 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
         return true;
     }
 
-
-    private Mono<Void> clearUserAuthenticationCache0(Collection<T> entities) {
+    @SuppressWarnings("all")
+    private Mono<Void> clearUserAuthenticationCache0(Collection<String> idList) {
         return Flux
-            .fromIterable(entities)
-            .mapNotNull(GenericEntity::getId)
+            .fromIterable(Collections2.filter(idList, Objects::nonNull))
             .buffer(200)
             .flatMap(list -> dimensionUserService
                 .createQuery()
@@ -182,15 +184,22 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
             .then();
     }
 
+    protected Mono<Void> clearUserAuthenticationCacheById(Collection<String> entities) {
+        return ClearUserAuthorizationCacheEvent
+            .doOnEnabled(
+                TransactionUtils
+                    .registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        @Nonnull
+                        public Mono<Void> afterCommit() {
+                            return clearUserAuthenticationCache0(entities);
+                        }
+                    }, TransactionSynchronization::afterCommit)
+            );
+    }
+
     protected Mono<Void> clearUserAuthenticationCache(Collection<T> entities) {
-        return TransactionUtils
-            .registerSynchronization(new TransactionSynchronization() {
-                @Override
-                @Nonnull
-                public Mono<Void> afterCommit() {
-                    return clearUserAuthenticationCache0(entities);
-                }
-            }, TransactionSynchronization::afterCommit);
+        return clearUserAuthenticationCacheById(Collections2.transform(entities, GenericEntity::getId));
     }
 
 }

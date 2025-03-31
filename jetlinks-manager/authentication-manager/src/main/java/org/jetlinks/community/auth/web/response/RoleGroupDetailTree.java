@@ -8,6 +8,7 @@ import org.jetlinks.community.auth.entity.RoleEntity;
 import org.jetlinks.community.auth.entity.RoleGroupEntity;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * @author gyl
@@ -28,6 +29,13 @@ public class RoleGroupDetailTree {
         RoleGroupDetailTree roleGroupDetailTree = new RoleGroupDetailTree();
         roleGroupDetailTree.setGroupId(group.getId());
         roleGroupDetailTree.setGroupName(group.getName());
+        return roleGroupDetailTree;
+    }
+
+    public static RoleGroupDetailTree of(RoleGroupEntity group, Locale locale) {
+        RoleGroupDetailTree roleGroupDetailTree = new RoleGroupDetailTree();
+        roleGroupDetailTree.setGroupId(group.getId());
+        roleGroupDetailTree.setGroupName(group.getI18nName(locale));
         return roleGroupDetailTree;
     }
 

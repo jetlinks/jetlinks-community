@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
-import org.hswebframework.web.api.crud.entity.*;
+import org.hswebframework.web.api.crud.entity.QueryNoPagingOperation;
+import org.hswebframework.web.api.crud.entity.QueryParamEntity;
+import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
+import org.hswebframework.web.api.crud.entity.TreeUtils;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
@@ -18,7 +21,6 @@ import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultPermissionService;
-import org.jetlinks.community.auth.configuration.MenuProperties;
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.MenuView;
 import org.jetlinks.community.auth.service.DefaultMenuService;
@@ -33,7 +35,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * 菜单管理
@@ -53,8 +54,6 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
 
     private final MenuGrantService grantService;
 
-    private final MenuProperties properties;
-
     private final DefaultPermissionService permissionService;
 
     @Override
@@ -73,10 +72,11 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
     @Operation(summary = "获取获取全部菜单信息（树结构）")
     public Flux<MenuEntity> getAllMenuAsTree(@RequestBody Mono<QueryParamEntity> queryMono) {
         return queryMono
-            .doOnNext(query -> query
-                .toQuery()
-                .orderByAsc(MenuEntity::getSortIndex)
-                .noPaging())
+            .doOnNext(query -> {
+                query.toQuery()
+                     .orderByAsc(MenuEntity::getSortIndex)
+                     .noPaging();
+            })
             .flatMapMany(defaultMenuService::query)
             .collectList()
             .flatMapIterable(list -> TreeSupportEntity.list2tree(list, MenuEntity::setChildren));
@@ -118,14 +118,7 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
         return Authentication
             .currentReactive()
             .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMapMany(autz -> properties.isAllowAllMenu(autz)
-                ?
-                defaultMenuService
-                    .getMenuViews(queryParam, menu -> true)
-                    .doOnNext(MenuView::grantAll)
-                :
-                defaultMenuService.getGrantedMenus(queryParam, autz.getDimensions())
-            );
+            .flatMapMany(autz -> defaultMenuService.getUserMenuAsList(autz, queryParam));
     }
 
     /**
@@ -143,7 +136,7 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
                            .createQuery()
                            .and(MenuEntity::getOwner, TermType.nin, owner)
                            .fetch())
-                       .map(MenuEntity::getOwner)
+                       .mapNotNull(MenuEntity::getOwner)
                        .distinct();
     }
 
@@ -220,23 +213,7 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
     public Flux<MenuView> getGrantInfo(@PathVariable String targetType,
                                        @PathVariable String targetId,
                                        QueryParamEntity query) {
-
-        Flux<MenuView> allMenu = this.getUserMenuAsList(query).cache();
-        return Mono
-            .zip(
-                defaultMenuService
-                    .getGrantedMenus(targetType, targetId)
-                    .collectMap(GenericEntity::getId),
-                allMenu.collectMap(MenuView::getId, Function.identity()),
-                (granted, all) -> LocaleUtils
-                    .currentReactive()
-                    .flatMapMany(locale -> allMenu
-                        .doOnNext(MenuView::resetGrant)
-                        .map(view -> view
-                            .withGranted(granted.get(view.getId()))
-                        )))
-            .flatMapMany(Function.identity());
-
+        return defaultMenuService.getMenuViews(targetType, targetId, this.getUserMenuAsList(query));
     }
 
 
@@ -274,7 +251,6 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
                 this.save(menus)
             );
     }
-
 
     @GetMapping("/code/_validate")
     @QueryAction
@@ -324,7 +300,7 @@ public class MenuController implements ReactiveServiceCrudController<MenuEntity,
             );
     }
 
-    private static Flux<MenuView> listToTree(Flux<MenuView> flux) {
+    protected static Flux<MenuView> listToTree(Flux<MenuView> flux) {
         return flux
             .collectList()
             .flatMapIterable(list -> TreeUtils.list2tree(list, MenuView::getId, MenuView::getParentId, MenuView::setChildren));

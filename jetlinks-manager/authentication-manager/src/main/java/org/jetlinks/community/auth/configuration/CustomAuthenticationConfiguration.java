@@ -4,8 +4,10 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import org.hswebframework.web.authorization.token.UserTokenManager;
 import org.hswebframework.web.authorization.token.redis.RedisUserTokenManager;
 import org.hswebframework.web.authorization.token.redis.SimpleUserToken;
+import org.jetlinks.community.auth.dimension.UserAuthenticationEventPublisher;
 import org.jetlinks.community.auth.enums.UserEntityType;
 import org.jetlinks.community.auth.web.WebFluxUserController;
+import org.jetlinks.core.event.EventBus;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -20,6 +22,8 @@ import java.time.Duration;
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({MenuProperties.class})
 public class CustomAuthenticationConfiguration {
+
+    static final String CONDITION_CLASS_NAME = "org.jetlinks.community.microservice.configuration.CloudServicesConfiguration";
 
     @Bean
     @Primary
@@ -40,6 +44,11 @@ public class CustomAuthenticationConfiguration {
                                            .asMap());
         userTokenManager.setEventPublisher(eventPublisher);
         return userTokenManager;
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    public UserAuthenticationEventPublisher userDimensionEventPublisher(EventBus eventBus) {
+        return new UserAuthenticationEventPublisher(eventBus);
     }
 
     @Bean
