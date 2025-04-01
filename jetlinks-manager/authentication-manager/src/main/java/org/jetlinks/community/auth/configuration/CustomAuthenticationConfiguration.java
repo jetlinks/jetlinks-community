@@ -20,7 +20,7 @@ import org.springframework.data.redis.core.ReactiveRedisOperations;
 import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({MenuProperties.class})
+@EnableConfigurationProperties({MenuProperties.class,AuthenticationDimensionProperties.class})
 public class CustomAuthenticationConfiguration {
 
     static final String CONDITION_CLASS_NAME = "org.jetlinks.community.microservice.configuration.CloudServicesConfiguration";

@@ -15,6 +15,7 @@ import org.hswebframework.web.system.authorization.defaults.service.DefaultDimen
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.RoleEntity;
 import org.jetlinks.community.auth.enums.RoleState;
+import org.jetlinks.community.auth.event.MenuGrantEvent;
 import org.jetlinks.community.auth.service.DefaultMenuService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -24,8 +25,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 
 @Component
@@ -52,12 +51,18 @@ public class RoleDimensionProvider extends BaseDimensionProvider<RoleEntity> {
 
     @Override
     protected Mono<Dimension> convertToDimension(RoleEntity entity) {
-        return Mono.just(entity.toDimension());
+        return cache
+            .getMono(entity.getId(), () -> Mono.just(entity.toDimension()));
     }
 
     @Override
     protected Class<?> getEntityType() {
         return RoleEntity.class;
+    }
+
+    @EventListener
+    public void handleMenuGrantChanged(MenuGrantEvent event) {
+        event.async(Mono.defer(() -> cache.evict(event.getTargetId())));
     }
 
     @EventListener

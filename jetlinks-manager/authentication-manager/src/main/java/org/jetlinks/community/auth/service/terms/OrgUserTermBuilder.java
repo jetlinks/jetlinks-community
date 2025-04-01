@@ -6,13 +6,14 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.BatchSqlFragments
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.term.AbstractTermFragmentBuilder;
 import org.hswebframework.ezorm.rdb.utils.SqlUtils;
-import org.jetlinks.community.auth.dimension.OrgDimensionType;
+import org.jetlinks.community.authorize.OrgDimensionType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * 查询组织关联的用户.
+ * 可查询职位关联和组织直接关联的用户，使用options指定
  *
  * 只查询组织绑定的用户：
  * <pre>{@code
@@ -24,6 +25,15 @@ import java.util.List;
  *     ]
  * }</pre>
  *
+ * 只查询职位绑定的用户
+ * <pre>{@code
+ *     "terms":[
+ *         {
+ *             "column":"id$in-org-user$position",
+ *             "value":["orgId"]
+ *         }
+ *     ]
+ * }</pre>
  *
  * 查询组织或职位绑定的用户
  * <pre>{@code
@@ -58,12 +68,36 @@ public class OrgUserTermBuilder extends AbstractTermFragmentBuilder {
             fragments.add(SqlFragments.NOT);
         }
 
+        fragments.add(SqlFragments.LEFT_BRACKET);
+        fragments.addSql("exists(select 1 from",
+                         getTableName("s_dimension_user", column),
+                         "d where d.user_id =", columnFullName,
+                         "and (");
+
+        // 职位绑定条件，options未指定时也查询
+        if (hasDimensionTypeOrNull("position", options)) {
+            fragments.addSql("d.dimension_type_id = ?",
+                             // 维度信息关联职位信息
+                             "and exists(select 1 from",
+                             getTableName("s_org_position", column),
+                             "p where p.id = d.dimension_id ")
+                     .addParameter(OrgDimensionType.position.getId());
+            if (!options.contains("any")) {
+                fragments
+                    .addSql("and p.org_id in (")
+                    .add(SqlUtils.createQuestionMarks(values.size()))
+                    .add(SqlFragments.RIGHT_BRACKET)
+                    .addParameter(values);
+            }
+            fragments
+                .add(SqlFragments.RIGHT_BRACKET);
+            if (hasDimensionTypeOrNull("org", options)) {
+                fragments.add(SqlFragments.OR);
+            }
+        }
+
         // 组织绑定条件，options未指定时也查询
-        if (options.contains("org")) {
-            fragments.addSql("exists(select 1 from",
-                             getTableName("s_dimension_user", column),
-                             "d where d.user_id =", columnFullName,
-                             "and (");
+        if (hasDimensionTypeOrNull("org", options)) {
             fragments.addSql("d.dimension_type_id = ?")
                      .addParameter(OrgDimensionType.org.getId());
             if (!options.contains("any")) {
@@ -73,13 +107,16 @@ public class OrgUserTermBuilder extends AbstractTermFragmentBuilder {
                     .add(SqlFragments.RIGHT_BRACKET)
                     .addParameter(values);
             }
-        } else {
-            return fragments;
         }
 
         fragments.add(SqlFragments.RIGHT_BRACKET)
+                 .add(SqlFragments.RIGHT_BRACKET)
                  .add(SqlFragments.RIGHT_BRACKET);
 
         return fragments;
+    }
+
+    private boolean hasDimensionTypeOrNull(String dimensionType, List<String> options) {
+        return options.contains(dimensionType) || !options.contains("position") && !options.contains("org");
     }
 }

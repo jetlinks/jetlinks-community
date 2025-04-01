@@ -77,6 +77,30 @@ public class OrganizationDimensionProvider extends BaseDimensionProvider<Organiz
                    .as(ClearUserAuthorizationCacheEvent::doOnEnabled);
     }
 
+    static void applyDimensions(OrganizationService service,
+                                OrganizationEntity org,
+                                Map<String, Dimension> container,
+                                Map<String, Object> options) {
+        //直接关联的部门
+        container.put(org.getId(), org.toDimension(true, options));
+        //子部门
+        for (OrganizationEntity child : TreeSupportEntity.expandTree2List(org, IDGenerator.MD5)) {
+            container.putIfAbsent(child.getId(), child.toDimension(false, options));
+        }
+        //上级部门.
+        String pid = org.getParentId();
+        while (pid != null) {
+            OrganizationEntity parent = service.getCached(pid).orElse(null);
+            if (parent != null) {
+                container.putIfAbsent(parent.getId(), parent.toParentDimension(options));
+                pid = parent.getParentId();
+            } else {
+                break;
+            }
+        }
+    }
+
+
 
     @EventListener
     public void handleCreatEvent(EntityCreatedEvent<OrganizationEntity> event) {

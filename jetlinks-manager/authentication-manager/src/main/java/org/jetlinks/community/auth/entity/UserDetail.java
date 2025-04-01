@@ -13,11 +13,12 @@ import org.hswebframework.web.authorization.DefaultDimensionType;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
-import org.jetlinks.community.auth.dimension.OrgDimensionType;
 import org.jetlinks.community.auth.enums.*;
 import org.jetlinks.community.auth.service.info.UserLoginInfo;
+import org.jetlinks.community.authorize.OrgDimensionType;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -80,7 +81,16 @@ public class UserDetail {
     @Schema(description = "所在机构(部门)信息")
     private List<OrganizationInfo> orgList;
 
-    @Schema(description = "创建者ID")
+    @Schema(description = "岗位信息")
+    private List<PositionDetail> positions;
+
+    @Schema(description = "上级岗位信息")
+    private List<PositionDetail> parentPositions;
+
+    @Deprecated
+    private boolean tenantDisabled;
+
+    @Schema(description = "创建人ID")
     private String creatorId;
 
     @Schema(description = "创建人名称")
@@ -133,7 +143,6 @@ public class UserDetail {
         return this;
     }
 
-
     public UserDetail with(UserEntity entity) {
         this.setId(entity.getId());
         this.setName(entity.getName());
@@ -161,7 +170,6 @@ public class UserDetail {
             .filter(dim -> DefaultDimensionType.role.isSameType(dim.getType()))
             .map(RoleInfo::of)
             .collect(Collectors.toList());
-
         //组织
         orgList = details
             .stream()
@@ -171,6 +179,22 @@ public class UserDetail {
                 .map(CastUtils::castBoolean)
                 .orElse(false))
             .map(OrganizationInfo::of)
+            .sorted(Comparator.comparingLong(OrganizationInfo::getSortIndex))
+            .collect(Collectors.toList());
+        //岗位
+        positions = details
+            .stream()
+            .filter(dim -> OrgDimensionType.position.isSameType(dim.getType()))
+            .map(PositionDetail::of)
+            .sorted(Comparator.comparingLong(PositionDetail::getSortIndex))
+            .collect(Collectors.toList());
+
+        //上级岗位
+        parentPositions = details
+            .stream()
+            .filter(dim -> OrgDimensionType.parentPosition.isSameType(dim.getType()))
+            .map(PositionDetail::of)
+            .sorted(Comparator.comparingLong(PositionDetail::getSortIndex))
             .collect(Collectors.toList());
 
         return this;
@@ -212,7 +236,17 @@ public class UserDetail {
     }
 
     public UserDetailEntity toDetailEntity() {
-        return FastBeanCopier.copy(this, new UserDetailEntity());
+        return FastBeanCopier.copy(this, UserDetailEntity.of());
+    }
+
+    @JsonIgnore
+    public List<String> getPositionIdList() {
+        return positions == null ? null : Lists.transform(positions, PositionDetail::getId);
+    }
+
+    @JsonIgnore
+    public List<String> getParentPositionIdList() {
+        return parentPositions == null ? null : Lists.transform(parentPositions, PositionDetail::getId);
     }
 
     @JsonIgnore

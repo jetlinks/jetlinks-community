@@ -4,23 +4,27 @@ import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
-import org.hswebframework.web.authorization.ReactiveAuthenticationManager;
+import org.hswebframework.web.authorization.token.UserToken;
 import org.hswebframework.web.authorization.token.UserTokenManager;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntity;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
 import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
 import org.hswebframework.web.system.authorization.api.event.UserDeletedEvent;
 import org.hswebframework.web.system.authorization.api.service.reactive.ReactiveUserService;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.community.auth.entity.UserDetail;
-import org.jetlinks.community.auth.entity.UserDetailEntity;
+import org.jetlinks.community.auth.entity.*;
 import org.jetlinks.community.auth.enums.DefaultUserEntityType;
 import org.jetlinks.community.auth.enums.UserEntityTypes;
+import org.jetlinks.community.auth.service.info.UserLoginConstant;
+import org.jetlinks.community.auth.service.info.UserLoginInfo;
 import org.jetlinks.community.auth.service.request.SaveUserDetailRequest;
 import org.jetlinks.community.auth.service.request.SaveUserRequest;
+import org.jetlinks.community.commons.EmbeddedThingTypes;
+import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.core.things.ThingsRegistry;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -31,9 +35,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -55,10 +57,10 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
 
     private final RoleService roleService;
     private final OrganizationService organizationService;
+    private final PositionService positionService;
     private final static UserDetailEntity emptyDetail = new UserDetailEntity();
 
     private final ApplicationEventPublisher eventPublisher;
-    private final ReactiveAuthenticationManager authenticationManager;
     private final UserTokenManager userTokenManager;
     private final UserSettingService userSettingService;
     private final QueryHelper queryHelper;
@@ -68,21 +70,21 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
     public UserDetailService(ReactiveUserService userService,
                              RoleService roleService,
                              OrganizationService organizationService,
+                             PositionService positionService,
                              ApplicationEventPublisher eventPublisher,
-                             ReactiveAuthenticationManager authenticationManager,
                              UserTokenManager userTokenManager,
                              UserSettingService userSettingService,
                              QueryHelper queryHelper,
                              ThingsRegistry registry) {
         this.userService = userService;
         this.roleService = roleService;
+        this.positionService = positionService;
         this.organizationService = organizationService;
         this.eventPublisher = eventPublisher;
         this.userTokenManager = userTokenManager;
         this.userSettingService = userSettingService;
         this.queryHelper = queryHelper;
         this.registry = registry;
-        this.authenticationManager = authenticationManager;
         // 注册默认用户类型
         UserEntityTypes.register(Arrays.asList(DefaultUserEntityType.values()));
     }
@@ -99,18 +101,9 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
             .zip(
                 userService.findById(userId), // 基本信息
                 this.findById(userId).defaultIfEmpty(emptyDetail), // 详情
-//                memberService.findMemberDetail(userId).collectList(), // 租户成员信息
-                authenticationManager       //用户维度信息
-                                            .getByUserId(userId)
-                                            .map(Authentication::getDimensions)
-                                            .defaultIfEmpty(Collections.emptyList())
+                (user, detail) -> fillUserDetail(UserDetail.of(user).with(detail))
             )
-            .map(tp4 -> UserDetail
-                     .of(tp4.getT1())
-                     .with(tp4.getT2())
-//                .with(tp4.getT3())
-                     .withDimension(tp4.getT3())
-            );
+            .flatMap(Function.identity());
     }
 
     /**
@@ -161,20 +154,38 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
             );
     }
 
-    private Flux<UserDetail> fillUserDetail(List<UserDetail> users) {
+    private Mono<UserDetail> fillUserDetail(UserDetail detail) {
+        return Mono
+            .zip(
+                //用户维度信息
+                ReactiveAuthenticationHolder
+                    .get(detail.getId())
+                    .map(Authentication::getDimensions)
+                    .defaultIfEmpty(Collections.emptyList()),
+                this
+                    .getLastRequestTime(detail.getId())
+                    .defaultIfEmpty(0L),
+                this
+                    .getLoginInfo(detail.getId())
+                    .defaultIfEmpty(UserLoginInfo.EMPTY)
+            )
+            .map(tps -> detail
+                .withDimension(tps.getT1())
+                .withLastRequestTime(tps.getT2())
+                .withUserLoginInfo(tps.getT3()))
+            //填充用户组织机构完整名称
+            .flatMap(this::refactorUserDetail);
+
+    }
+
+    public Flux<UserDetail> fillUserDetail(List<UserDetail> users) {
         if (CollectionUtils.isEmpty(users)) {
             return Flux.empty();
         }
         return Flux
             .fromIterable(users)
-            .flatMap(detail ->
-                         //维度信息
-                         ReactiveAuthenticationHolder
-                             .get(detail.getId())
-                             .map(Authentication::getDimensions)
-                             .defaultIfEmpty(Collections.emptyList())
-                             .map(dimensions -> detail.withDimension(dimensions))
-            );
+            .flatMap(this::fillUserDetail, 8)
+            .thenMany(Flux.fromIterable(users));
     }
 
     /**
@@ -201,6 +212,8 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
                     .then(roleService.bindUser(Collections.singleton(userId), request.getRoleIdList(), isUpdate))
                     //绑定机构部门
                     .then(organizationService.bindUser(Collections.singleton(userId), request.getOrgIdList(), isUpdate))
+                    //绑定岗位
+                    .then(positionService.bindUser(Collections.singleton(userId), request.getPositions(), isUpdate))
                     .thenReturn(userId);
             })
             //禁用上游产生的清空用户权限事件,因为可能会导致重复执行
@@ -220,6 +233,143 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
         event.async(
             this.deleteById(event.getUser().getId())
         );
+    }
+
+    private Mono<Long> getLastRequestTime(String userId) {
+        return userTokenManager
+            .getByUserId(userId)
+            .filter(UserToken::isNormal)
+            .map(UserToken::getLastRequestTime)
+            .reduce(Math::max);
+    }
+
+    private Mono<UserLoginInfo> getLoginInfo(String userId) {
+        return registry
+            .getThing(EmbeddedThingTypes.user, userId)
+            .flatMap(UserLoginInfo::readFrom)
+            .switchIfEmpty(Mono.defer(() -> {
+                // todo 弃用此方式
+                return userSettingService
+                    .findById(UserSettingEntity.generateId(userId, UserLoginConstant.USER_LOGIN_INFO, UserLoginConstant.LAST_LOGIN_INFO))
+                    .map(s -> ObjectMappers.parseJson(s.getContent(), UserLoginInfo.class));
+            }));
+
+    }
+
+    private void refactorOrg(OrganizationInfo info) {
+        OrganizationEntity org = organizationService.getCached(info.getId()).orElse(null);
+        if (org == null) {
+            return;
+        }
+        info.setName(org.getName());
+        String parentId = org.getParentId();
+
+        while (StringUtils.hasText(parentId)) {
+            org = organizationService.getCached(parentId).orElse(null);
+            if (org == null) {
+                break;
+            }
+            parentId = org.getParentId();
+            info.addParentFullName(org.getName());
+        }
+    }
+
+    private OrganizationInfo refactorPosition(PositionDetail position) {
+        OrganizationEntity org = organizationService
+            .getCached(position.getOrgId())
+            .orElse(null);
+        if (org == null) {
+            return null;
+        }
+        OrganizationInfo info = OrganizationInfo.from(org);
+        refactorOrg(info);
+        position.withOrg(info);
+        return info;
+    }
+
+    /**
+     * 填充用户组织、职位等完整信息
+     *
+     * @param userDetail 用户信息
+     * @return 用户所属组织的完整名称集合
+     */
+    private Mono<UserDetail> refactorUserDetail(UserDetail userDetail) {
+
+        Map<String, OrganizationInfo> orgMap = new HashMap<>();
+        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(userDetail.getOrgList())) {
+            for (OrganizationInfo organizationInfo : userDetail.getOrgList()) {
+                refactorOrg(organizationInfo);
+                orgMap.put(organizationInfo.getId(), organizationInfo);
+            }
+        }
+
+        if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(userDetail.getPositions())) {
+            for (PositionDetail position : userDetail.getPositions()) {
+                OrganizationInfo org = refactorPosition(position);
+                if (org != null) {
+                    orgMap.put(org.getId(), org);
+                }
+            }
+        }
+        //可能职位的组织不是用户的所在组织, 可能是下级组织的职位.
+        if (!orgMap.isEmpty()) {
+            List<OrganizationInfo> newOrg = new ArrayList<>(orgMap.values());
+            newOrg.sort(Comparator.comparing(OrganizationInfo::getSortIndex));
+            userDetail.setOrgList(newOrg);
+        }
+
+        return Mono.just(userDetail);
+//        return Flux.fromIterable(userDetail.getOrgList())
+//                   .collect(HashSet<String>::new, (set, value) -> set.add(value.getId()))
+//                   .flatMapMany(orgIds ->
+//                                    organizationService.findById(orgIds)
+//                                                       .map(OrganizationInfo::from)
+//                                                       .collectList()
+//                                                       .doOnNext(userDetail::setOrgList)
+//                                                       .flatMapMany(Flux::fromIterable)
+//                                                       .filter(info -> StringUtils.hasText(info.getParentId()))
+//                                                       .collect(HashSet<String>::new, (set, info) -> set.add(info.getParentId()))
+//                                                       .flatMapMany(parentIds ->
+//                                                                        organizationService.createQuery()
+//                                                                                           .in(OrganizationEntity::getId, parentIds)
+//                                                                                           .fetch())
+//                                                       .collectMap(OrganizationEntity::getId, OrganizationEntity::getName)
+//                                                       .flatMapMany(map ->
+//                                                                        Flux.fromIterable(userDetail.getOrgList())
+//                                                                            .doOnNext(organizationInfo ->
+//                                                                                          organizationInfo.addParentFullName(map.get(organizationInfo.getParentId()))))
+//                   )
+//                   .then(Mono.just(userDetail));
+    }
+
+    /**
+     * 查询用户信息（包含用户维度关联信息）
+     *
+     * @param query         查询条件
+     * @param dimensionType 维度类型
+     * @param dimensionId   维度id
+     * @return Mono<PagerResult < UserDetail>>
+     */
+    public Mono<PagerResult<UserDetail>> queryUserIncludeDimensionInfo(QueryParamEntity query,
+                                                                       String dimensionType,
+                                                                       String dimensionId) {
+        return queryHelper
+            .select(UserDetail.class)
+            .as(UserEntity::getId, UserDetail::setId)
+            .as(UserEntity::getName, UserDetail::setName)
+            .as(UserEntity::getUsername, UserDetail::setUsername)
+            .as(UserEntity::getType, UserDetail::setTypeId)
+            .as(UserEntity::getStatus, UserDetail::setStatus)
+            .as(UserEntity::getCreateTime, UserDetail::setCreateTime)
+            .as(UserEntity::getCreatorId, UserDetail::setCreatorId)
+            .as(DimensionUserEntity::getRelationTime, UserDetail::setRelationTime)
+            .from(UserEntity.class)
+            .leftJoin(DimensionUserEntity.class, j ->
+                j.is(DimensionUserEntity::getUserId, UserEntity::getId)
+                 .and(DimensionUserEntity::getDimensionTypeId, dimensionType)
+                 .and(DimensionUserEntity::getDimensionId, dimensionId))
+            .where(query)
+            .fetchPaged();
     }
 
 }

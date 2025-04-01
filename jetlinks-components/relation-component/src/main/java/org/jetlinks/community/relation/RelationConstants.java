@@ -16,6 +16,10 @@ public interface RelationConstants {
         ConfigKey<List<String>> departments = ConfigKey.of("departments", "所在部门");
         ConfigKey<List<String>> roles = ConfigKey.of("roles", "角色");
 
+        ConfigKey<List<String>> organizations = ConfigKey.of("organizations", "所在组织");
+        ConfigKey<List<String>> positions = ConfigKey.of("positions", "岗位");
+        ConfigKey<List<String>> parentPositions = ConfigKey.of("parentPositions", "上级岗位");
+
         static ConfigKey<String> thirdParty(String type, String provider) {
             return ConfigKey.of(String.join(".", "third", type, provider), "第三方用户ID", String.class);
         }
