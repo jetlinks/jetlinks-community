@@ -35,4 +35,9 @@ class ElasticSearchRowModeDDLOperations extends RowModeDDLOperationsBase {
         return indexManager
             .putIndex(new DefaultElasticSearchIndexMetadata(metric, properties));
     }
+
+    @Override
+    protected boolean isOnlySupportsOneObjectOrArrayProperty() {
+        return true;
+    }
 }

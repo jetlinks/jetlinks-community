@@ -183,7 +183,6 @@ public class DeviceSessionMeasurementProvider extends StaticMeasurementProvider 
                     SimplePropertyMetadata.of("name", "name", StringType.GLOBAL),
                     SimplePropertyMetadata.of("duration", "duration", LongType.GLOBAL),
                     SimplePropertyMetadata.of("count", "count", LongType.GLOBAL),
-                    SimplePropertyMetadata.of("bindings", "bindings", new ArrayType().elementType(StringType.GLOBAL)),
                     SimplePropertyMetadata.of("connectTime", "connectTime", DateTimeType.GLOBAL)
                 ))
             .block(Duration.ofSeconds(30));

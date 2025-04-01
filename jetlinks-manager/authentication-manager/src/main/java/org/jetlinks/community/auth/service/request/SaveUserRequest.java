@@ -32,9 +32,6 @@ public class SaveUserRequest {
     @Schema(description = "机构ID列表")
     private Set<String> orgIdList;
 
-    @Schema(description = "岗位ID列表")
-    private Set<String> positions;
-
     public SaveUserRequest validate() {
         if (user == null) {
             throw new IllegalArgumentException("user can not be null");
