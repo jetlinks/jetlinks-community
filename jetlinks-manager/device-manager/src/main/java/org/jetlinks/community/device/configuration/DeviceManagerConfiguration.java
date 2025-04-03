@@ -12,6 +12,7 @@ import org.jetlinks.community.device.service.data.*;
 import org.jetlinks.community.rule.engine.executor.DeviceSelectorBuilder;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProvider;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.server.MessageHandler;
 import org.jetlinks.core.things.ThingsRegistry;
@@ -32,15 +33,12 @@ import java.time.Duration;
 @EnableConfigurationProperties({DeviceDataStorageProperties.class, DeviceEventProperties.class})
 public class DeviceManagerConfiguration {
 
-    @Bean(destroyMethod = "shutdown")
-    @Order(Ordered.HIGHEST_PRECEDENCE + 100)
-    @DependsOn({"meterRegistryManager"})
+    @Bean
     public DeviceMessageConnector deviceMessageConnector(EventBus eventBus,
                                                          MessageHandler messageHandler,
-                                                         ThingsRegistry registry) {
-        return new DeviceMessageConnector(eventBus,
-                                          registry,
-                                          messageHandler);
+                                                         DeviceSessionManager sessionManager,
+                                                         DeviceRegistry registry) {
+        return new DeviceMessageConnector(eventBus, registry, messageHandler, sessionManager);
     }
 
     @Bean

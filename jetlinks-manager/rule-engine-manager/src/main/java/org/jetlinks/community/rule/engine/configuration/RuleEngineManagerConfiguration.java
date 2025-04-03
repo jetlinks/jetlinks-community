@@ -14,19 +14,11 @@ import org.jetlinks.core.event.EventBus;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 @AutoConfiguration
 public class RuleEngineManagerConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean(AlarmHistoryService.class)
-    public ElasticSearchAlarmHistoryService alarmHistoryService(ElasticSearchIndexManager indexManager,
-                                                                ElasticSearchService elasticSearchService,
-                                                                AggregationService aggregationService) {
-        return new ElasticSearchAlarmHistoryService(indexManager, elasticSearchService, aggregationService);
-    }
 
     @Bean
     public SceneTaskExecutorProvider sceneTaskExecutorProvider(EventBus eventBus,
@@ -57,5 +49,17 @@ public class RuleEngineManagerConfiguration {
             new AlarmRuleBindCommandSupport(ruleBindService),
             new AlarmCommandSupport(alarmHandler)
         );
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(ElasticSearchService.class)
+    static class ElasticSearchAlarmHistoryConfiguration {
+
+        @Bean(initMethod = "init")
+        public ElasticSearchAlarmHistoryService alarmHistoryService(ElasticSearchService elasticSearchService,
+                                                                    ElasticSearchIndexManager indexManager,
+                                                                    AggregationService aggregationService) {
+            return new ElasticSearchAlarmHistoryService(indexManager, elasticSearchService, aggregationService);
+        }
     }
 }

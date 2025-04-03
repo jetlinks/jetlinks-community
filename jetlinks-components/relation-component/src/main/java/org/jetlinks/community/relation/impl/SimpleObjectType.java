@@ -88,6 +88,20 @@ public class SimpleObjectType implements ObjectType, Externalizable {
         return this;
     }
 
+    public SimpleObjectType withRelation(ObjectType type, List<? extends Relation> relation) {
+        withRelation(type.getId(), relation);
+        withRelatedType(type);
+        return this;
+    }
+
+    public SimpleObjectType withRelatedType(ObjectType type) {
+        if (relatedTypes == null) {
+            relatedTypes = new ArrayList<>();
+        }
+        relatedTypes.add(type);
+        return this;
+    }
+
     public SimpleObjectType withProperty(String id, String name, DataType type) {
         return withProperty(SimplePropertyMetadata.of(id, name, type));
     }
