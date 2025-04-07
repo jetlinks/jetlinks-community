@@ -3,7 +3,7 @@ package org.jetlinks.community.notify.manager.subscriber;
 import org.hswebframework.web.authorization.Authentication;
 import org.jetlinks.community.notify.enums.SubscriberTypeEnum;
 import org.jetlinks.community.notify.subscription.SubscribeType;
-import org.jetlinks.community.spi.Provider;
+import org.jetlinks.core.Wrapper;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import reactor.core.publisher.Flux;
@@ -11,12 +11,13 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-public interface SubscriberProvider {
-    /**
-     * 全部支持的订阅提供商
-     */
-    Provider<SubscriberProvider> supports = Provider.create(SubscriberProvider.class);
-
+/**
+ * 个人订阅提供商,用于提供对不同类型的个人订阅的支持. 如: 设备告警等.
+ *
+ * @author zhouhao
+ * @since 2.2
+ */
+public interface SubscriberProvider extends Wrapper {
     /**
      * @return 唯一标识
      */

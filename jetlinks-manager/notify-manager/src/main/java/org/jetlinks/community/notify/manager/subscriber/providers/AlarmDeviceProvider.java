@@ -2,12 +2,13 @@ package org.jetlinks.community.notify.manager.subscriber.providers;
 
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.Authentication;
+import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.notify.manager.subscriber.Subscriber;
+import org.jetlinks.community.topic.Topics;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.StringType;
-import org.jetlinks.community.notify.manager.subscriber.Subscriber;
-import org.jetlinks.community.topic.Topics;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,7 +30,13 @@ public class AlarmDeviceProvider extends AlarmProvider {
 
     @Override
     public String getName() {
-        return "设备告警";
+        return LocaleUtils
+            .resolveMessage("message.subscriber.provider.alarm-device", "设备告警");
+    }
+
+    @Override
+    public Integer getOrder() {
+        return 100;
     }
 
     @Override

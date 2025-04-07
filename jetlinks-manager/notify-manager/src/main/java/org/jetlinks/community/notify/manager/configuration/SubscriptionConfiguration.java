@@ -13,8 +13,9 @@ public class SubscriptionConfiguration {
     @Bean
     public ApplicationContextAware subscriberAutoRegister(ObjectProvider<SubscriberProvider> providers) {
 
-        providers.forEach(SubscriberProviders::register);
         return applicationContext -> {
+            applicationContext.getBeanProvider(SubscriberProvider.class)
+                              .forEach(SubscriberProviders::register);
         };
     }
 
