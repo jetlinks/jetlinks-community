@@ -23,6 +23,15 @@ public class BufferProperties {
     //最大重试次数,超过此次数的数据将会放入死队列.
     private long maxRetryTimes = 64;
 
+    //文件操作的最大并行度,默认为1,不建议设置超过4.
+    private int fileConcurrency = 1;
+
+    //消费策略 默认先进先出
+    private ConsumeStrategy strategy = ConsumeStrategy.FIFO;
+
+    //淘汰策略
+    private BufferEvictionSpec eviction = new BufferEvictionSpec();
+
     public boolean isExceededRetryCount(int count) {
         return maxRetryTimes > 0 && count >= maxRetryTimes;
     }

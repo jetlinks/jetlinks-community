@@ -6,8 +6,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
-import org.hswebframework.web.crud.events.EntityPrepareCreateEvent;
-import org.hswebframework.web.crud.events.EntityPrepareSaveEvent;
+import org.hswebframework.web.crud.events.*;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
@@ -23,6 +22,7 @@ import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 import org.jetlinks.community.topic.Topics;
+import org.jetlinks.community.utils.ReactorUtils;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.metadata.ConfigMetadata;
@@ -131,6 +131,148 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
     }
 
     @EventListener
+    public void handleChannelEvent(EntityCreatedEvent<NotifySubscriberChannelEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity ->
+                         providerChannels
+                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
+                             .addChannel(providerEntity)
+                )
+        );
+    }
+
+    @EventListener
+    public void handleChannelEvent(EntityModifyEvent<NotifySubscriberChannelEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getAfter())
+                .map(providerEntity ->
+                         providerChannels
+                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
+                             .addChannel(providerEntity)
+                )
+        );
+    }
+
+    @EventListener
+    public void handleChannelEvent(EntitySavedEvent<NotifySubscriberChannelEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity ->
+                         providerChannels
+                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
+                             .addChannel(providerEntity)
+                )
+        );
+    }
+
+    @EventListener
+    public void handleChannelEvent(EntityDeletedEvent<NotifySubscriberChannelEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity ->
+                         providerChannels
+                             .computeIfAbsent(providerEntity.getProviderId(), ignore -> new NotifySubscriberProviderCache())
+                             .removeChannel(providerEntity)
+                )
+        );
+    }
+
+    @EventListener
+    public void handleEvent(EntityCreatedEvent<NotifySubscriberProviderEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity ->
+                         providerChannels
+                             .computeIfAbsent(providerEntity.getId(), ignore -> new NotifySubscriberProviderCache())
+                             .update(providerEntity)
+                )
+        );
+    }
+
+    @EventListener
+    public void handleEvent(EntityModifyEvent<NotifySubscriberProviderEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getAfter())
+                .map(providerEntity ->
+                         providerChannels
+                             .computeIfAbsent(providerEntity.getId(), ignore -> new NotifySubscriberProviderCache())
+                             .update(providerEntity)
+                )
+        );
+    }
+
+    @EventListener
+    public void handleEvent(EntitySavedEvent<NotifySubscriberProviderEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity ->
+                         providerChannels
+                             .computeIfAbsent(providerEntity.getId(), ignore -> new NotifySubscriberProviderCache())
+                             .update(providerEntity)
+                )
+        );
+    }
+
+    @EventListener
+    public void handleEvent(EntityDeletedEvent<NotifySubscriberProviderEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity -> {
+                    ReactorUtils.dispose(providerChannels.remove(providerEntity.getId()));
+                    return Mono.empty();
+                })
+        );
+    }
+
+
+    @EventListener
+    public void handleSubscriberEvent(EntityDeletedEvent<NotifySubscriberEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity -> {
+                    providerEntity.setState(SubscribeState.disabled);
+                    handleSubscribe(providerEntity);
+                    return Mono.empty();
+                })
+        );
+    }
+
+    @EventListener
+    public void handleSubscriberEvent(EntitySavedEvent<NotifySubscriberEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity -> {
+                    handleSubscribe(providerEntity);
+                    return Mono.empty();
+                })
+        );
+    }
+
+    @EventListener
+    public void handleSubscriberEvent(EntityModifyEvent<NotifySubscriberEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getAfter())
+                .map(providerEntity -> {
+                    handleSubscribe(providerEntity);
+                    return Mono.empty();
+                })
+        );
+    }
+
+    @EventListener
+    public void handleSubscriberEvent(EntityCreatedEvent<NotifySubscriberEntity> entity) {
+        entity.async(
+            Flux.fromIterable(entity.getEntity())
+                .map(providerEntity -> {
+                    handleSubscribe(providerEntity);
+                    return Mono.empty();
+                })
+        );
+    }
+
+
+    @EventListener
     public void handleEvent(EntityPrepareCreateEvent<NotifySubscriberEntity> entity) {
         //填充语言
         entity.async(
@@ -161,6 +303,7 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
                 })
         );
     }
+
 
     private void handleSubscribe(NotifySubscriberEntity entity) {
 

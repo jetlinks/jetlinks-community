@@ -54,7 +54,7 @@ public class NotifyHistory {
         if (null == event.getId()) {
             history.setId(IDGenerator.RANDOM.generate());
         }
-        history.setNotifyTime(event.getSendTime());
+        history.setNotifyTime(System.currentTimeMillis());
         if (null != event.getTemplate()) {
             history.setTemplate(ObjectMappers.toJsonString(event.getTemplate()));
         }
