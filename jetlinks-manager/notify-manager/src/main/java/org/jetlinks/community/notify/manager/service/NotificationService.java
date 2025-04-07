@@ -6,7 +6,9 @@ import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.jetlinks.community.buffer.BufferSettings;
 import org.jetlinks.community.buffer.PersistenceBuffer;
+import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.notify.manager.configuration.NotificationProperties;
+import org.jetlinks.community.notify.manager.entity.Notification;
 import org.jetlinks.community.notify.manager.entity.NotificationEntity;
 import org.jetlinks.community.notify.manager.enums.NotificationState;
 import org.jetlinks.community.utils.ErrorUtils;
@@ -17,6 +19,7 @@ import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.CannotCreateTransactionException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -54,6 +57,12 @@ public class NotificationService extends GenericReactiveCrudService<Notification
     public void dispose() {
         writer.stop();
     }
+
+    @Subscribe("/notifications/**")
+    public Mono<Void> subscribeNotifications(Notification notification) {
+        return writer.writeAsync(NotificationEntity.from(notification));
+    }
+
 
     public Flux<NotificationEntity> findAndMarkRead(QueryParamEntity query) {
         return this

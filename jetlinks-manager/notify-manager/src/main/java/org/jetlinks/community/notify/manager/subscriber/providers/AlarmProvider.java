@@ -7,9 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.ValueObject;
+import org.jetlinks.community.notify.enums.SubscriberTypeEnum;
 import org.jetlinks.community.notify.manager.subscriber.Notify;
 import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
+import org.jetlinks.community.notify.subscription.SubscribeType;
 import org.jetlinks.community.topic.Topics;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
@@ -21,7 +23,6 @@ import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.LongType;
 import org.jetlinks.core.metadata.types.StringType;
 import org.jetlinks.core.utils.FluxUtils;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -30,7 +31,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-@Component
 @Slf4j
 public class AlarmProvider implements SubscriberProvider {
 
@@ -47,7 +47,19 @@ public class AlarmProvider implements SubscriberProvider {
 
     @Override
     public String getName() {
-        return "告警";
+        return LocaleUtils
+            .resolveMessage("message.subscriber.provider.alarm", "告警");
+    }
+
+    @Override
+    public SubscribeType getType() {
+        return SubscriberTypeEnum.alarm;
+    }
+
+    @Override
+    public Mono<Subscriber> createSubscriber(String id, Authentication authentication, Map<String, Object> config) {
+        String topic = Topics.alarm("*", "*", getAlarmId(config));
+        return doCreateSubscriber(id, authentication, topic);
     }
 
     @Override
@@ -56,15 +68,9 @@ public class AlarmProvider implements SubscriberProvider {
             .add("alarmConfigId", "告警规则", "告警规则,支持通配符:*", StringType.GLOBAL);
     }
 
-    @Override
-    public Mono<Subscriber> createSubscriber(String id, Authentication authentication, Map<String, Object> config) {
-
-        String topic = Topics.alarm("*", "*", getAlarmId(config));
-
-        return Mono.just(locale -> createSubscribe(locale, id, new String[]{topic})
-            //有效期内去重,防止同一个用户所在多个部门推送同一个告警
-            .as(FluxUtils.distinct(Notify::getDataId, Duration.ofSeconds(10))));
-
+    protected String getAlarmId(Map<String, Object> config) {
+        ValueObject configs = ValueObject.of(config);
+        return configs.getString("alarmConfigId").orElse("*");
     }
 
     protected Mono<Subscriber> doCreateSubscriber(String id,
@@ -73,11 +79,6 @@ public class AlarmProvider implements SubscriberProvider {
         return Mono.just(locale -> createSubscribe(locale, id, new String[]{topic})
             //有效期内去重,防止同一个用户所在多个部门推送同一个告警
             .as(FluxUtils.distinct(Notify::getDataId, Duration.ofSeconds(10))));
-    }
-
-    protected String getAlarmId(Map<String, Object> config) {
-        ValueObject configs = ValueObject.of(config);
-        return configs.getString("alarmConfigId").orElse("*");
     }
 
     private Flux<Notify> createSubscribe(Locale locale,
@@ -116,11 +117,7 @@ public class AlarmProvider implements SubscriberProvider {
         TargetType targetType = TargetType.of(json.getString("targetType"));
         String targetName = json.getString("targetName");
         String alarmName = json.getString("alarmConfigName");
-        if (targetType == TargetType.scene) {
-            message = String.format("[%s]发生告警:[%s]!", targetName, alarmName);
-        } else {
-            message = String.format("%s[%s]发生告警:[%s]!", targetType.getText(), targetName, alarmName);
-        }
+        message = String.format("%s[%s]发生告警:[%s]!", targetType.getText(), targetName, alarmName);
         return LocaleUtils.resolveMessage("message.alarm.notify." + targetType.name(), locale, message, targetName, alarmName);
     }
 
@@ -144,7 +141,6 @@ public class AlarmProvider implements SubscriberProvider {
         device("设备"),
         product("产品"),
         scene("场景");
-
         private final String text;
 
         public static TargetType of(String name) {
