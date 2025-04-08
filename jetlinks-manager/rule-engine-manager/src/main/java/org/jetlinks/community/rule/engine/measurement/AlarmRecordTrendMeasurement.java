@@ -9,6 +9,7 @@ import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
@@ -62,11 +63,17 @@ public class AlarmRecordTrendMeasurement extends StaticMeasurement {
         }
 
         public AggregationQueryParam createQueryParam(MeasurementParameter parameter) {
+            String targetType = parameter.getString("targetType").orElse(null);
+            String targetId = parameter.getString("targetId").orElse(null);
             return AggregationQueryParam
                 .of()
                 .groupBy(parameter.getInterval("time", null),
                          parameter.getString("format").orElse("MM月dd日 HH时"))
-                .count("targetId", "count")
+                .sum("count", "count")
+                .filter(query -> query
+                    .when(StringUtils.hasText(targetType), q -> q.and("targetType", targetType))
+                    .when(StringUtils.hasText(targetId), q -> q.and("targetId",targetId))
+                )
                 .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter
                           .getDate("from")
@@ -83,13 +90,12 @@ public class AlarmRecordTrendMeasurement extends StaticMeasurement {
         public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
             AggregationQueryParam param = createQueryParam(parameter);
             return Flux.defer(()-> param
-                .execute(timeSeriesManager.getService(AlarmTimeSeriesMetric.alarmStreamMetrics())::aggregation)
-                .index((index, data) -> SimpleMeasurementValue.of(
-                    data.getLong("count",0),
-                    data.getString("time",""),
-                    index)))
-                .take(param.getLimit());
+                           .execute(timeSeriesManager.getService(AlarmTimeSeriesMetric.alarmStreamMetrics())::aggregation)
+                           .index((index, data) -> SimpleMeasurementValue.of(
+                               data.getLong("count",0),
+                               data.getString("time",""),
+                               index)))
+                       .take(param.getLimit());
         }
-
     }
 }
