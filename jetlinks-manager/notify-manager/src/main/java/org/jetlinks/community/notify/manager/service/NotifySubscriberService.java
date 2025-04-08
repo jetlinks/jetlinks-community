@@ -10,10 +10,6 @@ import org.hswebframework.web.crud.events.*;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.event.Subscription;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.utils.CompositeMap;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.notify.manager.configuration.NotifySubscriberProperties;
 import org.jetlinks.community.notify.manager.entity.Notification;
@@ -27,6 +23,10 @@ import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
 import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 import org.jetlinks.community.topic.Topics;
 import org.jetlinks.community.utils.ReactorUtils;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
+import org.jetlinks.core.metadata.ConfigMetadata;
+import org.jetlinks.core.utils.CompositeMap;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationEventPublisher;
@@ -434,8 +434,13 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
         }
 
         public void handleSubscriberEntity(NotifySubscriberEntity entity) {
+            NotifySubscriberProviderCache cache = providerChannels.get(entity.getProviderId());
+            NotifySubscriberProviderEntity provider = null;
+            if (cache != null) {
+                provider = cache.getProvider();
+            }
             //取消订阅
-            if (entity.getState() == SubscribeState.disabled) {
+            if ((provider != null && provider.getState() == NotifyChannelState.disabled) || entity.getState() == SubscribeState.disabled) {
                 Disposable disp = subs.remove(entity.getId());
                 if (disp != null) {
                     log.debug("unsubscribe:{}({}),{},subscriber:{}",
@@ -608,6 +613,10 @@ public class NotifySubscriberService extends GenericReactiveCrudService<NotifySu
         private NotifySubscriberProviderEntity provider;
 
         private final Map<String, NotifySubscriberChannelEntity> channels = new ConcurrentHashMap<>();
+
+        public NotifySubscriberProviderEntity getProvider(){
+            return provider;
+        }
 
         public Mono<Void> update(NotifySubscriberProviderEntity entity) {
             provider = entity;
