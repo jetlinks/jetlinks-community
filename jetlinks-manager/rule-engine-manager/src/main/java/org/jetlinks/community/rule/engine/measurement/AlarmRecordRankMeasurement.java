@@ -71,6 +71,7 @@ public class AlarmRecordRankMeasurement extends StaticMeasurement {
 
         public AggregationQueryParam createQueryParam(MeasurementParameter parameter) {
             AggregationQueryParam aggregationQueryParam = AggregationQueryParam.of();
+            aggregationQueryParam.setTimeProperty("alarmTime");
             String targetType = parameter.getString("targetType").orElse(null);
             String targetId = parameter.getString("targetId").orElse(null);
             return aggregationQueryParam
