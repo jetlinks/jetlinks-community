@@ -18,7 +18,6 @@ public class TermTypes {
         for (FixedTermTypeSupport value : FixedTermTypeSupport.values()) {
             register(value);
         }
-        register(new ExistsTermSupport());
     }
 
     public static void register(TermTypeSupport support){
