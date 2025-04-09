@@ -173,8 +173,9 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
                              .get(detail.getId())
                              .map(Authentication::getDimensions)
                              .defaultIfEmpty(Collections.emptyList())
-                             .map(dimensions -> detail.withDimension(dimensions))
-            );
+                             .map(detail::withDimension)
+            )
+            .thenMany(Flux.fromIterable(users));
     }
 
     /**
