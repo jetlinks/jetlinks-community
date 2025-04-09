@@ -19,6 +19,7 @@ import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
@@ -126,6 +127,8 @@ public class DeviceInstanceController implements
 
     private final DefaultPropertyMetricManager metricManager;
 
+    private final QueryHelper queryHelper;
+
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
                                     DeviceRegistry registry,
@@ -139,7 +142,8 @@ public class DeviceInstanceController implements
                                     FileManager fileManager,
                                     WebClient.Builder builder,
                                     DeviceExcelFilterColumns filterColumns,
-                                    DefaultPropertyMetricManager metricManager) {
+                                    DefaultPropertyMetricManager metricManager,
+                                    QueryHelper queryHelper) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
@@ -153,6 +157,7 @@ public class DeviceInstanceController implements
         this.webClient = builder.build();
         this.filterColumns = filterColumns;
         this.metricManager = metricManager;
+        this.queryHelper = queryHelper;
     }
 
 
@@ -497,6 +502,16 @@ public class DeviceInstanceController implements
         return tagRepository.createQuery()
                             .where(DeviceTagEntity::getDeviceId, deviceId)
                             .fetch();
+    }
+
+    @GetMapping("/tags/key")
+    @QueryAction
+    @Operation(summary = "获取全部标签key")
+    public Flux<DeviceTagEntity> getTagKeys() {
+        return queryHelper
+                .select("select distinct key, name from dev_device_tags", DeviceTagEntity::new)
+                .fetch()
+            .distinct(DeviceTagEntity::getKey);
     }
 
     //保存设备标签
