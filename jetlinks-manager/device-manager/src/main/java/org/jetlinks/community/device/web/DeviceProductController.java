@@ -42,8 +42,6 @@ import org.jetlinks.community.web.response.ValidationResult;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.bind.annotation.*;
@@ -277,6 +275,11 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
 
         private ConfigMetadata configMetadata;
 
+        public String getName(){
+            return LocaleUtils.resolveMessage("device.data.store." + this.id + ".name", this.name);
+        }
+
+
         public static DeviceDataStorePolicyInfo of(ThingsDataRepositoryStrategy strategy) {
             return new DeviceDataStorePolicyInfo(strategy.getId(), strategy.getName(), null, null);
         }
@@ -288,8 +291,6 @@ public class DeviceProductController implements ReactiveServiceCrudController<De
     public Mono<Void> mergeMetadataToDevice(@PathVariable @Parameter(description = "产品ID") String productId) {
         return productService.mergeMetadataToDevice(productId);
     }
-
-    private final DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
 
     //获取产品物模型属性导入模块
     @GetMapping("/{productId}/property-metadata/template.{format}")
