@@ -1,29 +1,35 @@
 package org.jetlinks.community.auth.dimension;
 
-import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.DimensionType;
+import org.hswebframework.web.crud.events.EntityCreatedEvent;
+import org.hswebframework.web.id.IDGenerator;
+import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
 import org.hswebframework.web.system.authorization.defaults.service.terms.DimensionTerm;
 import org.jetlinks.community.auth.entity.OrganizationEntity;
-import org.jetlinks.community.auth.entity.OrganizationEntity;
+import org.jetlinks.community.auth.service.OrganizationService;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class OrganizationDimensionProvider extends BaseDimensionProvider<OrganizationEntity> {
 
-    public OrganizationDimensionProvider(ReactiveRepository<OrganizationEntity, String> repository,
+    private final OrganizationService organizationService;
+
+    public OrganizationDimensionProvider(OrganizationService organizationService,
                                          DefaultDimensionUserService dimensionUserService,
                                          ApplicationEventPublisher eventPublisher) {
-        super(repository, eventPublisher, dimensionUserService);
+        super(organizationService.getRepository(), eventPublisher, dimensionUserService);
+        this.organizationService = organizationService;
     }
 
     @Override
@@ -56,6 +62,27 @@ public class OrganizationDimensionProvider extends BaseDimensionProvider<Organiz
                 .doOnNext(org -> dimensions.putIfAbsent(org.getId(), org.toDimension(false)))
             )
             .thenMany(Flux.defer(() -> Flux.fromIterable(dimensions.values())));
+    }
+
+    @Override
+    protected Mono<Void> clearUserAuthenticationCache(Collection<OrganizationEntity> entities) {
+        //清空上下级,因为维度中记录了上下级信息.
+        return Flux.concat(
+                       organizationService.queryIncludeParent(Flux.fromIterable(entities)),
+                       organizationService.queryIncludeChildren(Flux.fromIterable(entities))
+                   )
+                   .distinct(OrganizationEntity::getId)
+                   .collectList()
+                   .flatMap(super::clearUserAuthenticationCache)
+                   .as(ClearUserAuthorizationCacheEvent::doOnEnabled);
+    }
+
+
+    @EventListener
+    public void handleCreatEvent(EntityCreatedEvent<OrganizationEntity> event) {
+        event.async(
+            clearUserAuthenticationCache(event.getEntity())
+        );
     }
 
 }

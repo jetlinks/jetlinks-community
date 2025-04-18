@@ -54,7 +54,7 @@ public class Notification implements Serializable {
 
     public Notification copyWithMessage(Notify message) {
         Notification target = FastBeanCopier.copy(this, new Notification());
-        target.setId(IDGenerator.SNOW_FLAKE_STRING.generate());
+        target.setId(IDGenerator.RANDOM.generate());
         target.setMessage(message.getMessage());
         target.setDataId(message.getDataId());
         target.setNotifyTime(message.getNotifyTime());

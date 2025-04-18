@@ -2,6 +2,7 @@ package org.jetlinks.community.auth.login;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.community.auth.cipher.CipherProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -14,19 +15,11 @@ import java.time.Duration;
 public class UserLoginProperties {
 
     //加密相关配置
-    private EncryptionLogic encrypt = new EncryptionLogic();
+    private CipherProperties encrypt = new CipherProperties();
 
     //登录失败限制相关配置
     private BlockLogic block = new BlockLogic();
 
-
-    @Getter
-    @Setter
-    public static class EncryptionLogic {
-        private boolean enabled;
-
-        private Duration keyTtl = Duration.ofMinutes(5);
-    }
 
     @Getter
     @Setter

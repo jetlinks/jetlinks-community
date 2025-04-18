@@ -15,6 +15,7 @@ import org.hswebframework.web.system.authorization.defaults.service.DefaultDimen
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.RoleEntity;
 import org.jetlinks.community.auth.enums.RoleState;
+import org.jetlinks.community.auth.service.DefaultMenuService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -23,18 +24,24 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 @Component
 public class RoleDimensionProvider extends BaseDimensionProvider<RoleEntity> {
+
+    private final DefaultMenuService menuService;
 
     private final ReactiveCache<Dimension> cache;
 
     public RoleDimensionProvider(ReactiveRepository<RoleEntity, String> repository,
                                  DefaultDimensionUserService dimensionUserService,
                                  ApplicationEventPublisher eventPublisher,
+                                 DefaultMenuService menuService,
                                  ReactiveCacheManager cacheManager) {
         super(repository, eventPublisher, dimensionUserService);
+        this.menuService = menuService;
         this.cache = cacheManager.getCache("role-dimension");
     }
 
@@ -45,7 +52,6 @@ public class RoleDimensionProvider extends BaseDimensionProvider<RoleEntity> {
 
     @Override
     protected Mono<Dimension> convertToDimension(RoleEntity entity) {
-
         return Mono.just(entity.toDimension());
     }
 

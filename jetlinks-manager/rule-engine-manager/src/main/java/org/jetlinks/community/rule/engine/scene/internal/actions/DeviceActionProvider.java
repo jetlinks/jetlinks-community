@@ -75,11 +75,4 @@ public class DeviceActionProvider implements SceneActionProvider<DeviceAction> {
         model.setExecutor(DeviceMessageSendTaskExecutorProvider.EXECUTOR);
         model.setConfiguration(config.toMap());
     }
-
-    @Override
-    public Mono<Boolean> isSupported() {
-        return Mono.justOrEmpty(
-            CommandSupportManagerProvider.supports.get(SdkServices.deviceService).isPresent()
-        );
-    }
 }

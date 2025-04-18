@@ -8,10 +8,10 @@ import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.service.GenericReactiveTreeSupportCrudService;
 import org.hswebframework.web.exception.I18nSupportException;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
-
-import org.jetlinks.community.auth.entity.RoleGroupEntity;
 import org.jetlinks.community.auth.entity.RoleEntity;
+import org.jetlinks.community.auth.entity.RoleGroupEntity;
 import org.jetlinks.community.auth.web.response.RoleGroupDetailTree;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
@@ -30,6 +30,8 @@ public class RoleGroupService extends GenericReactiveTreeSupportCrudService<Role
 
     private final RoleService roleService;
 
+    public static final String ROLE_GROUP_ID = "groupId";
+
 
     /**
      * 分组下存在角色时不可删除
@@ -39,8 +41,6 @@ public class RoleGroupService extends GenericReactiveTreeSupportCrudService<Role
         event.async(
             Flux.fromIterable(event.getEntity())
                 .map(RoleGroupEntity::getId)
-                //默认分组不可删除
-                .filter(id -> !DEFAULT_GROUP_ID.equals(id))
                 .collectList()
                 .filter(CollectionUtils::isNotEmpty)
                 .flatMapMany(ids -> roleService
@@ -56,17 +56,19 @@ public class RoleGroupService extends GenericReactiveTreeSupportCrudService<Role
     public Flux<RoleGroupDetailTree> queryDetailTree(QueryParamEntity groupParam, QueryParamEntity roleParam) {
         groupParam.setPaging(false);
         roleParam.setPaging(false);
-        Flux<RoleGroupDetailTree> groupDetails = this
+        return LocaleUtils
+            .currentReactive()
+            .flatMapMany(locale -> this
                 .query(groupParam)
-                .map(RoleGroupDetailTree::of);
-        return QueryHelper
+                .map(tree -> RoleGroupDetailTree.of(tree, locale)))
+            .as(fluxTree -> QueryHelper
                 .combineOneToMany(
-                        groupDetails,
-                        RoleGroupDetailTree::getGroupId,
-                        roleService.createQuery().setParam(roleParam),
-                        RoleEntity::getGroupId,
-                        RoleGroupDetailTree::setRoles
-                );
+                    fluxTree,
+                    RoleGroupDetailTree::getGroupId,
+                    roleService.createQuery().setParam(roleParam),
+                    RoleEntity::getGroupId,
+                    RoleGroupDetailTree::setRoles
+                ));
     }
 
 
@@ -86,15 +88,20 @@ public class RoleGroupService extends GenericReactiveTreeSupportCrudService<Role
      */
     @Override
     public void run(String... args) {
-        //兼容旧数据,空分组即为默认分组
-        roleService
-            .createUpdate()
-            .set(RoleEntity::getGroupId, DEFAULT_GROUP_ID)
-            .isNull(RoleEntity::getGroupId)
-            .execute()
-            .subscribe(ignore -> {
-                       },
-                       err -> log.error("init role groupId error", err));
+        RoleGroupEntity groupEntity = new RoleGroupEntity();
+        groupEntity.setName("默认");
+        groupEntity.setId(DEFAULT_GROUP_ID);
+        //变更为由auto-init下的json文件初始化数据
+//        this
+//            .save(groupEntity)
+//            .then(roleService
+//                      .createUpdate()
+//                      .set(RoleEntity::getGroupId, DEFAULT_GROUP_ID)
+//                      .isNull(RoleEntity::getGroupId)
+//                      .execute())
+//            .subscribe(ignore -> {
+//                       },
+//                       err -> log.error("init role groupId error", err));
 
     }
 

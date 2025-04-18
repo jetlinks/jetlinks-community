@@ -10,9 +10,11 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
+import org.hswebframework.web.api.crud.entity.RecordModifierEntity;
 import org.hswebframework.web.authorization.DefaultDimensionType;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.simple.SimpleDimension;
+import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.jetlinks.community.auth.enums.RoleState;
 import org.jetlinks.community.auth.service.RoleGroupService;
@@ -24,7 +26,8 @@ import javax.persistence.Table;
 @Setter
 @Table(name = "s_role")
 @Comment("角色信息表")
-public class RoleEntity extends GenericEntity<String> implements RecordCreationEntity {
+@EnableEntityEvent
+public class RoleEntity extends GenericEntity<String> implements RecordCreationEntity, RecordModifierEntity {
 
     @Column(length = 64)
     @Length(min = 1, max = 64)
@@ -61,6 +64,15 @@ public class RoleEntity extends GenericEntity<String> implements RecordCreationE
         , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
+
+    @Column(length = 64)
+    @Schema(description = "修改人ID", accessMode = Schema.AccessMode.READ_ONLY)
+    private String modifierId;
+
+    @Column(length = 64)
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    @Schema(description = "修改时间", accessMode = Schema.AccessMode.READ_ONLY)
+    private Long modifyTime;
 
     public Dimension toDimension() {
         SimpleDimension dimension = new SimpleDimension();

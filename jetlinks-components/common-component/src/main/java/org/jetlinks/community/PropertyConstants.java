@@ -31,6 +31,14 @@ public interface PropertyConstants {
     Key<String> productId = Key.of("productId");
 
     /**
+     * 关系信息.值格式:
+     * <pre>{@code
+     * [{"type":"user","id":"userId","rel":"manager"}]
+     * }</pre>
+     */
+    Key<List<Map<String, Object>>> relations = Key.of("relations");
+
+    /**
      * 租户ID
      *
      * @see org.jetlinks.pro.tenant.TenantMember

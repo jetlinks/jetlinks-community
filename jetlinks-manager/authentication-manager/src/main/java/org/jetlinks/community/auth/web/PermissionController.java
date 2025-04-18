@@ -38,19 +38,16 @@ public class PermissionController {
     @QueryAction
     @Operation(summary = "验证权限ID是否合法")
     public Mono<ValidationResult> permissionIdValidate2(@RequestParam @Parameter(description = "权限ID") String id) {
-        return LocaleUtils.currentReactive()
-            .flatMap(locale -> {
-                PermissionEntity entity = new PermissionEntity();
-                entity.setId(id);
-                entity.tryValidate("id", CreateGroup.class);
+        PermissionEntity entity = new PermissionEntity();
+        entity.setId(id);
+        entity.tryValidate("id", CreateGroup.class);
 
-                return permissionService
-                    .findById(id)
-                    .map(permission -> ValidationResult
-                        .error(LocaleUtils.resolveMessage("error.id_already_exists", locale)));
-            })
+        return permissionService
+            .findById(id)
+            .flatMap(permission -> LocaleUtils.resolveMessageReactive("error.id_already_exists"))
+            .map(ValidationResult::error)
             .defaultIfEmpty(ValidationResult.success())
             .onErrorResume(ValidationException.class, e -> Mono.just(e.getI18nCode())
-                .map(ValidationResult::error));
+                                                               .map(ValidationResult::error));
     }
 }

@@ -98,5 +98,4 @@ public class NotifySubscriberProviderService
             .thenMany(Flux.fromIterable(info.values()))
             .sort(Comparator.comparing(NotifyChannelController.SubscriberProviderInfo::getOrder));
     }
-
 }

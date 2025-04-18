@@ -96,11 +96,4 @@ public class DeviceDataActionProvider implements SceneActionProvider<DeviceDataA
     public static class DeviceDataAction extends DeviceDataTaskExecutorProvider.Config {
         private String productId;
     }
-
-    @Override
-    public Mono<Boolean> isSupported() {
-        return Mono.justOrEmpty(
-            CommandSupportManagerProvider.supports.get(SdkServices.deviceService).isPresent()
-        );
-    }
 }
