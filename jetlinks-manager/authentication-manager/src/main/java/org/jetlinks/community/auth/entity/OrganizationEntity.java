@@ -15,6 +15,7 @@ import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.PropertyConstants;
+import org.jetlinks.community.auth.constants.AuthConstants;
 import org.jetlinks.community.auth.dimension.OrgDimensionType;
 import org.jetlinks.core.things.ThingInfo;
 
@@ -80,8 +81,9 @@ public class OrganizationEntity extends GenericTreeSortSupportEntity<String> imp
     private List<OrganizationEntity> children;
 
     public Dimension toDimension(boolean direct,Map<String,Object> _options) {
-        return SimpleDimension.of(getId(), getName(), OrgDimensionType.org, _options);
-
+        Map<String, Object> options = new HashMap<>(_options);
+        options.put(AuthConstants.IS_DIRECT, direct);
+        return SimpleDimension.of(getId(), getName(), OrgDimensionType.org, options);
     }
     public Dimension toDimension(boolean direct) {
         return toDimension(direct, Collections.emptyMap());
