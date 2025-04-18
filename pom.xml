@@ -26,7 +26,7 @@
         <!-- https://github.com/hs-web/hsweb-easy-orm -->
         <easyorm.version>4.1.3</easyorm.version>
         <!-- https://github.com/jetlinks/jetlinks -->
-        <jetlinks.version>1.2.3</jetlinks.version>
+        <jetlinks.version>1.2.4-SNAPSHOT</jetlinks.version>
         <!-- https://github.com/hs-web/reactor-excel -->
         <reactor.excel.version>1.0.6</reactor.excel.version>
         <!-- https://github.com/jetlinks/reactor-ql -->
