@@ -6,9 +6,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.User;
 import org.hswebframework.web.authorization.annotation.Authorize;
+import org.hswebframework.web.authorization.annotation.ResourceAction;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.hswebframework.web.logging.AccessLogger;
 import org.hswebframework.web.system.authorization.api.PasswordValidator;
 import org.hswebframework.web.system.authorization.api.UsernameValidator;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
@@ -18,6 +20,7 @@ import org.jetlinks.community.web.response.ValidationResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import reactor.core.publisher.Mono;
 
@@ -40,6 +43,7 @@ public class WebFluxUserController extends org.hswebframework.web.system.authori
 
     @PostMapping("/{id}/password/_reset")
     @SaveAction
+    @AccessLogger(ignoreParameter = {"password"})
     @Operation(summary = "重置密码")
     public Mono<Boolean> resetPassword(@PathVariable String id,
                                        @RequestBody String password) {
@@ -158,6 +162,17 @@ public class WebFluxUserController extends org.hswebframework.web.system.authori
         return assertUserPermission(id)
             .then(super.getById(id));
     }
+
+    @PutMapping("/passwd")
+    @ResourceAction(id = "update-self-pwd",name = "修改当前用户密码")
+    @Operation(summary = "修改当前用户密码")
+    @Override
+    @Authorize(merge = false)
+    @AccessLogger(ignoreParameter = {"request"})
+    public Mono<Boolean> changePassword(@RequestBody ChangePasswordRequest request) {
+        return super.changePassword(request);
+    }
+
 
     private Mono<Void> assertUserPermission(String userId) {
         return Mono.empty();

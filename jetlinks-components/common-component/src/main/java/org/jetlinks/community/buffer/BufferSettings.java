@@ -10,19 +10,18 @@ import org.springframework.transaction.CannotCreateTransactionException;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
-/**
- * @author zhouhao
- * @since 2.0
- */
 @Getter
 @AllArgsConstructor
 public class BufferSettings {
 
     private static final Predicate<Throwable> DEFAULT_RETRY_WHEN_ERROR =
         e -> ErrorUtils.hasException(e, IOException.class,
+                                     IllegalStateException.class,
+                                     RejectedExecutionException.class,
                                      TimeoutException.class,
                                      DataAccessResourceFailureException.class,
                                      CannotCreateTransactionException.class,
@@ -32,9 +31,16 @@ public class BufferSettings {
         return DEFAULT_RETRY_WHEN_ERROR;
     }
 
+    public static BufferEviction defaultEviction(){
+        return BufferEvictionSpec.DEFAULT;
+    }
+
     private final String filePath;
 
     private final String fileName;
+
+    //缓存淘汰策略
+    private final BufferEviction eviction;
 
     private final Predicate<Throwable> retryWhenError;
 
@@ -50,16 +56,23 @@ public class BufferSettings {
     //最大重试次数,超过此次数的数据将会放入死队列.
     private final long maxRetryTimes;
 
+    private final int fileConcurrency;
+
+    private final ConsumeStrategy strategy;
 
     public static BufferSettings create(String filePath, String fileName) {
         return new BufferSettings(
             filePath,
             fileName,
+            defaultEviction(),
+            //默认重试逻辑
             defaultRetryWhenError(),
             1000,
             Duration.ofSeconds(1),
             Math.max(1, Runtime.getRuntime().availableProcessors() / 2),
-            5);
+            5,
+            1,
+            ConsumeStrategy.FIFO);
     }
 
     public static BufferSettings create(BufferProperties properties) {
@@ -70,64 +83,122 @@ public class BufferSettings {
         return create(properties.getFilePath(), fileName).properties(properties);
     }
 
-    public BufferSettings bufferSize(int bufferSize) {
+    public BufferSettings eviction(BufferEviction eviction) {
         return new BufferSettings(filePath,
                                   fileName,
+                                  eviction,
                                   retryWhenError,
                                   bufferSize,
                                   bufferTimeout,
                                   parallelism,
-                                  maxRetryTimes);
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
+    }
+
+    public BufferSettings bufferSize(int bufferSize) {
+        return new BufferSettings(filePath,
+                                  fileName,
+                                  eviction,
+                                  retryWhenError,
+                                  bufferSize,
+                                  bufferTimeout,
+                                  parallelism,
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
     }
 
     public BufferSettings bufferTimeout(Duration bufferTimeout) {
         return new BufferSettings(filePath,
                                   fileName,
+                                  eviction,
                                   retryWhenError,
                                   bufferSize,
                                   bufferTimeout,
                                   parallelism,
-                                  maxRetryTimes);
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
     }
 
     public BufferSettings parallelism(int parallelism) {
         return new BufferSettings(filePath,
                                   fileName,
+                                  eviction,
                                   retryWhenError,
                                   bufferSize,
                                   bufferTimeout,
                                   parallelism,
-                                  maxRetryTimes);
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
     }
 
     public BufferSettings maxRetry(int maxRetryTimes) {
         return new BufferSettings(filePath,
                                   fileName,
+                                  eviction,
                                   retryWhenError,
                                   bufferSize,
                                   bufferTimeout,
                                   parallelism,
-                                  maxRetryTimes);
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
     }
 
     public BufferSettings retryWhenError(Predicate<Throwable> retryWhenError) {
         return new BufferSettings(filePath,
                                   fileName,
+                                  eviction,
                                   Objects.requireNonNull(retryWhenError),
                                   bufferSize,
                                   bufferTimeout,
                                   parallelism,
-                                  maxRetryTimes);
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
+    }
+
+    public BufferSettings fileConcurrency(int fileConcurrency) {
+        return new BufferSettings(filePath,
+                                  fileName,
+                                  eviction,
+                                  retryWhenError,
+                                  bufferSize,
+                                  bufferTimeout,
+                                  parallelism,
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
+    }
+
+    public BufferSettings strategy(ConsumeStrategy strategy) {
+        return new BufferSettings(filePath,
+                                  fileName,
+                                  eviction,
+                                  retryWhenError,
+                                  bufferSize,
+                                  bufferTimeout,
+                                  parallelism,
+                                  maxRetryTimes,
+                                  fileConcurrency,
+                                  strategy);
     }
 
     public BufferSettings properties(BufferProperties properties) {
         return new BufferSettings(filePath,
                                   fileName,
+                                  properties.getEviction().build(),
                                   Objects.requireNonNull(retryWhenError),
                                   properties.getSize(),
                                   properties.getTimeout(),
                                   properties.getParallelism(),
-                                  properties.getMaxRetryTimes());
+                                  properties.getMaxRetryTimes(),
+                                  properties.getFileConcurrency(),
+                                  properties.getStrategy()
+                                  );
     }
 
 

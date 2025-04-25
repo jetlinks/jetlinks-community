@@ -7,7 +7,7 @@ import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.device.entity.ProtocolSupportEntity;
+import org.jetlinks.community.protocol.ProtocolSupportEntity;
 import org.jetlinks.community.reference.DataReferenceManager;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.supports.protocol.management.ProtocolSupportLoader;

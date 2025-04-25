@@ -1,6 +1,6 @@
 package org.jetlinks.community.auth.initialize;
 
-import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.DefaultDimensionType;
@@ -10,7 +10,6 @@ import org.hswebframework.web.authorization.simple.SimpleAuthentication;
 import org.hswebframework.web.authorization.simple.SimplePermission;
 import org.hswebframework.web.system.authorization.api.entity.ActionEntity;
 import org.hswebframework.web.system.authorization.api.entity.PermissionEntity;
-import org.hswebframework.web.system.authorization.defaults.service.DefaultPermissionService;
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.MenuView;
 import org.jetlinks.community.auth.service.DefaultMenuService;
@@ -21,16 +20,24 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
 @Component
+@Slf4j
 public class MenuAuthenticationInitializeService {
 
     private final DefaultMenuService menuService;
 
-    private final DefaultPermissionService permissionService;
+    private final PermissionCacheHelper permissionCacheHelper;
+
+    private final Mono<Map<String, MenuEntity>> menuCaching;
+
+    public MenuAuthenticationInitializeService(DefaultMenuService menuService, PermissionCacheHelper permissionCacheHelper) {
+        this.menuService = menuService;
+        this.permissionCacheHelper = permissionCacheHelper;
+        this.menuCaching = Mono
+            .defer(this.menuService::getEnabledMenus);
+    }
 
     /**
      * 根据角色配置的菜单权限来重构权限信息
@@ -46,11 +53,8 @@ public class MenuAuthenticationInitializeService {
             Mono
                 .zip(
                     // T1: 权限定义列表
-                    permissionService
-                        .createQuery()
-                        .where(PermissionEntity::getStatus, 1)
-                        .fetch()
-                        .collectMap(PermissionEntity::getId, Function.identity()),
+                    permissionCacheHelper
+                        .getPermissionCaching(),
                     // T2: 菜单定义列表
                     menuService
                         .createQuery()

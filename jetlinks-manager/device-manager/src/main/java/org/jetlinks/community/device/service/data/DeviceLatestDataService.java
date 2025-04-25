@@ -49,7 +49,17 @@ public interface DeviceLatestDataService {
      *
      * @param message 设备消息
      */
+    @Deprecated
     void save(DeviceMessage message);
+
+    /**
+     * 保存消息数据
+     *
+     * @param message 设备消息
+     */
+    default Mono<Void> saveAsync(DeviceMessage message){
+        return Mono.fromRunnable(()->save(message));
+    }
 
     /**
      * 根据产品ID 查询最新的数据

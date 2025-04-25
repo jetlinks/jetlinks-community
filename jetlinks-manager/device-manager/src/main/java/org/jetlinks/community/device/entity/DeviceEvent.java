@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.EventMetadata;
 import org.jetlinks.core.metadata.types.ObjectType;
+import org.jetlinks.community.things.data.ThingEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +35,12 @@ public class DeviceEvent extends HashMap<String, Object> {
     public DeviceEvent(Map<String, Object> data) {
         super(data);
     }
+
+    public DeviceEvent(ThingEvent data) {
+        super(data);
+        putIfAbsent("deviceId", data.getThingId());
+    }
+
 
     @SuppressWarnings("all")
     public void putFormat(EventMetadata metadata) {

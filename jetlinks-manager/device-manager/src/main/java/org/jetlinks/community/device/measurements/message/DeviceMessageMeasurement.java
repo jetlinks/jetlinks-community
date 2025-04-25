@@ -1,15 +1,11 @@
 package org.jetlinks.community.device.measurements.message;
 
 import lombok.Generated;
-import org.jetlinks.community.Interval;
 import org.jetlinks.community.dashboard.*;
 import org.jetlinks.community.dashboard.supports.StaticMeasurement;
 import org.jetlinks.community.device.timeseries.DeviceTimeSeriesMetric;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.TimeSeriesMetric;
 import org.jetlinks.community.timeseries.query.AggregationQueryParam;
-import org.jetlinks.core.device.DeviceProductOperator;
-import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.event.TopicPayload;
@@ -20,14 +16,57 @@ import org.jetlinks.core.metadata.types.DateTimeType;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.List;
 
+/**
+ * 设备消息监控支持
+ *
+ * <pre>{@code
+ * POST /dashboard/_multi
+ *
+ * [
+ *     {
+ *         "dashboard": "device",
+ *         "object": "message",
+ *         "measurement": "quantity",
+ *         "dimension": "agg",
+ *         "group": "device_msg",
+ *         "params": {
+ *              "format":"yyyy-MM-dd HH:mm",
+ *              "time":"10m",
+ *              "from":"now-2h",
+ *              "to":"now",
+ *              "limit":2
+ *         }
+ *     }
+ * ]
+ *
+ * [{
+ * 	"group": "device_msg",
+ * 	"data": {
+ * 		"value": 297,
+ * 		"timeString": "2022-05-30 14:20",
+ * 		"timestamp": 0
+ *      }
+ * }, {
+ * 	"group": "device_msg",
+ * 	"data": {
+ * 		"value": 657,
+ * 		"timeString": "2022-05-30 14:10",
+ * 		"timestamp": 1
+ *    }
+ * }]
+ *
+ *
+ * }</pre>
+ *
+ * @author zhouhao
+ * @since 1.0
+ */
 class DeviceMessageMeasurement extends StaticMeasurement {
 
     private final EventBus eventBus;
@@ -157,6 +196,7 @@ class DeviceMessageMeasurement extends StaticMeasurement {
                     data.getString("time").orElse(""),
                     index)))
                 .take(param.getLimit());
+
         }
     }
 

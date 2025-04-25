@@ -2,9 +2,10 @@ package org.jetlinks.community.notify.template;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.notify.NotifyType;
+import org.jetlinks.core.cache.ReactiveCacheContainer;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
-import org.jetlinks.community.notify.NotifyType;
 import org.springframework.boot.CommandLineRunner;
 import reactor.core.publisher.Mono;
 
@@ -13,13 +14,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public abstract class AbstractTemplateManager implements TemplateManager {
+@AllArgsConstructor
+public abstract class AbstractTemplateManager implements TemplateManager, CommandLineRunner {
 
     protected final Map<String, Map<String, TemplateProvider>> providers = new ConcurrentHashMap<>();
 
-    protected final Map<String, Template> templates = new ConcurrentHashMap<>();
+    protected final ReactiveCacheContainer<String, Template> templates = ReactiveCacheContainer.create();
 
     protected abstract Mono<TemplateProperties> getProperties(NotifyType type, String id);
+
+    private EventBus eventBus;
 
     protected void register(TemplateProvider provider) {
         providers.computeIfAbsent(provider.getType().getId(), ignore -> new ConcurrentHashMap<>())
@@ -40,27 +44,43 @@ public abstract class AbstractTemplateManager implements TemplateManager {
     @Nonnull
     @Override
     public Mono<? extends Template> getTemplate(@Nonnull NotifyType type, @Nonnull String id) {
-        return Mono.justOrEmpty(templates.get(id))
-                   .switchIfEmpty(Mono.defer(() -> this
-                       .getProperties(type, id)
-                       .flatMap(prop -> this.createTemplate(type, prop))
-                       .doOnNext(template -> templates.put(id, template))
-                       .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("通知类型不支持:" + type.getId())))
-                   ));
+        return templates.computeIfAbsent(id, _id -> this
+            .getProperties(type, _id)
+            .flatMap(prop -> this.createTemplate(type, prop)));
     }
 
     @Override
     @Nonnull
     public Mono<Void> reload(String templateId) {
         return doReload(templateId)
+            .then(eventBus.publish("/_sys/notifier-temp/reload", templateId))
             .then();
     }
 
     private Mono<String> doReload(String templateId) {
-        log.debug("reload notify template {}",templateId);
+        log.debug("reload notify template {}", templateId);
         return Mono.justOrEmpty(templates.remove(templateId))
                    .thenReturn(templateId);
     }
 
+    @Override
+    public void run(String... args) {
 
+        eventBus
+            .subscribe(
+                Subscription.builder()
+                            .subscriberId("notifier-template-loader")
+                            .topics("/_sys/notifier-temp/reload")
+                            .justBroker()
+                            .build(),
+                String.class
+            )
+            .flatMap(id -> this
+                .doReload(id)
+                .onErrorResume(err -> {
+                    log.error("reload notify template config error", err);
+                    return Mono.empty();
+                }))
+            .subscribe();
+    }
 }

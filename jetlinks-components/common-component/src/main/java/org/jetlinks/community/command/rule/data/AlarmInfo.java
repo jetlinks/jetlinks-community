@@ -9,7 +9,6 @@ import lombok.Setter;
 import org.jetlinks.community.terms.TermSpec;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +48,9 @@ public class AlarmInfo implements Serializable {
     @Schema(description = "告警来源ID")
     private String sourceId;
 
+    @Schema(description = "告警来源的创建人ID")
+    private String sourceCreatorId;
+
     @Schema(description = "告警来源名称")
     private String sourceName;
 
@@ -65,4 +67,8 @@ public class AlarmInfo implements Serializable {
      * 告警触发条件
      */
     private TermSpec termSpec;
+
+    @Schema(description = "告警时间")
+    private Long alarmTime;
+
 }

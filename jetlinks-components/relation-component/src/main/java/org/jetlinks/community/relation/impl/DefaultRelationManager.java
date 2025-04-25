@@ -1,12 +1,16 @@
 package org.jetlinks.community.relation.impl;
 
 import lombok.AllArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.exception.I18nSupportException;
 import org.jetlinks.community.relation.RelationObjectProvider;
-import org.jetlinks.core.things.relation.*;
 import org.jetlinks.community.relation.entity.RelatedEntity;
 import org.jetlinks.community.relation.entity.RelationEntity;
+import org.jetlinks.core.things.relation.ObjectType;
+import org.jetlinks.core.things.relation.Relation;
+import org.jetlinks.core.things.relation.RelationManager;
+import org.jetlinks.core.things.relation.RelationObject;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -38,19 +42,38 @@ public class DefaultRelationManager implements RelationManager {
             .getType()
             .flatMap(type -> relationRepository
                 .createQuery()
+                //动态关系双向查询
                 .where(RelationEntity::getObjectType, typeId)
+                .or(RelationEntity::getTargetType, typeId)
                 .fetch()
                 .collect(Collectors.groupingBy(
-                    RelationEntity::getTargetType,
-                    Collectors.mapping(SimpleRelation::of, Collectors.toList())))
-                .<ObjectType>map(group -> {
-                    SimpleObjectType custom = new SimpleObjectType(typeId, type.getName(), type.getDescription());
-                    for (Map.Entry<String, List<SimpleRelation>> entry : group.entrySet()) {
-                        custom.withRelation(entry.getKey(), entry.getValue());
+                    //根据关系对象分组
+                    entity -> typeId.equals(entity.getObjectType()) ? entity.getTargetType() : entity.getObjectType(),
+                    Collectors.mapping(e -> SimpleRelation.of(typeId, e), Collectors.toList())))
+                .flatMap(group -> fillRelations(type, group)));
+    }
+
+    private Mono<ObjectType> fillRelations(ObjectType type, Map<String, List<SimpleRelation>> relations) {
+        String typeId = type.getId();
+        SimpleObjectType custom = new SimpleObjectType(typeId, type.getName(), type.getDescription());
+        for (Map.Entry<String, List<SimpleRelation>> entry : relations.entrySet()) {
+            //添加动态关系
+            custom.withRelation(entry.getKey(), entry.getValue());
+        }
+        return getObjectTypes()
+            .doOnNext(other -> {
+                if (!typeId.equals(other.getId())) {
+                    List<Relation> fixRelations = other.getRelations(typeId);
+                    if (CollectionUtils.isNotEmpty(other.getRelations(typeId))) {
+                        //添加其它类型提供的固定关系
+                        custom.withRelation(other.getId(), fixRelations
+                            .stream()
+                            .map(r -> SimpleRelation.of(r.getId(), r.getName(), r.getReverseName(), !r.isReverse(), r.getExpands()))
+                            .collect(Collectors.toList()));
                     }
-                    return new CompositeObjectType(type, custom);
-                })
-                .defaultIfEmpty(type));
+                }
+            })
+            .then(Mono.just(new CompositeObjectType(type, custom)));
     }
 
     @Override

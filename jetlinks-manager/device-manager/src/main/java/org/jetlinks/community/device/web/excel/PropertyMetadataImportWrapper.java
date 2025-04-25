@@ -9,13 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-    public class PropertyMetadataImportWrapper extends RowWrapper<PropertyMetadataExcelImportInfo> {
+public class PropertyMetadataImportWrapper extends RowWrapper<PropertyMetadataExcelImportInfo> {
 
     private final Map<String, String> propertyMapping = new HashMap<>();
     private final Map<String, String> expandsMapping = new HashMap<>();
 
     public PropertyMetadataImportWrapper(List<ConfigMetadata> expands) {
-        propertyMapping.put("属性ID", "property");
+        propertyMapping.put("属性标识", "property");
         propertyMapping.put("属性名称", "name");
         propertyMapping.put("数据类型", "dataType");
         propertyMapping.put("单位", "unit");

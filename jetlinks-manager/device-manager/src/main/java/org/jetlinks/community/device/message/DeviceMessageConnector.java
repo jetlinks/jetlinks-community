@@ -39,10 +39,10 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
 
     //将设备注册中心的配置追加到消息header中,下游订阅者可直接使用.
     private final static String[] allConfigHeader = {
-        PropertyConstants.productId.getKey(),
-        PropertyConstants.productName.getKey(),
-        PropertyConstants.deviceName.getKey(),
-        PropertyConstants.orgId.getKey()
+            PropertyConstants.productId.getKey(),
+            PropertyConstants.productName.getKey(),
+            PropertyConstants.deviceName.getKey(),
+            PropertyConstants.orgId.getKey()
     };
     private final static Function<Throwable, Mono<Void>> doOnError = (error) -> {
         DeviceMessageConnector.log.error(error.getMessage(), error);
@@ -204,8 +204,8 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
                 message.addHeader("parentId", child.getParentDevice().getDeviceId());
             }
             return this
-                .onMessage(message)
-                .onErrorResume(doOnError);
+                    .onMessage(message)
+                    .onErrorResume(doOnError);
 
         });
 
@@ -221,20 +221,20 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
                     return Mono.empty();
                 }
                 return deviceRegistry
-                    .getDevice(deviceId)
-                    .flatMap(configGetter)
-                    .defaultIfEmpty(emptyValues)
-                    .flatMapIterable(configs -> {
-                        configs.getAllValues().forEach(deviceMessage::addHeader);
-                        String productId = deviceMessage.getHeader(PropertyConstants.productId).orElse("null");
-                        String topic = createDeviceMessageTopic(productId, deviceId, deviceMessage);
-                        List<String> topics = new ArrayList<>(2);
-                        topics.add(topic);
-                        configs.getValue(PropertyConstants.orgId)
-                               .ifPresent(orgId -> topics.add("/org/" + orgId + topic));
+                        .getDevice(deviceId)
+                        .flatMap(configGetter)
+                        .defaultIfEmpty(emptyValues)
+                        .flatMapIterable(configs -> {
+                            configs.getAllValues().forEach(deviceMessage::addHeader);
+                            String productId = deviceMessage.getHeader(PropertyConstants.productId).orElse("null");
+                            String topic = createDeviceMessageTopic(productId, deviceId, deviceMessage);
+                            List<String> topics = new ArrayList<>(2);
+                            topics.add(topic);
+                            configs.getValue(PropertyConstants.orgId)
+                                   .ifPresent(orgId -> topics.add("/org/" + orgId + topic));
 
-                        return topics;
-                    });
+                            return topics;
+                        });
             }
             return Mono.just("/device/unknown/message/unknown");
         });
@@ -242,10 +242,10 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
 
     public static String createDeviceMessageTopic(String productId, String deviceId, DeviceMessage message) {
         StringBuilder builder = new StringBuilder(64)
-            .append("/device/")
-            .append(productId)
-            .append("/")
-            .append(deviceId);
+                .append("/device/")
+                .append(productId)
+                .append("/")
+                .append(deviceId);
 
         appendDeviceMessageTopic(message, builder);
         return builder.toString();
@@ -277,22 +277,22 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         }
         message.addHeaderIfAbsent(PropertyConstants.uid, IDGenerator.RANDOM.generate());
         return this
-            .getTopic(message)
-            .flatMap(topic -> eventBus.publish(topic, message).then())
-            .onErrorResume(doOnError)
-            .then();
+                .getTopic(message)
+                .flatMap(topic -> eventBus.publish(topic, message).then())
+                .onErrorResume(doOnError)
+                .then();
     }
 
     private Flux<String> getTopic(Message message) {
         Flux<String> topicsStream = createDeviceMessageTopic(registry, message);
         if (message instanceof ChildDeviceMessage) { //子设备消息
             return this
-                .onMessage(((ChildDeviceMessage) message).getChildDeviceMessage())
-                .thenMany(topicsStream);
+                    .onMessage(((ChildDeviceMessage) message).getChildDeviceMessage())
+                    .thenMany(topicsStream);
         } else if (message instanceof ChildDeviceMessageReply) { //子设备消息
             return this
-                .onMessage(((ChildDeviceMessageReply) message).getChildDeviceMessage())
-                .thenMany(topicsStream);
+                    .onMessage(((ChildDeviceMessageReply) message).getChildDeviceMessage())
+                    .thenMany(topicsStream);
         }
         return topicsStream;
     }
@@ -337,10 +337,10 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         Mono<Boolean> then;
         if (message instanceof ChildDeviceMessageReply) {
             then = this
-                .doReply(((ChildDeviceMessageReply) message))
-                .then(
-                    handleChildrenDeviceMessageReply(((ChildDeviceMessageReply) message))
-                );
+                    .doReply(((ChildDeviceMessageReply) message))
+                    .then(
+                            handleChildrenDeviceMessageReply(((ChildDeviceMessageReply) message))
+                    );
         } else if (message instanceof ChildDeviceMessage) {
             then = handleChildrenDeviceMessageReply(((ChildDeviceMessage) message));
         } else if (message instanceof DeviceMessageReply) {
@@ -349,9 +349,9 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
             then = Mono.just(true);
         }
         return this
-            .onMessage(message)
-            .then(then)
-            .defaultIfEmpty(false);
+                .onMessage(message)
+                .then(then)
+                .defaultIfEmpty(false);
 
     }
 
@@ -366,9 +366,9 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
             log.debug("reply message {}", reply.getMessageId());
         }
         return messageHandler
-            .reply(reply)
-            .thenReturn(true)
-            .doOnError((error) -> log.error("reply message error", error))
-            ;
+                .reply(reply)
+                .thenReturn(true)
+                .doOnError((error) -> log.error("reply message error", error))
+                ;
     }
 }

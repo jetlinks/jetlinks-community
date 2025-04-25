@@ -15,6 +15,7 @@ import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
@@ -69,14 +70,18 @@ public class AlarmRecordRankMeasurement extends StaticMeasurement {
         }
 
         public AggregationQueryParam createQueryParam(MeasurementParameter parameter) {
-            return AggregationQueryParam
-                .of()
+            AggregationQueryParam aggregationQueryParam = AggregationQueryParam.of();
+            aggregationQueryParam.setTimeProperty("alarmTime");
+            String targetType = parameter.getString("targetType").orElse(null);
+            String targetId = parameter.getString("targetId").orElse(null);
+            return aggregationQueryParam
                 .groupBy(parameter.getString("group", "targetId"))
-                .sum("count", "count")
+                .count("targetId", "count")
                 .agg("targetId", Aggregation.TOP)
+                .agg("targetName", Aggregation.TOP)
                 .filter(query -> query
-                    .where("name", "record-agg")
-                    .where("targetType", parameter.getString("targetType", null))
+                    .when(StringUtils.hasText(targetType), q -> q.and("targetType",targetType))
+                    .when(StringUtils.hasText(targetId), q -> q.and("targetId",targetId))
                 )
                 .limit(parameter.getInt("limit").orElse(1))
                 .from(parameter

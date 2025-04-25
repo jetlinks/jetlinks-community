@@ -5,6 +5,7 @@ import org.jetlinks.community.notify.template.Template;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 import java.util.Map;
 
 @Getter
@@ -12,7 +13,9 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SerializableNotifierEvent {
+public class SerializableNotifierEvent implements Serializable {
+
+    private String id;
 
     private boolean success;
 
@@ -39,4 +42,6 @@ public class SerializableNotifierEvent {
 
     @Nonnull
     private Map<String,Object> context;
+
+    private long sendTime;
 }

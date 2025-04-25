@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.validator.constraints.Length;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
@@ -13,6 +14,7 @@ import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.utils.DigestUtils;
 import org.hswebframework.web.validator.CreateGroup;
 
 import javax.persistence.Column;
@@ -49,13 +51,13 @@ public class MenuEntity
     private String owner;
 
     @Schema(description = "名称")
-    @Column(length = 32, nullable = false)
-    @Length(max = 32, min = 1, groups = CreateGroup.class)
+    @Column(length = 64, nullable = false)
+    @Length(max = 64, min = 1, groups = CreateGroup.class)
     private String name;
 
     @Schema(description = "编码")
-    @Column(length = 32)
-    @Length(max = 32, groups = CreateGroup.class)
+    @Column(length = 64)
+    @Length(max = 64, groups = CreateGroup.class)
     private String code;
 
     @Schema(description = "所属应用")
@@ -185,7 +187,9 @@ public class MenuEntity
      */
     public MenuEntity ofApp(String appId,
                             String owner) {
-        setId(null);
+        if (StringUtils.isBlank(getId())) {
+            setId(DigestUtils.md5Hex(appId + owner + code));
+        }
         setParentId(null);
         setOwner(owner);
         return this;

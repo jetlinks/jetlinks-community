@@ -13,7 +13,8 @@ import org.hswebframework.web.authorization.DimensionType;
 @Getter
 @Generated
 public enum OrgDimensionType implements DimensionType {
-    org("org","机构");
+    org("org","组织"),
+    parentOrg("parentOrg","上级组织");
 
     private final String id;
     private final String name;

@@ -2,9 +2,10 @@ package org.jetlinks.community.notify.manager.subscriber.providers;
 
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.Authentication;
-import org.jetlinks.core.event.EventBus;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.community.topic.Topics;
+import org.jetlinks.core.event.EventBus;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -25,7 +26,13 @@ public class AlarmSceneProvider extends AlarmProvider {
 
     @Override
     public String getName() {
-        return "场景告警";
+        return LocaleUtils
+            .resolveMessage("message.subscriber.provider.alarm-other", "场景告警");
+    }
+
+    @Override
+    public Integer getOrder() {
+        return 300;
     }
 
     @Override

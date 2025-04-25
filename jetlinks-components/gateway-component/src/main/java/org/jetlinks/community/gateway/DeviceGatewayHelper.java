@@ -13,8 +13,8 @@ import org.jetlinks.core.server.session.ChildrenDeviceSession;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.KeepOnlineSession;
 import org.jetlinks.core.server.session.LostDeviceSession;
-import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.core.utils.Reactors;
+import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -45,6 +45,19 @@ public class DeviceGatewayHelper {
     private final DeviceSessionManager sessionManager;
     private final DecodedClientMessageHandler messageHandler;
 
+    public static Consumer<DeviceSession> applySessionKeepaliveTimeout(DeviceMessage msg, Supplier<Duration> timeoutSupplier) {
+        return session -> {
+            Integer timeout = msg.getHeaderOrElse(Headers.keepOnlineTimeoutSeconds, () -> null);
+            if (null != timeout) {
+                session.setKeepAliveTimeout(Duration.ofSeconds(timeout));
+            } else {
+                Duration defaultTimeout = timeoutSupplier.get();
+                if (null != defaultTimeout) {
+                    session.setKeepAliveTimeout(defaultTimeout);
+                }
+            }
+        };
+    }
 
     public Mono<DeviceOperator> handleDeviceMessage(DeviceMessage message,
                                                     Function<DeviceOperator, DeviceSession> sessionBuilder) {
@@ -248,7 +261,8 @@ public class DeviceGatewayHelper {
     private Mono<Void> handleMessage(DeviceOperator device, Message message) {
         return messageHandler
             .handleMessage(device, message)
-            .then();
+            //转换为empty,减少触发discard
+            .flatMap(ignore -> Mono.empty());
     }
 
     private Mono<DeviceSession> createOrUpdateSession(String deviceId,
@@ -440,6 +454,24 @@ public class DeviceGatewayHelper {
                 deviceNotFoundCallback
             );
 
+    }
+
+    /**
+     * 校验设备消息的网关ID
+     *
+     * @param accessId 当前网关ID
+     * @param message  设备消息
+     * @return 是否一致
+     */
+    public Mono<Boolean> checkAccessId(@NotNull String accessId, DeviceMessage message) {
+        if (message.getHeaderOrDefault(Headers.multiGateway)) {
+            return Reactors.ALWAYS_TRUE;
+        }
+        return registry
+            .getDevice(message.getDeviceId())
+            .flatMap(operator -> operator.getConfig(PropertyConstants.accessId))
+            .map(accessId::equals)
+            .defaultIfEmpty(true);
     }
 
 

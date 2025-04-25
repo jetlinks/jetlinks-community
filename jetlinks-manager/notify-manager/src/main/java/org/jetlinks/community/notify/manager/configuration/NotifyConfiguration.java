@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @AutoConfiguration
-@EnableConfigurationProperties(NotifySubscriberProperties.class)
+@EnableConfigurationProperties({NotifySubscriberProperties.class, NotificationProperties.class})
 public class NotifyConfiguration {
 
     @Bean

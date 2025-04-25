@@ -15,6 +15,7 @@ public interface AlarmHandler {
     /**
      * 触发告警
      * @see AlarmTaskExecutorProvider
+     * @see org.jetlinks.community.things.impl.preprocessor.internal.AbstractMessageAlarmPreprocessor
      *
      * @return 告警触发结果
      */

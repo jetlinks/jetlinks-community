@@ -4,6 +4,7 @@ import lombok.Generated;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.community.things.ThingsDataProperties;
 import org.jetlinks.community.things.data.*;
+import org.jetlinks.community.things.holder.ThingsRegistryHolderInitializer;
 import org.jetlinks.community.things.impl.entity.PropertyMetricEntity;
 import org.jetlinks.community.things.impl.metric.DefaultPropertyMetricManager;
 import org.jetlinks.core.defaults.DeviceThingsRegistrySupport;
@@ -34,13 +35,6 @@ public class ThingsConfiguration {
     }
 
     @Bean
-    @Primary
-    public AutoRegisterThingsRegistry thingsRegistry() {
-        return new AutoRegisterThingsRegistry();
-    }
-
-
-    @Bean
     public DefaultPropertyMetricManager propertyMetricManager(ThingsRegistry registry,
                                                               EventBus eventBus,
                                                               @SuppressWarnings("all")
@@ -65,5 +59,13 @@ public class ThingsConfiguration {
             customizer.custom(service);
         }
         return service;
+    }
+
+    @Bean
+    @Primary
+    public AutoRegisterThingsRegistry thingsRegistry() {
+        AutoRegisterThingsRegistry registry = new AutoRegisterThingsRegistry();
+        ThingsRegistryHolderInitializer.init(registry);
+        return registry;
     }
 }

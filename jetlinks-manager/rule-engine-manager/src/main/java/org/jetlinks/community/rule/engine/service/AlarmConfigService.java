@@ -8,8 +8,11 @@ import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
+import org.jetlinks.community.rule.engine.entity.AlarmHandleHistoryEntity;
 import org.jetlinks.community.rule.engine.alarm.AlarmHandleInfo;
-import org.jetlinks.community.rule.engine.entity.*;
+import org.jetlinks.community.rule.engine.entity.AlarmConfigDetail;
+import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
+import org.jetlinks.community.rule.engine.entity.SceneEntity;
 import org.jetlinks.community.rule.engine.enums.AlarmState;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -54,7 +57,6 @@ public class AlarmConfigService extends GenericReactiveCrudService<AlarmConfigEn
             })
             .then();
     }
-
 
     public Mono<PagerResult<AlarmConfigDetail>> queryDetailPager(QueryParamEntity query) {
         return this

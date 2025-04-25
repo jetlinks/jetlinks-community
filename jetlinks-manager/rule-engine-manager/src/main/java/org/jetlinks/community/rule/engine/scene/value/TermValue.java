@@ -13,8 +13,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * @see org.jetlinks.community.reactorql.term.TermValue
+ */
 @Getter
 @Setter
+@Deprecated
 public class TermValue implements Serializable {
 
     private static final long serialVersionUID = 1;

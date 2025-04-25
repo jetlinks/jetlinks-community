@@ -1,6 +1,7 @@
 package org.jetlinks.community.rule.engine.scene.internal.actions;
 
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.rule.engine.alarm.AlarmTaskExecutorProvider;
 import org.jetlinks.community.rule.engine.enums.AlarmMode;
 import org.jetlinks.community.rule.engine.scene.SceneActionProvider;
@@ -34,7 +35,8 @@ public class AlarmActionProvider implements SceneActionProvider<AlarmAction> {
 
     @Override
     public Flux<Variable> createVariable(AlarmAction config) {
-        return Flux.fromIterable(config.createVariables());
+        return LocaleUtils
+            .transform(Flux.defer(() -> Flux.fromIterable(config.createVariables())));
     }
 
     @Override

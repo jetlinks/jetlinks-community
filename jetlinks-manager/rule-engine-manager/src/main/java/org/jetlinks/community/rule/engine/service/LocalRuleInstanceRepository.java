@@ -72,9 +72,9 @@ public class LocalRuleInstanceRepository implements RuleInstanceRepository, Comm
                 .and(SceneEntity::getState, RuleInstanceState.started)
                 .fetch()
                 .flatMap(SceneEntity::toRule)
-        )
-            ;
+        );
     }
+
 
     @Override
     public void run(String... args) throws Exception {

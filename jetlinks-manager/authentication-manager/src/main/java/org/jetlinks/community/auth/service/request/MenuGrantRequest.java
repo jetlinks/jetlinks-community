@@ -8,7 +8,6 @@ import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
 import org.hswebframework.web.id.IDGenerator;
-import org.jetlinks.community.auth.entity.MenuView;
 import org.jetlinks.community.auth.entity.MenuBindEntity;
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.entity.MenuView;
@@ -130,7 +129,21 @@ public class MenuGrantRequest {
                 .of(menu)
                 .withTarget(targetType, targetId)
                 .withMerge(merge, priority))
-            .collect(Collectors.toList());
+            .collect(Collectors.collectingAndThen(
+                Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(MenuBindEntity::getId))),
+                ArrayList::new
+            ));
 
+    }
+
+    public Set<String> containOwner() {
+        if (CollectionUtils.isEmpty(menus)) {
+            return Collections.emptySet();
+        }
+        return menus
+            .stream()
+            .map(MenuView::getOwner)
+            .filter(StringUtils::hasText)
+            .collect(Collectors.toSet());
     }
 }

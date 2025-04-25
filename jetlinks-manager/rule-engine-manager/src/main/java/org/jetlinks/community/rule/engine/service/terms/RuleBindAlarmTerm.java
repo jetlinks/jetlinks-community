@@ -54,7 +54,6 @@ public class RuleBindAlarmTerm extends AbstractTermFragmentBuilder {
     public SqlFragments createFragments(String columnFullName,
                                         RDBColumnMetadata column,
                                         Term term) {
-
         AlarmRuleBindTerm bindTerm = AlarmRuleBindTerm.of(term.getValue());
         if (CollectionUtils.isEmpty(bindTerm.ruleId)) {
             throw new IllegalArgumentException("illegal term [rule-bind-alarm] value :" + term);

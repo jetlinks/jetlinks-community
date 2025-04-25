@@ -5,8 +5,10 @@ import com.alibaba.fastjson.JSON;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hibernate.validator.constraints.Length;
+import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
@@ -20,6 +22,7 @@ import org.jetlinks.core.metadata.types.ArrayType;
 import org.jetlinks.core.metadata.types.DataTypes;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.UnknownType;
+import org.jetlinks.core.utils.SerializeUtils;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 
 import javax.persistence.Column;
@@ -27,6 +30,8 @@ import javax.persistence.Index;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +44,7 @@ import java.util.stream.Collectors;
     @Index(name = "dev_dev_id_idx", columnList = "device_id"),
     @Index(name = "dev_tag_idx", columnList = "device_id,key,value")
 })
+@Comment("设备标签表")
 @EnableEntityEvent
 public class DeviceTagEntity extends GenericEntity<String> {
 
@@ -73,10 +79,16 @@ public class DeviceTagEntity extends GenericEntity<String> {
     private Date createTime;
 
     @Column
+    @DefaultValue(generator = Generators.CURRENT_TIME)
+    @Schema(description = "时间戳")
+    private Long timestamp;
+
+    @Column
     @Schema(description = "说明")
     private String description;
 
     private DataType dataType;
+
 
     public static DeviceTagEntity of(PropertyMetadata property) {
         DeviceTagEntity entity = new DeviceTagEntity();
@@ -169,5 +181,35 @@ public class DeviceTagEntity extends GenericEntity<String> {
             .stream()
             .map(PropertyMetadata::getId)
             .collect(Collectors.toSet());
+    }
+
+    @SneakyThrows
+    public void writeExternal(ObjectOutput out) {
+        SerializeUtils.writeNullableUTF(getId(), out);
+        SerializeUtils.writeNullableUTF(getDeviceId(), out);
+        SerializeUtils.writeNullableUTF(getKey(), out);
+        SerializeUtils.writeNullableUTF(getName(), out);
+        SerializeUtils.writeNullableUTF(getValue(), out);
+        SerializeUtils.writeNullableUTF(getType(), out);
+        out.writeLong(getCreateTime() == null ? -1 : getCreateTime().getTime());
+        out.writeLong(getTimestamp() == null ? -1 : getTimestamp());
+        SerializeUtils.writeNullableUTF(getDescription(), out);
+
+
+    }
+
+    @SneakyThrows
+    public void readExternal(ObjectInput in) {
+        setId(SerializeUtils.readNullableUTF(in));
+        setDeviceId(SerializeUtils.readNullableUTF(in));
+        setKey(SerializeUtils.readNullableUTF(in));
+        setName(SerializeUtils.readNullableUTF(in));
+        setValue(SerializeUtils.readNullableUTF(in));
+        setType(SerializeUtils.readNullableUTF(in));
+        long time = in.readLong();
+        setCreateTime(time == -1 ? null : new Date(time));
+        long ts = in.readLong();
+        setTimestamp(ts == -1 ? null : ts);
+        setDescription(SerializeUtils.readNullableUTF(in));
     }
 }

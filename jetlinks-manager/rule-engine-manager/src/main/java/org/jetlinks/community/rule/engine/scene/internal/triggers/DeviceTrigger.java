@@ -19,13 +19,14 @@ import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.community.TimerSpec;
 import org.jetlinks.community.reactorql.term.TermTypeSupport;
 import org.jetlinks.community.reactorql.term.TermTypes;
+import org.jetlinks.community.reactorql.term.TermUtils;
+import org.jetlinks.community.reactorql.term.TermValue;
 import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.rule.engine.executor.device.SelectorValue;
 import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.community.rule.engine.scene.term.TermColumn;
-import org.jetlinks.community.rule.engine.scene.value.TermValue;
 import org.jetlinks.rule.engine.api.model.RuleModel;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import org.springframework.util.Assert;
@@ -62,12 +63,12 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
     }
 
     public SqlRequest createSql(List<Term> terms, boolean hasWhere) {
+        return createSql(terms, Collections.emptySet(), hasWhere);
+    }
 
-        Map<String, List<Term>> termsMap = SceneUtils.expandTerm(terms);
-        List<Term> termList = new ArrayList<>();
-        for (List<Term> values : termsMap.values()) {
-            termList.addAll(values);
-        }
+    public SqlRequest createSql(List<Term> terms, Set<String> headers, boolean hasWhere) {
+
+        List<Term> termList = TermUtils.expandTermToList(terms);
         // select * from (
         //   select
         //      this.deviceId deviceId,
@@ -97,6 +98,10 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         selectColumns.add("this.headers.bindings \"_bindings\"");
         //链路追踪ID
         selectColumns.add("this.headers.traceparent \"traceparent\"");
+        //自定义填充header
+        for (String header : headers) {
+            selectColumns.add("this.headers['" + header + "'] \"" + header + "\"");
+        }
 
         switch (this.operation.getOperator()) {
             case readProperty:
@@ -162,7 +167,6 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         }
 
         return PrepareSqlRequest.of(builder.toString(), new Object[0]);
-
     }
 
     String createFilterDescription(List<Term> terms) {
@@ -252,8 +256,9 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         }
     }
 
-
     public static Term refactorTermValue(String tableName, Term term) {
+
+
         return SceneUtils.refactorTerm(tableName, term);
     }
 
@@ -272,7 +277,7 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         }
         String[] arr = column.split("[.]");
         //properties.temp.current
-        if ("properties".equals(arr[0])) {
+        if ("properties".equals(arr[0]) || "scene".equals(arr[0])) {
             try {
                 DeviceOperation.PropertyValueType valueType = DeviceOperation.PropertyValueType.valueOf(arr[arr.length - 1]);
                 String property = arr[1];
@@ -304,20 +309,24 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
 
     public List<Variable> createDefaultVariable() {
         return Arrays.asList(
-            Variable.of("deviceId", "设备ID")
+            Variable.of("deviceId", getVariableI18nName("device_id","设备ID"))
                     .withOption(Variable.OPTION_PRODUCT_ID, productId)
                     .withTermType(TermTypes.lookup(StringType.GLOBAL))
                     .withColumn("deviceId"),
-            Variable.of("deviceName", "设备名称")
+            Variable.of("deviceName", getVariableI18nName("device_name","设备名称"))
                     .withTermType(TermTypes.lookup(StringType.GLOBAL))
                     .withColumn("deviceName"),
-            Variable.of("productId", "产品ID")
+            Variable.of("productId", getVariableI18nName("product_id","产品ID"))
                     .withTermType(TermTypes.lookup(StringType.GLOBAL))
                     .withColumn("productId"),
-            Variable.of("productName", "产品名称")
+            Variable.of("productName", getVariableI18nName("product_name","产品名称"))
                     .withTermType(TermTypes.lookup(StringType.GLOBAL))
                     .withColumn("productName")
         );
+    }
+
+    private String getVariableI18nName(String id, String defaultName) {
+        return LocaleUtils.resolveMessage("message.device.variable." + id, defaultName);
     }
 
 
@@ -401,4 +410,5 @@ public class DeviceTrigger extends DeviceSelectorSpec implements SceneTriggerPro
         operation.validate();
 
     }
+
 }

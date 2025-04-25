@@ -4,11 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
 import org.hswebframework.ezorm.rdb.mapping.annotation.Comment;
 import org.hswebframework.ezorm.rdb.mapping.annotation.DefaultValue;
 import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
+import org.hswebframework.web.api.crud.entity.EntityFactoryHolder;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
+import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.utils.DigestUtils;
 import org.springframework.util.ObjectUtils;
 
@@ -89,11 +92,15 @@ public class MenuBindEntity extends GenericEntity<String> {
 
     public void generateId() {
         generateTargetKey();
-        setId(DigestUtils.md5Hex(String.join("|", targetKey, menuId)));
+        if (StringUtils.isNotEmpty(targetKey)){
+            setId(DigestUtils.md5Hex(String.join("|", targetKey, menuId)));
+        }
     }
 
     public void generateTargetKey() {
-        setTargetKey(generateTargetKey(targetType, targetId));
+        if (StringUtils.isNotEmpty(targetId) && StringUtils.isNotEmpty(targetType)) {
+            setTargetKey(generateTargetKey(targetType, targetId));
+        }
     }
 
     public static String generateTargetKey(String dimensionType, String dimensionId) {
@@ -113,11 +120,16 @@ public class MenuBindEntity extends GenericEntity<String> {
         return this;
     }
 
+    public static MenuBindEntity create() {
+        return EntityFactoryHolder.newInstance(MenuBindEntity.class, MenuBindEntity::new);
+    }
+
 
     public static MenuBindEntity of(MenuView view) {
-        MenuBindEntity entity = new MenuBindEntity();
+        MenuBindEntity entity = FastBeanCopier.copy(view, create(), "id");
         entity.setMenuId(view.getId());
         entity.setOptions(view.getOptions());
+        entity.setOwner(view.getOwner());
 
         if (CollectionUtils.isNotEmpty(view.getButtons())) {
             //只保存已经授权的按钮

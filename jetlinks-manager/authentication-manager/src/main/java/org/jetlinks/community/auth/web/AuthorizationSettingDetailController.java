@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/autz-setting/detail")
 @Authorize
@@ -31,12 +33,13 @@ public class AuthorizationSettingDetailController {
     @PostMapping("/_save")
     @SaveAction
     @Operation(summary = "赋权")
-    public Mono<Boolean> saveSettings(@RequestBody Flux<AuthorizationSettingDetail> detailFlux) {
+    public Mono<Boolean> saveSettings(@RequestBody Mono<List<AuthorizationSettingDetail>> detailMono) {
 
         return Authentication
             .currentReactive()
-            .flatMap(authentication -> settingService
-                .saveDetail(authentication, detailFlux)
+            .flatMap(authentication -> detailMono
+                .flatMapMany(Flux::fromIterable)
+                .as(flux -> settingService.saveDetail(authentication, flux))
                 .thenReturn(true)
             );
     }

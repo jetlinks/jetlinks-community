@@ -44,11 +44,12 @@ public class AlarmRecordMeasurementProvider extends StaticMeasurementProvider {
     public String[] getTags(AlarmHistoryInfo info) {
         Map<String, Object> tagMap = Maps.newLinkedHashMap();
 
-        tagMap.put(AlarmConstants.ConfigKey.targetId, info.getTargetId());
+      //  tagMap.put(AlarmConstants.ConfigKey.targetId, info.getTargetId());
+        //只需要记录targetType,用于统计 设备，产品等告警数量.
         tagMap.put(AlarmConstants.ConfigKey.targetType, info.getTargetType());
-        tagMap.put(AlarmConstants.ConfigKey.targetName, info.getTargetName());
-
-        tagMap.put(AlarmConstants.ConfigKey.alarmConfigId, info.getAlarmConfigId());
+        //tagMap.put(AlarmConstants.ConfigKey.targetName, info.getTargetName());
+//        tagMap.put(AlarmConstants.ConfigKey.alarmConfigId, info.getAlarmConfigId());
+        tagMap.put(PropertyConstants.creatorId.getKey(), info.getCreatorId());
         return ConverterUtils.convertMapToTags(tagMap);
     }
 }

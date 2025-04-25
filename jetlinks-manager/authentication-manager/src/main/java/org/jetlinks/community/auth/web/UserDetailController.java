@@ -1,6 +1,7 @@
 package org.jetlinks.community.auth.web;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.hswebframework.web.api.crud.entity.PagerResult;
@@ -11,6 +12,7 @@ import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
+import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
 import org.jetlinks.community.auth.entity.UserDetail;
 import org.jetlinks.community.auth.enums.UserEntityType;
 import org.jetlinks.community.auth.enums.UserEntityTypes;
@@ -30,6 +32,7 @@ import reactor.core.publisher.Mono;
 public class UserDetailController {
 
     private final UserDetailService userDetailService;
+    private final DefaultDimensionUserService dimensionUserService;
 
     @PostMapping("/_create")
     @SaveAction
@@ -55,7 +58,7 @@ public class UserDetailController {
     }
 
     @GetMapping("/{userId}")
-    @SaveAction
+    @QueryAction
     @Operation(summary = "获取用户详情信息")
     public Mono<UserDetail> getUserDetail(@PathVariable String userId) {
         return userDetailService.findUserDetail(userId);
@@ -79,7 +82,7 @@ public class UserDetailController {
     public Mono<UserDetail> getCurrentLoginUserDetail() {
         return Authentication
             .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+            .switchIfEmpty(Mono.error(UnAuthorizedException.NoStackTrace::new))
             .flatMap(autz -> userDetailService
                 .findUserDetail(autz.getUser().getId())
                 .switchIfEmpty(Mono.fromSupplier(() -> new UserDetail().with(autz)))
@@ -95,16 +98,17 @@ public class UserDetailController {
     @Operation(summary = "保存当前用户详情")
     @Authorize(merge = false)
     public Mono<Void> saveUserDetail(@RequestBody Mono<SaveUserDetailRequest> request) {
+        // todo 个人资料的权限校验
         return Authentication
             .currentReactive()
             .zipWith(request)
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(tp2 -> userDetailService.saveUserDetail(tp2.getT1().getUser().getId(), tp2.getT2()));
+            .switchIfEmpty(Mono.error(UnAuthorizedException.NoStackTrace::new))
+            .flatMap(tp2 -> userDetailService
+                .saveUserDetail(tp2.getT1().getUser().getId(), tp2.getT2()));
     }
 
     @GetMapping("/types")
     @Operation(summary = "获取所有用户类型")
-    @Authorize(merge = false)
     public Flux<UserEntityType> getUserEntityTypes() {
         return Flux.fromIterable(UserEntityTypes.getAllType());
     }

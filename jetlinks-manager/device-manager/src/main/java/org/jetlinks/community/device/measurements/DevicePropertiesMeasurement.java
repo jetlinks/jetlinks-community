@@ -27,7 +27,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
-class DevicePropertiesMeasurement extends StaticMeasurement {
+public class DevicePropertiesMeasurement extends StaticMeasurement {
 
     private final EventBus eventBus;
 

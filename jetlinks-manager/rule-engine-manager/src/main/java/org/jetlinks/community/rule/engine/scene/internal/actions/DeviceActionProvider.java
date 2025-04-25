@@ -4,14 +4,18 @@ import lombok.AllArgsConstructor;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.things.ThingsRegistry;
+import org.jetlinks.community.command.CommandSupportManagerProvider;
 import org.jetlinks.community.rule.engine.executor.DeviceMessageSendTaskExecutorProvider;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorSpec;
 import org.jetlinks.community.rule.engine.scene.SceneActionProvider;
+import org.jetlinks.community.rule.engine.scene.SceneUtils;
 import org.jetlinks.community.rule.engine.scene.Variable;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
+import org.jetlinks.sdk.server.SdkServices;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -53,6 +57,7 @@ public class DeviceActionProvider implements SceneActionProvider<DeviceAction> {
         config.setMessage(device.getMessage());
 
         if (DeviceSelectorProviders.isFixed(device)) {
+            SceneUtils.refactorUpperKey(device);
             config.setSelectorSpec(FastBeanCopier.copy(device, new DeviceSelectorSpec()));
         } else {
             config.setSelectorSpec(
