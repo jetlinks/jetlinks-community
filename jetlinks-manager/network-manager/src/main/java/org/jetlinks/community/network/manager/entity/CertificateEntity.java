@@ -19,7 +19,7 @@ import org.springframework.util.Assert;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.sql.JDBCType;
 
 /**

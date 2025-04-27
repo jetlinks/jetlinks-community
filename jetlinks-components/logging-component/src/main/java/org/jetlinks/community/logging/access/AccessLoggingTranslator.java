@@ -1,13 +1,13 @@
 package org.jetlinks.community.logging.access;
 
 import org.hswebframework.web.logging.events.AccessLoggerAfterEvent;
-import org.jetlinks.community.logging.configuration.LoggingProperties;
 import org.jetlinks.core.utils.TopicUtils;
+import org.jetlinks.community.logging.configuration.LoggingProperties;
+import org.jetlinks.community.logging.utils.LoggingUtil;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
-@Component
 public class AccessLoggingTranslator {
 
     private final ApplicationEventPublisher eventPublisher;
@@ -21,12 +21,16 @@ public class AccessLoggingTranslator {
 
     @EventListener
     public void translate(AccessLoggerAfterEvent event) {
+
         for (String pathExclude : properties.getAccess().getPathExcludes()) {
             if (TopicUtils.match(pathExclude, event.getLogger().getUrl())) {
                 return;
             }
         }
-        eventPublisher.publishEvent(SerializableAccessLog.of(event.getLogger()));
+        SerializableAccessLog log = SerializableAccessLog.of(event.getLogger());
+
+        eventPublisher.publishEvent(log);
     }
+
 
 }

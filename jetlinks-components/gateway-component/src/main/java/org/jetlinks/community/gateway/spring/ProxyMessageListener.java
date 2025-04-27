@@ -1,12 +1,9 @@
 package org.jetlinks.community.gateway.spring;
 
+import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.proxy.Proxy;
-import org.jetlinks.core.NativePayload;
-import org.jetlinks.core.Payload;
-import org.jetlinks.core.codec.Codecs;
-import org.jetlinks.core.codec.Decoder;
 import org.jetlinks.core.event.TopicPayload;
 import org.reactivestreams.Publisher;
 import org.springframework.core.ResolvableType;
@@ -26,7 +23,10 @@ class ProxyMessageListener implements MessageListener {
     private final Method method;
     private final BiFunction<Object, Object, Object> proxy;
 
-    private volatile Decoder<?> decoder;
+    private final boolean paramIsPayload;
+
+    private final boolean paramIsVoid;
+
 
     @SuppressWarnings("all")
     ProxyMessageListener(Object target, Method method) {
@@ -51,6 +51,9 @@ class ProxyMessageListener implements MessageListener {
 
         String invokeCode;
         if (paramType != Void.class) {
+            if (paramType.isPrimitive()) {
+                throw new UnsupportedOperationException(method + "参数不支持基本数据类型,请使用包装器类型.");
+            }
             code.add(paramType.getName() + " _param = (" + paramType.getName() + ")param;");
             invokeCode = " _target." + method.getName() + "(_param);";
         } else {
@@ -64,57 +67,45 @@ class ProxyMessageListener implements MessageListener {
         }
 
         code.add("}");
-        this.resolvableType = ResolvableType.forMethodParameter(method, 0, targetType);
+        if (paramType == Void.class) {
+            this.resolvableType = ResolvableType.forClass(Void.class);
+        } else {
+            this.resolvableType = ResolvableType.forMethodParameter(method, 0, targetType);
+        }
         this.proxy = Proxy.create(BiFunction.class)
-            .addMethod(code.toString())
-            .newInstance();
+                          .addMethod(code.toString())
+                          .newInstance();
 
+        paramIsPayload = TopicPayload.class.isAssignableFrom(paramType);
+        paramIsVoid = paramType == Void.class;
     }
 
     Object convert(TopicPayload message) {
-
-        if (Payload.class.isAssignableFrom(paramType)) {
+        if (paramIsPayload) {
             return message;
         }
         try {
-            Payload payload = message.getPayload();
-            Object decodedPayload;
-            if (payload instanceof NativePayload) {
-                decodedPayload = ((NativePayload<?>) payload).getNativeObject();
-            } else {
-                if (decoder == null) {
-                    decoder = Codecs.lookup(resolvableType);
-                }
-                decodedPayload = decoder.decode(message);
-            }
+            Object decodedPayload = message.decode(false);
             if (paramType.isInstance(decodedPayload)) {
                 return decodedPayload;
             }
             return FastBeanCopier.DEFAULT_CONVERT.convert(decodedPayload, paramType, resolvableType.resolveGenerics());
         } finally {
-            message.release();
+            ReferenceCountUtil.safeRelease(message);
         }
     }
 
     @Override
     public Mono<Void> onMessage(TopicPayload message) {
         try {
-            boolean paramVoid = paramType == Void.class;
-            try {
-                Object val = proxy.apply(target, paramVoid ? null : convert(message));
-                if (val instanceof Publisher) {
-                    return Mono.from((Publisher<?>) val).then();
-                }
-                return Mono.empty();
-            } finally {
-                if (paramVoid) {
-                    message.release();
-                }
+            Object val = proxy.apply(target, paramIsVoid ? null : convert(message));
+            if (val instanceof Publisher) {
+                return Mono.from((Publisher<?>) val).then();
             }
+            return Mono.empty();
         } catch (Throwable e) {
-            log.error("invoke event listener [{}] error", toString(), e);
+            return Mono.error(e);
         }
-        return Mono.empty();
     }
 
     @Override

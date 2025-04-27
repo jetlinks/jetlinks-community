@@ -16,7 +16,7 @@ import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannel;
 import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannelProvider;
 import reactor.core.publisher.Mono;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 
 @AllArgsConstructor

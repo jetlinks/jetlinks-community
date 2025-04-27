@@ -3,17 +3,18 @@ package org.jetlinks.community.things.utils;
 import org.hswebframework.ezorm.core.ValueCodec;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.core.param.TermType;
-import org.hswebframework.ezorm.rdb.codec.BooleanValueCodec;
-import org.hswebframework.ezorm.rdb.codec.ClobValueCodec;
-import org.hswebframework.ezorm.rdb.codec.JsonValueCodec;
-import org.hswebframework.ezorm.rdb.codec.NumberValueCodec;
+import org.hswebframework.ezorm.rdb.codec.*;
 import org.hswebframework.ezorm.rdb.metadata.RDBColumnMetadata;
-import org.jetlinks.community.ConfigMetadataConstants;
-import org.jetlinks.community.utils.ConverterUtils;
+import org.hswebframework.web.utils.DigestUtils;
+import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.*;
 import org.jetlinks.core.utils.StringBuilderUtils;
+import org.jetlinks.community.ConfigMetadataConstants;
+import org.jetlinks.community.utils.ConverterUtils;
+import org.jetlinks.community.utils.TimeUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.jetlinks.supports.official.DeviceMetadataParser;
 import org.springframework.core.ResolvableType;
@@ -168,6 +169,10 @@ public class ThingsDatabaseUtils {
         return convertColumn(metadata, new RDBColumnMetadata());
     }
 
+    public static PropertyMetadata convertMetadata(RDBColumnMetadata column) {
+        return SimplePropertyMetadata.of(column.getAlias(), column.getComment(), convertDataType(column));
+    }
+
     public static DataType convertDataType(RDBColumnMetadata column) {
         DataType type;
         if (column.getJavaType() != null) {
@@ -181,6 +186,24 @@ public class ThingsDatabaseUtils {
     }
 
     private final static Base64.Encoder tableEncoder = Base64.getUrlEncoder().withoutPadding();
+
+
+    public static String createTableName(String prefix, String... suffixes) {
+        int len = prefix.length();
+
+        for (String suffix : suffixes) {
+            len += suffix.length();
+        }
+
+        if (len >= 64 - suffixes.length) {
+            //表名太长，使用短编码
+            return createTableName0(
+                prefix, tableEncoder.encodeToString(DigestUtils.md5(String.join("_", suffixes)))
+            );
+        }
+
+        return createTableName0(prefix, suffixes);
+    }
 
     private static String createTableName0(String prefix, String... suffixes) {
         return StringBuilderUtils
@@ -206,6 +229,32 @@ public class ThingsDatabaseUtils {
                 builder.append(ch);
             }
         }
+    }
+
+    public static Object tryConvertTermValue(DataType type, Object value) {
+        if (type instanceof DateTimeType) {
+            return TimeUtils.convertToDate(value).getTime();
+        } else if (type instanceof Converter) {
+            return ((Converter<?>) type).convert(value);
+        }
+        return value;
+    }
+
+    public static void tryConvertTermValue(DataType type,
+                                           Term term,
+                                           BiFunction<DataType, Object, Object> tryConvertTermValue) {
+        tryConvertTermValue(type,
+                            term,
+                            ThingsDatabaseUtils::isDoNotConvertValue,
+                            ThingsDatabaseUtils::maybeList,
+                            tryConvertTermValue);
+    }
+
+    public static void tryConvertTermValue(DataType type,
+                                           Term term) {
+        tryConvertTermValue(type,
+                            term,
+                            ThingsDatabaseUtils::tryConvertTermValue);
     }
 
     public static void tryConvertTermValue(DataType type,

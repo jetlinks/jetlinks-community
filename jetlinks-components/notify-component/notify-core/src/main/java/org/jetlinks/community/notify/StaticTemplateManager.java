@@ -8,18 +8,24 @@ import org.jetlinks.community.notify.template.TemplateProperties;
 import org.jetlinks.community.notify.template.TemplateProvider;
 import org.jetlinks.core.event.EventBus;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.context.ApplicationContext;
 import reactor.core.publisher.Mono;
 
 @Getter
 @Setter
-public class StaticTemplateManager extends AbstractTemplateManager implements BeanPostProcessor {
+public class StaticTemplateManager extends AbstractTemplateManager implements SmartInitializingSingleton {
 
     private StaticNotifyProperties properties;
 
-    public StaticTemplateManager(StaticNotifyProperties properties, EventBus eventBus) {
+    private final ApplicationContext context;
+
+    public StaticTemplateManager(StaticNotifyProperties properties, EventBus eventBus,
+                                 ApplicationContext context) {
         super(eventBus);
         this.properties = properties;
+        this.context = context;
     }
 
     public void register(TemplateProvider provider) {
@@ -32,12 +38,8 @@ public class StaticTemplateManager extends AbstractTemplateManager implements Be
     }
 
     @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-
-        if(bean instanceof TemplateProvider){
-            register(((TemplateProvider) bean));
-        }
-
-        return BeanPostProcessor.super.postProcessAfterInitialization(bean, beanName);
+    public void afterSingletonsInstantiated() {
+         context.getBeanProvider(TemplateProvider.class)
+             .forEach(this::register);
     }
 }

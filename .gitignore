@@ -30,3 +30,4 @@ docker/data
 application-local.yml
 dev/
 .DS_Store
+.java-version

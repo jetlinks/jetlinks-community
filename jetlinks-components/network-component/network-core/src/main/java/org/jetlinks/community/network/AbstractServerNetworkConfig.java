@@ -5,7 +5,7 @@ import lombok.Setter;
 import org.hibernate.validator.constraints.Range;
 import org.jetlinks.community.network.resource.NetworkTransport;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Getter
 @Setter

@@ -1,0 +1,2 @@
+org.jetlinks.community.notify.configuration.NotifierAutoConfiguration
+org.jetlinks.community.notify.configuration.RuleEngineNotifierConfiguration

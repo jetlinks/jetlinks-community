@@ -16,7 +16,7 @@ import org.hswebframework.web.validator.CreateGroup;
 import javax.persistence.Column;
 import javax.persistence.Index;
 import javax.persistence.Table;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.sql.JDBCType;
 import java.util.Map;
 

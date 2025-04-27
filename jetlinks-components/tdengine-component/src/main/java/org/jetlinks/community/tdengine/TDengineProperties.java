@@ -24,7 +24,7 @@ import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 
 import javax.sql.DataSource;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;

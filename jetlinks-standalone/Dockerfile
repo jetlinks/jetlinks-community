@@ -1,21 +1,15 @@
-FROM openjdk:8u272-jdk as builder
+FROM jetlinks/base-jdk-21:latest as builder
 WORKDIR application
-ARG JAR_FILE=target/jetlinks-standalone.jar
-COPY ${JAR_FILE} application.jar
-RUN java -Djarmode=layertools -jar application.jar extract
+ARG JAR_FILE=target/application.jar
+COPY ${JAR_FILE} app.jar
+RUN java -Djarmode=tools -jar app.jar extract --layers --launcher
+FROM jetlinks/base-jdk-21:latest
 
-FROM openjdk:8u272-jdk
 WORKDIR application
-COPY --from=builder application/dependencies/ ./
-RUN true
-COPY --from=builder application/snapshot-dependencies/ ./
-RUN true
-COPY --from=builder application/spring-boot-loader/ ./
-RUN true
-COPY --from=builder application/application/ ./
-RUN true
+COPY --from=builder application/app/dependencies/ ./
+COPY --from=builder application/app/snapshot-dependencies/ ./
+COPY --from=builder application/app/spring-boot-loader/ ./
+COPY --from=builder application/app/application/ ./
 COPY docker-entrypoint.sh ./
-RUN true
 RUN chmod +x docker-entrypoint.sh
-RUN true
 ENTRYPOINT ["./docker-entrypoint.sh"]

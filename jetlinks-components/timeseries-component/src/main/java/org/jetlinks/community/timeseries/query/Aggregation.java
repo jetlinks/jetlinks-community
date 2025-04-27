@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.hswebframework.web.dict.EnumDict;
 import org.jetlinks.core.utils.Reactors;
+import org.jetlinks.reactor.ql.utils.CastUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.math.MathFlux;
@@ -15,13 +16,14 @@ import java.util.function.Function;
 @AllArgsConstructor
 public enum Aggregation implements EnumDict<String> {
 
-    MIN(numberFlux -> MathFlux.min(numberFlux, Comparator.comparing(Number::doubleValue)), null),
-    MAX(numberFlux -> MathFlux.max(numberFlux, Comparator.comparing(Number::doubleValue)),null),
-    AVG(numberFlux -> MathFlux.averageDouble(numberFlux, Number::doubleValue),null),
-    SUM(numberFlux -> MathFlux.sumDouble(numberFlux, Number::doubleValue),0),
-    COUNT(Flux::count, 0),
-    FIRST(numberFlux -> numberFlux.take(1).single(),null),
-    TOP(numberFlux -> numberFlux.take(1).single(),null),
+    MIN(numberFlux -> MathFlux.min(numberFlux.map(CastUtils::castNumber), Comparator.comparing(Number::doubleValue)), null),
+    MAX(numberFlux -> MathFlux.max(numberFlux.map(CastUtils::castNumber), Comparator.comparing(Number::doubleValue)),null),
+    AVG(numberFlux -> MathFlux.averageDouble(numberFlux.map(CastUtils::castNumber), Number::doubleValue),null),
+    SUM(numberFlux -> MathFlux.sumDouble(numberFlux.map(CastUtils::castNumber), Number::doubleValue),0),
+    COUNT(Flux::count,0),
+    FIRST(numberFlux -> numberFlux.take(1).singleOrEmpty(),null),
+    TOP(numberFlux -> numberFlux.take(1).singleOrEmpty(),null),
+    LAST(numberFlux -> numberFlux.takeLast(1).singleOrEmpty(),null),
 
     //去重计数
     DISTINCT_COUNT(flux -> flux.distinct().count(),0),
@@ -51,4 +53,11 @@ public enum Aggregation implements EnumDict<String> {
         return false;
     }
 
+    public boolean needNumberValue() {
+        boolean defaultValue = COUNT == this
+            || FIRST == this
+            || LAST == this
+            || TOP == this;
+        return !defaultValue;
+    }
 }

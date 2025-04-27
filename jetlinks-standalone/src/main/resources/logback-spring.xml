@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+
+    <conversionRule conversionWord="shortened"
+                    class="org.jetlinks.community.logging.logback.ShortenedThrowableConverter"/>
+    <property name="LOG_EXCEPTION_CONVERSION_WORD" value="%shortened"/>
 
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
     <property name="LOG_FILE" value="./logs/jetlinks-community.log"/>

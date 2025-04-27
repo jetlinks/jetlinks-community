@@ -15,7 +15,7 @@ public class TraceWebFilter implements WebFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange,
                              WebFilterChain chain) {
         //    /http/method/path
-        String spanName = "/http/"+exchange.getRequest().getMethodValue()  + exchange.getRequest().getPath().value();
+        String spanName = "/http/"+exchange.getRequest().getMethod().name()  + exchange.getRequest().getPath().value();
 
         ServerHttpRequest.Builder requestCopy = exchange
             .getRequest()
@@ -31,8 +31,12 @@ public class TraceWebFilter implements WebFilter, Ordered {
             //创建跟踪信息
             .as(MonoTracer.create(spanName))
             //从请求头中追加上级跟踪信息
-            .as(MonoTracer.createWith(exchange.getRequest().getHeaders(),HttpHeadersGetter.INSTANCE));
-
+            .contextWrite(ctx -> {
+                return TraceHolder.readToContext(
+                    ctx,
+                    exchange.getRequest().getHeaders(),
+                    HttpHeadersGetter.INSTANCE);
+            });
     }
 
     @Override

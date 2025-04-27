@@ -22,7 +22,7 @@ import org.jetlinks.community.io.excel.ExcelUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.*;
 import java.util.stream.Collectors;
 

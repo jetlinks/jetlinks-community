@@ -8,8 +8,8 @@ import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
-import org.jetlinks.community.logging.service.SystemLoggerService;
 import org.jetlinks.community.logging.system.SerializableSystemLog;
+import org.jetlinks.community.logging.system.SystemLoggerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -31,7 +31,7 @@ public class SystemLoggerController {
     @QueryAction
     @QueryOperation(summary = "查询系统日志")
     public Mono<PagerResult<SerializableSystemLog>> getSystemLogger(@Parameter(hidden = true) QueryParamEntity queryParam) {
-        return loggerService.getSystemLogger(queryParam);
+        return loggerService.query(queryParam);
     }
 
     @PostMapping("/_query")
@@ -39,7 +39,7 @@ public class SystemLoggerController {
     @Operation(summary = "(POST)查询系统日志")
     public Mono<PagerResult<SerializableSystemLog>> getSystemLogger(@RequestBody Mono<QueryParamEntity> queryMono) {
         return queryMono
-            .flatMap(queryParam -> loggerService.getSystemLogger(queryParam));
+            .flatMap(queryParam -> loggerService.query(queryParam));
     }
 
 

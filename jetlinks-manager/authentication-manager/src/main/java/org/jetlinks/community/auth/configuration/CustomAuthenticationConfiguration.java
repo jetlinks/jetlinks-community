@@ -20,7 +20,10 @@ import org.springframework.data.redis.core.ReactiveRedisOperations;
 import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({MenuProperties.class})
+@EnableConfigurationProperties({
+    MenuProperties.class,
+    AuthorizationProperties.class
+})
 public class CustomAuthenticationConfiguration {
 
     static final String CONDITION_CLASS_NAME = "org.jetlinks.community.microservice.configuration.CloudServicesConfiguration";
@@ -49,6 +52,11 @@ public class CustomAuthenticationConfiguration {
     @Bean(destroyMethod = "shutdown")
     public UserAuthenticationEventPublisher userDimensionEventPublisher(EventBus eventBus) {
         return new UserAuthenticationEventPublisher(eventBus);
+    }
+
+    @Bean
+    public AuthorizationPermissionInitializeService authorizationPermissionInitializeService(AuthorizationProperties properties){
+        return new AuthorizationPermissionInitializeService(properties);
     }
 
     @Bean

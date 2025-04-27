@@ -24,7 +24,7 @@ import org.springframework.util.StringUtils;
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Table;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.Pattern;
 import java.sql.JDBCType;
 
 @Getter

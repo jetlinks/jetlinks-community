@@ -11,6 +11,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Generated
 public class SerializableSystemLog implements Serializable {
 
     @Schema(description = "ID")
@@ -54,4 +55,10 @@ public class SerializableSystemLog implements Serializable {
 
     @Schema(description = "上下文")
     private Map<String, String> context;
+
+    @Schema(description = "链路ID")
+    private String traceId;
+
+    @Schema(description = "链路跨度ID")
+    private String spanId;
 }

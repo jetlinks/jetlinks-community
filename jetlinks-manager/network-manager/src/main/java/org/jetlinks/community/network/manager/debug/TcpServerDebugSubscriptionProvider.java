@@ -85,7 +85,7 @@ public class TcpServerDebugSubscriptionProvider implements SubscriptionProvider 
                         .then()
                 )
                 .doOnError(sink::error)
-                .subscriberContext(sink.currentContext())
+                .contextWrite(sink.currentContext())
                 .subscribe()
             ));
     }

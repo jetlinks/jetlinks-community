@@ -6,7 +6,7 @@ import lombok.Setter;
 import org.apache.commons.collections4.MapUtils;
 import org.jetlinks.community.relation.utils.VariableSource;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;

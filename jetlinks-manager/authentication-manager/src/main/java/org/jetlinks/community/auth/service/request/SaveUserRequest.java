@@ -9,7 +9,7 @@ import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.auth.entity.UserDetail;
 import org.springframework.util.StringUtils;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.util.Set;
 
 /**

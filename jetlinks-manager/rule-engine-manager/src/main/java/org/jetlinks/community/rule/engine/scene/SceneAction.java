@@ -20,7 +20,7 @@ import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.rule.engine.api.model.RuleNodeModel;
 import reactor.core.publisher.Flux;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;

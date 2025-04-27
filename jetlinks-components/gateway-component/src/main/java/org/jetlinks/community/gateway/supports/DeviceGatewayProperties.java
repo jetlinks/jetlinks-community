@@ -7,7 +7,7 @@ import lombok.Setter;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.community.ValueObject;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.HashMap;
 import java.util.Map;
 

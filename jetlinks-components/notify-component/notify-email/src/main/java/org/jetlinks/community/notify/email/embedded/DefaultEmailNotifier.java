@@ -2,7 +2,8 @@ package org.jetlinks.community.notify.email.embedded;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.buffer.Unpooled;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -12,11 +13,13 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.validator.ValidatorUtils;
+import org.jetlinks.community.notify.AbstractNotifier;
+import org.jetlinks.core.Values;
 import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
-import org.jetlinks.core.Values;
+import org.jetlinks.sdk.server.utils.ConverterUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -25,7 +28,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -39,8 +41,6 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Nonnull;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeUtility;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -65,11 +65,11 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
     @Getter
     @Setter
-    private String sender;
+    private String username;
 
     @Getter
     @Setter
-    private String username;
+    private String sender;
 
     @Getter
     private final String notifierId;
@@ -79,23 +79,27 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
     public static Scheduler scheduler = Schedulers.boundedElastic();
 
-
     private final FileManager fileManager;
+
+    private final WebClient webClient;
 
     public DefaultEmailNotifier(NotifierProperties properties,
                                 TemplateManager templateManager,
-                                FileManager fileManager) {
+                                FileManager fileManager,
+                                WebClient.Builder builder) {
         this(properties.getId(),
-            FastBeanCopier.copy(properties.getConfiguration(), new DefaultEmailProperties()),
-            templateManager,
-            fileManager);
+             FastBeanCopier.copy(properties.getConfiguration(), new DefaultEmailProperties()),
+             templateManager,
+             fileManager,
+             builder);
 
     }
 
     public DefaultEmailNotifier(String id,
                                 DefaultEmailProperties properties,
                                 TemplateManager templateManager,
-                                FileManager fileManager) {
+                                FileManager fileManager,
+                                WebClient.Builder builder) {
         super(templateManager);
         ValidatorUtils.tryValidate(properties);
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
@@ -106,17 +110,17 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
         mailSender.setJavaMailProperties(properties.createJavaMailProperties());
         this.notifierId = id;
         this.sender = properties.getSender();
-        this.username = properties.getUsername();
         this.javaMailSender = mailSender;
         this.fileManager = fileManager;
+        this.webClient = builder.build();
     }
 
     @Nonnull
     @Override
     public Mono<Void> send(@Nonnull EmailTemplate template, @Nonnull Values context) {
         return Mono.just(template)
-            .flatMap(temp -> convert(temp, context.getAllValues()))
-            .flatMap(this::doSend);
+                   .flatMap(temp -> convert(temp, context.getAllValues()))
+                   .flatMap(this::doSend);
     }
 
     @Nonnull
@@ -192,8 +196,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
     protected Mono<? extends InputStreamSource> convertResource(String resource) {
         if (resource.startsWith("http")) {
-            return WebClient
-                .create()
+            return webClient
                 .get()
                 .uri(resource)
                 .accept(MediaType.APPLICATION_OCTET_STREAM)
@@ -213,9 +216,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
                 .as(DataBufferUtils::join)
                 .map(dataBuffer -> {
                     try {
-                        ByteBuf buf = dataBuffer instanceof NettyDataBuffer
-                            ? ((NettyDataBuffer) dataBuffer).getNativeBuffer()
-                            : Unpooled.wrappedBuffer(dataBuffer.asByteBuffer());
+                        ByteBuf buf = ConverterUtils.convertNettyBuffer(dataBuffer);
                         return new ByteArrayResource(ByteBufUtil.getBytes(buf));
                     } finally {
                         DataBufferUtils.release(dataBuffer);
@@ -237,7 +238,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
                 String subject = template.getSubject();
                 String text = template.getText();
                 if (CollectionUtils.isEmpty(sendToList) || ObjectUtils.isEmpty(subject) || ObjectUtils.isEmpty(text)) {
-                    throw new BusinessException("模板内容错误，sendTo, text 或者 subject 不能为空.");
+                    throw new BusinessException.NoStackTrace("模板内容错误，sendTo, text 或者 subject 不能为空.");
                 }
 
                 String sendText = template.render(text, context);
@@ -298,6 +299,5 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
         }
         return anyImage ? doc.html() : sendText;
     }
-
 
 }

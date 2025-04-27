@@ -28,6 +28,9 @@ public class DataSettings {
     public static class Property {
         //是否只保存属性上报消息
         private boolean onlySaveReport = false;
+        //同时查询多个属性时使用聚合查询
+        private boolean queryPropertiesAggregation = true;
+
     }
 
     @Getter

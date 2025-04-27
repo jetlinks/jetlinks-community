@@ -1,23 +1,23 @@
 package org.jetlinks.community.logging.access;
 
-import com.alibaba.fastjson.JSON;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
-import org.hswebframework.utils.StringUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.logging.AccessLogger;
 import org.hswebframework.web.logging.AccessLoggerInfo;
+import org.jetlinks.community.logging.utils.LoggingUtil;
+import org.jetlinks.core.utils.ExceptionUtils;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.codec.multipart.FilePart;
 
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * @see org.hswebframework.web.logging.AccessLoggerInfo
+ * @see AccessLoggerInfo
  */
 @Setter
 @Getter
@@ -66,7 +66,7 @@ public class SerializableAccessLog implements Serializable {
     /**
      * 请求者ip地址
      */
-    @Schema(description = "请求中IP")
+    @Schema(description = "请求者IP")
     private String ip;
 
     /**
@@ -117,32 +117,37 @@ public class SerializableAccessLog implements Serializable {
     @Schema(description = "异常栈信息")
     private String exception;
 
+    private String traceId;
+
+    private String spanId;
+
+    private Set<String> bindings;
+
+    private String creatorId;
+
+    private String ipRegion;
+
     public static SerializableAccessLog of(AccessLoggerInfo info) {
         SerializableAccessLog accessLog = FastBeanCopier.copy(info, new SerializableAccessLog(), "parameters", "method", "target", "exception");
         accessLog.setMethod(info.getMethod().getName());
         accessLog.setTarget(info.getTarget().getName());
+
         //移除敏感请求头
         accessLog.getHttpHeaders().remove("X_Access_Token");
+        accessLog.getHttpHeaders().remove("X-Access-Token");
         accessLog.getHttpHeaders().remove(HttpHeaders.AUTHORIZATION);
 
-        accessLog.setException(info.getException() == null ? ""
-            : StringUtils.throwable2String(info.getException()));
-        Map<String, Object> newParameter = info.getParameters()
+        accessLog.setException(info.getException() == null ? "" : ExceptionUtils.getStackTrace(info.getException()));
+        Map<String, Object> newParameter = info
+            .getParameters()
             .entrySet()
             .stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, e -> {
-                Object value = e.getValue();
-                if (value instanceof FilePart) {
-                    return ("file:") + ((FilePart) value).filename();
-                }
-                String className = value.getClass().getName();
-                if (className.startsWith("org.springframework")) {
-                    return className;
-                }
-                return JSON.toJSONString(value);
-            }));
+            .collect(Collectors.toMap(Map.Entry::getKey,
+                                      e -> LoggingUtil.convertParameterValue(e.getValue())));
 
         accessLog.setParameters(newParameter);
         return accessLog;
     }
+
+
 }

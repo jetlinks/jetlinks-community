@@ -23,7 +23,7 @@ import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Table;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.Pattern;
 import java.sql.JDBCType;
 import java.util.Arrays;
 import java.util.List;

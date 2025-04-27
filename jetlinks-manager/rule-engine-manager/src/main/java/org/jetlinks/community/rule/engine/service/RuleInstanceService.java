@@ -4,12 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.core.param.QueryParam;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
-import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteEventInfo;
 import org.jetlinks.community.rule.engine.entity.RuleEngineExecuteLogInfo;
 import org.jetlinks.community.rule.engine.entity.RuleInstanceEntity;
 import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
-import org.jetlinks.community.rule.engine.event.handler.RuleEngineLoggerIndexProvider;
+import org.jetlinks.community.rule.engine.log.RuleEngineLogService;
 import org.jetlinks.rule.engine.api.RuleEngine;
 import org.jetlinks.rule.engine.api.model.RuleEngineModelParser;
 import org.jetlinks.rule.engine.api.model.RuleModel;
@@ -31,14 +30,14 @@ public class RuleInstanceService extends GenericReactiveCrudService<RuleInstance
     private RuleEngineModelParser modelParser;
 
     @Autowired
-    private ElasticSearchService elasticSearchService;
+    private RuleEngineLogService ruleEngineLogService;
 
     public Mono<PagerResult<RuleEngineExecuteEventInfo>> queryExecuteEvent(QueryParam queryParam) {
-        return elasticSearchService.queryPager(RuleEngineLoggerIndexProvider.RULE_EVENT_LOG, queryParam, RuleEngineExecuteEventInfo.class);
+        return ruleEngineLogService.queryEvent(queryParam);
     }
 
     public Mono<PagerResult<RuleEngineExecuteLogInfo>> queryExecuteLog(QueryParam queryParam) {
-        return elasticSearchService.queryPager(RuleEngineLoggerIndexProvider.RULE_LOG, queryParam, RuleEngineExecuteLogInfo.class);
+        return ruleEngineLogService.queryLog(queryParam);
     }
 
     @Transactional

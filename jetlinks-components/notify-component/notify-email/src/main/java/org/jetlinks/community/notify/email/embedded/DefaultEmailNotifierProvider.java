@@ -1,18 +1,16 @@
 package org.jetlinks.community.notify.email.embedded;
 
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.notify.*;
-import org.jetlinks.community.notify.email.EmailProvider;
-import org.jetlinks.community.notify.template.TemplateProperties;
-import org.jetlinks.community.notify.template.TemplateProvider;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.*;
 import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.notify.*;
+import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
@@ -20,17 +18,20 @@ import javax.annotation.Nonnull;
 import static org.jetlinks.community.ConfigMetadataConstants.*;
 
 @Component
-public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateProvider {
+public class DefaultEmailNotifierProvider implements NotifierProvider {
 
     private final TemplateManager templateManager;
 
-
     private final FileManager fileManager;
 
+    private final WebClient.Builder builder;
+
     public DefaultEmailNotifierProvider(TemplateManager templateManager,
-                                        FileManager fileManager) {
+                                        FileManager fileManager,
+                                        WebClient.Builder builder) {
         this.templateManager = templateManager;
         this.fileManager = fileManager;
+        this.builder = builder;
     }
 
     @Nonnull
@@ -101,8 +102,6 @@ public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateP
                                      .addPropertyMetadata(value)
                                      .addPropertyMetadata(description)));
         }
-
-
     }
 
     @Override
@@ -110,22 +109,11 @@ public class DefaultEmailNotifierProvider implements NotifierProvider, TemplateP
         return notifierConfig;
     }
 
-    @Override
-    public ConfigMetadata getTemplateConfigMetadata() {
-        return templateConfig;
-    }
-
     @Nonnull
     @Override
     public Mono<DefaultEmailNotifier> createNotifier(@Nonnull NotifierProperties properties) {
-        return Mono.fromSupplier(() -> new DefaultEmailNotifier(properties, templateManager,fileManager))
+        return Mono.fromSupplier(() -> new DefaultEmailNotifier(properties, templateManager, fileManager, builder))
             .as(LocaleUtils::transform);
     }
 
-    @Override
-    public Mono<EmailTemplate> createTemplate(TemplateProperties properties) {
-
-        return Mono.fromSupplier(() -> new EmailTemplate().with(properties).validate())
-            .as(LocaleUtils::transform);
-    }
 }

@@ -78,14 +78,14 @@ public class LocalRuleInstanceRepository implements RuleInstanceRepository, Comm
 
     @Override
     public void run(String... args) throws Exception {
-        this
-            .findAll()
-            .flatMap(ruleInstance -> ruleEngine
-                .startRule(ruleInstance.getId(), ruleInstance.getModel())
-                .onErrorResume(err -> {
-                    log.warn("启动规则[{}]失败: {}", ruleInstance.getModel().getName(), ruleInstance);
-                    return Mono.empty();
-                }))
-            .subscribe();
+//        this
+//            .findAll()
+//            .flatMap(ruleInstance -> ruleEngine
+//                .startRule(ruleInstance.getId(), ruleInstance.getModel())
+//                .onErrorResume(err -> {
+//                    log.warn("启动规则[{}]失败: {}", ruleInstance.getModel().getName(), ruleInstance);
+//                    return Mono.empty();
+//                }))
+//            .subscribe();
     }
 }

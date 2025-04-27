@@ -2,18 +2,22 @@ package org.jetlinks.community.notify.configuration;
 
 import lombok.Generated;
 import org.jetlinks.community.notify.*;
+import org.jetlinks.community.notify.template.TemplateProvider;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.template.TemplateManager;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import java.util.List;
 
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @EnableConfigurationProperties(StaticNotifyProperties.class)
 @Generated
 public class NotifierAutoConfiguration {
@@ -29,10 +33,12 @@ public class NotifierAutoConfiguration {
         return new CompositeNotifyConfigManager(managers);
     }
 
+
     @Bean
     public StaticTemplateManager staticTemplateManager(StaticNotifyProperties properties,
-                                                       EventBus eventBus) {
-        return new StaticTemplateManager(properties, eventBus);
+                                                       EventBus eventBus,
+                                                       ApplicationContext context) {
+        return new StaticTemplateManager(properties, eventBus, context);
     }
 
     @Bean
@@ -45,8 +51,10 @@ public class NotifierAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(NotifierManager.class)
     public DefaultNotifierManager notifierManager(EventBus eventBus,
+                                                  ApplicationContext context,
                                                   NotifyConfigManager configManager) {
-        return new DefaultNotifierManager(eventBus, configManager);
+        return new DefaultNotifierManager(eventBus, configManager, context);
     }
+
 
 }

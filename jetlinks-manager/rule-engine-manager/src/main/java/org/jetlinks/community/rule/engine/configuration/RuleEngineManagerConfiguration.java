@@ -1,15 +1,13 @@
 package org.jetlinks.community.rule.engine.configuration;
 
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
-import org.jetlinks.community.elastic.search.index.ElasticSearchIndexManager;
-import org.jetlinks.community.elastic.search.service.AggregationService;
-import org.jetlinks.community.elastic.search.service.ElasticSearchService;
 import org.jetlinks.community.rule.engine.alarm.AlarmHandler;
 import org.jetlinks.community.rule.engine.cmd.*;
 import org.jetlinks.community.rule.engine.entity.AlarmLevelEntity;
 import org.jetlinks.community.rule.engine.entity.AlarmRuleBindEntity;
 import org.jetlinks.community.rule.engine.scene.*;
 import org.jetlinks.community.rule.engine.service.*;
+import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.core.event.EventBus;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -51,15 +49,8 @@ public class RuleEngineManagerConfiguration {
         );
     }
 
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(ElasticSearchService.class)
-    static class ElasticSearchAlarmHistoryConfiguration {
-
-        @Bean(initMethod = "init")
-        public ElasticSearchAlarmHistoryService alarmHistoryService(ElasticSearchService elasticSearchService,
-                                                                    ElasticSearchIndexManager indexManager,
-                                                                    AggregationService aggregationService) {
-            return new ElasticSearchAlarmHistoryService(indexManager, elasticSearchService, aggregationService);
-        }
+    @Bean(initMethod = "init")
+    public TimeSeriesAlarmHistoryService alarmHistoryService(TimeSeriesManager timeSeriesManager) {
+        return new TimeSeriesAlarmHistoryService(timeSeriesManager);
     }
 }

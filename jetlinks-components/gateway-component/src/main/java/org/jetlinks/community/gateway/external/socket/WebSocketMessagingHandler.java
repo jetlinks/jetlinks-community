@@ -40,6 +40,7 @@ public class WebSocketMessagingHandler implements WebSocketHandler {
     // /messaging/{token}
     @Override
     @Nonnull
+    @SuppressWarnings("all")
     public Mono<Void> handle(@Nonnull WebSocketSession session) {
         String[] path = session.getHandshakeInfo().getUri().getPath().split("[/]");
         if (path.length == 0) {
@@ -118,8 +119,7 @@ public class WebSocketMessagingHandler implements WebSocketHandler {
                                     subs.remove(request.getId());
                                 })
                                 .transform(session::send)
-                                .subscriberContext(ReactiveLogger.start(context))
-                                .subscriberContext(Context.of(Authentication.class, auth))
+                                .contextWrite(Context.of(Authentication.class, auth))
                                 .subscribe();
                             if (!sub.isDisposed()) {
                                 subs.put(request.getId(), sub);

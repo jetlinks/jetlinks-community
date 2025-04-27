@@ -44,8 +44,8 @@ import reactor.core.publisher.Sinks;
 import reactor.function.Function3;
 import reactor.util.concurrent.Queues;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.*;
 import java.util.function.Function;

@@ -1,5 +1,6 @@
 package org.jetlinks.community.network;
 
+import org.jetlinks.community.spi.Provider;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import reactor.core.publisher.Mono;
 
@@ -12,6 +13,8 @@ import javax.annotation.Nullable;
  * @param <P> 网络组件类型
  */
 public interface NetworkProvider<P> {
+    @SuppressWarnings("all")
+    Provider<NetworkProvider<?>> supports = Provider.create(NetworkProvider.class);
 
     /**
      * @return 类型

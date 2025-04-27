@@ -22,7 +22,7 @@ import org.jetlinks.core.metadata.unit.ValueUnits;
 import org.jetlinks.supports.official.JetLinksDataTypeCodecs;
 import reactor.core.publisher.Flux;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;

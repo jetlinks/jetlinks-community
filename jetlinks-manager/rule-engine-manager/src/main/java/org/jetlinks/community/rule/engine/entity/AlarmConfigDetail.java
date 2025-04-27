@@ -9,7 +9,7 @@ import org.jetlinks.community.rule.engine.enums.RuleInstanceState;
 import org.jetlinks.community.rule.engine.scene.internal.triggers.ManualTriggerProvider;
 
 import javax.persistence.Column;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.List;
 

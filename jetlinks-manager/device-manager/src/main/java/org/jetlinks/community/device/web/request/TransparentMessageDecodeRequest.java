@@ -8,7 +8,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.core.message.DirectDeviceMessage;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 

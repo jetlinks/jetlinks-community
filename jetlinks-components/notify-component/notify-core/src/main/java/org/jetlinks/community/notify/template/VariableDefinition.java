@@ -15,7 +15,7 @@ import org.jetlinks.community.ConfigMetadataConstants;
 import org.jetlinks.community.relation.utils.VariableSource;
 import org.springframework.util.StringUtils;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;

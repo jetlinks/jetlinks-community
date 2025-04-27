@@ -20,8 +20,8 @@ import org.jetlinks.core.metadata.unit.ValueUnit;
 import org.jetlinks.core.metadata.unit.ValueUnits;
 import org.jetlinks.supports.official.JetLinksDataTypeCodecs;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;

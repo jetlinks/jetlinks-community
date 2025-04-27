@@ -1,5 +1,6 @@
 package org.jetlinks.community.configure;
 
+import org.jetlinks.community.configure.compatible.PathCompatibleFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.scheduler.Scheduler;
@@ -13,4 +14,8 @@ public class JetLinksCommonConfiguration {
         return Schedulers.parallel();
     }
 
+    @Bean
+    public PathCompatibleFilter pathCompatibleFilter(){
+        return new PathCompatibleFilter();
+    }
 }

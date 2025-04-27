@@ -12,7 +12,7 @@ import org.springframework.util.StringUtils;
 import javax.persistence.Column;
 import javax.persistence.Index;
 import javax.persistence.Table;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Table(name = "s_alarm_rule_bind", indexes = {
         @Index(name = "idx_alarm_rule_aid", columnList = "alarmId"),

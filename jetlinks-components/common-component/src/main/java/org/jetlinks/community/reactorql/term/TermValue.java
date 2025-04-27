@@ -83,7 +83,7 @@ public class TermValue implements Serializable {
 
         /**
          * 和manual一样,
-         * 兼容{@link org.jetlinks.pro.relation.utils.VariableSource.Source#fixed}
+         * 兼容{@link org.jetlinks.community.relation.utils.VariableSource.Source#fixed}
          */
         fixed,
         manual,
@@ -91,14 +91,14 @@ public class TermValue implements Serializable {
         metric,
         variable,
         /**
-         * 和variable一样,兼容{@link org.jetlinks.pro.relation.utils.VariableSource.Source#upper}
+         * 和variable一样,兼容{@link org.jetlinks.community.relation.utils.VariableSource.Source#upper}
          */
         upper,
 
         /**
          * 函数
          *
-         * @see org.jetlinks.pro.reactorql.function.FunctionSupport
+         * @see org.jetlinks.community.reactorql.function.FunctionSupport
          */
         function
     }

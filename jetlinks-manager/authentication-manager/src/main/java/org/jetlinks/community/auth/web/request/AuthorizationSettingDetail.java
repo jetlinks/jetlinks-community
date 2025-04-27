@@ -12,7 +12,7 @@ import org.hswebframework.web.system.authorization.api.entity.DataAccessEntity;
 import org.hswebframework.web.system.authorization.api.entity.PermissionEntity;
 import org.springframework.util.StringUtils;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.*;
 import java.util.stream.Collectors;
 

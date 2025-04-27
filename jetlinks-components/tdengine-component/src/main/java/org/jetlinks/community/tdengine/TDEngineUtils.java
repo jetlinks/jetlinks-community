@@ -27,7 +27,7 @@ public class TDEngineUtils {
                 .doOnNext(str -> {
                     throw new TDengineException(null, str);
                 })
-                .switchIfEmpty(Mono.error(() -> new TDengineException(null, response.statusCode().getReasonPhrase())))
+                .switchIfEmpty(Mono.error(() -> new TDengineException(null, response.statusCode().toString())))
                 .then(Mono.empty());
 
         }

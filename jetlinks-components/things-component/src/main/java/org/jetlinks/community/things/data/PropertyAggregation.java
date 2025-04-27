@@ -9,8 +9,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
 import org.jetlinks.community.timeseries.query.Aggregation;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Getter
 @Setter

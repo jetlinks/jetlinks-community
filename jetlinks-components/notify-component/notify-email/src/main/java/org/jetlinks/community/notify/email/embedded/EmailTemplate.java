@@ -3,27 +3,23 @@ package org.jetlinks.community.notify.email.embedded;
 import lombok.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jetlinks.community.notify.NotifyVariableBusinessConstant;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.notify.template.AbstractTemplate;
 import org.jetlinks.community.notify.template.VariableDefinition;
+import org.jetlinks.community.relation.RelationConstants;
+import org.jetlinks.community.relation.utils.VariableSource;
 import org.jetlinks.community.utils.ConverterUtils;
 import org.jetlinks.core.metadata.types.ArrayType;
 import org.jetlinks.core.metadata.types.FileType;
+import org.jetlinks.community.notify.NotifyVariableBusinessConstant;
 import org.jetlinks.community.notify.template.Variable;
-import org.jetlinks.community.relation.RelationConstants;
-import org.jetlinks.community.relation.utils.VariableSource;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static org.jetlinks.community.notify.email.embedded.EmailTemplate.Attachment.LOCATION_KEY;
-import static org.jetlinks.community.notify.email.embedded.EmailTemplate.Attachment.locationKey;
 
 @Getter
 @Setter
@@ -81,7 +77,7 @@ public class EmailTemplate extends AbstractTemplate<EmailTemplate> {
                     .id(SEND_TO_KEY)
                     .name("收件人")
                     .expand(NotifyVariableBusinessConstant.businessId,
-                            NotifyVariableBusinessConstant.NotifyVariableBusinessTypes.userType)
+                        NotifyVariableBusinessConstant.NotifyVariableBusinessTypes.userType)
                     .required(true)
                     .type(ArrayType.ID)
                     .build()
@@ -98,7 +94,7 @@ public class EmailTemplate extends AbstractTemplate<EmailTemplate> {
                     variables.add(
                         VariableDefinition
                             .builder()
-                            .id(locationKey(index))
+                            .id(Attachment.locationKey(index))
                             .name(attachment.getName())
                             .type(FileType.ID)
                             .description(attachment.getName())

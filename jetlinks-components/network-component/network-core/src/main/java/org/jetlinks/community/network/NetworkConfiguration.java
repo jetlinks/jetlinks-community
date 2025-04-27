@@ -5,7 +5,10 @@ import org.jetlinks.community.network.resource.NetworkResourceManager;
 import org.jetlinks.community.network.resource.NetworkResourceUser;
 import org.jetlinks.community.network.resource.cluster.DefaultNetworkResourceManager;
 import org.jetlinks.community.network.resource.cluster.NetworkResourceProperties;
+import org.jetlinks.core.event.EventBus;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.stream.Collectors;
 
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @EnableConfigurationProperties(NetworkResourceProperties.class)
 public class NetworkConfiguration {
 
@@ -36,4 +39,18 @@ public class NetworkConfiguration {
         return new DefaultNetworkResourceUser(configManager, networkManager);
     }
 
+    @Bean(destroyMethod = "shutdown")
+    public ClusterNetworkManager networkManager(EventBus eventBus,
+                                                NetworkConfigManager configManager) {
+        return new ClusterNetworkManager(eventBus, configManager);
+    }
+
+    @Bean
+    public CommandLineRunner networkProviderRegister(ObjectProvider<NetworkProvider<?>> providers) {
+        for (NetworkProvider<?> provider : providers) {
+            NetworkProvider.supports.register(provider.getType().getId(), provider);
+        }
+        return ignore -> {
+        };
+    }
 }

@@ -13,20 +13,22 @@ import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
 import org.jetlinks.core.rpc.RpcManager;
 import org.jetlinks.core.server.MessageHandler;
-import org.jetlinks.supports.cluster.ClusterDeviceOperationBroker;
+import org.jetlinks.core.things.ThingRpcSupportChain;
 import org.jetlinks.supports.cluster.ClusterDeviceRegistry;
 import org.jetlinks.supports.cluster.RpcDeviceOperationBroker;
-import org.jetlinks.supports.scalecube.ExtendedCluster;
 import org.jetlinks.supports.server.ClusterSendToDeviceMessageHandler;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @ConditionalOnBean(ProtocolSupports.class)
 public class DeviceClusterConfiguration {
 
@@ -46,18 +48,22 @@ public class DeviceClusterConfiguration {
 
     @Bean
     @ConditionalOnBean(ClusterDeviceRegistry.class)
-    public BeanPostProcessor interceptorRegister(ClusterDeviceRegistry registry) {
-        return new BeanPostProcessor() {
-            @Override
-            public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-                if (bean instanceof DeviceMessageSenderInterceptor) {
-                    registry.addInterceptor(((DeviceMessageSenderInterceptor) bean));
-                }
-                if (bean instanceof DeviceStateChecker) {
-                    registry.addStateChecker(((DeviceStateChecker) bean));
-                }
-                return bean;
-            }
+    public SmartInitializingSingleton interceptorRegister(ApplicationContext context,
+                                                          ClusterDeviceRegistry registry) {
+        return ()->{
+
+            context.getBeansOfType(DeviceMessageSenderInterceptor.class)
+                   .values()
+                   .forEach(registry::addInterceptor);
+
+            context.getBeansOfType(DeviceStateChecker.class)
+                   .values()
+                   .forEach(registry::addStateChecker);
+
+            context.getBeansOfType(ThingRpcSupportChain.class)
+                   .values()
+                   .forEach(registry::addRpcChain);
+
         };
     }
 

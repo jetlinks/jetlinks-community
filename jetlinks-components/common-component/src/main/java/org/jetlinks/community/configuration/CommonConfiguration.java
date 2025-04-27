@@ -13,6 +13,8 @@ import org.hswebframework.web.dict.EnumDict;
 import org.hswebframework.web.dict.defaults.DefaultItemDefine;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.JvmErrorException;
+import org.jetlinks.community.command.CommandSupportManagerProvider;
+import org.jetlinks.community.command.CommandSupportManagerProviders;
 import org.jetlinks.community.command.register.CommandServiceEndpointRegister;
 import org.jetlinks.community.config.ConfigManager;
 import org.jetlinks.community.config.ConfigScopeCustomizer;
@@ -20,8 +22,11 @@ import org.jetlinks.community.config.ConfigScopeProperties;
 import org.jetlinks.community.config.SimpleConfigManager;
 import org.jetlinks.community.config.entity.ConfigEntity;
 import org.jetlinks.community.dictionary.DictionaryJsonDeserializer;
+import org.jetlinks.community.form.type.FieldTypeProvider;
 import org.jetlinks.community.reactorql.aggregation.InternalAggregationSupports;
 import org.jetlinks.community.reactorql.function.InternalFunctionSupport;
+import org.jetlinks.community.reactorql.term.TermTypeSupport;
+import org.jetlinks.community.reactorql.term.TermTypes;
 import org.jetlinks.community.reference.DataReferenceManager;
 import org.jetlinks.community.reference.DataReferenceProvider;
 import org.jetlinks.community.reference.DefaultDataReferenceManager;
@@ -45,6 +50,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
@@ -185,15 +191,20 @@ public class CommonConfiguration {
     }
 
     @Bean
-    public BeanPostProcessor globalReactorQlFeatureRegister() {
-        return new BeanPostProcessor() {
-            @Override
-            public Object postProcessAfterInitialization(@Nonnull Object bean, @Nonnull String beanName) throws BeansException {
-                if (bean instanceof Feature) {
-                    DefaultReactorQLMetadata.addGlobal(((Feature) bean));
-                }
-                return bean;
-            }
+    public ApplicationContextAware staticBeanRegister() {
+
+        return ctx -> {
+            ctx.getBeanProvider(Feature.class)
+               .forEach(DefaultReactorQLMetadata::addGlobal);
+
+            ctx.getBeanProvider(CommandSupportManagerProvider.class)
+               .forEach(CommandSupportManagerProviders::register);
+
+            ctx.getBeanProvider(TermTypeSupport.class)
+               .forEach(TermTypes::register);
+
+            ctx.getBeanProvider(FieldTypeProvider.class)
+               .forEach(provider -> FieldTypeProvider.supports.register(provider.getProvider(), provider));
         };
     }
 

@@ -3,17 +3,28 @@ package org.jetlinks.community.things.configuration;
 import org.jetlinks.core.things.DefaultThingsRegistry;
 import org.jetlinks.core.things.ThingsRegistrySupport;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 import javax.annotation.Nonnull;
 
-public class AutoRegisterThingsRegistry extends DefaultThingsRegistry implements BeanPostProcessor {
+public class AutoRegisterThingsRegistry extends DefaultThingsRegistry
+    implements SmartInitializingSingleton, ApplicationContextAware {
+
+    private ApplicationContext context;
 
     @Override
-    public Object postProcessAfterInitialization(@Nonnull Object bean,@Nonnull String beanName) throws BeansException {
-        if(bean instanceof ThingsRegistrySupport){
-            addSupport(((ThingsRegistrySupport) bean));
+    public void afterSingletonsInstantiated() {
+        if (context != null) {
+            context.getBeanProvider(ThingsRegistrySupport.class)
+                   .forEach(this::addSupport);
         }
-        return BeanPostProcessor.super.postProcessAfterInitialization(bean, beanName);
+    }
+
+    @Override
+    public void setApplicationContext(@Nonnull ApplicationContext applicationContext) throws BeansException {
+        this.context = applicationContext;
     }
 }

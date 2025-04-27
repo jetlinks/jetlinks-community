@@ -17,7 +17,7 @@ import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.sql.JDBCType;
 import java.util.*;

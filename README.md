@@ -14,10 +14,10 @@
 [![QQ②群324606263](https://img.shields.io/badge/QQ②群-324606263-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=IMas2cH-TNsYxUcY8lRbsXqPnA2sGHYQ&jump_from=webapi)
 [![QQ①群2021514](https://img.shields.io/badge/QQ①群-2021514-brightgreen)](https://qm.qq.com/cgi-bin/qm/qr?k=LGf0OPQqvLGdJIZST3VTcypdVWhdfAOG&jump_from=webapi)
 
-JetLinks 基于Java8,Spring Boot 2.x,WebFlux,Netty,Vert.x,Reactor等开发, 
+JetLinks 基于Java 17,Spring Boot 3.x,WebFlux,Netty,Vert.x,Reactor等开发,
 是一个开箱即用,可二次开发的企业级物联网基础平台。平台实现了物联网相关的众多基础功能,
 能帮助你快速建立物联网相关业务系统。
- 
+
 
 ## 核心特性
 
@@ -36,7 +36,7 @@ TCP/UDP/MQTT/HTTP、TLS/DTLS、不同厂商、不同设备、不同报文、统�
 
 ## 技术栈
 
-1. [Spring Boot 2.7.x](https://spring.io/projects/spring-boot)
+1. [Spring Boot 3.4.x](https://spring.io/projects/spring-boot)
 2. [Spring WebFlux](https://spring.io/) 响应式Web支持
 3. [R2DBC](https://r2dbc.io/) 响应式关系型数据库驱动
 4. [Project Reactor](https://projectreactor.io/) 响应式编程框架

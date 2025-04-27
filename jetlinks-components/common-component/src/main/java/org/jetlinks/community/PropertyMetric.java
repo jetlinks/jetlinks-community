@@ -6,7 +6,7 @@ import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.utils.ConverterUtils;
 import org.springframework.util.StringUtils;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import java.util.function.Function;
 

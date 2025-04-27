@@ -5,7 +5,7 @@
     <parent>
         <artifactId>jetlinks-community</artifactId>
         <groupId>org.jetlinks.community</groupId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.10.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -53,25 +53,59 @@
     </build>
 
     <profiles>
+
         <profile>
-            <id>java11</id>
+            <id>es7x</id>
             <properties>
-                <maven.compiler.source>11</maven.compiler.source>
-                <maven.compiler.target>11</maven.compiler.target>
-                <java.version>11</java.version>
-                <project.build.jdk>11</project.build.jdk>
+                <elasticsearch.version>7.17.26</elasticsearch.version>
             </properties>
             <dependencies>
+
                 <dependency>
-                    <groupId>org.openjdk.nashorn</groupId>
-                    <artifactId>nashorn-core</artifactId>
-                    <version>15.4</version>
+                    <groupId>org.jetlinks.community</groupId>
+                    <artifactId>elasticsearch-7x</artifactId>
+                </dependency>
+
+                <dependency>
+                    <groupId>co.elastic.clients</groupId>
+                    <artifactId>elasticsearch-java</artifactId>
+                    <version>${elasticsearch.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.elasticsearch.client</groupId>
+                    <artifactId>elasticsearch-rest-client</artifactId>
+                    <version>${elasticsearch.version}</version>
+                </dependency>
+
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>es8x</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jetlinks.community</groupId>
+                    <artifactId>elasticsearch-8x</artifactId>
                 </dependency>
             </dependencies>
         </profile>
+
     </profiles>
 
     <dependencies>
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>common-component</artifactId>
+        </dependency>
+
+
+        <!-- 默认使用 timescaledb 来存储时序数据 -->
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>timescaledb-component</artifactId>
+        </dependency>
+
 
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -189,7 +223,6 @@
         <dependency>
             <groupId>io.asyncer</groupId>
             <artifactId>r2dbc-mysql</artifactId>
-            <version>0.9.3</version>
         </dependency>
 
         <dependency>
@@ -216,11 +249,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
         </dependency>
 
         <dependency>

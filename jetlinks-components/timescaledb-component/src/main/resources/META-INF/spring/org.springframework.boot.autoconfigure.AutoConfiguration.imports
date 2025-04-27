@@ -1,0 +1,3 @@
+org.jetlinks.community.timescaledb.configuration.TimescaleDBConfiguration
+org.jetlinks.community.timescaledb.configuration.TimescaleDBThingsDataConfiguration
+org.jetlinks.community.timescaledb.configuration.TimescaleDBTimeSeriesConfiguration

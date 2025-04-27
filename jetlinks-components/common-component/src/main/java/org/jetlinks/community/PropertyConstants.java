@@ -38,13 +38,6 @@ public interface PropertyConstants {
      */
     Key<List<Map<String, Object>>> relations = Key.of("relations");
 
-    /**
-     * 租户ID
-     *
-     * @see org.jetlinks.pro.tenant.TenantMember
-     */
-    Key<List<String>> tenantId = Key.of("tenantId");
-
     //分组ID
     Key<List<String>> groupId = Key.of("groupId");
 
@@ -71,7 +64,7 @@ public interface PropertyConstants {
     /**
      * 设备接入方式
      *
-     * @see org.jetlinks.pro.gateway.supports.DeviceGatewayProvider#getId
+     * @see org.jetlinks.community.gateway.supports.DeviceGatewayProvider#getId
      */
     Key<String> accessProvider = Key.of("accessProvider");
 

@@ -17,7 +17,7 @@ import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.sql.JDBCType;
 import java.util.Map;
 

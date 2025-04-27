@@ -21,7 +21,7 @@ import org.jetlinks.core.things.ThingInfo;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.Pattern;
 import java.sql.JDBCType;
 import java.util.Collections;
 import java.util.HashMap;
