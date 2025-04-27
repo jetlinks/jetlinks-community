@@ -1,116 +1,84 @@
 version: '2'
 services:
-  redis:
-    image: redis:5.0.4
-    container_name: jetlinks-ce-redis
-    #    ports:
-    #      - "6379:6379"
-    volumes:
-      - "./data/redis:/data"
-    command: redis-server --appendonly yes --requirepass "JetLinks@redis"
-    environment:
-      - TZ=Asia/Shanghai
-  elasticsearch:
-    image: elasticsearch:6.8.11
-    container_name: jetlinks-ce-elasticsearch
-    environment:
-      ES_JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Xms1g -Xmx1g
-      transport.host: 0.0.0.0
-      discovery.type: single-node
-      bootstrap.memory_lock: "true"
-      discovery.zen.minimum_master_nodes: 1
-      discovery.zen.ping.unicast.hosts: elasticsearch
-  #  volumes:
-  #    - ./data/elasticsearch:/usr/share/elasticsearch/data
-  #    ports:
-  #      - "9200:9200"
-  #      - "9300:9300"
-  kibana:
-    image: kibana:6.8.11
-    container_name: jetlinks-ce-kibana
-    environment:
-      ELASTICSEARCH_URL: http://elasticsearch:9200
-    links:
-      - elasticsearch:elasticsearch
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-  postgres:
-    image: postgres:11-alpine
-    container_name: jetlinks-ce-postgres
-    volumes:
-      - "./data/postgres:/var/lib/postgresql/data"
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_PASSWORD: jetlinks
-      POSTGRES_DB: jetlinks
-      TZ: Asia/Shanghai
-  ui:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-vue:2.10.0-SNAPSHOT
-    container_name: jetlinks-ce-ui
-    ports:
-      - 9000:80
-    environment:
-      - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
-    volumes:
-      - "./data/jetlinks-ui:/usr/share/nginx/html/upload"
-    links:
-      - jetlinks:jetlinks
-  jetlinks:
-    image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:2.10.0-SNAPSHOT
-    container_name: jetlinks-ce
-
-    ports:
-      - "8848:8848" # API端口
-      - "1883-1890:1883-1890" # 预留
-      - "8800-8810:8800-8810" # 预留
-      - "5060-5061:5060-5061" # 预留
-    volumes:
-      - "./data/jetlinks/upload:/application/static/upload"
-      - "./data/jetlinks:/application/data"
-    #entrypoint: /entrypoint.sh -d redis:5601,postgres:5432,elasticsearch:9200 'echo "start jetlinks service here"';
-    environment:
-     # - "SLEEP_SECOND=4"
-      - "JAVA_OPTS=-Duser.language=zh -XX:+UseG1GC"
-      - "TZ=Asia/Shanghai"
-      - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
-      - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
-      - "spring.r2dbc.username=postgres"
-      - "spring.r2dbc.password=jetlinks"
-      - "spring.elasticsearch.uris=elasticsearch:9200"
-      #        - "spring.elasticsearch.username=admin"
-      #        - "spring.elasticsearch.password=admin"
-      #        - "spring.reactor.debug-agent.enabled=false" #设置为false能提升性能
-      - "spring.redis.host=redis"
-      - "spring.redis.port=6379"
-      - "file.manager.storage-base-path=/application/data/files"
-      - "spring.redis.password=JetLinks@redis"
-      - "logging.level.io.r2dbc=warn"
-      - "logging.level.org.springframework.data=warn"
-      - "logging.level.org.springframework=warn"
-      - "logging.level.org.jetlinks=warn"
-      - "logging.level.org.hswebframework=warn"
-      - "logging.level.org.springframework.data.r2dbc.connectionfactory=warn"
-      - "network.resources[0]=0.0.0.0:8800-8810/tcp"
-      - "network.resources[1]=0.0.0.0:1883-1890"
-      - "hsweb.cors.enable=true"
-      - "hsweb.cors.configs[0].path=/**"
-      - "hsweb.cors.configs[0].allowed-credentials=true"
-      - "hsweb.cors.configs[0].allowed-headers=*"
-      - "hsweb.cors.configs[0].allowed-origins=*"
-      - "hsweb.cors.configs[0].allowed-methods[0]=GET"
-      - "hsweb.cors.configs[0].allowed-methods[1]=POST"
-      - "hsweb.cors.configs[0].allowed-methods[2]=PUT"
-      - "hsweb.cors.configs[0].allowed-methods[3]=PATCH"
-      - "hsweb.cors.configs[0].allowed-methods[4]=DELETE"
-      - "hsweb.cors.configs[0].allowed-methods[5]=OPTIONS"
-    links:
-      - redis:redis
-      - postgres:postgres
-      - elasticsearch:elasticsearch
-    depends_on:
-      - postgres
-      - redis
-      - elasticsearch
+    redis:
+        image: redis:6
+        container_name: jetlinks-ce-redis
+        #    ports:
+        #      - "6379:6379"
+        volumes:
+            - "./data/redis:/data"
+        command: redis-server --appendonly yes --requirepass "JetLinks@redis"
+        environment:
+            - TZ=Asia/Shanghai
+    postgres:
+        image: timescale/timescaledb:latest-pg16
+        container_name: jetlinks-postgres-16
+        ports:
+            - "5432:5432"
+        volumes:
+            - "./data/postgres:/var/lib/postgresql/data"
+        environment:
+            POSTGRES_PASSWORD: JetLinks@postgres
+            POSTGRES_DB: jetlinks
+            POSTGRES_HOST_AUTH_METHOD: trust
+            TZ: Asia/Shanghai
+    ui:
+        image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-vue:2.10.0-SNAPSHOT
+        container_name: jetlinks-ce-ui
+        ports:
+            - 9000:80
+        environment:
+            - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
+        volumes:
+            - "./data/jetlinks-ui:/usr/share/nginx/html/upload"
+        links:
+            - jetlinks:jetlinks
+    jetlinks:
+        image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:2.10.0-SNAPSHOT
+        container_name: jetlinks-ce
+        ports:
+            - "8848:8848" # API端口
+            - "1883-1890:1883-1890" # 预留
+            - "8800-8810:8800-8810" # 预留
+            - "5060-5061:5060-5061" # 预留
+        volumes:
+            - "./data/jetlinks/upload:/application/static/upload"
+            - "./data/jetlinks:/application/data"
+        environment:
+            - "JAVA_OPTS=-Duser.language=zh"
+            - "TZ=Asia/Shanghai"
+            - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
+            - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
+            - "spring.r2dbc.username=postgres"
+            - "spring.r2dbc.password=JetLinks@postgres"
+            - "spring.data.redis.host=redis"
+            - "spring.data.redis.port=6379"
+            - "file.manager.storage-base-path=/application/data/files"
+            - "spring.redis.password=JetLinks@redis"
+            - "logging.level.io.r2dbc=warn"
+            - "logging.level.org.springframework.data=warn"
+            - "logging.level.org.springframework=warn"
+            - "logging.level.org.jetlinks=warn"
+            - "logging.level.org.hswebframework=warn"
+            - "logging.level.org.springframework.data.r2dbc.connectionfactory=warn"
+            - "network.resources[0]=0.0.0.0:8800-8810/tcp"
+            - "network.resources[1]=0.0.0.0:1883-1890"
+            - "hsweb.cors.enable=true"
+            - "hsweb.cors.configs[0].path=/**"
+            - "hsweb.cors.configs[0].allowed-credentials=true"
+            - "hsweb.cors.configs[0].allowed-headers=*"
+            - "hsweb.cors.configs[0].allowed-origins=*"
+            - "hsweb.cors.configs[0].allowed-methods[0]=GET"
+            - "hsweb.cors.configs[0].allowed-methods[1]=POST"
+            - "hsweb.cors.configs[0].allowed-methods[2]=PUT"
+            - "hsweb.cors.configs[0].allowed-methods[3]=PATCH"
+            - "hsweb.cors.configs[0].allowed-methods[4]=DELETE"
+            - "hsweb.cors.configs[0].allowed-methods[5]=OPTIONS"
+        links:
+            - redis:redis
+            - postgres:postgres
+            - elasticsearch:elasticsearch
+        depends_on:
+            - postgres
+            - redis
+            - elasticsearch
