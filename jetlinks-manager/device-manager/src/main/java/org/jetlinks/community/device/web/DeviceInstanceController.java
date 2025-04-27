@@ -19,6 +19,7 @@ import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.annotation.*;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceCrudController;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.exception.NotFoundException;
@@ -28,10 +29,6 @@ import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.PropertyMetric;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceState;
-import org.jetlinks.community.device.response.DeviceDeployResult;
-import org.jetlinks.community.device.response.DeviceDetail;
-import org.jetlinks.community.device.response.ImportDeviceInstanceResult;
-import org.jetlinks.community.device.response.ResetDeviceConfigurationResult;
 import org.jetlinks.community.device.service.DeviceConfigMetadataManager;
 import org.jetlinks.community.device.service.LocalDeviceInstanceService;
 import org.jetlinks.community.device.service.LocalDeviceProductService;
@@ -39,6 +36,8 @@ import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.device.service.data.DeviceProperties;
 import org.jetlinks.community.device.web.excel.*;
 import org.jetlinks.community.device.web.request.AggRequest;
+import org.jetlinks.community.device.web.response.DeviceDeployResult;
+import org.jetlinks.community.device.web.response.ImportDeviceInstanceResult;
 import org.jetlinks.community.io.excel.AbstractImporter;
 import org.jetlinks.community.io.excel.ImportExportService;
 import org.jetlinks.community.io.file.FileManager;
@@ -60,7 +59,6 @@ import org.jetlinks.core.message.MessageType;
 import org.jetlinks.core.message.RepayableDeviceMessage;
 import org.jetlinks.core.metadata.*;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -129,6 +127,8 @@ public class DeviceInstanceController implements
 
     private final DefaultPropertyMetricManager metricManager;
 
+    private final QueryHelper queryHelper;
+
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
                                     DeviceRegistry registry,
@@ -142,7 +142,8 @@ public class DeviceInstanceController implements
                                     FileManager fileManager,
                                     WebClient.Builder builder,
                                     DeviceExcelFilterColumns filterColumns,
-                                    DefaultPropertyMetricManager metricManager) {
+                                    DefaultPropertyMetricManager metricManager,
+                                    QueryHelper queryHelper) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
@@ -156,6 +157,7 @@ public class DeviceInstanceController implements
         this.webClient = builder.build();
         this.filterColumns = filterColumns;
         this.metricManager = metricManager;
+        this.queryHelper = queryHelper;
     }
 
 
@@ -222,7 +224,7 @@ public class DeviceInstanceController implements
     @PostMapping("/{deviceId:.+}/deploy")
     @SaveAction
     @Operation(summary = "激活指定ID设备")
-    public Mono<DeviceDeployResult> deviceDeploy(@PathVariable @Parameter(description = "设备ID") String deviceId) {
+    public Mono<org.jetlinks.community.device.web.response.DeviceDeployResult> deviceDeploy(@PathVariable @Parameter(description = "设备ID") String deviceId) {
         return service.deploy(deviceId);
     }
 
@@ -234,22 +236,6 @@ public class DeviceInstanceController implements
         return service.resetConfiguration(deviceId);
     }
 
-    @PutMapping("/configuration/_reset/ids")
-    @SaveAction
-    @Operation(summary = "重置设备配置信息(根据设备ID批量重置，性能欠佳，慎用)")
-    public Mono<Long> resetConfigurationBatch(@RequestBody Flux<String> payload) {
-        return service.resetConfiguration(payload);
-    }
-
-    @GetMapping(value = "/configuration/_reset/{productId:.+}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @ResourceAction(
-        id = "batchResetConf",
-        name = "批量重置设备配置信息"
-    )
-    @Operation(summary = "重置设备配置信息(根据产品批量重置，性能欠佳，慎用)")
-    public Flux<ResetDeviceConfigurationResult> resetConfigurationBatch(@PathVariable @Parameter(description = "产品ID") String productId) {
-        return service.resetConfigurationByProductId(productId);
-    }
 
     //批量激活设备
     @GetMapping(value = "/deploy", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -518,6 +504,16 @@ public class DeviceInstanceController implements
                             .fetch();
     }
 
+    @GetMapping("/tags/key")
+    @QueryAction
+    @Operation(summary = "获取全部标签key")
+    public Flux<DeviceTagEntity> getTagKeys() {
+        return queryHelper
+                .select("select distinct key, name from dev_device_tags", DeviceTagEntity::new)
+                .fetch()
+            .distinct(DeviceTagEntity::getKey);
+    }
+
     //保存设备标签
     @PatchMapping("/{deviceId}/tag")
     @SaveAction
@@ -582,7 +578,6 @@ public class DeviceInstanceController implements
                     .map(info -> {
                         DeviceInstanceEntity entity = FastBeanCopier.copy(info, new DeviceInstanceEntity());
                         entity.setProductId(productId);
-                        entity.setOrgId(orgMapping.get(info.getOrgName()));
                         if (StringUtils.isEmpty(entity.getId())) {
                             throw new BusinessException("第" + (info.getRowNumber() + 1) + "行:设备ID不能为空");
                         }
@@ -605,7 +600,7 @@ public class DeviceInstanceController implements
             .currentReactive()
             .flatMapMany(auth -> this
                 .getDeviceProductDetail(productId)
-                .map(tp4 -> new DeviceExcelImporter(fileManager, webClient, tp4.getT1(), tp4.getT4(), auth))
+                .map(tp4 -> new DeviceExcelImporter(fileManager, webClient, tp4.getT1(), tp4.getT4(), service, auth))
                 .flatMapMany(importer -> importer
                     .doImport(fileUrl)
                     .groupBy(
@@ -636,8 +631,8 @@ public class DeviceInstanceController implements
     }
 
     private Flux<ImportDeviceInstanceResult> handleImportDevice(Flux<Tuple2<DeviceInstanceEntity, List<DeviceTagEntity>>> flux,
-                                                                boolean autoDeploy,
-                                                                int speed) {
+                                                                                                                              boolean autoDeploy,
+                                                                                                                              int speed) {
         return flux
             .buffer(100)//每100条数据保存一次
             .map(Flux::fromIterable)
@@ -730,7 +725,6 @@ public class DeviceInstanceController implements
                                          .query(parameter)
                                          .flatMap(entity -> {
                                              DeviceExcelInfo exportEntity = FastBeanCopier.copy(entity, new DeviceExcelInfo(), "state");
-                                             exportEntity.setOrgName(orgMapping.get(entity.getOrgId()));
                                              exportEntity.setState(entity.getState().getText());
                                              return registry
                                                  .getDevice(entity.getId())
@@ -1150,7 +1144,7 @@ public class DeviceInstanceController implements
         return partMono
             .flatMap(part -> DataBufferUtils
                 .join(part.content())
-                .map(DataBuffer::asInputStream)
+                .map(buffer->buffer.asInputStream(true))
                 .flatMap(inputStream -> metadataManager
                     .getMetadataExpandsConfig(productId, DeviceMetadataType.property, "*", "*", DeviceConfigScope.device)
                     .collectList()

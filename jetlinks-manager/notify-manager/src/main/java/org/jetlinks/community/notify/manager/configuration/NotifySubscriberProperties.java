@@ -4,8 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.web.authorization.Authentication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;

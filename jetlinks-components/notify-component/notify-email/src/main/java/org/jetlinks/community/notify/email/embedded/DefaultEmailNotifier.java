@@ -252,6 +252,11 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
                         String name = template.render(tempAttachment.getName(), context);
 
+                        String attachName = template.get(null, EmailTemplate.Attachment.locationName(index), context);
+                        if (StringUtils.isNotBlank(attachName)) {
+                            name = attachName;
+                        }
+
                         String location = template.get(tempAttachment.getLocation(), EmailTemplate.Attachment.locationKey(index), context);
 
                         attachments.put(name, location);

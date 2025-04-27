@@ -43,27 +43,6 @@ public class CaptchaController {
         return Mono.just(captchaConfig);
     }
 
-    @GetMapping("/image")
-    @Operation(summary = "获取验证码图片")
-    public Mono<CaptchaInfo> createCaptcha(@RequestParam(defaultValue = "130")
-                                           @Parameter(description = "宽度,默认130px") int width,
-                                           @RequestParam(defaultValue = "40")
-                                           @Parameter(description = "高度,默认40px") int height) {
-        if (!properties.isEnabled()) {
-            return Mono.empty();
-        }
-        SpecCaptcha captcha = new SpecCaptcha(width, height, 4);
-        captcha.setCharType(Captcha.TYPE_DEFAULT);
-
-        String base64 = captcha.toBase64();
-        String key = UUID.randomUUID().toString();
-
-        return redis
-            .opsForValue()
-            .set("captcha:" + key, captcha.text(), properties.getTtl())
-            .thenReturn(new CaptchaInfo(key, base64));
-    }
-
     @EventListener
     public void handleAuthEvent(AuthorizationDecodeEvent event) {
         if (!properties.isEnabled()) {

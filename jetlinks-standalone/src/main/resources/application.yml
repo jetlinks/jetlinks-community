@@ -24,7 +24,7 @@ spring:
       pool:
         max-active: 1024
     timeout: 20s
-  #    database: 3
+    #    database: 3
   #        max-wait: 10s
   r2dbc:
     # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改

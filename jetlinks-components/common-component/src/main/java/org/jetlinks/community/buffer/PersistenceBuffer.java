@@ -5,14 +5,16 @@ import io.netty.buffer.*;
 import io.netty.util.ReferenceCountUtil;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.BasicDataType;
-import org.jetlinks.community.codec.Serializers;
 import org.jetlinks.core.cache.FileQueue;
 import org.jetlinks.core.cache.FileQueueProxy;
 import org.jetlinks.core.utils.SerializeUtils;
+import org.jetlinks.community.codec.Serializers;
+import org.jetlinks.community.utils.FormatUtils;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,9 +23,15 @@ import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Nonnull;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 import java.io.*;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -38,6 +46,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * 支持持久化的缓存批量操作工具,用于支持数据的批量操作,如批量写入数据到数据库等.
@@ -46,11 +55,13 @@ import java.util.function.Supplier;
  *
  * <pre>{@code
  *
- *    BufferWriter<Data> writer = BufferWriter
+ *    PersistenceBuffer<Data> writer = PersistenceBuffer
  *    .<Data>create(
  *       "./data/buffer", //文件目录
  *      "my-data.queue", //文件名
+ *      Data::new,
  *      buffer->{
+ *           // 返回false表示不重试
  *           return saveData(buffer);
  *      })
  *    .bufferSize(1000)//缓冲大小,当缓冲区超过此数量时将会立即执行写出操作.
@@ -66,9 +77,9 @@ import java.util.function.Supplier;
  *
  * @param <T> 数据类型,需要实现Serializable接口
  * @author zhouhao
- * @since pro 2.0
+ * @since 2.0
  */
-public class PersistenceBuffer<T extends Serializable> implements Disposable {
+public class PersistenceBuffer<T extends Serializable> implements EvictionContext, Disposable {
     @SuppressWarnings("all")
     private final static AtomicIntegerFieldUpdater<PersistenceBuffer> WIP =
         AtomicIntegerFieldUpdater.newUpdater(PersistenceBuffer.class, "wip");
@@ -125,10 +136,15 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
     //刷新缓冲区定时任务
     private Disposable intervalFlush;
 
+    //独立的读写调度器
+    private Scheduler writer, reader;
+
     private Throwable lastError;
 
     private volatile Boolean disposed = false;
     private boolean started = false;
+
+    private final PersistenceBufferMBeanImpl<T> monitor = new PersistenceBufferMBeanImpl<>(this);
 
     public PersistenceBuffer(String filePath,
                              String fileName,
@@ -228,6 +244,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
                               .name(fileName)
                               .path(path)
                               .option("valueType", dataType)
+                              .option("concurrency", settings.getFileConcurrency())
                               .build());
         this.remainder = queue.size();
         //死队列,用于存放失败的数据
@@ -238,8 +255,27 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
                                   .option("valueType", dataType)
                                   .build());
         this.deadSize = this.deadQueue.size();
-
         this.buffer = newBuffer();
+        initScheduler();
+        registerMbean();
+    }
+
+    private void initScheduler() {
+        shutdownScheduler();
+        this.writer = settings.getFileConcurrency() > 1
+            ? Schedulers.newParallel(name + "-writer", settings.getFileConcurrency())
+            : Schedulers.newSingle(name + "-writer");
+
+        this.reader = Schedulers.newSingle(name + "-reader");
+    }
+
+    private void shutdownScheduler() {
+        if (this.writer != null) {
+            this.writer.dispose();
+        }
+        if (this.reader != null) {
+            this.reader.dispose();
+        }
     }
 
     public synchronized void start() {
@@ -286,6 +322,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
                 //直接写入queue,而不是使用write,等待后续有新的数据进入再重试
                 if (queue.offer(buf)) {
                     // REMAINDER.incrementAndGet(this);
+                    settings.getEviction().tryEviction(this);
                 } else {
                     dead(buf);
                 }
@@ -313,12 +350,42 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
             }
             return;
         }
+        // remainder ++
+        monitor.in();
+        // REMAINDER.incrementAndGet(this);
 
         queue.offer(data);
 
         drain();
+
+        //尝试执行淘汰策略
+        settings.getEviction().tryEviction(this);
     }
 
+    //异步写入数据到buffer
+    public Mono<Void> writeAsync(T data) {
+        if (isDisposed()) {
+            return Mono.fromRunnable(() -> write(data));
+        }
+        return Mono
+            .fromRunnable(() -> write(data))
+            .subscribeOn(writer)
+            .then();
+    }
+
+    //异步写入数据到buffer
+    public Mono<Void> writeAsync(Collection<T> data) {
+        if (isDisposed()) {
+            return Mono.fromRunnable(() -> data.forEach(this::write));
+        }
+        return Mono
+            .fromRunnable(() -> data.forEach(this::write))
+            .subscribeOn(writer)
+            .then();
+    }
+
+    //写入数据到buffer,此操作可能阻塞
+    @Deprecated
     public void write(T data) {
         write(new Buf<>(data, instanceBuilder));
     }
@@ -327,6 +394,9 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
         started = false;
         if (this.intervalFlush != null) {
             this.intervalFlush.dispose();
+        }
+        for (FlushSubscriber subscriber : new ArrayList<>(flushing)) {
+            subscriber.doCancel();
         }
     }
 
@@ -368,7 +438,9 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
             deadQueue.close();
             queue = null;
             deadQueue = null;
+            shutdownScheduler();
         }
+        unregisterMbean();
     }
 
     @Override
@@ -377,7 +449,37 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
     }
 
     public long size() {
-        return queue == null ? 0 : queue.size();
+        return queue == null || disposed ? 0 : queue.size() + buffer().size();
+    }
+
+    public long size(BufferType type) {
+        return type == BufferType.buffer ? size() : deadQueue == null || disposed ? 0 : deadQueue.size();
+    }
+
+    @Override
+    public void removeLatest(BufferType type) {
+        if (type == BufferType.buffer) {
+            if (queue.removeLast() != null) {
+                monitor.dropped();
+            }
+        } else {
+            if (deadQueue.removeLast() != null) {
+                // DEAD_SZIE.decrementAndGet(this);
+            }
+        }
+    }
+
+    @Override
+    public void removeOldest(BufferType type) {
+        if (type == BufferType.buffer) {
+            if (queue.removeFirst() != null) {
+                monitor.dropped();
+            }
+        } else {
+            if (deadQueue.removeFirst() != null) {
+                // DEAD_SZIE.decrementAndGet(this);
+            }
+        }
     }
 
     private void intervalFlush() {
@@ -446,7 +548,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
                     logger.debug("write {} data,size:{},remainder:{},requeue: {}.take up time: {} ms",
                                  name,
                                  buffer.size(),
-                                 queue.size(),
+                                 size(),
                                  doRequeue,
                                  System.currentTimeMillis() - startWith);
                 }
@@ -535,6 +637,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
             }
             buffer.forEach(Buf::reset);
             flushing.remove(this);
+            monitor.out(size, System.currentTimeMillis() - startWith);
             // wip--
             WIP.decrementAndGet(PersistenceBuffer.this);
             drain();
@@ -556,22 +659,27 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
         if (!started) {
             return;
         }
-        //当前未执行完成的操作小于并行度才请求
+        // 当前未执行完成的操作小于并行度才请求
         if (WIP.incrementAndGet(this) <= settings.getParallelism()) {
-            int size = settings.getBufferSize();
-            for (int i = 0; i < size; i++) {
-                if (isDisposed()) {
-                    break;
-                }
-                Buf<T> poll = queue.poll();
-                if (poll != null) {
-                    onNext(poll);
-                } else {
-                    break;
-                }
-            }
+            // 使用boundedElastic线程执行poll,避免阻塞线程
+            reader
+                .schedule(() -> {
+                    int size = settings.getBufferSize();
+                    for (int i = 0; i < size && started; i++) {
+                        Buf<T> poll = settings.getStrategy() == ConsumeStrategy.LIFO
+                            ? queue.removeLast()
+                            : queue.poll();
+                        if (poll != null) {
+                            onNext(poll);
+                        } else {
+                            break;
+                        }
+                    }
+                    WIP.decrementAndGet(this);
+                });
+        } else {
+            WIP.decrementAndGet(this);
         }
-        WIP.decrementAndGet(this);
     }
 
     private void onNext(@Nonnull Buf<T> value) {
@@ -739,7 +847,7 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
             if (obj.data instanceof String) {
                 return ((String) obj.data).length() * 2;
             }
-            return 10_000;
+            return 4096;
         }
 
         @Override
@@ -800,6 +908,228 @@ public class PersistenceBuffer<T extends Serializable> implements Disposable {
         public Buf<T>[] createStorage(int size) {
             return new Buf[size];
         }
+    }
+
+    private ObjectName objectName;
+
+    void registerMbean() {
+        try {
+            String safeName = name.replaceAll("[\\s\\\\/:*?\"<>|]", "_");
+            MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+            objectName = new ObjectName("org.jetlinks:type=PersistenceBuffer,name=" + safeName);
+            mBeanServer.registerMBean(new StandardMBean(monitor, PersistenceBufferMBean.class), objectName);
+        } catch (Throwable error) {
+            logger.warn("registerMBean {} error ", name, error);
+        }
+    }
+
+    void unregisterMbean() {
+        try {
+            if (objectName != null) {
+                MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+                mBeanServer.unregisterMBean(objectName);
+            }
+        } catch (Throwable ignore) {
+        }
+    }
+
+
+    @RequiredArgsConstructor
+    private static class PersistenceBufferMBeanImpl<T extends Serializable> implements PersistenceBufferMBean {
+        @SuppressWarnings("all")
+        private static final AtomicLongFieldUpdater<PersistenceBufferMBeanImpl>
+            IN = AtomicLongFieldUpdater.newUpdater(PersistenceBufferMBeanImpl.class, "in"),
+            OUT = AtomicLongFieldUpdater.newUpdater(PersistenceBufferMBeanImpl.class, "out"),
+            COST = AtomicLongFieldUpdater.newUpdater(PersistenceBufferMBeanImpl.class, "cost"),
+            OPT = AtomicLongFieldUpdater.newUpdater(PersistenceBufferMBeanImpl.class, "opt"),
+            DROPPED = AtomicLongFieldUpdater.newUpdater(PersistenceBufferMBeanImpl.class, "dropped");
+
+        private final PersistenceBuffer<T> buffer;
+
+        private volatile long
+            //写入数量
+            in,
+        //写出数量
+        out,
+        //写出次数
+        opt,
+        //写出总耗时
+        cost,
+        //淘汰数量
+        dropped;
+
+        private final long[] costDist = new long[5];
+
+        private void dropped() {
+            DROPPED.incrementAndGet(this);
+        }
+
+        private void in() {
+            IN.incrementAndGet(this);
+        }
+
+        private void out(long outSize, long cost) {
+            COST.addAndGet(this, cost);
+            OUT.addAndGet(this, outSize);
+            OPT.incrementAndGet(this);
+            if (cost < 50) {
+                costDist[0]++;
+            } else if (cost < 200) {
+                costDist[1]++;
+            } else if (cost < 1000) {
+                costDist[2]++;
+            } else if (cost < 5000) {
+                costDist[3]++;
+            } else {
+                costDist[4]++;
+            }
+        }
+
+        @Override
+        public String getMonitor() {
+            return String.format(
+                "\nqueue(in %s,out %s,dropped %s);\nconsume(opt %s,cost %s ms);\ndist[0-50ms(%s),50-200ms(%s),0.2-1s(%s),1-5s(%s),>5s(%s)]\n",
+                in, out, dropped, opt, cost, costDist[0], costDist[1], costDist[2], costDist[3], costDist[4]);
+        }
+
+        @Override
+        public void resetMonitor() {
+            IN.set(this, 0);
+            OUT.set(this, 0);
+            OPT.set(this, 0);
+            COST.set(this, 0);
+            Arrays.fill(costDist, 0);
+        }
+
+        @Override
+        public long getRemainder() {
+            return buffer.queue.size();
+        }
+
+        @Override
+        public long getDeadSize() {
+            return buffer.deadQueue.size();
+        }
+
+        @Override
+        public long getWip() {
+            return buffer.wip;
+        }
+
+        @Override
+        public String getLastError() {
+            Throwable error = buffer.lastError;
+            return error == null ? "nil"
+                : ExceptionUtils.getRootCauseMessage(error) + ":" + ExceptionUtils.getStackTrace(error);
+        }
+
+        @Override
+        public String getStoragePath() {
+            return buffer.settings.getFilePath();
+        }
+
+        @Override
+        public List<String> getDataBytes() {
+            File[] files = new File(buffer.settings.getFilePath())
+                .listFiles(filter -> filter.getName().startsWith(getSafeFileName(buffer.settings.getFileName())));
+            if (files == null) {
+                return Collections.emptyList();
+            }
+
+            return Arrays
+                .stream(files)
+                .map(file -> file.getName() + " " + FormatUtils.formatDataSize(file.length()))
+                .collect(Collectors.toList());
+        }
+
+        @Override
+        public void flush() {
+            buffer.queue.flush();
+            buffer.deadQueue.flush();
+        }
+
+        @Override
+        public void retryDead(int maxSize) {
+            //单次请求最大重试次数
+            maxSize = Math.min(50_0000, maxSize);
+            while (maxSize-- > 0) {
+                Buf<T> buf = buffer.deadQueue.poll();
+                if (buf == null) {
+                    break;
+                }
+                buf.retry = 0;
+                if (!buffer.queue.offer(buf)) {
+                    buffer.deadQueue.offer(buf);
+                    break;
+                }
+            }
+            buffer.drain();
+        }
+
+        @Override
+        public String getSettings() {
+            return String.format("\nbufferSize: %s" +
+                                     ",bufferTimeout: %s" +
+                                     ",parallelism: %s" +
+                                     ",maxRetryTimes: %s" +
+                                     ",fileConcurrency: %s" + "\nEviction:%s ",
+                                 buffer.settings.getBufferSize(),
+                                 buffer.settings.getBufferTimeout(),
+                                 buffer.settings.getParallelism(),
+                                 buffer.settings.getMaxRetryTimes(),
+                                 buffer.settings.getFileConcurrency(),
+                                 buffer.settings.getEviction());
+        }
+
+        @Override
+        public long recovery(String fileName, boolean dead) {
+            return buffer.recovery(fileName, dead);
+        }
+
+        @Override
+        public List<Object> peekDead(int size) {
+            size = size <= 0 ? 1 : Math.min(1024, size);
+
+            List<Object> result = new ArrayList<>(size);
+
+            for (Buf<T> tBuf : buffer.deadQueue) {
+                if (size-- <= 0) {
+                    break;
+                }
+                result.add(tBuf.data);
+            }
+
+            return result;
+        }
+    }
+
+    public interface PersistenceBufferMBean {
+
+        String getSettings();
+
+        String getMonitor();
+
+        void resetMonitor();
+
+        String getStoragePath();
+
+        long getRemainder();
+
+        long getDeadSize();
+
+        long getWip();
+
+        String getLastError();
+
+        List<String> getDataBytes();
+
+        void flush();
+
+        void retryDead(int maxSize);
+
+        long recovery(String fileName, boolean dead);
+
+        List<Object> peekDead(int size);
     }
 
     public interface FlushContext<T> {

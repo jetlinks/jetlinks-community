@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.hswebframework.web.i18n.SingleI18nSupportEntity;
 
 import java.io.Serializable;
 import java.util.*;
@@ -11,7 +13,7 @@ import java.util.function.BiPredicate;
 
 @Getter
 @Setter
-public class MenuButtonInfo implements Serializable {
+public class MenuButtonInfo implements SingleI18nSupportEntity, Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "按钮ID")
@@ -28,6 +30,16 @@ public class MenuButtonInfo implements Serializable {
 
     @Schema(description = "其他配置")
     private Map<String, Object> options;
+
+    @Schema(description = "i18n配置")
+    private Map<String, String> i18nMessages;
+
+    public String getI18nName() {
+        if (MapUtils.isEmpty(i18nMessages)) {
+            return name;
+        }
+        return getI18nMessage("name", name);
+    }
 
     public boolean hasPermission(BiPredicate<String, Collection<String>> predicate) {
         if (CollectionUtils.isEmpty(permissions)) {

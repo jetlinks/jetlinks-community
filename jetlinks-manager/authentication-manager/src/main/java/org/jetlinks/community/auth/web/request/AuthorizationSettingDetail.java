@@ -6,8 +6,11 @@ import lombok.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.authorization.access.DataAccessConfig;
+import org.hswebframework.web.system.authorization.api.entity.ActionEntity;
 import org.hswebframework.web.system.authorization.api.entity.AuthorizationSettingEntity;
 import org.hswebframework.web.system.authorization.api.entity.DataAccessEntity;
+import org.hswebframework.web.system.authorization.api.entity.PermissionEntity;
+import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotBlank;
 import java.util.*;
@@ -90,6 +93,9 @@ public class AuthorizationSettingDetail {
         @Schema(description = "权限ID")
         private String id;
 
+        @Schema(description = "权限名称")
+        private String name;
+
         /**
          * 授权操作
          */
@@ -107,6 +113,15 @@ public class AuthorizationSettingDetail {
          */
         @Hidden
         private List<DataAccess> dataAccess;
+
+        /**
+         * 是否来自外部菜单的权限
+         */
+        @Hidden
+        private boolean external;
+
+        @Schema(description = "额外配置")
+        private Map<String, Object> options;
 
         private PermissionInfo unwrap(AuthorizationSettingEntity entity) {
             this.id = entity.getPermission();
@@ -181,6 +196,23 @@ public class AuthorizationSettingDetail {
             entity.setDataAccesses(entities);
         }
 
+        public PermissionEntity toPermissionEntity() {
+            PermissionEntity permissionEntity = new PermissionEntity();
+            permissionEntity.setId(id);
+            permissionEntity.setName(StringUtils.hasText(name) ? name : id);
+            List<ActionEntity> actionEntityList = getActions()
+                .stream()
+                .map(action -> {
+                    ActionEntity actionEntity = new ActionEntity();
+                    actionEntity.setAction(action);
+                    return actionEntity;
+                })
+                .collect(Collectors.toList());
+
+            permissionEntity.setActions(actionEntityList);
+            return permissionEntity;
+        }
+
         public static PermissionInfo of(String id, Collection<String> actions) {
             PermissionInfo info = new PermissionInfo();
             info.setId(id);
@@ -195,6 +227,7 @@ public class AuthorizationSettingDetail {
      */
     @Getter
     @Setter
+    @Generated
     public static class DataAccess {
 
         /**
@@ -249,6 +282,7 @@ public class AuthorizationSettingDetail {
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
+    @Generated
     public static class FieldAccess {
 
         /**

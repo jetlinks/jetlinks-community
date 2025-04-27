@@ -29,7 +29,7 @@ public class ProductReferenceDeviceGatewayProvider implements DataReferenceProvi
             .fetch()
             .map(e -> DataReferenceInfo
                 .of(e.getAccessId(),
-                    DataReferenceManager.TYPE_DEVICE_GATEWAY,
+                    DataReferenceManager.TYPE_PRODUCT,
                     e.getId(),
                     e.getName()));
     }
@@ -42,7 +42,7 @@ public class ProductReferenceDeviceGatewayProvider implements DataReferenceProvi
             .filter(e -> StringUtils.hasText(e.getAccessId()))
             .map(e -> DataReferenceInfo
                 .of(e.getAccessId(),
-                    DataReferenceManager.TYPE_DEVICE_GATEWAY,
+                    DataReferenceManager.TYPE_PRODUCT,
                     e.getId(),
                     e.getName()));
     }

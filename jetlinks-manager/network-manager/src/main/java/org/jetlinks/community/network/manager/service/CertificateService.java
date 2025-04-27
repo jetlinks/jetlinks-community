@@ -15,16 +15,16 @@ import reactor.core.publisher.Mono;
  */
 @Service
 public class CertificateService
-        extends GenericReactiveCrudService<CertificateEntity, String>
-        implements CertificateManager {
+    extends GenericReactiveCrudService<CertificateEntity, String>
+    implements CertificateManager {
     @Override
     public Mono<Certificate> getCertificate(String id) {
-        return createQuery()
-                .where(CertificateEntity::getId, id)
-                .fetchOne()
-                .map(entity -> {
-                    DefaultCertificate defaultCertificate = new DefaultCertificate(entity.getId(), entity.getName());
-                    return entity.getFormat().init(defaultCertificate, entity.getConfigs());
-                });
+        return this
+            .findById(id)
+            .filter(cert -> cert.getFormat() != null && cert.getConfigs() != null)
+            .map(entity -> {
+                DefaultCertificate defaultCertificate = new DefaultCertificate(entity.getId(), entity.getName());
+                return entity.getFormat().init(defaultCertificate, entity.getConfigs());
+            });
     }
 }

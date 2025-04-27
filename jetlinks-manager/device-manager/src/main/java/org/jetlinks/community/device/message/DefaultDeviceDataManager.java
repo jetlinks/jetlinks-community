@@ -2,14 +2,10 @@ package org.jetlinks.community.device.message;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.AllArgsConstructor;
+import lombok.Generated;
 import lombok.Getter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
-import org.jetlinks.community.device.entity.DeviceProperty;
-import org.jetlinks.community.device.entity.DeviceTagEntity;
-import org.jetlinks.community.device.service.data.DeviceDataService;
-import org.jetlinks.community.gateway.DeviceMessageUtils;
-import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.core.device.DeviceConfigKey;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -19,7 +15,10 @@ import org.jetlinks.core.message.DeviceDataManager;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.springframework.stereotype.Component;
+import org.jetlinks.community.device.entity.DeviceProperty;
+import org.jetlinks.community.device.entity.DeviceTagEntity;
+import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.jetlinks.community.gateway.DeviceMessageUtils;
 import org.springframework.util.Assert;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -38,8 +37,8 @@ import java.util.function.Function;
  * @since 1.9
  */
 //@Component
-    @Deprecated
 @AllArgsConstructor
+@Deprecated
 public class DefaultDeviceDataManager implements DeviceDataManager {
 
     private final DeviceRegistry registry;
@@ -68,9 +67,7 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
 
     @Override
     public Mono<PropertyValue> getLastProperty(@Nonnull String deviceId, @Nonnull String propertyId) {
-        return localCache
-            .computeIfAbsent(deviceId, id -> new DevicePropertyRef(id, eventBus, dataService))
-            .getLastProperty(propertyId, System.currentTimeMillis());
+        return getLastProperty(deviceId, propertyId, System.currentTimeMillis());
     }
 
     @Override
@@ -119,7 +116,9 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
 
     @Getter
     public static class DefaultTagValue implements TagValue {
+        @Generated
         private String tagId;
+        @Generated
         private Object value;
 
         public static DefaultTagValue of(String id, String value, PropertyMetadata metadata) {
@@ -135,31 +134,15 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
         }
     }
 
-    //更新首次上报属性的时间
-    @Subscribe(topics = {
-        "/device/*/*/message/property/report",
-        "/device/*/*/message/property/read,write/reply"
-    }, features = Subscription.Feature.local)
-    public Mono<Void> upgradeDeviceFirstPropertyTime(DeviceMessage message) {
-        return registry
-            .getDevice(message.getDeviceId())
-            .flatMap(device -> device
-                .getSelfConfig(DeviceConfigKey.firstPropertyTime)
-                //没有首次上报时间就更新,设备注销后,首次上报属性时间也将失效.
-                .switchIfEmpty(device
-                                   .setConfig(DeviceConfigKey.firstPropertyTime, message.getTimestamp())
-                                   .thenReturn(message.getTimestamp())
-                ))
-            .then();
-    }
-
-
     private static class PropertyRef implements PropertyValue {
         @Getter
+        @Generated
         private volatile Object value;
         @Getter
+        @Generated
         private volatile long timestamp;
         @Getter
+        @Generated
         private volatile String state;
 
         //上一个
@@ -291,8 +274,9 @@ public class DefaultDeviceDataManager implements DeviceDataManager {
                                QueryParamEntity
                                    .newQuery()
                                    .orderByAsc("timestamp")
-                                   .getParam()
-                )
+                                   .doPaging(0, 1)
+                                   .getParam(),
+                               property)
                 .take(1)
                 .singleOrEmpty()
                 .<PropertyValue>map(prop -> ref.setFirst(prop.getValue(), prop.getTimestamp()))

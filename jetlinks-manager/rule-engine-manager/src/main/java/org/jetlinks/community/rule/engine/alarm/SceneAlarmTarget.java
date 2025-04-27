@@ -1,5 +1,7 @@
 package org.jetlinks.community.rule.engine.alarm;
 
+
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -7,7 +9,7 @@ import reactor.core.publisher.Flux;
  * @author bestfeng
  */
 @Component
-public class SceneAlarmTarget implements AlarmTarget {
+public class SceneAlarmTarget extends AbstractAlarmTarget {
 
     public static final String TYPE = "scene";
 
@@ -18,16 +20,23 @@ public class SceneAlarmTarget implements AlarmTarget {
 
     @Override
     public String getName() {
-        return "场景";
+        return LocaleUtils
+            .resolveMessage("message.rule_engine_alarm_scene", "场景");
     }
 
     @Override
-    public Flux<AlarmTargetInfo> convert(AlarmData data) {
+    public Integer getOrder() {
+        return 400;
+    }
+
+    @Override
+    public Flux<AlarmTargetInfo> doConvert(AlarmData data) {
         return Flux.just(AlarmTargetInfo
-                             .of(data.getRuleId(),
-                                 data.getRuleName(),
-                                 getType())
-                             .withSource(TYPE, data.getRuleId(), data.getRuleName()));
+            .of(data.getRuleId(),
+                data.getRuleName(),
+                getType(),
+                data.getCreatorId())
+            .withSource(TYPE, data.getRuleId(), data.getRuleName()));
     }
 
 }

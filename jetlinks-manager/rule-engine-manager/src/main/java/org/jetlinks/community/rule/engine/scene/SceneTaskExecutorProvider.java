@@ -6,15 +6,15 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.rdb.executor.SqlRequest;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.trace.TraceHolder;
 import org.jetlinks.core.utils.FluxUtils;
-import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.reactor.ql.ReactorQL;
 import org.jetlinks.reactor.ql.ReactorQLContext;
-import org.jetlinks.reactor.ql.ReactorQLRecord;
 import org.jetlinks.rule.engine.api.RuleData;
+import org.jetlinks.rule.engine.api.RuleDataHelper;
 import org.jetlinks.rule.engine.api.task.ExecutionContext;
 import org.jetlinks.rule.engine.api.task.TaskExecutor;
 import org.jetlinks.rule.engine.api.task.TaskExecutorProvider;
@@ -25,7 +25,8 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.function.Consumer;
+
+import static org.jetlinks.community.rule.engine.scene.SceneRule.TRIGGER_TYPE;
 
 @Slf4j
 @AllArgsConstructor
@@ -126,7 +127,7 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                         return context
                             .getInput()
                             .accept()
-                            .flatMap(RuleData::dataToMap);
+                            .concatMap(RuleData::dataToMap, 0);
                     }
                 });
         }
@@ -147,7 +148,7 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                 source = context
                     .getInput()
                     .accept()
-                    .flatMap(RuleData::dataToMap);
+                    .concatMap(RuleData::dataToMap, 0);
             } else {
                 if (log.isInfoEnabled()) {
                     log.info("init scene [{}:{}], sql:{}", ruleId, ruleName, request.toNativeSql());
@@ -164,7 +165,16 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
                     .sql(request.getSql())
                     .build()
                     .start(qlContext)
-                    .map(ReactorQLRecord::asMap);
+                    .map(record -> RuleDataHelper.toContextMap(context.newRuleData(record.asMap())))
+                    .onErrorContinue((err, val) -> {
+                        context
+                            .logger()
+                            .error("reactor ql execute failed", err);
+                        @SuppressWarnings("all")
+                        Disposable disp = context
+                            .onError(err, null)
+                            .subscribe();
+                    });
             }
 
             // 分支条件
@@ -254,6 +264,7 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
             SceneData sceneData = new SceneData();
             sceneData.setId(IDGenerator.RANDOM.generate());
             sceneData.setRule(rule);
+            map.put(TRIGGER_TYPE, rule.getTrigger().getType());
             sceneData.setOutput(map);
             return sceneData;
         }
@@ -264,6 +275,12 @@ public class SceneTaskExecutorProvider implements TaskExecutorProvider {
 
         @Override
         public Mono<Void> execute(RuleData ruleData) {
+            Object data = ruleData.getData();
+            if (data instanceof Map) {
+                @SuppressWarnings("all")
+                Map<Object, Object> map = (Map<Object, Object>) data;
+                map.put(TRIGGER_TYPE, rule.getTrigger().getType());
+            }
             //分支
             if (useBranch) {
                 if (log.isDebugEnabled()) {

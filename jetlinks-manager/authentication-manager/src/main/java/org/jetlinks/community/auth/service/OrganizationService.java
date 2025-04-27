@@ -2,14 +2,19 @@ package org.jetlinks.community.auth.service;
 
 import lombok.AllArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.ezorm.rdb.mapping.defaults.SaveResult;
+import org.hswebframework.web.crud.events.EntityEventHelper;
+import org.hswebframework.web.crud.events.EntityModifyEvent;
+import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.crud.service.GenericReactiveTreeSupportCrudService;
 import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntity;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
-import org.jetlinks.community.auth.dimension.OrgDimensionType;
 import org.jetlinks.community.auth.entity.OrganizationEntity;
 import org.jetlinks.community.auth.utils.DimensionUserBindUtils;
+import org.jetlinks.community.authorize.OrgDimensionType;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -39,19 +44,19 @@ public class OrganizationService extends GenericReactiveTreeSupportCrudService<O
         Flux<String> userIdStream = Flux.fromIterable(userIdList);
 
         return this
-            .findById(orgId)
-            .flatMap(org -> userIdStream
-                .map(userId -> {
-                    DimensionUserEntity userEntity = new DimensionUserEntity();
-                    userEntity.setUserId(userId);
-                    userEntity.setUserName(userId);
-                    userEntity.setDimensionId(orgId);
-                    userEntity.setDimensionTypeId(OrgDimensionType.org.getId());
-                    userEntity.setDimensionName(org.getName());
-                    return userEntity;
-                })
-                .as(dimensionUserService::save))
-            .map(SaveResult::getTotal);
+                .findById(orgId)
+                .flatMap(org -> userIdStream
+                        .map(userId -> {
+                            DimensionUserEntity userEntity = new DimensionUserEntity();
+                            userEntity.setUserId(userId);
+                            userEntity.setUserName(userId);
+                            userEntity.setDimensionId(orgId);
+                            userEntity.setDimensionTypeId(OrgDimensionType.org.getId());
+                            userEntity.setDimensionName(org.getName());
+                            return userEntity;
+                        })
+                        .as(dimensionUserService::save))
+                .map(SaveResult::getTotal);
 
     }
 
@@ -60,15 +65,15 @@ public class OrganizationService extends GenericReactiveTreeSupportCrudService<O
         Flux<String> userIdStream = Flux.fromIterable(userIdList);
 
         return userIdStream
-            .collectList()
-            .filter(CollectionUtils::isNotEmpty)
-            .flatMap(newUserIdList -> dimensionUserService
-                .createDelete()
-                .where(DimensionUserEntity::getDimensionTypeId, OrgDimensionType.org.getId())
-                .in(DimensionUserEntity::getUserId, newUserIdList)
-                .and(DimensionUserEntity::getDimensionId, orgId)
-                .execute())
-            ;
+                .collectList()
+                .filter(CollectionUtils::isNotEmpty)
+                .flatMap(newUserIdList -> dimensionUserService
+                        .createDelete()
+                        .where(DimensionUserEntity::getDimensionTypeId, OrgDimensionType.org.getId())
+                        .in(DimensionUserEntity::getUserId, newUserIdList)
+                        .and(DimensionUserEntity::getDimensionId, orgId)
+                        .execute())
+                ;
     }
 
 
@@ -79,6 +84,7 @@ public class OrganizationService extends GenericReactiveTreeSupportCrudService<O
      * @param orgIdList     机构Id
      * @param removeOldBind 是否删除旧的绑定信息
      * @return void
+     * @see DimensionUserBindUtils#bindUser(DefaultDimensionUserService, Collection, String, Collection, boolean)
      */
     @Transactional
     public Mono<Void> bindUser(Collection<String> userIdList,
@@ -90,6 +96,33 @@ public class OrganizationService extends GenericReactiveTreeSupportCrudService<O
         return DimensionUserBindUtils.bindUser(dimensionUserService, userIdList, OrgDimensionType.org.getId(), orgIdList, removeOldBind);
     }
 
+    @EventListener
+    public void doHandleSaved(EntitySavedEvent<OrganizationEntity> event) {
+        event.async(
+                Flux.fromIterable(event.getEntity())
+                    .flatMap(this::handleParentId)
+        );
+    }
 
+    @EventListener
+    public void doHandleModified(EntityModifyEvent<OrganizationEntity> event) {
+        event.async(
+                Flux.fromIterable(event.getAfter())
+                    .flatMap(this::handleParentId)
+        );
+    }
+
+    private Mono<Void> handleParentId(OrganizationEntity organization) {
+        return Mono
+                .just(organization)
+                .filter(org -> StringUtils.isBlank(organization.getParentId()))
+                .flatMap(org -> createUpdate()
+                        .setNull(OrganizationEntity::getParentId)
+                        .where(OrganizationEntity::getId, organization.getId())
+                        .execute()
+                        .as(EntityEventHelper::setDoNotFireEvent)
+                        .then()
+                );
+    }
 
 }

@@ -58,7 +58,7 @@ public class DefaultImportExportService implements ImportExportService {
                 .zip(fileManager
                          .read(fileId)
                          .as(DataBufferUtils::join)
-                         .map(DataBuffer::asInputStream),
+                         .map(buffer->buffer.asInputStream(true)),
                      fileManager.getFile(fileId))
                 .flatMapMany(t2 -> read(t2.getT1(), t2.getT2().getExtension(), wrapper));
         }

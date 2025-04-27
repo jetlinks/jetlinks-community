@@ -1,40 +1,22 @@
 package org.jetlinks.community.rule.engine.web;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
-import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.authorization.annotation.DeleteAction;
-import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.crud.web.reactive.ReactiveServiceQueryController;
-import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.reactorql.aggregation.AggregationSupport;
-import org.jetlinks.community.rule.engine.service.SceneService;
-import org.jetlinks.community.rule.engine.utils.TermColumnUtils;
-import org.jetlinks.community.rule.engine.web.request.SceneExecuteRequest;
-import org.jetlinks.community.rule.engine.web.response.SceneActionInfo;
-import org.jetlinks.community.rule.engine.web.response.SceneAggregationInfo;
-import org.jetlinks.community.rule.engine.web.response.SceneTriggerInfo;
-import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.community.rule.engine.entity.SceneEntity;
-import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProvider;
-import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProviders;
-import org.jetlinks.community.rule.engine.scene.*;
-import org.jetlinks.community.rule.engine.scene.term.TermColumn;
-import org.jetlinks.core.metadata.SimplePropertyMetadata;
+import org.jetlinks.community.rule.engine.scene.SceneRule;
+import org.jetlinks.community.rule.engine.service.SceneService;
+import org.jetlinks.community.rule.engine.web.request.SceneExecuteRequest;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-
 
 @RestController
 @RequestMapping("/scene")
@@ -58,7 +40,7 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
     @Operation(summary = "更新场景")
     @SaveAction
     public Mono<Void> update(@PathVariable String id,
-                             @RequestBody Mono<SceneRule> sceneRuleMono) {
+                                  @RequestBody Mono<SceneRule> sceneRuleMono) {
         return sceneRuleMono
             .flatMap(sceneRule -> service.updateScene(id, sceneRule))
             .then();
@@ -71,25 +53,11 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
         return service.disabled(id);
     }
 
-    @PutMapping("/batch/_disable")
-    @Operation(summary = "批量禁用场景")
-    @SaveAction
-    public Mono<Void> disableSceneBatch(@RequestBody Mono<List<String>> id) {
-        return id.flatMap(service::disabled);
-    }
-
     @PutMapping("/{id}/_enable")
     @Operation(summary = "启用场景")
     @SaveAction
     public Mono<Void> enabledScene(@PathVariable String id) {
         return service.enable(id);
-    }
-
-    @PutMapping("/batch/_enable")
-    @Operation(summary = "批量启用场景")
-    @SaveAction
-    public Mono<Void> enabledSceneBatch(@RequestBody Mono<List<String>> id) {
-        return id.flatMap(service::enable);
     }
 
     @PostMapping("/{id}/_execute")
@@ -114,111 +82,6 @@ public class SceneController implements ReactiveServiceQueryController<SceneEnti
         return service
             .deleteById(id)
             .then();
-    }
-
-    @GetMapping("/trigger/supports")
-    @Operation(summary = "获取支持的触发器类型")
-    public Flux<SceneTriggerInfo> getSupportTriggers() {
-        return SceneUtils
-            .getSupportTriggers()
-            .map(SceneTriggerInfo::of);
-    }
-
-    @GetMapping("/action/supports")
-    @Operation(summary = "获取支持的动作类型")
-    public Flux<SceneActionInfo> getSupportActions() {
-        return SceneUtils
-            .getSupportActions()
-            .flatMap(provider -> SceneActionInfo.of(provider));
-    }
-
-    @GetMapping("/aggregation/supports")
-    @Operation(summary = "获取支持的聚合函数")
-    public Flux<SceneAggregationInfo> getSupportAggregations() {
-        return LocaleUtils
-            .currentReactive()
-            .flatMapMany(locale -> Flux
-                .fromIterable(AggregationSupport.supports.getAll())
-                .map(aggregation -> SceneAggregationInfo.of(aggregation, locale)));
-    }
-
-    @PostMapping("/parse-term-column")
-    @Operation(summary = "根据触发器解析出支持的条件列")
-    @QueryAction
-    public Flux<TermColumn> parseTermColumns(@RequestBody Mono<SceneRule> ruleMono) {
-        return ruleMono
-            .flatMapMany(rule -> {
-                Trigger trigger = rule.getTrigger();
-                if (trigger != null) {
-                    return trigger.parseTermColumns();
-                }
-                return Flux.empty();
-            });
-    }
-
-    @PostMapping("/parse-array-child-term-column")
-    @Operation(summary = "解析数组需要的子元素支持的条件列")
-    @QueryAction
-    public Flux<TermColumn> parseArrayChildTermColumns(@RequestBody Mono<SimplePropertyMetadata> metadataMono) {
-        return metadataMono
-            .flatMapMany(metadata -> Flux
-                .fromIterable(TermColumnUtils.parseArrayChildTermColumns(metadata.getValueType())));
-    }
-
-    @PostMapping("/parse-variables")
-    @Operation(summary = "解析规则中输出的变量")
-    @QueryAction
-    public Flux<Variable> parseVariables(@RequestBody Mono<SceneRule> ruleMono,
-                                         @RequestParam(required = false) Integer branch,
-                                         @RequestParam(required = false) Integer branchGroup,
-                                         @RequestParam(required = false) Integer action) {
-        Mono<SceneRule> cache = ruleMono.cache();
-        return Mono
-            .zip(
-                parseTermColumns(cache).collectList(),
-                cache,
-                (columns, rule) -> rule
-                    .createVariables(columns,
-                                     branch,
-                                     branchGroup,
-                                     action))
-            .flatMapMany(Function.identity());
-    }
-
-    @GetMapping("/device-selectors")
-    @Operation(summary = "获取支持的设备选择器")
-    @QueryAction
-    public Flux<SelectorInfo> getDeviceSelectors() {
-        return Flux
-            .fromIterable(DeviceSelectorProviders.allProvider())
-            //场景联动的设备动作必须选择一个产品,不再列出产品
-            .filter(provider -> !"product".equals(provider.getProvider()))
-            .map(SelectorInfo::of);
-    }
-
-    @Getter
-    @Setter
-    public static class SelectorInfo {
-        @Schema(description = "ID")
-        private String id;
-
-        @Schema(description = "名称")
-        private String name;
-
-        @Schema(description = "说明")
-        private String description;
-
-        public static SelectorInfo of(DeviceSelectorProvider provider) {
-            SelectorInfo info = new SelectorInfo();
-            info.setId(provider.getProvider());
-
-            info.setName(LocaleUtils
-                             .resolveMessage("message.device_selector_" + provider.getProvider(), provider.getName()));
-
-            info.setDescription(LocaleUtils
-                                    .resolveMessage("message.device_selector_" + provider.getProvider() + "_desc", provider.getName()));
-            return info;
-        }
     }
 
 }

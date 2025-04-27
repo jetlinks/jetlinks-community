@@ -18,8 +18,29 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+
 /**
- * where("id$dev-tag$location","重庆")
+ * 根据设备标签查询设备或者与设备关联的数据.
+ * <p>
+ * <b>
+ * 注意: 查询时指定列名是和设备ID关联的列或者实体类属性名.
+ * 如: 查询设备列表时则使用id.
+ * 此条件仅支持关系型数据库中的查询.
+ * </b>
+ * <p>
+ * 在通用查询接口中可以使用动态查询参数中的<code>term.termType</code>来使用此功能.
+ * <a href="https://doc.jetlinks.cn/interface-guide/query-param.html">查看动态查询参数说明</a>
+ * <p>
+ * 在内部通用条件中,可以使用DSL方式创建条件,例如:
+ * <pre>
+ *     createQuery()
+ *     .where()
+ *     .and("id","dev-tag","tag1 = 1 or tag2 = 2")
+ *     .fetch()
+ * </pre>
+ *
+ * @author zhouhao
+ * @since 1.6
  */
 @Component
 public class DeviceTagTerm extends AbstractTermFragmentBuilder {
@@ -70,28 +91,44 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
 
     private void acceptTerm(boolean and, PrepareSqlFragments fragments, Collection<?> tags) {
 
+        PrepareSqlFragments copy = PrepareSqlFragments.of();
+        copy.addSql(fragments.getSql());
         int len = 0;
         fragments.addSql("and (");
         for (Object tag : tags) {
-            if (len++ > 0) {
-                fragments.addSql(and ? "and" : "or");
-            }
             String key;
             String value;
             if (tag instanceof Map) {
                 @SuppressWarnings("all")
                 Map<Object, Object> map = ((Map) tag);
+                if (map.get("type") != null) {
+                    and = Term.Type.and.name().equals(map.get("type"));
+                }
                 //key or column
                 key = String.valueOf(map.getOrDefault("key", map.get("column")));
                 value = String.valueOf(map.get("value"));
             } else if (tag instanceof Term) {
+                    Term.Type type = ((Term) tag).getType();
+                    if (type != null) {
+                        and = Term.Type.and.equals(type);
+                    }
                 key = ((Term) tag).getColumn();
                 value = String.valueOf(((Term) tag).getValue());
             } else {
                 throw new IllegalArgumentException("illegal tag value format");
             }
-            fragments.addSql("(d.key = ? and d.value like ?)")
-                     .addParameter(key, value);
+            if (len++ > 0) {
+                // 组合多个exist语句：and (exists(...) and exist(...))
+                fragments.addSql("))");
+                fragments.addSql(and ? "and" : "or");
+                fragments.add(copy);
+                fragments.addSql("and");
+                fragments.addSql("(d.key = ? and d.value like ?)")
+                         .addParameter(key, value);
+            } else {
+                fragments.addSql("(d.key = ? and d.value like ?)")
+                         .addParameter(key, value);
+            }
         }
         if (tags.isEmpty()) {
             fragments.addSql("1=2");
@@ -104,6 +141,7 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
 
 
         PrepareSqlFragments fragments = PrepareSqlFragments.of();
+        fragments.addSql("(");
         fragments.addSql("exists(select 1 from ",getTableName("dev_device_tags",column)," d where d.device_id =", columnFullName);
         Object value = term.getValue();
         boolean and = term.getOptions().contains("and");
@@ -116,17 +154,19 @@ public class DeviceTagTerm extends AbstractTermFragmentBuilder {
         }
 
         fragments.addSql(")");
+        fragments.addSql(")");
 
         return fragments;
     }
 
-    static DeviceTagTerm.WhereBuilder builder = new DeviceTagTerm.WhereBuilder();
+    static WhereBuilder builder = new WhereBuilder();
 
     static class WhereBuilder extends AbstractTermsFragmentBuilder<RDBColumnMetadata> {
 
 
         @Override
         protected SqlFragments createTermFragments(RDBColumnMetadata parameter, Term term) {
+
 
             PrepareSqlFragments sqlFragments = PrepareSqlFragments.of();
             sqlFragments.addSql("(d.key = ?")

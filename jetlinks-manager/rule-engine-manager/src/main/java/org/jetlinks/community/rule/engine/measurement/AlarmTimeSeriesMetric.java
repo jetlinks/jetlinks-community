@@ -18,6 +18,6 @@ public interface AlarmTimeSeriesMetric {
      * @return 度量标识
      */
     static TimeSeriesMetric alarmStreamMetrics() {
-        return TimeSeriesMetric.of("alarm_metrics");
+        return TimeSeriesMetric.of("alarm_history");
     }
 }

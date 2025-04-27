@@ -1,11 +1,8 @@
 package org.jetlinks.community.rule.engine.alarm;
 
 import lombok.AllArgsConstructor;
-import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
 import org.hswebframework.web.crud.events.*;
 import org.hswebframework.web.exception.BusinessException;
-import org.jetlinks.core.event.EventBus;
-import org.jetlinks.core.event.Subscription;
 import org.jetlinks.community.gateway.annotation.Subscribe;
 import org.jetlinks.community.rule.engine.entity.AlarmConfigEntity;
 import org.jetlinks.community.rule.engine.entity.AlarmHistoryInfo;
@@ -18,6 +15,8 @@ import org.jetlinks.community.rule.engine.service.AlarmConfigService;
 import org.jetlinks.community.rule.engine.service.AlarmHistoryService;
 import org.jetlinks.community.rule.engine.service.AlarmRecordService;
 import org.jetlinks.community.topic.Topics;
+import org.jetlinks.core.event.EventBus;
+import org.jetlinks.core.event.Subscription;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -68,7 +67,7 @@ public class AlarmSceneHandler implements SceneFilter, CommandLineRunner {
                     .of(alarmConfig.getTargetType())
                     .convert(AlarmData.of(alarmConfig.getId(), alarmConfig.getName(), data.getRule().getId(), data
                         .getRule()
-                        .getName(), data.getOutput()))
+                        .getName(), data.getOutput(), alarmConfig.getCreatorId()))
                     .flatMap(targetInfo -> {
                         AlarmRecordEntity record = ofRecord(targetInfo, alarmConfig);
 

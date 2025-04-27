@@ -4,7 +4,6 @@ import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.NotFoundException;
 import org.jetlinks.community.network.manager.entity.DeviceGatewayEntity;
 import org.jetlinks.community.network.manager.enums.DeviceGatewayState;
-import org.jetlinks.community.network.manager.enums.NetworkConfigState;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -15,7 +14,6 @@ import static org.jetlinks.community.network.manager.service.DeviceGatewayEventH
 
 /**
  * @author wangzheng
- * @see
  * @since 1.0
  */
 @Service

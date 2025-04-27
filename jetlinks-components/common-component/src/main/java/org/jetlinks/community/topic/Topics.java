@@ -1,7 +1,17 @@
 package org.jetlinks.community.topic;
 
 import lombok.Generated;
+import org.jetlinks.core.lang.SeparatedCharSequence;
+import org.jetlinks.core.lang.SharedPathString;
 import org.jetlinks.core.utils.StringBuilderUtils;
+import org.jetlinks.community.utils.TopicUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public interface Topics {
 
@@ -17,12 +27,114 @@ public interface Topics {
         return StringBuilderUtils.buildString(creatorId, topic, Topics::creator);
     }
 
+    static SeparatedCharSequence creator(String creatorId, SeparatedCharSequence topic) {
+        // /user/{creatorId}/{topic}
+        return SharedPathString
+            .of(new String[]{"", "user", creatorId})
+            .append(topic);
+    }
+
     static void creator(String creatorId, String topic, StringBuilder builder) {
         builder.append("/user/").append(creatorId);
         if (topic.charAt(0) != '/') {
             builder.append('/');
         }
         builder.append(topic);
+    }
+
+    @Deprecated
+    static String tenant(String tenantId, String topic) {
+        if (!topic.startsWith("/")) {
+            topic = "/" + topic;
+        }
+        return String.join("", "/tenant/", tenantId, topic);
+    }
+
+    @Deprecated
+    static List<String> tenants(List<String> tenants, String topic) {
+        List<String> topics = new ArrayList<>(tenants.size());
+        for (String tenant : tenants) {
+            topics.add(tenant(tenant, topic));
+        }
+        return topics;
+    }
+
+    @Deprecated
+    static String deviceGroup(String groupId, String topic) {
+        if (!topic.startsWith("/")) {
+            topic = "/" + topic;
+        }
+        return String.join("", "/device-group/", groupId, topic);
+
+    }
+
+    @Deprecated
+    static List<String> deviceGroups(List<String> groupIds, String topic) {
+        List<String> topics = new ArrayList<>(groupIds.size());
+        for (String groupId : groupIds) {
+            topics.add(deviceGroup(groupId, topic));
+        }
+        return topics;
+    }
+
+    /**
+     * 根据绑定信息构造topic
+     *
+     * @param bindings 绑定信息
+     * @param topic    topic
+     * @return topic
+     */
+    static List<String> bindings(List<Map<String, Object>> bindings, String topic) {
+        List<String> topics = new ArrayList<>(bindings.size());
+        bindings(bindings, topic, topics::add);
+        return topics;
+    }
+
+    static void bindings(List<Map<String, Object>> bindings,
+                         String topic,
+                         Consumer<String> consumer) {
+        for (Map<String, Object> binding : bindings) {
+            consumer.accept(binding(String.valueOf(binding.get("type")), String.valueOf(binding.get("id")), topic));
+        }
+    }
+
+
+    static void bindings(List<Map<String, Object>> bindings,
+                         SeparatedCharSequence topic,
+                         Consumer<SeparatedCharSequence> consumer) {
+        for (Map<String, Object> binding : bindings) {
+            consumer.accept(binding(String.valueOf(binding.get("type")), String.valueOf(binding.get("id")), topic));
+        }
+    }
+
+    static void relations(List<Map<String, Object>> relations,
+                          String topic,
+                          Consumer<String> consumer) {
+
+        for (Map<String, Object> relation : relations) {
+            consumer.accept(
+                relation(String.valueOf(relation.get("type")),
+                         String.valueOf(relation.get("id")),
+                         String.valueOf(relation.get("rel")),
+                         topic)
+            );
+        }
+
+    }
+
+    static void relations(List<Map<String, Object>> relations,
+                          SeparatedCharSequence topic,
+                          Consumer<SeparatedCharSequence> consumer) {
+
+        for (Map<String, Object> relation : relations) {
+            consumer.accept(
+                relation(String.valueOf(relation.get("type")),
+                         String.valueOf(relation.get("id")),
+                         String.valueOf(relation.get("rel")),
+                         topic)
+            );
+        }
+
     }
 
     static void binding(String type, String id, String topic, StringBuilder builder) {
@@ -61,6 +173,39 @@ public interface Topics {
             builder.append('/');
         }
         builder.append(topic);
+    }
+
+    static String relation(String objectType, String objectId, String relation, String topic) {
+        return StringBuilderUtils.buildString(objectType, objectId, relation, topic, Topics::relation);
+    }
+
+    static SeparatedCharSequence relation(String objectType, String objectId, String relation, SeparatedCharSequence topic) {
+        return SharedPathString.of(new String[]{"", objectType, objectId, relation}).append(topic);
+    }
+
+    static String binding(String type, String id, String topic) {
+        return StringBuilderUtils.buildString(type, id, topic, Topics::binding);
+    }
+
+    static SeparatedCharSequence binding(String type, String id, SeparatedCharSequence topic) {
+        return SharedPathString.of(new String[]{"", type, id}).append(topic);
+    }
+
+
+    @Deprecated
+    static String tenantMember(String memberId, String topic) {
+        if (!topic.startsWith("/")) {
+            topic = "/" + topic;
+        }
+        return String.join("", "/member/", memberId, topic);
+    }
+
+    @Deprecated
+    static List<String> tenantMembers(List<String> members, String topic) {
+        return members
+            .stream()
+            .map(id -> tenantMember(id, topic))
+            .collect(Collectors.toList());
     }
 
     String allDeviceRegisterEvent = "/_sys/registry-device/*/register";
@@ -110,9 +255,32 @@ public interface Topics {
         return "/_sys/registry-product/" + deviceId + "/" + event;
     }
 
+
+    /**
+     * 重构topic,将topic拼接上租户等信息的前缀
+     *
+     * @param topic   topic
+     * @param configs 包含的信息
+     * @return
+     */
+    @SuppressWarnings("all")
+    static Set<String> refactorTopic(String topic, Map<String, Object> configs) {
+        return TopicUtils.refactorTopic(configs, topic);
+    }
+
     static String alarm(String targetType, String targetId, String alarmId) {
         //  /alarm/{targetType}/{targetId}/{alarmId}/record
         return String.join("", "/alarm/", targetType, "/", targetId, "/", alarmId, "/record");
+    }
+
+    static String alarmHandleHistory(String targetType, String targetId, String alarmId) {
+        //  /alarm/{targetType}/{targetId}/{alarmId}/handle-history
+        return String.join("", "/alarm/", targetType, "/", targetId, "/", alarmId, "/handle-history");
+    }
+
+    static String alarmLog(String targetType, String targetId, String alarmId, String recordId) {
+        //  /alarm/{targetType}/{targetId}/{alarmId}/{recordId}/log
+        return String.join("", "/alarm/", targetType, "/", targetId, "/", alarmId, "/", recordId, "/log");
     }
 
     static String alarmRelieve(String targetType, String targetId, String alarmId) {

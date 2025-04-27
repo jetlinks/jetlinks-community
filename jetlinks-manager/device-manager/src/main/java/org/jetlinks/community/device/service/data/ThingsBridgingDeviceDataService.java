@@ -4,9 +4,6 @@ import lombok.AllArgsConstructor;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
-import org.jetlinks.community.things.data.AggregationRequest;
-import org.jetlinks.community.things.data.operations.ColumnModeQueryOperations;
-import org.jetlinks.community.things.data.operations.SaveOperations;
 import org.jetlinks.core.device.DeviceThingType;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.metadata.DeviceMetadata;
@@ -15,6 +12,10 @@ import org.jetlinks.community.device.entity.DeviceOperationLogEntity;
 import org.jetlinks.community.device.entity.DeviceProperty;
 import org.jetlinks.community.things.ThingsDataRepository;
 import org.jetlinks.community.things.data.PropertyAggregation;
+import org.jetlinks.community.things.data.operations.ColumnModeQueryOperations;
+import org.jetlinks.community.things.data.operations.SaveOperations;
+import org.jetlinks.community.things.data.operations.TemplateOperations;
+import org.jetlinks.community.things.data.operations.ThingOperations;
 import org.jetlinks.community.timeseries.query.AggregationData;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
@@ -28,7 +29,7 @@ import java.util.stream.Stream;
 
 @Component
 @AllArgsConstructor
-public class ThingsBridgingDeviceDataService implements DeviceDataService {
+public class ThingsBridgingDeviceDataService implements DeviceDataService ,DeviceDataRepository{
     private final ThingsDataRepository repository;
 
     static final String thingType = DeviceThingType.device.getId();
@@ -85,6 +86,7 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
     }
 
     @Nonnull
+    @Override
     public Flux<DeviceProperty> queryPropertyByProductId(@Nonnull String productId, @Nonnull QueryParamEntity query, @Nonnull String... property) {
         return repository
             .opsForTemplate(thingType, productId)
@@ -93,6 +95,7 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
     }
 
     @Nonnull
+    @Override
     public Flux<DeviceProperty> queryTopProperty(@Nonnull String deviceId,
                                                  @Nonnull AggregationRequest request,
                                                  int numberOfTop,
@@ -136,6 +139,7 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
     }
 
     @Nonnull
+    @Override
     public Mono<PagerResult<DeviceProperty>> queryPropertyPage(@Nonnull String deviceId, @Nonnull QueryParamEntity query, @Nonnull String... property) {
         return repository
             .opsForThing(thingType, deviceId)
@@ -157,11 +161,46 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
     }
 
     @Nonnull
-    public Mono<PagerResult<DeviceProperty>> queryPropertyPageByProductId(@Nonnull String productId, @Nonnull String property, @Nonnull QueryParamEntity query) {
-        return queryPropertyPageByProductId(property, query, property);
+    @Override
+    public Mono<PagerResult<DeviceProperties>> queryPropertiesPage(@Nonnull String deviceId, @Nonnull QueryParamEntity query) {
+        return repository
+            .opsForThing(thingType, deviceId)
+            .flatMap(opt -> opt.forQuery().unwrap(ColumnModeQueryOperations.class).queryAllPropertiesPage(query))
+            .map(page -> PagerResult
+                .of(page.getTotal(),
+                    page.getData().stream()
+                        .map(DeviceProperties::new)
+                        .collect(Collectors.toList()),
+                    query
+                ));
     }
 
     @Nonnull
+    @Override
+    public Flux<DeviceProperties> queryProperties(@Nonnull String deviceId, @Nonnull QueryParamEntity query) {
+        return repository
+            .opsForThing(thingType, deviceId)
+            .flatMapMany(opt -> opt.forQuery().unwrap(ColumnModeQueryOperations.class).queryAllProperties(query))
+            .map(DeviceProperties::new);
+    }
+
+    @Nonnull
+    @Override
+    public Mono<PagerResult<DeviceProperties>> queryPropertiesPageByProduct(@Nonnull String productId, @Nonnull QueryParamEntity query) {
+        return repository
+            .opsForTemplate(thingType, productId)
+            .flatMap(opt -> opt.forQuery().unwrap(ColumnModeQueryOperations.class).queryAllPropertiesPage(query))
+            .map(page -> convertPage(page,DeviceProperties::new));
+    }
+
+    @Nonnull
+    @Override
+    public Mono<PagerResult<DeviceProperty>> queryPropertyPageByProductId(@Nonnull String productId, @Nonnull String property, @Nonnull QueryParamEntity query) {
+        return queryPropertyPageByProductId(productId, query, property);
+    }
+
+    @Nonnull
+    @Override
     public Mono<PagerResult<DeviceProperty>> queryPropertyPageByProductId(@Nonnull String productId, @Nonnull QueryParamEntity query, @Nonnull String... property) {
         return repository
             .opsForTemplate(thingType, productId)
@@ -177,6 +216,7 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
             .map(page -> convertPage(page,DeviceOperationLogEntity::of));
     }
 
+    @Override
     public Flux<DeviceOperationLogEntity> queryDeviceMessageLogNoPaging(@Nonnull String deviceId, @Nonnull QueryParamEntity query) {
         return repository
             .opsForThing(thingType, deviceId)
@@ -184,6 +224,7 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
             .map(DeviceOperationLogEntity::of);
     }
 
+    @Override
     public Flux<DeviceOperationLogEntity> queryDeviceMessageLogNoPagingByProduct(@Nonnull String productId, @Nonnull QueryParamEntity query) {
         return repository
             .opsForTemplate(thingType, productId)
@@ -210,6 +251,7 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
     }
 
     @Nonnull
+    @Override
     public Mono<PagerResult<DeviceEvent>> queryEventPageByProductId(@Nonnull String productId,
                                                                     @Nonnull String event,
                                                                     @Nonnull QueryParamEntity query,
@@ -220,23 +262,18 @@ public class ThingsBridgingDeviceDataService implements DeviceDataService {
             .map(page ->convertPage(page,DeviceEvent::new));
     }
 
-
-    @Nonnull
     @Override
-    public Flux<DeviceProperties> queryProperties(@Nonnull String deviceId, @Nonnull QueryParamEntity query) {
-        return repository
-            .opsForThing(thingType, deviceId)
-            .flatMapMany(opt -> opt.forQuery().unwrap(ColumnModeQueryOperations.class).queryAllProperties(query))
-            .map(DeviceProperties::new);
+    public SaveOperations opsForSave() {
+        return repository.opsForSave();
     }
 
-    @Nonnull
     @Override
-    public Mono<PagerResult<DeviceProperties>> queryPropertiesPageByProduct(@Nonnull String productId, @Nonnull QueryParamEntity query) {
-        return repository
-            .opsForTemplate(thingType, productId)
-            .flatMap(opt -> opt.forQuery().unwrap(ColumnModeQueryOperations.class).queryAllPropertiesPage(query))
-            .map(page -> convertPage(page,DeviceProperties::new));
+    public Mono<ThingOperations> opsForDevice(String deviceId) {
+        return repository.opsForThing(thingType,deviceId);
     }
 
+    @Override
+    public Mono<TemplateOperations> opsForProduct(String productId) {
+        return repository.opsForTemplate(thingType,productId);
+    }
 }

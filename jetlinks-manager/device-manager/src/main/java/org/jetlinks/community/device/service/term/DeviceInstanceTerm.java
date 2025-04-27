@@ -53,7 +53,15 @@ public class DeviceInstanceTerm extends AbstractTermFragmentBuilder {
         if (term.getOptions().contains("not")) {
             sqlFragments.addSql("not");
         }
-        sqlFragments.addSql("exists(select 1 from ", getTableName("dev_device_instance", column), " _dev where _dev.id = ", columnFullName);
+        if (term.getOptions().contains("productId")) {
+            // 根据产品ID关联
+            sqlFragments
+                .addSql("exists(select 1 from ", getTableName("dev_device_instance", column), " _dev where _dev.product_id =", columnFullName);
+        } else {
+            // 根据设备ID关联
+            sqlFragments
+                .addSql("exists(select 1 from ", getTableName("dev_device_instance", column), " _dev where _dev.id =", columnFullName);
+        }
 
         RDBTableMetadata metadata = column
             .getOwner()

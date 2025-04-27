@@ -15,30 +15,23 @@ import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.server.MessageHandler;
+import org.jetlinks.core.things.ThingsRegistry;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 import java.time.Duration;
 
 @Configuration
-@EnableConfigurationProperties(DeviceDataStorageProperties.class)
+@EnableConfigurationProperties({DeviceDataStorageProperties.class, DeviceEventProperties.class})
 public class DeviceManagerConfiguration {
-
-
-    @Bean
-    public DeviceSelectorProvider relationSelectorProvider() {
-        return new RelationDeviceSelectorProvider();
-    }
-
-    @Bean
-    public DeviceSelectorBuilder deviceSelectorBuilder(ReactiveRepository<DeviceInstanceEntity, String> deviceRepository,
-                                                       DeviceRegistry deviceRegistry) {
-        return new ReactorQLDeviceSelectorBuilder(deviceRegistry, deviceRepository);
-    }
 
     @Bean
     public DeviceMessageConnector deviceMessageConnector(EventBus eventBus,
@@ -49,13 +42,24 @@ public class DeviceManagerConfiguration {
     }
 
     @Bean
+    public DeviceSelectorProvider relationSelectorProvider() {
+        return new RelationDeviceSelectorProvider();
+    }
+
+
+    @Bean
+    public DeviceSelectorBuilder deviceSelectorBuilder(ReactiveRepository<DeviceInstanceEntity, String> deviceRepository,
+                                                       DeviceRegistry deviceRegistry) {
+        return new ReactorQLDeviceSelectorBuilder(deviceRegistry, deviceRepository);
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "device.message.writer.time-series", name = "enabled", havingValue = "true", matchIfMissing = true)
     public TimeSeriesMessageWriterConnector timeSeriesMessageWriterConnector(DeviceDataService dataService) {
         return new TimeSeriesMessageWriterConnector(dataService);
     }
 
-
-    @Configuration
+    @AutoConfiguration
     @ConditionalOnProperty(prefix = "jetlinks.device.storage", name = "enable-last-data-in-db", havingValue = "true")
     static class DeviceLatestDataServiceConfiguration {
 
@@ -88,7 +92,4 @@ public class DeviceManagerConfiguration {
     public DeviceLatestDataService deviceLatestDataService() {
         return new NonDeviceLatestDataService();
     }
-
-
-
 }

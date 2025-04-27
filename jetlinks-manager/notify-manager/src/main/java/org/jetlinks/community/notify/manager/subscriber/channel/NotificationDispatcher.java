@@ -6,14 +6,13 @@ import org.hswebframework.web.crud.events.EntityCreatedEvent;
 import org.hswebframework.web.crud.events.EntityDeletedEvent;
 import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
-import org.jetlinks.community.gateway.annotation.Subscribe;
-import org.jetlinks.community.notify.manager.entity.Notification;
-import org.jetlinks.community.notify.manager.entity.NotifySubscriberChannelEntity;
-import org.jetlinks.community.notify.manager.entity.NotifySubscriberChannelEntity;
-import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.jetlinks.core.cache.ReactiveCacheContainer;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
+import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.community.notify.manager.entity.Notification;
+import org.jetlinks.community.notify.manager.entity.NotifySubscriberChannelEntity;
+import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.event.EventListener;
@@ -35,6 +34,7 @@ import java.util.Map;
 @Component
 @Slf4j
 public class NotificationDispatcher implements CommandLineRunner {
+
     private final EventBus eventBus;
 
     private final ReactiveCacheContainer<String, NotifyChannel> channels = ReactiveCacheContainer.create();

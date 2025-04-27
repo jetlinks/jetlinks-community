@@ -101,9 +101,13 @@ public class I18nSpec implements Serializable {
     private static List<I18nSpec> of(Object... args) {
         List<I18nSpec> codes = new ArrayList<>();
         for (Object arg : args) {
-            I18nSpec i18NSpec = new I18nSpec();
-            i18NSpec.setDefaultMessage(arg);
-            codes.add(i18NSpec);
+            if (arg instanceof I18nSpec) {
+                codes.add((I18nSpec)arg);
+            } else {
+                I18nSpec i18NSpec = new I18nSpec();
+                i18NSpec.setDefaultMessage(arg);
+                codes.add(i18NSpec);
+            }
         }
         return codes;
     }

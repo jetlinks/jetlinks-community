@@ -1,13 +1,11 @@
 package org.jetlinks.community.network.manager.web.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.jetlinks.community.network.NetworkType;
 
 @Getter
 @Setter
+@Generated
 @AllArgsConstructor
 @NoArgsConstructor
 public class NetworkTypeInfo {

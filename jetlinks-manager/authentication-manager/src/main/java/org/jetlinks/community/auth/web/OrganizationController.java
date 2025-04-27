@@ -3,6 +3,7 @@ package org.jetlinks.community.auth.web;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.hswebframework.web.api.crud.entity.QueryNoPagingOperation;
 import org.hswebframework.web.api.crud.entity.QueryOperation;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.api.crud.entity.TreeSupportEntity;
@@ -19,11 +20,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.function.Function;
 
 @RequestMapping("/organization")
 @RestController
-@Resource(id = "organization", name = "部门管理")
-@Tag(name = "部门管理")
+@Resource(id = "organization", name = "组织管理")
+@Tag(name = "组织管理")
 public class OrganizationController implements ReactiveServiceCrudController<OrganizationEntity, String> {
 
     private final OrganizationService organizationService;
@@ -42,11 +44,11 @@ public class OrganizationController implements ReactiveServiceCrudController<Org
 
     @GetMapping("/_all/tree")
     @Authorize(merge = false)
-    @Operation(summary = "获取全部机构信息(树结构)")
-    public Flux<OrganizationEntity> getAllOrgTree() {
-        return queryAll()
-            .collectList()
-            .flatMapIterable(list -> TreeSupportEntity.list2tree(list, OrganizationEntity::setChildren));
+    @QueryNoPagingOperation(summary = "获取全部数据(树结构)")
+    public Flux<OrganizationEntity> getAllOrgTree(QueryParamEntity query) {
+        return organizationService
+            .queryResultToTree(query)
+            .flatMapIterable(Function.identity());
     }
 
     @PostMapping("/_all/tree")
@@ -60,36 +62,38 @@ public class OrganizationController implements ReactiveServiceCrudController<Org
 
     @GetMapping("/_all")
     @Authorize(merge = false)
-    @Operation(summary = "获取全部机构信息")
-    public Flux<OrganizationEntity> getAllOrg() {
-        return queryAll();
+    @Operation(summary = "获取全部数据")
+    public Flux<OrganizationEntity> getAllOrg(QueryParamEntity query) {
+        return organizationService
+            .query(query.noPaging());
     }
 
     @PostMapping("/_all")
     @Authorize(merge = false)
-    @Operation(summary = "获取全部机构信息")
+    @Operation(summary = "获取全部数据")
     public Flux<OrganizationEntity> getAllOrg(@RequestBody Mono<QueryParamEntity> query) {
-        return queryAll(query);
+        return organizationService
+            .query(query.doOnNext(QueryParamEntity::noPaging));
     }
 
     @GetMapping("/_query/_children/tree")
     @QueryAction
-    @QueryOperation(summary = "查询机构列表(包含子机构)树结构")
+    @QueryOperation(summary = "查询列表(包含子级)树结构")
     public Mono<List<OrganizationEntity>> queryChildrenTree(@Parameter(hidden = true) QueryParamEntity entity) {
         return organizationService.queryIncludeChildrenTree(entity);
     }
 
     @GetMapping("/_query/_children")
     @QueryAction
-    @QueryOperation(summary = "查询机构列表(包含子机构)")
+    @QueryOperation(summary = "查询列表(包含子级)")
     public Flux<OrganizationEntity> queryChildren(@Parameter(hidden = true) QueryParamEntity entity) {
         return organizationService.queryIncludeChildren(entity);
     }
 
     @PostMapping("/{id}/users/_bind")
     @ResourceAction(id = "bind-user", name = "绑定用户")
-    @Operation(summary = "绑定用户到机构")
-    public Mono<Integer> bindUser(@Parameter(description = "机构ID") @PathVariable String id,
+    @Operation(summary = "绑定用户")
+    public Mono<Integer> bindUser(@Parameter(description = "组织ID") @PathVariable String id,
                                   @Parameter(description = "用户ID")
                                   @RequestBody Mono<List<String>> userId) {
 
@@ -97,10 +101,11 @@ public class OrganizationController implements ReactiveServiceCrudController<Org
 
     }
 
+
     @PostMapping("/{id}/users/_unbind")
     @ResourceAction(id = "unbind-user", name = "解绑用户")
-    @Operation(summary = "从机构解绑用户")
-    public Mono<Integer> unbindUser(@Parameter(description = "机构ID") @PathVariable String id,
+    @Operation(summary = "解绑用户")
+    public Mono<Integer> unbindUser(@Parameter(description = "组织ID") @PathVariable String id,
                                     @Parameter(description = "用户ID")
                                     @RequestBody Mono<List<String>> userId) {
         return userId.flatMap(list -> organizationService.unbindUser(id, list));

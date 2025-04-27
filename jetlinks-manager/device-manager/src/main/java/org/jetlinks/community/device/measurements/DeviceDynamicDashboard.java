@@ -1,11 +1,11 @@
 package org.jetlinks.community.device.measurements;
 
-import org.jetlinks.community.dashboard.DashboardObject;
-import org.jetlinks.community.device.entity.DeviceProductEntity;
-import org.jetlinks.community.device.service.LocalDeviceProductService;
-import org.jetlinks.community.device.service.data.DeviceDataService;
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.event.EventBus;
+import org.jetlinks.community.dashboard.DashboardObject;
+import org.jetlinks.community.device.entity.DeviceProductEntity;
+import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -15,7 +15,7 @@ import javax.annotation.PostConstruct;
 @Component
 public class DeviceDynamicDashboard implements DeviceDashboard {
 
-    private final LocalDeviceProductService productService;
+    private final ReactiveRepository<DeviceProductEntity,String> productRepository;
 
     private final DeviceRegistry registry;
 
@@ -23,11 +23,11 @@ public class DeviceDynamicDashboard implements DeviceDashboard {
 
     private final DeviceDataService dataService;
 
-    public DeviceDynamicDashboard(LocalDeviceProductService productService,
+    public DeviceDynamicDashboard(ReactiveRepository<DeviceProductEntity,String> productRepository,
                                   DeviceRegistry registry,
                                   DeviceDataService deviceDataService,
                                   EventBus eventBus) {
-        this.productService = productService;
+        this.productRepository = productRepository;
         this.registry = registry;
         this.eventBus = eventBus;
         this.dataService = deviceDataService;
@@ -40,19 +40,22 @@ public class DeviceDynamicDashboard implements DeviceDashboard {
 
     @Override
     public Flux<DashboardObject> getObjects() {
-        return productService.createQuery()
+        return productRepository
+            .createQuery()
             .fetch()
             .flatMap(this::convertObject);
     }
 
     @Override
     public Mono<DashboardObject> getObject(String id) {
-        return productService.findById(id)
+        return productRepository
+            .findById(id)
             .flatMap(this::convertObject);
     }
 
     protected Mono<DeviceDashboardObject> convertObject(DeviceProductEntity product) {
-        return registry.getProduct(product.getId())
+        return registry
+            .getProduct(product.getId())
             .map(operator -> DeviceDashboardObject.of(product.getId(), product.getName(), operator, eventBus, dataService,registry));
     }
 }
