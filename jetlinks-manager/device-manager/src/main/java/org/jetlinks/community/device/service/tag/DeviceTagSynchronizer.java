@@ -4,6 +4,8 @@ import lombok.*;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.crud.events.EntityCreatedEvent;
+import org.hswebframework.web.crud.events.EntityDeletedEvent;
+import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -79,7 +81,15 @@ public class DeviceTagSynchronizer implements CommandLineRunner {
                     tagEntity.setTimestamp(message.getTimestamp());
                     tagEntity.setDeviceId(deviceId);
                     tagEntity.setId(DeviceTagEntity.createTagId(deviceId, tagEntity.getKey()));
-                    return writeBuffer(tagEntity);
+
+                    return dataWriter
+                        .updateTag(DeviceThingType.device.getId(),
+                                   tagEntity.getDeviceId(),
+                                   tagEntity.getKey(),
+                                   System.currentTimeMillis(),
+                                   e.getValue())
+                        .then(writeBuffer(tagEntity));
+
                 }))
             .then();
     }
@@ -126,6 +136,25 @@ public class DeviceTagSynchronizer implements CommandLineRunner {
         event.async(updateTag(event.getEntity()));
     }
 
+    @EventListener
+    public void handleDeviceTagEvent(EntityModifyEvent<DeviceTagEntity> event) {
+        event.async(updateTag(event.getAfter()));
+    }
+
+    @EventListener
+    public void handleDeviceTagEvent(EntityDeletedEvent<DeviceTagEntity> event) {
+        event.async(
+            Flux
+                .fromIterable(event.getEntity())
+                .flatMap(entity -> dataWriter
+                    .removeTag(DeviceThingType.device.getId(),
+                               entity.getDeviceId(),
+                               entity.getKey())
+                    .then()
+                ));
+    }
+
+
     /**
      * 更新标签,界面上手动修改标签?
      *
@@ -145,7 +174,7 @@ public class DeviceTagSynchronizer implements CommandLineRunner {
                                entity.getDeviceId(),
                                entity.getKey(),
                                System.currentTimeMillis(),
-                               entity.getValue()))
+                               entity.parseValue()))
                 .then();
         });
     }

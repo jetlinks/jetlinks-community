@@ -127,24 +127,27 @@ public class DeviceTagEntity extends GenericEntity<String> {
         return tag;
     }
 
+
     public DeviceProperty toProperty() {
         DeviceProperty property = new DeviceProperty();
         property.setProperty(getKey());
         property.setDeviceId(deviceId);
         property.setType(type);
         property.setPropertyName(name);
+        property.setValue(parseValue());
+        return property;
+    }
+
+    public Object parseValue() {
         DataType type = Optional
             .ofNullable(DataTypes.lookup(getType()))
             .map(Supplier::get)
             .orElseGet(UnknownType::new);
         if (type instanceof Converter) {
-            property.setValue(((Converter<?>) type).convert(getValue()));
+            return ((Converter<?>) type).convert(getValue());
         } else {
-            property.setValue(getValue());
+            return getValue();
         }
-        return property;
-
-
     }
 
     //以物模型标签基础数据为准，重构数据库保存的可能已过时的标签数据
