@@ -272,6 +272,12 @@
             <groupId>org.hswebframework.web</groupId>
             <artifactId>hsweb-access-logging-aop</artifactId>
             <version>${hsweb.framework.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.swagger</groupId>
+                    <artifactId>swagger-annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -281,13 +287,13 @@
 
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-webflux-ui</artifactId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-springdoc-ui</artifactId>
-            <version>2.0.8</version>
+            <artifactId>knife4j-openapi3-ui</artifactId>
+            <version>4.0.0</version>
         </dependency>
 
         <dependency>
