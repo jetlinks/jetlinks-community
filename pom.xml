@@ -199,8 +199,8 @@
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>
-                    <source>17</source> <!-- 根据你的 Java 版本调整 -->
-                    <target>17</target>
+                    <source>${project.build.jdk}</source>
+                    <target>${project.build.jdk}</target>
                 </configuration>
             </plugin>
 
