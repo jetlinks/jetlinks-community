@@ -180,6 +180,7 @@ logging:
         org.elasticsearch.deprecation: off
         "io.vertx.core.impl.ContextImpl": off
         "org.hswebframework.web.starter.jackson": warn
+        "org.jetlinks.community.timescaledb.impl.DefaultTimescaleDBDataWriter": warn
     config: classpath:logback-spring.xml
 vertx:
     max-event-loop-execute-time-unit: seconds

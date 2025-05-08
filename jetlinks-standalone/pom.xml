@@ -14,6 +14,7 @@
     <properties>
         <docker.image.name>registry.cn-shenzhen.aliyuncs.com/jetlinks/${project.artifactId}</docker.image.name>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+        <jetlinks.ui.version>2.3.0-SNAPSHOT</jetlinks.ui.version>
     </properties>
 
     <build>
@@ -106,6 +107,31 @@
             <artifactId>timescaledb-component</artifactId>
         </dependency>
 
+
+        <!--UI 相关依赖-->
+        <dependency>
+            <groupId>org.jetlinks.ui</groupId>
+            <artifactId>jetlinks-ui-resource</artifactId>
+            <version>${jetlinks.ui.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetlinks.ui</groupId>
+            <artifactId>device-manager</artifactId>
+            <version>${jetlinks.ui.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetlinks.ui</groupId>
+            <artifactId>notify-manager</artifactId>
+            <version>${jetlinks.ui.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetlinks.ui</groupId>
+            <artifactId>rule-engine-manager</artifactId>
+            <version>${jetlinks.ui.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
