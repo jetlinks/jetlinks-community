@@ -175,18 +175,24 @@ public class ResponseWrapperConverter extends ResponseSupportConverter implement
         }
 
         Class<?> typeClazz = type.toClass();
-        // Iterable
+           // Iterable
         if (Iterable.class.isAssignableFrom(typeClazz)) {
+            ResolvableType _type = ResolvableType
+                .forType(typeClazz)
+                .as(Iterable.class);
             return ResolvableType.forClassWithGenerics(
-                typeClazz, getRealType(type.getGeneric(0))
+                Iterable.class, getRealType(_type.getGeneric(0))
             );
         }
         // Map<?,?>
         if (Map.class.isAssignableFrom(typeClazz)) {
+            ResolvableType _type = ResolvableType
+                .forType(typeClazz)
+                .as(Map.class);
             return ResolvableType.forClassWithGenerics(
-                typeClazz,
-                type.getGeneric(0),
-                getRealType(type.getGeneric(1))
+                Map.class,
+                _type.getGeneric(0),
+                getRealType(_type.getGeneric(1))
             );
         }
         if (typeClazz != Object.class) {
