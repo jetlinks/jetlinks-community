@@ -12,7 +12,6 @@ import org.reactivestreams.Publisher;
 import org.springdoc.core.converters.ResponseSupportConverter;
 import org.springdoc.core.providers.ObjectMapperProvider;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.util.Iterator;
@@ -20,7 +19,6 @@ import java.util.List;
 
 import static org.springdoc.core.converters.ConverterUtils.isResponseTypeToIgnore;
 
-@Component
 public class ResponseWrapperConverter extends ResponseSupportConverter {
 
     private final ObjectMapperProvider mapperProvider;
