@@ -40,7 +40,9 @@ public class ResponseWrapperConverter extends ResponseSupportConverter {
             if (rawClass == null) {
                 rawClass = javaType.getRawClass();
             }
-            if (rawClass != null && Publisher.class.isAssignableFrom(rawClass)) {
+            if (isResponseTypeToIgnore(rawClass) || rawClass == null) {
+                return null;
+            } else if (Publisher.class.isAssignableFrom(rawClass)) {
                 JavaType actualType = javaType.containedType(0);
                 if (actualType != null) {
                     if (actualType.getRawClass() == ResponseEntity.class ||
@@ -50,8 +52,15 @@ public class ResponseWrapperConverter extends ResponseSupportConverter {
                     JavaType wrappedType = buildWrappedType(actualType, rawClass);
                     return resolveWrappedType(context, chain, type, wrappedType);
                 }
-            } else if (isResponseTypeToIgnore(rawClass)) {
-                return null;
+            } else if (javaType.getRawClass() == ResponseEntity.class ||
+                javaType.getRawClass() == ResponseMessage.class) {
+                return resolveWrappedType(context, chain, type, javaType);
+            } else {
+                JavaType jt = mapperProvider.
+                    jsonMapper()
+                    .getTypeFactory()
+                    .constructParametricType(entityFactory.getInstanceType(ResponseMessage.class), javaType);
+                return resolveWrappedType(context, chain, type, jt);
             }
         }
         return continueResolve(type, context, chain);
