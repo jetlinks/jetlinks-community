@@ -25,9 +25,9 @@ public class SpringDocCustomizerConfiguration {
     }
 
     @Bean
-    public ResponseSupportConverter responseSupportConverter(ObjectMapperProvider springDocObjectMapper,
-                                                             EntityFactory entityFactory) {
-        return new ResponseWrapperConverter(springDocObjectMapper, entityFactory);
+    public ResponseSupportConverter responseSupportConverter(EntityFactory entityFactory,
+                                                             ObjectMapperProvider springDocObjectMapper) {
+        return new ResponseWrapperConverter(entityFactory, springDocObjectMapper);
     }
 
 }
