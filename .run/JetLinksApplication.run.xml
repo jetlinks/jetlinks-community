@@ -3,7 +3,6 @@
     <option name="ACTIVE_PROFILES" value="dev,local" />
     <additionalParameters>
       <param>
-        <option name="enabled" value="true" />
         <option name="name" value="server.port" />
         <option name="value" value="8801" />
       </param>

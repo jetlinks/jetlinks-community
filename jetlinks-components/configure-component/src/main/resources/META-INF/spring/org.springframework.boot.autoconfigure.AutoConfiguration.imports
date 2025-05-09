@@ -3,3 +3,4 @@ org.jetlinks.community.configure.doc.SpringDocCustomizerConfiguration
 org.jetlinks.community.configure.trace.TraceConfiguration
 org.jetlinks.community.configure.device.DeviceClusterConfiguration
 org.jetlinks.community.configure.redis.RedisSerializationConfiguration
+org.jetlinks.community.configure.ui.JetLinksUiConfiguration
