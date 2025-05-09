@@ -194,6 +194,20 @@ public class ResponseWrapperConverter extends ResponseSupportConverter implement
             if (t == null) {
                 return type;
             }
+            ResolvableType resolved = ResolvableType.forClass(t);
+            ResolvableType[] generics = resolved.getGenerics();
+            ResolvableType[] typeGenerics = type.getGenerics();
+            // 泛型
+            // todo 不同长度的匹配?
+            if (generics.length > 0 && generics.length == typeGenerics.length) {
+                return ResolvableType.forClassWithGenerics(
+                    t,
+                    Arrays.stream(typeGenerics)
+                          .map(this::getRealType)
+                          .toArray(ResolvableType[]::new)
+                );
+            }
+
             return ResolvableType.forClass(t);
         }
 
