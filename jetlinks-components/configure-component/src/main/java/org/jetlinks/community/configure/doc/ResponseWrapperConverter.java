@@ -27,6 +27,7 @@ import org.springframework.web.method.HandlerMethod;
 import reactor.core.publisher.Flux;
 
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -175,7 +176,7 @@ public class ResponseWrapperConverter extends ResponseSupportConverter implement
         }
 
         Class<?> typeClazz = type.toClass();
-           // Iterable
+        // Iterable
         if (Iterable.class.isAssignableFrom(typeClazz)) {
             ResolvableType _type = ResolvableType
                 .forType(typeClazz)
