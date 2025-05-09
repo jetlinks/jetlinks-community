@@ -190,7 +190,7 @@ public class ResponseWrapperConverter extends ResponseSupportConverter implement
             );
         }
         if (typeClazz != Object.class) {
-            Class<?> t = entityFactory.getInstanceType(type.resolve());
+            Class<?> t = entityFactory.getInstanceType(typeClazz);
             if (t == null) {
                 return type;
             }
