@@ -319,7 +319,7 @@
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-ui</artifactId>
-            <version>4.0.0</version>
+            <version>4.4.0</version>
         </dependency>
 
         <dependency>
