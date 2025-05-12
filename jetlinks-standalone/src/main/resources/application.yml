@@ -226,7 +226,20 @@ management:
         metrics:
             export:
                 enabled: false
+# knife4j的增强配置，不需要增强可以不配
+knife4j:
+    enable: true
+    setting:
+        language: zh_cn
 springdoc:
+    openapi:
+        info:
+            title: "jetlinks"
+            description: "jetlinks平台API"
+            version: "2.10"
+    api-docs:
+        enabled: true
+        path: /v3/api-docs
     swagger-ui:
         path: /swagger-ui.html
     #  packages-to-scan: org.jetlinks
