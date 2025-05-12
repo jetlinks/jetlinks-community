@@ -52,11 +52,11 @@
         <log4j.version>2.24.3</log4j.version>
         <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.12</logback.version>
-        <springdoc.version>1.8.0</springdoc.version>
+        <springdoc.version>2.8.6</springdoc.version>
         <jackson.version>2.17.1</jackson.version>
         <gson.version>2.11.0</gson.version>
         <opentelemetry.version>1.39.0</opentelemetry.version>
-        <swagger.version>2.2.22</swagger.version>
+        <swagger.version>2.2.29</swagger.version>
         <jna.version>5.12.1</jna.version>
         <aliyun.sdk.core>4.5.2</aliyun.sdk.core>
         <jsonata.version>2.4.1</jsonata.version>
@@ -275,6 +275,19 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+                    <source>${project.build.jdk}</source>
+                    <target>${project.build.jdk}</target>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 
@@ -362,19 +375,19 @@
 
             <dependency>
                 <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-common</artifactId>
+                <artifactId>springdoc-openapi-starter-common</artifactId>
                 <version>${springdoc.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-webflux-core</artifactId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
                 <version>${springdoc.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-webflux-ui</artifactId>
+                <artifactId>springdoc-openapi-starter-webflux-api</artifactId>
                 <version>${springdoc.version}</version>
             </dependency>
 
