@@ -16,6 +16,8 @@ java.base/java.text=ALL-UNNAMED \
 java.base/java.math=ALL-UNNAMED \
 --add-opens \
 java.scripting/javax.script=ALL-UNNAMED \
+--add-opens \
+java.base/java.time=ALL-UNNAMED \
 -Dreactor.schedulers.defaultBoundedElasticOnVirtualThreads=true \
 -Djava.security.egd=file:/dev/./urandom \
 org.springframework.boot.loader.launch.PropertiesLauncher

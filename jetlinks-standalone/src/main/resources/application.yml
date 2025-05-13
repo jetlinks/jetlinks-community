@@ -242,6 +242,9 @@ springdoc:
         path: /v3/api-docs
     swagger-ui:
         path: /swagger-ui.html
+        use-root-path: false
+        enabled: true
+        disable-swagger-default-url: true
     #  packages-to-scan: org.jetlinks
     group-configs:
         -   group: 设备管理相关接口

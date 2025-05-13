@@ -1,15 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="JetLinksApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
     <option name="ACTIVE_PROFILES" value="dev,local" />
-    <additionalParameters>
-      <param>
-        <option name="name" value="server.port" />
-        <option name="value" value="8801" />
-      </param>
-    </additionalParameters>
     <module name="jetlinks-standalone" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="org.jetlinks.community.standalone.JetLinksApplication" />
-    <option name="VM_PARAMETERS" value="--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.scripting/javax.script=ALL-UNNAMED -XX:+EnableDynamicAgentLoading" />
+    <option name="VM_PARAMETERS" value="--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.scripting/javax.script=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED -XX:+EnableDynamicAgentLoading" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
