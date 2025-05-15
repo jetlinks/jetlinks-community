@@ -18,11 +18,12 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 
 public class FileUtils {
 
     public static String getExtension(String url) {
-        if (UrlCodecUtils.hasEncode(url)){
+        if (UrlCodecUtils.hasEncode(url)) {
             url = HttpUtils.urlDecode(url);
         }
         if (url.contains("?")) {
@@ -154,4 +155,22 @@ public class FileUtils {
 
     }
 
+
+    /**
+     * 计算文件流的校验和
+     *
+     * @param digest     检验算法
+     * @param dataBuffer 文件流
+     * @return 文件流
+     */
+    public static DataBuffer updateDigest(MessageDigest digest, DataBuffer dataBuffer) {
+        dataBuffer = DataBufferUtils.retain(dataBuffer);
+
+        try (DataBuffer.ByteBufferIterator iterator = dataBuffer.readableByteBuffers()) {
+            iterator.forEachRemaining(digest::update);
+        }
+
+        DataBufferUtils.release(dataBuffer);
+        return dataBuffer;
+    }
 }

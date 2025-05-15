@@ -1,10 +1,16 @@
 package org.jetlinks.community.codec;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.Unpooled;
 import io.netty.util.concurrent.FastThreadLocal;
 import lombok.SneakyThrows;
+import org.jetlinks.core.utils.SerializeUtils;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.*;
+import java.util.Base64;
+import java.util.function.Supplier;
 
 public class Serializers {
 
@@ -67,5 +73,72 @@ public class Serializers {
         return DEFAULT;
     }
 
+    public static String serializeToBase64(Object source) {
+        return Base64.getEncoder().encodeToString(serialize(source));
+    }
+
+    public static Object deserializeFromBase64(String base64) {
+        return deserialize(Base64.getDecoder().decode(base64));
+    }
+
+
+
+    @SuppressWarnings("all")
+    private static final FastThreadLocal<ByteArrayOutputStream>
+        SHARED_STREAM = new FastThreadLocal<ByteArrayOutputStream>() {
+        @Override
+        protected ByteArrayOutputStream initialValue() {
+            return new ByteArrayOutputStream();
+        }
+    };
+
+    @SneakyThrows
+    public static ByteBuf serializeExternal(Externalizable source) {
+        ByteArrayOutputStream outputStream = SHARED_STREAM.get();
+        if (outputStream.size() != 0) {
+            outputStream = new ByteArrayOutputStream();
+        }
+        try (ObjectOutput output = getDefault().createOutput(outputStream)) {
+            source.writeExternal(output);
+            output.flush();
+            return Unpooled.wrappedBuffer(outputStream.toByteArray());
+        } finally {
+            outputStream.reset();
+        }
+    }
+
+    @SneakyThrows
+    public static <T extends Externalizable> T deserializeExternal(ByteBuf buffer, Supplier<T> instance) {
+        try (ObjectInput input = getDefault().createInput(new ByteBufInputStream(buffer, true))) {
+            T data = instance.get();
+            data.readExternal(input);
+            return data;
+        }
+    }
+
+
+    @SneakyThrows
+    public static byte[] serialize(Object source) {
+        ByteArrayOutputStream outputStream = SHARED_STREAM.get();
+        if (outputStream.size() != 0) {
+            outputStream = new ByteArrayOutputStream();
+        }
+        try (ObjectOutput output = getDefault().createOutput(outputStream)) {
+            SerializeUtils.writeObject(source, output);
+            output.flush();
+            return outputStream.toByteArray();
+        } finally {
+            outputStream.reset();
+        }
+
+    }
+
+    @SneakyThrows
+    public static Object deserialize(byte[] data) {
+        ByteArrayInputStream stream = new ByteArrayInputStream(data);
+        try (ObjectInput input = getDefault().createInput(stream)) {
+            return SerializeUtils.readObject(input);
+        }
+    }
 
 }

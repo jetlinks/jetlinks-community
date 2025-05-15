@@ -1,8 +1,9 @@
 package org.jetlinks.community.io.file;
 
+import org.hswebframework.web.dict.EnumDict;
 import org.springframework.util.StringUtils;
 
-public enum FileOption {
+public enum FileOption implements EnumDict<String> {
 
     /**
      * 公开访问
@@ -14,6 +15,7 @@ public enum FileOption {
      */
     tempFile;
 
+    public static final FileOption[] all = FileOption.values();
 
     public static FileOption[] parse(String str) {
         if (!StringUtils.hasText(str)) {
@@ -27,5 +29,15 @@ public enum FileOption {
             options[i] = FileOption.valueOf(arr[i]);
         }
         return options;
+    }
+
+    @Override
+    public String getValue() {
+        return name();
+    }
+
+    @Override
+    public String getText() {
+        return name();
     }
 }

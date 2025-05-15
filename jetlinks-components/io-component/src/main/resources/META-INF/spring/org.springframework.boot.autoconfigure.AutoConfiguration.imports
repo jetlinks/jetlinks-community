@@ -1,0 +1,3 @@
+org.jetlinks.community.io.file.configuration.FileManagerConfiguration
+org.jetlinks.community.io.file.configuration.DefaultFileManagerConfiguration
+org.jetlinks.community.io.file.configuration.DefaultFileManagerConfiguration.StorageServiceConfiguration

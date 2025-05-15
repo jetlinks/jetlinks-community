@@ -15,6 +15,7 @@ import org.jetlinks.core.route.Route;
 import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.DeviceGatewayContext;
 import org.jetlinks.community.topic.Topics;
+import org.jetlinks.core.things.ThingRpcSupportChain;
 import org.jetlinks.supports.official.JetLinksDeviceMetadataCodec;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -36,15 +37,36 @@ public class RenameProtocolSupport implements ProtocolSupport {
     @Getter
     private final String id;
 
-    @Getter
     private final String name;
 
-    @Getter
     private final String description;
 
     private final ProtocolSupport target;
 
     private final EventBus eventBus;
+
+    public RenameProtocolSupport(String id, ProtocolSupport target, EventBus eventBus) {
+        this.id = id;
+        this.target = target;
+        this.eventBus = eventBus;
+        this.name = null;
+        this.description = null;
+    }
+
+    public String getName(){
+        if (name == null) {
+            return target.getName();
+        }
+        return name;
+    }
+
+    public String getDescription(){
+        if (description == null) {
+            return target.getDescription();
+        }
+        return description;
+    }
+
 
     @Override
     public Flux<? extends Transport> getSupportedTransport() {
@@ -223,6 +245,11 @@ public class RenameProtocolSupport implements ProtocolSupport {
     }
 
     @Override
+    public ThingRpcSupportChain getRpcChain() {
+        return target.getRpcChain();
+    }
+
+    @Override
     public String getDocument(Transport transport) {
         return target.getDocument(transport);
     }
@@ -230,5 +257,15 @@ public class RenameProtocolSupport implements ProtocolSupport {
     @Override
     public boolean isEmbedded() {
         return target.isEmbedded();
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> type) {
+        return target.isWrapperFor(type);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> type) {
+        return target.unwrap(type);
     }
 }

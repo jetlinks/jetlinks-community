@@ -2,6 +2,9 @@ package org.jetlinks.community.protocol.local;
 
 import lombok.AllArgsConstructor;
 import lombok.Generated;
+import org.jetlinks.community.protocol.CommandSupportServiceContext;
+import org.jetlinks.community.protocol.CompositeServiceContext;
+import org.jetlinks.community.protocol.monitor.ProtocolMonitorHelper;
 import org.jetlinks.core.spi.ServiceContext;
 import org.jetlinks.community.ValueObject;
 import org.jetlinks.supports.protocol.management.ProtocolSupportDefinition;
@@ -17,6 +20,7 @@ import java.io.FileNotFoundException;
 public class LocalProtocolSupportLoader implements ProtocolSupportLoaderProvider {
 
     private final ServiceContext serviceContext;
+    private final ProtocolMonitorHelper helper;
 
     @Override
     public String getProvider() {
@@ -33,17 +37,27 @@ public class LocalProtocolSupportLoader implements ProtocolSupportLoaderProvider
                 String location = config
                     .getString("location")
                     .orElseThrow(() -> new IllegalArgumentException("location cannot be null"));
-                String provider = config.get("provider")
+
+                String provider = config
+                    .get("provider")
                     .map(String::valueOf)
                     .map(String::trim)
                     .orElse(null);
+
                 File file = new File(location);
                 if (!file.exists()) {
                     throw new FileNotFoundException("文件" + file.getName() + "不存在");
                 }
 
                 LocalFileProtocolSupport support = new LocalFileProtocolSupport();
-                support.init(file, serviceContext, provider);
+                String id = definition.getId();
+
+                support.init(file, CompositeServiceContext.of(
+                    helper.createMonitor(id),
+                    deviceId -> helper.createMonitor(id, deviceId),
+                    CommandSupportServiceContext.INSTANCE,
+                    serviceContext
+                ), provider);
                 return support;
             })
             .subscribeOn(Schedulers.boundedElastic());

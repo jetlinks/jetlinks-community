@@ -4,6 +4,8 @@ import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.jetlinks.community.io.utils.FileUtils;
+import org.jetlinks.community.protocol.monitor.ProtocolMonitorHelper;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.spi.ServiceContext;
 import org.jetlinks.community.io.file.FileManager;
@@ -58,20 +60,28 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
     private final Duration loadTimeout = TimeUtils.parse(System.getProperty("jetlinks.protocol.load.timeout", "30s"));
 
     private final FileManager fileManager;
+    private final ProtocolMonitorHelper helper;
 
     public AutoDownloadJarProtocolSupportLoader(WebClient.Builder builder,
-                                                FileManager fileManager) {
+                                                FileManager fileManager,
+                                                ProtocolMonitorHelper helper) {
         this.webClient = builder.build();
         this.fileManager = fileManager;
+        this.helper = helper;
         tempPath = new File(System.getProperty("jetlinks.protocol.temp.path", "./data/protocols"));
         tempPath.mkdirs();
     }
 
     @Override
-    @Autowired
     @Generated
-    public void setServiceContext(ServiceContext serviceContext) {
-        super.setServiceContext(serviceContext);
+    protected ServiceContext createServiceContext(ProtocolSupportDefinition definition) {
+        String id = definition.getId();
+        return CompositeServiceContext.of(
+            helper.createMonitor(id),
+            deviceId -> helper.createMonitor(id, deviceId),
+            CommandSupportServiceContext.INSTANCE,
+            super.createServiceContext(definition)
+        );
     }
 
     @Override
@@ -111,11 +121,9 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
                     //加载失败则删除文件,防止文件内容错误时,一直无法加载
                     .doOnError(err -> file.delete());
             }
-            return webClient
-                .get()
-                .uri(location)
-                .retrieve()
-                .bodyToFlux(DataBuffer.class)
+
+            return FileUtils
+                .readDataBuffer(webClient, location)
                 .as(dataStream -> {
                     log.debug("download protocol file {} to {}", location, file.getAbsolutePath());
                     //写出文件

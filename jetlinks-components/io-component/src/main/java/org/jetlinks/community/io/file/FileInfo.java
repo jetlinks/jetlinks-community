@@ -3,17 +3,22 @@ package org.jetlinks.community.io.file;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.io.FilenameUtils;
+import org.jetlinks.community.io.FileConstants;
 import org.jetlinks.community.io.utils.FileUtils;
+import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 @Getter
 @Setter
-public class FileInfo {
+public class FileInfo implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     public static final String OTHER_ACCESS_KEY = "accessKey";
 
@@ -38,6 +43,10 @@ public class FileInfo {
     private Map<String, Object> others;
 
     private String accessUrl;
+    //相对路径
+    private String path;
+    //所在服务id
+    private String serverNodeId;
 
     public void withBasePath(String apiBashPath) {
         if (!apiBashPath.endsWith("/")) {
@@ -45,7 +54,6 @@ public class FileInfo {
         }
         accessUrl = apiBashPath + "file/" + id + "." + extension + "?accessKey=" + accessKey().orElse("");
     }
-
 
     public MediaType mediaType() {
         return FileUtils.getMediaTypeByExtension(extension);
@@ -83,6 +91,13 @@ public class FileInfo {
         return this;
     }
 
+    public String rename(Function<String, String> mapper) {
+        if (name.contains(".")) {
+            return mapper.apply(name.substring(0, name.lastIndexOf("."))) + "." + extension;
+        }
+        return mapper.apply(name) + "." + extension;
+    }
+
     public Optional<String> accessKey() {
         return Optional
             .ofNullable(others)
@@ -91,5 +106,15 @@ public class FileInfo {
             .filter(StringUtils::hasText);
     }
 
+    public Optional<Long> expirationTime() {
+        return Optional
+            .ofNullable(others)
+            .map(map -> map.get(FileConstants.ContextKey.expiration.getKey()))
+            .map(value -> CastUtils.castNumber(value).longValue());
+    }
 
+    @Override
+    public String toString() {
+        return id+"@"+serverNodeId;
+    }
 }

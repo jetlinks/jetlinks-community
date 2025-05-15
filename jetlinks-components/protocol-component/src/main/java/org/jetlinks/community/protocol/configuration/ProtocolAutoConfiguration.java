@@ -3,6 +3,7 @@ package org.jetlinks.community.protocol.configuration;
 import org.hswebframework.web.crud.annotation.EnableEasyormRepository;
 import org.jetlinks.community.protocol.*;
 import org.jetlinks.community.protocol.local.LocalProtocolSupportLoader;
+import org.jetlinks.community.protocol.monitor.ProtocolMonitorHelper;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
@@ -27,11 +28,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 @EnableEasyormRepository("org.jetlinks.community.protocol.ProtocolSupportEntity")
 public class ProtocolAutoConfiguration {
 
-//    @Bean
-//    public ProtocolSupportManager protocolSupportManager(ClusterManager clusterManager) {
-//        return new ClusterProtocolSupportManager(clusterManager);
-//    }
-
     @Bean
     public ServiceContext serviceContext(ApplicationContext applicationContext) {
         return new SpringServiceContext(applicationContext);
@@ -50,9 +46,17 @@ public class ProtocolAutoConfiguration {
         return new LazyProtocolSupports();
     }
 
+
     @Bean
-    public AutoDownloadJarProtocolSupportLoader autoDownloadJarProtocolSupportLoader(WebClient.Builder builder, FileManager fileManager) {
-        return new AutoDownloadJarProtocolSupportLoader(builder, fileManager);
+    public ProtocolMonitorHelper protocolMonitorHelper(EventBus eventBus) {
+        return new ProtocolMonitorHelper(eventBus);
+    }
+
+    @Bean
+    public AutoDownloadJarProtocolSupportLoader autoDownloadJarProtocolSupportLoader(WebClient.Builder builder,
+                                                                                     FileManager fileManager,
+                                                                                     ProtocolMonitorHelper monitorHelper) {
+        return new AutoDownloadJarProtocolSupportLoader(builder, fileManager, monitorHelper);
     }
 
     @Bean
@@ -83,7 +87,8 @@ public class ProtocolAutoConfiguration {
 
     @Bean
     @Profile("dev")
-    public LocalProtocolSupportLoader localProtocolSupportLoader(ServiceContext context) {
-        return new LocalProtocolSupportLoader(context);
+    public LocalProtocolSupportLoader localProtocolSupportLoader(ServiceContext context,
+                                                                 ProtocolMonitorHelper helper) {
+        return new LocalProtocolSupportLoader(context, helper);
     }
 }
