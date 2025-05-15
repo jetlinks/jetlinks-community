@@ -22,22 +22,11 @@ services:
             POSTGRES_DB: jetlinks
             POSTGRES_HOST_AUTH_METHOD: trust
             TZ: Asia/Shanghai
-    ui:
-        image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-vue:2.10.0-SNAPSHOT
-        container_name: jetlinks-ce-ui
-        ports:
-            - 9000:80
-        environment:
-            - "API_BASE_PATH=http://jetlinks:8848/" #API根路径
-        volumes:
-            - "./data/jetlinks-ui:/usr/share/nginx/html/upload"
-        links:
-            - jetlinks:jetlinks
     jetlinks:
         image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:2.10.0-SNAPSHOT
         container_name: jetlinks-ce
         ports:
-            - "8848:8848" # API端口
+            - "8848:8848" # 平台访问端口
             - "1883-1890:1883-1890" # 预留
             - "8800-8810:8800-8810" # 预留
             - "5060-5061:5060-5061" # 预留
@@ -77,8 +66,6 @@ services:
         links:
             - redis:redis
             - postgres:postgres
-            - elasticsearch:elasticsearch
         depends_on:
             - postgres
             - redis
-            - elasticsearch
