@@ -1,14 +1,15 @@
 package org.jetlinks.community.auth.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.hswebframework.web.api.crud.entity.EntityFactoryHolder;
 import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.i18n.MultipleI18nSupportEntity;
+import org.hswebframework.web.i18n.SingleI18nSupportEntity;
 
 import java.io.Serializable;
 import java.util.*;
@@ -17,8 +18,12 @@ import java.util.stream.Collectors;
 
 @Getter
 @Setter
-public class MenuView extends GenericTreeSortSupportEntity<String> {
+public class MenuView extends GenericTreeSortSupportEntity<String> implements MultipleI18nSupportEntity {
 
+    /**
+     * 在多应用集成运行时使用此字段来区分菜单属于哪个系统
+     * 具体标识由各应用前端进行定义
+     */
     @Schema(description = "菜单所有者")
     private String owner;
 
@@ -37,6 +42,9 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
     @Schema(description = "父节点")
     private String parentId;
 
+    @Schema(description = "描述")
+    private String describe;
+
     @Schema(description = "按钮")
     private List<ButtonView> buttons;
 
@@ -54,6 +62,22 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
 
     @Schema(description = "是否已授权")
     private boolean granted;
+
+    @Schema(title = "国际化信息定义")
+    private Map<String, Map<String, String>> i18nMessages;
+
+
+    public String getI18nName() {
+        return getI18nMessage("name", name);
+    }
+
+    public String getI18nName(Locale locale) {
+        return getI18nMessage("name", locale, name);
+    }
+
+    public static MenuView create() {
+        return EntityFactoryHolder.newInstance(MenuView.class, MenuView::new);
+    }
 
     public MenuView withGranted(MenuView granted) {
         if (granted == null) {
@@ -104,6 +128,7 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
                 button.granted = true;
             }
         }
+
     }
 
     public void resetGrant() {
@@ -117,9 +142,7 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
 
     @Getter
     @Setter
-    @AllArgsConstructor(staticName = "of")
-    @NoArgsConstructor
-    public static class ButtonView implements Serializable {
+    public static class ButtonView implements SingleI18nSupportEntity, Serializable {
         private static final long serialVersionUID = 1L;
 
         @Schema(description = "按钮ID")
@@ -141,18 +164,48 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
         @Schema(description = "是否已授权")
         private boolean granted;
 
+        @Schema(title = "国际化信息定义")
+        private Map<String, String> i18nMessages;
+
+
+        public String getI18nName() {
+            return getI18nMessage("name", name);
+        }
+
+        public ButtonView() {
+        }
+
+        public static ButtonView create() {
+            return EntityFactoryHolder.newInstance(ButtonView.class, ButtonView::new);
+        }
+
         public static ButtonView of(String id, String name, String description, Map<String, Object> options) {
             return ButtonView.of(id, name, description, options, true, true);
         }
 
+        public static ButtonView copy(ButtonView button) {
+            return ButtonView.of(button.getId(), button.getName(), button.getDescription(), button.getOptions());
+        }
+
+        public static ButtonView of(String id, String name, String description, Map<String, Object> options, boolean enabled, boolean granted) {
+            ButtonView view = ButtonView.create();
+            view.setId(id);
+            view.setName(name);
+            view.setDescription(description);
+            view.setOptions(options);
+            view.setEnabled(enabled);
+            view.setGranted(granted);
+            return view;
+        }
 
         public ButtonView copy() {
-            return FastBeanCopier.copy(this, new ButtonView());
+            return FastBeanCopier.copy(this, create());
         }
+
     }
 
     public static MenuView of(MenuEntity entity) {
-        return FastBeanCopier.copy(entity, new MenuView());
+        return FastBeanCopier.copy(entity, MenuView.create());
     }
 
     public static MenuView of(MenuEntity entity, List<MenuBindEntity> binds) {
@@ -166,8 +219,14 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
         }
         //重新排序
         binds.sort(Comparator.comparing(MenuBindEntity::getPriority));
-        Map<String, ButtonView> buttons = new LinkedHashMap<>();
+        Map<String, MenuView.ButtonView> buttons = new LinkedHashMap<>();
 
+        Map<String, ButtonView> buttonViewMap = Optional
+            .ofNullable(view.getButtons())
+            .map(list -> list
+                .stream()
+                .collect(Collectors.toMap(ButtonView::getId, Function.identity())))
+            .orElse(new HashMap<>());
         for (MenuBindEntity bind : binds) {
             //不合并则清空之前的配置
             if (!bind.getMerge()) {
@@ -180,8 +239,9 @@ public class MenuView extends GenericTreeSortSupportEntity<String> {
             //按钮权限
             if (CollectionUtils.isNotEmpty(bind.getButtons())) {
                 for (ButtonView button : bind.getButtons()) {
-                    if (button.isGranted()) {
-                        buttons.put(button.getId(), button);
+                    ButtonView buttonView = buttonViewMap.get(button.getId());
+                    if (button.isGranted() && buttonView != null) {
+                        buttons.put(buttonView.getId(), ButtonView.copy(buttonView));
                     }
                 }
             }

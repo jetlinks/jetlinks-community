@@ -7,11 +7,12 @@
     <property name="LOG_EXCEPTION_CONVERSION_WORD" value="%shortened"/>
 
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
-    <property name="LOG_FILE" value="./logs/jetlinks-community.log"/>
+    <property name="LOG_FILE" value="./data/logs/jetlinks-community.log"/>
 
     <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
 
     <appender name="LOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender"/>
+    <logger name="org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker" level="ERROR" />
 
     <appender name="ErrorLOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">

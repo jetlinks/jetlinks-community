@@ -56,7 +56,6 @@ public class UserAutoInitialize implements CommandLineRunner {
     }
 
     private Mono<UserEntity> initAdminUser(UserEntity entity) {
-
         entity.setCreatorId("system");
         if (entity.getName() == null) {
             entity.setName(entity.getUsername());

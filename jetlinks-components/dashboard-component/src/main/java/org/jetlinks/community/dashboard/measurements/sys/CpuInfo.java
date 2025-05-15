@@ -33,4 +33,11 @@ public class CpuInfo implements MonitorInfo<CpuInfo> {
         );
     }
 
+    public CpuInfo max(CpuInfo cpu) {
+        return new CpuInfo(
+            Math.max(this.jvmUsage, cpu.jvmUsage),
+            Math.max(this.systemUsage, cpu.systemUsage)
+        );
+    }
+
 }

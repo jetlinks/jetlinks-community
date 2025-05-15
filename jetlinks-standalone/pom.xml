@@ -14,7 +14,7 @@
     <properties>
         <docker.image.name>registry.cn-shenzhen.aliyuncs.com/jetlinks/${project.artifactId}</docker.image.name>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
-        <jetlinks.ui.version>2.3.0-SNAPSHOT</jetlinks.ui.version>
+        <jetlinks.ui.version>${project.version}</jetlinks.ui.version>
     </properties>
 
     <build>
@@ -315,6 +315,12 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.webjars</groupId>
+                    <artifactId>swagger-ui</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

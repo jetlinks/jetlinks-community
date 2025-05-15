@@ -4,5 +4,5 @@
 if [ $? -ne 0 ];then
     echo "构建失败!"
 else
-   java -jar "$(pwd)/jetlinks-standalone/target/jetlinks-standalone.jar"
+   java -jar "$(pwd)/jetlinks-standalone/target/application.jar"
 fi

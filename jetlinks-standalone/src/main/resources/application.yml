@@ -181,6 +181,7 @@ logging:
         "io.vertx.core.impl.ContextImpl": off
         "org.hswebframework.web.starter.jackson": warn
         "org.jetlinks.community.timescaledb.impl.DefaultTimescaleDBDataWriter": warn
+        "io.scalecube": warn
     config: classpath:logback-spring.xml
 vertx:
     max-event-loop-execute-time-unit: seconds

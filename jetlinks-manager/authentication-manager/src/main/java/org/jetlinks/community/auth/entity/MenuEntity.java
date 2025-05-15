@@ -14,6 +14,7 @@ import org.hswebframework.web.api.crud.entity.GenericTreeSortSupportEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.i18n.MultipleI18nSupportEntity;
 import org.hswebframework.web.utils.DigestUtils;
 import org.hswebframework.web.validator.CreateGroup;
 
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 @Comment("菜单信息表")
 @EnableEntityEvent
 public class MenuEntity
-    extends GenericTreeSortSupportEntity<String> implements RecordCreationEntity {
+    extends GenericTreeSortSupportEntity<String> implements RecordCreationEntity, MultipleI18nSupportEntity {
 
     /**
      * 在多应用集成运行时使用此字段来区分菜单属于哪个系统
@@ -122,6 +123,17 @@ public class MenuEntity
         , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
+
+    @Schema(title = "国际化信息定义")
+    @Column
+    @JsonCodec
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
+    private Map<String, Map<String, String>> i18nMessages;
+
+
+    public String getI18nName() {
+        return getI18nMessage("name", name);
+    }
 
     public boolean isSupportDataAccess() {
         return false;

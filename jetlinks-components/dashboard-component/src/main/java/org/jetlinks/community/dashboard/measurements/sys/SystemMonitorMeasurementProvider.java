@@ -3,6 +3,7 @@ package org.jetlinks.community.dashboard.measurements.sys;
 import com.google.common.collect.Maps;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.dashboard.*;
@@ -113,6 +114,7 @@ import java.util.Map;
  * @since 2.0
  */
 @Component
+@Slf4j
 public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider {
 
     private static final String SYSTEM_MONITOR_REAL_TIME_TOPIC = "/_sys/monitor/info";
@@ -161,17 +163,39 @@ public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider 
             .block(Duration.ofSeconds(10));
 
         //定时收集监控信息
-        disposable.add(Flux
-            .interval(collectInterval, scheduler)
-            .flatMap(ignore -> monitorService
-                .system()
-                .map(this::systemInfoToMap)
-                .flatMap(data -> timeSeriesManager
-                    .getService(metric)
-                    .commit(data)
-                    .then(eventBus.publish(SYSTEM_MONITOR_REAL_TIME_TOPIC,data)))
-                .onErrorResume(err -> Mono.empty()))
-            .subscribe()
+        //定时收集监控信息
+        disposable.add(
+            Flux
+                .interval(Duration.ofSeconds(1), scheduler)
+                .onBackpressureDrop()
+                //每秒采集一次
+                .concatMap(l -> monitorService.cpu())
+                //收集每个窗口的结果
+                .window(collectInterval)
+                .onBackpressureDrop(dropped -> log.warn("system monitor collect data dropped"))
+                .concatMap(window -> Mono
+                    .zip(
+                        window
+                            .window(5)
+                            //5秒cpu平均值
+                            .flatMap(flx -> flx
+                                .reduce(CpuInfo::add)
+                                .map(cpu -> cpu.division(5)))
+                            //记录1分钟内最大平均值
+                            .reduce(CpuInfo::max),
+                        monitorService.memory(),
+                        monitorService.disk()
+                    )
+                    .map(tp3 -> this.systemInfoToMap(tp3.getT1(), tp3.getT2(), tp3.getT3()))
+                    .flatMap(timeSeriesManager.getService(metric)::commit)
+                    .onErrorResume(err -> {
+                        log.warn("collect system monitor data error", err);
+                        return Mono.empty();
+                    }), 1
+                )
+                .subscribe(null, error -> {
+                    log.warn("start system monitor task failed", error);
+                })
         );
     }
 
@@ -184,11 +208,11 @@ public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider 
         });
     }
 
-    public TimeSeriesData systemInfoToMap(SystemInfo info) {
+    public TimeSeriesData systemInfoToMap(CpuInfo cpu, MemoryInfo memory, DiskInfo disk) {
         Map<String, Object> map = Maps.newLinkedHashMapWithExpectedSize(12);
-        putTo("cpu", info.getCpu(), map);
-        putTo("disk", info.getDisk(), map);
-        putTo("memory", info.getMemory(), map);
+        putTo("cpu", cpu, map);
+        putTo("disk", disk, map);
+        putTo("memory", memory, map);
         return TimeSeriesData.of(System.currentTimeMillis(), map);
     }
 

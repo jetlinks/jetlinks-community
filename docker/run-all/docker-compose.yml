@@ -1,20 +1,25 @@
-version: '2'
+version: '3'
 services:
     redis:
         image: redis:6
         container_name: jetlinks-ce-redis
         #    ports:
-        #      - "6379:6379"
+        #      - "6379:6379" # 仅供jetlinks-ce访问
         volumes:
             - "./data/redis:/data"
         command: redis-server --appendonly yes --requirepass "JetLinks@redis"
         environment:
             - TZ=Asia/Shanghai
+        healthcheck:
+            test: ["CMD", "redis-cli", "-h", "localhost", "-p", "6379", "-a", "JetLinks@redis", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
     postgres:
         image: timescale/timescaledb:latest-pg16
-        container_name: jetlinks-postgres-16
-        ports:
-            - "5432:5432"
+        container_name: jetlinks-ce-postgres
+#        ports:
+#            - "5432:5432"  # 仅供jetlinks-ce访问
         volumes:
             - "./data/postgres:/var/lib/postgresql/data"
         environment:
@@ -22,6 +27,11 @@ services:
             POSTGRES_DB: jetlinks
             POSTGRES_HOST_AUTH_METHOD: trust
             TZ: Asia/Shanghai
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
     jetlinks:
         image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:2.10.0-SNAPSHOT
         container_name: jetlinks-ce
@@ -31,19 +41,18 @@ services:
             - "8800-8810:8800-8810" # 预留
             - "5060-5061:5060-5061" # 预留
         volumes:
-            - "./data/jetlinks/upload:/application/static/upload"
             - "./data/jetlinks:/application/data"
         environment:
             - "JAVA_OPTS=-Duser.language=zh"
             - "TZ=Asia/Shanghai"
-            - "hsweb.file.upload.static-location=http://127.0.0.1:8848/upload"  #上传的静态文件访问根地址,为ui的地址.
+            - "ADMIN_USER_PASSWORD=JetLinks.C0mmVn1ty" # admin用户的初始密码
             - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
             - "spring.r2dbc.username=postgres"
             - "spring.r2dbc.password=JetLinks@postgres"
             - "spring.data.redis.host=redis"
             - "spring.data.redis.port=6379"
             - "file.manager.storage-base-path=/application/data/files"
-            - "spring.redis.password=JetLinks@redis"
+            - "spring.data.redis.password=JetLinks@redis"
             - "logging.level.io.r2dbc=warn"
             - "logging.level.org.springframework.data=warn"
             - "logging.level.org.springframework=warn"
@@ -67,5 +76,7 @@ services:
             - redis:redis
             - postgres:postgres
         depends_on:
-            - postgres
-            - redis
+             postgres:
+                 condition: service_healthy
+             redis:
+                 condition: service_healthy
