@@ -9,6 +9,7 @@ import org.hswebframework.web.authorization.exception.UnAuthorizedException;
 import org.jetlinks.community.resource.Resource;
 import org.jetlinks.community.resource.ResourceManager;
 import org.jetlinks.community.resource.TypeScriptDeclareResourceProvider;
+import org.jetlinks.community.resource.ui.UiResourceProvider;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collections;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/system/resources")
@@ -25,6 +27,15 @@ import java.util.Collections;
 public class SystemResourcesController {
 
     private final ResourceManager resourceManager;
+
+    @GetMapping("/ui")
+    @SneakyThrows
+    @Authorize(merge = false)
+    public Flux<Object> getUIResources() {
+        return resourceManager
+            .getResources(UiResourceProvider.TYPE)
+            .map(resource->resource.as(HashMap.class));
+    }
 
     @GetMapping("/{type}")
     @SneakyThrows
