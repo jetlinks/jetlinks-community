@@ -128,7 +128,7 @@ file:
         storage-base-path: ./data/files
 api:
     # 访问api接口的根地址
-    base-path: http://127.0.0.1:${server.port}
+    base-path: http://${EXTERNAL_HOST:127.0.0.1}:${EXTERNAL_HOST:${server.port}}
 
 jetlinks:
     server-id: ${spring.application.name}:${server.port} #设备服务网关服务ID,不同服务请设置不同的ID
@@ -209,7 +209,7 @@ system:
                 properties:
                     -   key: base-path
                         name: 接口根路径
-                        default-value: http://127.0.0.1:9000/api
+                        default-value: ${api.base-path}
             -   id: amap
                 name: 高德地图配置
                 public-access: false
