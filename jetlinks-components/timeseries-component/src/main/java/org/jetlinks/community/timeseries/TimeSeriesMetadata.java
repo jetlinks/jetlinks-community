@@ -12,6 +12,10 @@ public interface TimeSeriesMetadata {
     List<PropertyMetadata> getProperties();
 
     static TimeSeriesMetadata of(TimeSeriesMetric metric, PropertyMetadata... properties) {
+        return of(metric, Arrays.asList(properties));
+    }
+
+    static TimeSeriesMetadata of(TimeSeriesMetric metric, List<PropertyMetadata> properties) {
         return new TimeSeriesMetadata() {
             @Override
             public TimeSeriesMetric getMetric() {
@@ -20,7 +24,7 @@ public interface TimeSeriesMetadata {
 
             @Override
             public List<PropertyMetadata> getProperties() {
-                return Arrays.asList(properties);
+                return properties;
             }
         };
     }

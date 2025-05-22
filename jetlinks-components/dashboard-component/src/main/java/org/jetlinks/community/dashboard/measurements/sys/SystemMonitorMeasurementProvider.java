@@ -22,6 +22,7 @@ import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.EnumType;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.core.metadata.types.StringType;
+import org.jetlinks.supports.utils.DeviceMetadataUtils;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
@@ -155,11 +156,16 @@ public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider 
 
     @PostConstruct
     public void init() {
-        //注册监控信息
-        timeSeriesManager
-            .registerMetadata(
-                TimeSeriesMetadata.of(metric)
-            )
+        //注册表结构
+        monitorService
+            .system()
+            .map(info -> TimeSeriesMetadata.of(
+                metric,
+                DeviceMetadataUtils.convertToProperties(
+                    systemInfoToMap(info).getData()
+                )
+            ))
+            .flatMap(timeSeriesManager::registerMetadata)
             .block(Duration.ofSeconds(10));
 
         //定时收集监控信息
@@ -206,6 +212,10 @@ public class SystemMonitorMeasurementProvider extends StaticMeasurementProvider 
             keyChars[0] = Character.toUpperCase(keyChars[0]);
             target.put(prefix + new String(keyChars), value);
         });
+    }
+
+    public TimeSeriesData systemInfoToMap(SystemInfo info) {
+        return systemInfoToMap(info.getCpu(), info.getMemory(), info.getDisk());
     }
 
     public TimeSeriesData systemInfoToMap(CpuInfo cpu, MemoryInfo memory, DiskInfo disk) {
