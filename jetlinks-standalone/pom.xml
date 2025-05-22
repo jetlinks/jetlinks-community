@@ -135,6 +135,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.jetlinks.ui</groupId>
+            <artifactId>authentication-manager</artifactId>
+            <version>${jetlinks.ui.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-cbor</artifactId>
         </dependency>
