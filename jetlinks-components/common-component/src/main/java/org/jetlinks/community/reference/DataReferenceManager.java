@@ -28,7 +28,8 @@ public interface DataReferenceManager {
     String TYPE_RELATION = "relation";
     //数据类型：消息协议
     String TYPE_PROTOCOL = "protocol";
-
+    //数据类型：插件
+    String TYPE_PLUGIN = "plugin";
     /**
      * 判断指定数据类型的数据是否已经被其他地方所引用
      *

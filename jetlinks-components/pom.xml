@@ -30,6 +30,7 @@
         <module>tdengine-component</module>
         <module>timescaledb-component</module>
         <module>datasource-component</module>
+        <module>plugin-component</module>
     </modules>
 
     <artifactId>jetlinks-components</artifactId>

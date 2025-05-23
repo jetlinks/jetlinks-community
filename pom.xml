@@ -326,6 +326,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jetlinks.plugin</groupId>
+                <artifactId>plugin-internal</artifactId>
+                <version>${jetlinks.plugin.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>de.ruedigermoeller</groupId>
                 <artifactId>fst</artifactId>
                 <version>${fst.version}</version>

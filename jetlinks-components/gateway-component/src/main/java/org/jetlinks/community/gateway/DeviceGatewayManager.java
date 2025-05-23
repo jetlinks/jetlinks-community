@@ -50,6 +50,16 @@ public interface DeviceGatewayManager {
     Mono<Void> start(String id);
 
     /**
+     * 重新加载当前节点的网关
+     *
+     * @param gatewayId 网关ID
+     * @return void
+     * @since 2.2
+     */
+    Mono<Void> reloadLocal(String gatewayId);
+
+
+    /**
      * 获取接入网关通道信息,通道中包含接入地址等信息
      *
      * @param channel   通道标识，如 network
