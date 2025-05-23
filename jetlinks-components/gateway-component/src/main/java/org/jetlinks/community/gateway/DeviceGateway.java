@@ -1,6 +1,7 @@
 package org.jetlinks.community.gateway;
 
 import org.jetlinks.community.network.NetworkType;
+import org.jetlinks.core.Wrapper;
 import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.Transport;
 import reactor.core.Disposable;
@@ -16,7 +17,7 @@ import java.util.function.BiConsumer;
  * @version 1.0
  * @since 1.0
  */
-public interface DeviceGateway {
+public interface DeviceGateway extends Wrapper {
 
     /**
      * @return 网关ID

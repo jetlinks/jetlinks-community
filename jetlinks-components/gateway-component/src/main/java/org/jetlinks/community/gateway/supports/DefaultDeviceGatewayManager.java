@@ -83,6 +83,11 @@ public class DefaultDeviceGatewayManager implements DeviceGatewayManager {
     }
 
     @Override
+    public Mono<Void> reloadLocal(String gatewayId) {
+        return this.doReload(gatewayId);
+    }
+
+    @Override
     public Mono<DeviceGateway> getGateway(String id) {
         return doGetGateway(id);
     }
