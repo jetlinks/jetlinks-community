@@ -1,0 +1,82 @@
+Third Party Licenses
+===================
+
+This file contains the licenses of third party dependencies used in this project.
+
+License Compatibility Notice
+--------------------------
+This project is licensed under the Apache License 2.0. The following license compatibility analysis is provided:
+
+1. Compatible Licenses:
+   - Apache License 2.0
+   - MIT License
+   - BSD License
+   - Eclipse Public License
+
+2. Potential License Conflict:
+   - LGPL License (used by JNA)
+   Note: The use of JNA (LGPL) may require that any code using JNA directly must be made available under the LGPL license.
+   Consider using JNA Platform or isolating JNA-dependent code in a separate module.
+
+Apache License 2.0
+-----------------
+The following dependencies are licensed under the Apache License 2.0:
+
+- Spring Framework (org.springframework:spring-framework-bom)
+- Spring Boot (org.springframework.boot:spring-boot-dependencies)
+- Spring Cloud (org.springframework.cloud:spring-cloud-dependencies)
+- Spring Doc (org.springdoc:springdoc-openapi-starter-*)
+- Apache Commons (commons-*)
+- Apache Log4j (org.apache.logging.log4j:*)
+- Apache Maven Plugins (org.apache.maven.plugins:*)
+- Elasticsearch (org.elasticsearch:*)
+- Netty (io.netty:*)
+- Reactor (io.projectreactor:*)
+- Vert.x (io.vertx:*)
+- Californium (org.eclipse.californium:*)
+- Reactor QL (org.jetlinks:reactor-ql)
+- Reactor Excel (org.hswebframework:reactor-excel)
+- Vavr (io.vavr:vavr)
+- Logback (ch.qos.logback:*)
+- Fastjson (com.alibaba:fastjson)
+- OpenTelemetry (io.opentelemetry:*)
+- Swagger (io.swagger.core.v3:*)
+- Aliyun SDK Core (com.aliyun:aliyun-java-sdk-core)
+- Cron Utils (com.cronutils:cron-utils)
+- gRPC (io.grpc:*)
+- R2DBC (io.r2dbc:*)
+- JUnit Jupiter (org.junit.jupiter:*)
+- TestContainers (org.testcontainers:*)
+- Lombok (org.projectlombok:lombok)
+
+MIT License
+----------
+The following dependencies are licensed under the MIT License:
+
+- JSON (org.json:json)
+- JSoup (org.jsoup:jsoup)
+- Guava (com.google.guava:guava)
+- Jackson (com.fasterxml.jackson:*)
+- Gson (com.google.code.gson:gson)
+
+BSD License
+----------
+The following dependencies are licensed under the BSD License:
+
+- H2 Database (com.h2database:*)
+- BouncyCastle (org.bouncycastle:*)
+
+LGPL License
+-----------
+The following dependencies are licensed under the LGPL License:
+
+- JNA (net.java.dev.jna:*)
+
+Eclipse Public License
+--------------------
+The following dependencies are licensed under the Eclipse Public License:
+
+- Expressly (org.glassfish.expressly:expressly)
+
+Note: This is a summary of the main licenses used by the project's dependencies. 
+For complete license texts and additional information, please refer to the official documentation of each dependency. 
