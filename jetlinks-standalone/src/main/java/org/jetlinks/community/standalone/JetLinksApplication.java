@@ -24,6 +24,9 @@ public class JetLinksApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(JetLinksApplication.class, args);
+        System.out.println("=======================启动成功==========================");
+        System.out.println("    管理员用户名: admin     ");
+        System.out.println("    管理员初始密码: 请查看ADMIN_USER_PASSWORD配置");
     }
 
 
