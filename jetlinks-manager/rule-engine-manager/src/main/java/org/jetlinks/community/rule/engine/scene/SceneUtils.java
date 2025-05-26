@@ -219,15 +219,32 @@ public class SceneUtils {
         }
     }
 
-    public static void refactorUpperKey(DeviceSelectorSpec deviceSelectorSpec) {
+    @SuppressWarnings("all")
+    public static void refactorUpperKey(Object source) {
         // 将变量格式改为与查询的别名一致
-        if (VariableSource.Source.upper.equals(deviceSelectorSpec.getSource())) {
-            // scene.xx.current -> scene.scene_xx_current
-            if (deviceSelectorSpec.getUpperKey().startsWith("scene.")) {
-                String alias = SceneUtils.createColumnAlias("properties", deviceSelectorSpec.getUpperKey(), false);
-                deviceSelectorSpec.setUpperKey("scene." + alias);
+        if (source instanceof VariableSource) {
+            VariableSource variableSource = (VariableSource) source;
+            if (VariableSource.Source.upper.equals(variableSource.getSource())) {
+                variableSource.setUpperKey(transferSceneUpperKey(variableSource.getUpperKey()));
             }
         }
+        if (source instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) source;
+            VariableSource variableSource = VariableSource.of(source);
+            // 将变量格式改为与查询的别名一致
+            if (VariableSource.Source.upper.equals(variableSource.getSource())) {
+                map.put("upperKey", transferSceneUpperKey(variableSource.getUpperKey()));
+            }
+        }
+    }
+
+    public static String transferSceneUpperKey(String upperKey) {
+        // scene.xx.current -> scene.scene_xx_current
+        if (upperKey.startsWith("scene.")) {
+            String alias = SceneUtils.createColumnAlias("scene", upperKey, false);
+            return "scene." + alias;
+        }
+        return upperKey;
     }
 
     private static boolean isContainThis(String[] arr) {

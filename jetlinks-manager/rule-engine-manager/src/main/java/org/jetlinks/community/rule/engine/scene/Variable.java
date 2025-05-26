@@ -148,11 +148,13 @@ public class Variable {
     }
 
     public void refactorPrefix(Variable main) {
+        id = SceneUtils.transferSceneUpperKey(id);
         if (CollectionUtils.isNotEmpty(children)) {
             for (Variable child : children) {
                 if (!child.getId().startsWith(main.id + ".")) {
                     child.setId(main.id + "." + child.getId());
                 }
+                child.setId(SceneUtils.transferSceneUpperKey(child.getId()));
 
                 if (StringUtils.hasText(child.getFullName()) && StringUtils.hasText(main.getFullName())) {
                     child.setFullName(main.getFullName() + "/" + child.getFullName());
