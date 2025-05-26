@@ -125,12 +125,12 @@ public class MqttClientProvider implements NetworkProvider<MqttClientProperties>
         return new DefaultConfigMetadata()
             .add("id", "id", "", new StringType())
             .add("remoteHost", "远程地址", "", new StringType())
-            .add("remotePort", "远程地址", "", new IntType())
-            .add("certId", "证书id", "", new StringType())
+            .add("remotePort", "远程端口", "", new IntType())
+            .add("certId", "证书ID", "", new StringType())
             .add("secure", "开启TSL", "", new BooleanType())
-            .add("clientId", "客户端ID", "", new BooleanType())
-            .add("username", "用户名", "", new BooleanType())
-            .add("password", "密码", "", new BooleanType());
+            .add("clientId", "客户端ID", "", new StringType())
+            .add("username", "用户名", "", new StringType())
+            .add("password", "密码", "", new StringType());
     }
 
     @Nonnull
