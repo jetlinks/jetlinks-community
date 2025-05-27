@@ -88,6 +88,13 @@ public class AutoDownloadJarProtocolSupportLoader extends JarProtocolSupportLoad
     }
 
     @Override
+    @Autowired
+    @Generated
+    public void setServiceContext(ServiceContext serviceContext) {
+        super.setServiceContext(serviceContext);
+    }
+
+    @Override
     @Generated
     protected ServiceContext createServiceContext(ProtocolSupportDefinition definition) {
         String id = definition.getId();
