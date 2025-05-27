@@ -26,18 +26,18 @@ public class AlarmRecordMeasurementProvider extends StaticMeasurementProvider {
                                           TimeSeriesManager timeSeriesManager) {
         super(AlarmDashboardDefinition.alarm, AlarmObjectDefinition.record);
 
-        registry = registryManager.getMeterRegister(AlarmTimeSeriesMetric.alarmStreamMetrics().getId());
+//        registry = registryManager.getMeterRegister(AlarmTimeSeriesMetric.alarmStreamMetrics().getId());
         addMeasurement(new AlarmRecordTrendMeasurement(timeSeriesManager));
         addMeasurement(new AlarmRecordRankMeasurement(timeSeriesManager));
 
     }
 
-    @EventListener
-    public void aggAlarmRecord(AlarmHistoryInfo info) {
-        registry
-            .counter("record-agg", getTags(info))
-            .increment();
-    }
+//    @EventListener
+//    public void aggAlarmRecord(AlarmHistoryInfo info) {
+//        registry
+//            .counter("record-agg", getTags(info))
+//            .increment();
+//    }
 
 
 
