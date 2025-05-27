@@ -21,14 +21,12 @@ import org.hswebframework.web.crud.annotation.EnableEasyormRepository;
 import org.hswebframework.web.logging.aop.EnableAccessLogger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 
 
 @SpringBootApplication(scanBasePackages = "org.jetlinks.community", exclude = {
-    DataSourceAutoConfiguration.class,
-    ElasticsearchRestClientAutoConfiguration.class
+    DataSourceAutoConfiguration.class
 })
 @EnableCaching
 @EnableEasyormRepository("org.jetlinks.community.**.entity")
