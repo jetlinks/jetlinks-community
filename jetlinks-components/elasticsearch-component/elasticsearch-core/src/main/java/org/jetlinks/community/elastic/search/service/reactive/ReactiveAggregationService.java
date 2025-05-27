@@ -232,6 +232,8 @@ public class ReactiveAggregationService implements AggregationService {
                                    .index(tps.getT2())
                                    .query(q -> QueryParamTranslator.applyQueryBuilder(q, param, metadata))
                                    .size(0)
+                                   .ignoreUnavailable(true)
+                                   .allowNoIndices(true)
                                    .aggregations(createAggregations(metadata, aggregationQueryParam)), Map.class))
                            .flatMapMany(resp -> Flux
                                .fromIterable(resp.aggregations().entrySet())
@@ -271,6 +273,8 @@ public class ReactiveAggregationService implements AggregationService {
                                    .index(Lists.transform(tps, Tuple3::getT2))
                                    .query(q -> QueryParamTranslator.applyQueryBuilder(q, aggregationQueryParam.getQueryParam(), metadata))
                                    .size(0)
+                                   .ignoreUnavailable(true)
+                                   .allowNoIndices(true)
                                    .aggregations(createAggregations(metadata, aggregationQueryParam)), Map.class))
                            .flatMapMany(resp -> Flux
                                .fromIterable(resp.aggregations().entrySet())
