@@ -15,10 +15,13 @@
  */
 package org.jetlinks.community.protocol.configuration;
 
+import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.crud.annotation.EnableEasyormRepository;
 import org.jetlinks.community.protocol.*;
 import org.jetlinks.community.protocol.local.LocalProtocolSupportLoader;
+import org.jetlinks.community.protocol.manager.LocalProtocolSupportManager;
 import org.jetlinks.community.protocol.monitor.ProtocolMonitorHelper;
+import org.jetlinks.community.reference.DataReferenceManager;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.cluster.ClusterManager;
@@ -49,10 +52,10 @@ public class ProtocolAutoConfiguration {
     }
 
     @Bean
-    public LazyInitManagementProtocolSupports managementProtocolSupports(EventBus eventBus,
-                                                                         ClusterManager clusterManager,
-                                                                         ProtocolSupportLoader loader) {
-        return new LazyInitManagementProtocolSupports(eventBus, clusterManager, loader);
+    public LocalProtocolSupportManager protocolSupportManager(DataReferenceManager referenceManager,
+                                                                   ProtocolSupportLoader loader,
+                                                                   ReactiveRepository<ProtocolSupportEntity, String> repository) {
+        return new LocalProtocolSupportManager(referenceManager, loader, repository);
     }
 
     @Bean
