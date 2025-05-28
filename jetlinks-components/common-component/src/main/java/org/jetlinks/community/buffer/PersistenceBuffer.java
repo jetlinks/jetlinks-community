@@ -385,6 +385,9 @@ public class PersistenceBuffer<T extends Serializable> implements EvictionContex
         return Mono
             .fromRunnable(() -> write(data))
             .subscribeOn(writer)
+            // 切换到parallel线程池,避免浪费writer线程性能。
+            // 但是线程切换本身也是消耗。
+            .publishOn(Schedulers.parallel())
             .then();
     }
 
