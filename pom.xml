@@ -37,7 +37,7 @@
         <!-- https://github.com/jetlinks/jetlinks-plugin -->
         <jetlinks.plugin.version>1.0.3</jetlinks.plugin.version>
         <!-- https://github.com/jetlinks/jetlinks-sdk -->
-        <jetlinks.sdk.version>1.0.1</jetlinks.sdk.version>
+        <jetlinks.sdk.version>1.0.2-SNAPSHOT</jetlinks.sdk.version>
 
         <!-- 第三方依赖版本 -->
         <r2dbc.version>Borca-SR2</r2dbc.version>

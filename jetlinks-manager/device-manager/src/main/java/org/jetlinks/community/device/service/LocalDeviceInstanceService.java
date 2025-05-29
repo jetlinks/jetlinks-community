@@ -50,10 +50,7 @@ import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.message.function.FunctionInvokeMessageReply;
 import org.jetlinks.core.message.property.ReadPropertyMessageReply;
 import org.jetlinks.core.message.property.WritePropertyMessageReply;
-import org.jetlinks.core.metadata.ConfigMetadata;
-import org.jetlinks.core.metadata.ConfigPropertyMetadata;
-import org.jetlinks.core.metadata.DeviceMetadata;
-import org.jetlinks.core.metadata.MergeOption;
+import org.jetlinks.core.metadata.*;
 import org.jetlinks.core.trace.FluxTracer;
 import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.core.utils.CompositeMap;
@@ -1082,6 +1079,25 @@ public class LocalDeviceInstanceService extends GenericReactiveCrudService<Devic
             .flatMap(gateway -> gateway
                 .getProtocol()
                 .flatMap(protocol -> operator.apply(protocol, gateway, childId.flatMap(registry::getDevice)))
+            );
+    }
+
+    public Mono<DeviceMetadata> getMetadata(String id) {
+        return registry
+            .getDevice(id)
+            .flatMap(DeviceOperator::getMetadata)
+            .switchIfEmpty(
+                findById(id)
+                    .zipWhen(
+                        device -> deviceProductService.getMetadata(device.getProductId()),
+                        (device, product) -> {
+                            if (StringUtils.hasText(device.getDeriveMetadata())) {
+                                return new CompositeDeviceMetadata(
+                                    JetLinksDeviceMetadataCodec.getInstance().doDecode(device.getDeriveMetadata()),
+                                    product);
+                            }
+                            return product;
+                        })
             );
     }
 }

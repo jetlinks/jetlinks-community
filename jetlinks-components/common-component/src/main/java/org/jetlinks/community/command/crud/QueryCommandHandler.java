@@ -1,0 +1,46 @@
+package org.jetlinks.community.command.crud;
+
+import com.google.common.collect.Collections2;
+import org.hswebframework.web.api.crud.entity.PagerResult;
+import org.hswebframework.web.authorization.annotation.QueryAction;
+import org.hswebframework.web.crud.service.ReactiveCrudService;
+import org.jetlinks.core.annotation.command.CommandHandler;
+import org.jetlinks.sdk.server.commons.cmd.CountCommand;
+import org.jetlinks.sdk.server.commons.cmd.QueryByIdCommand;
+import org.jetlinks.sdk.server.commons.cmd.QueryListCommand;
+import org.jetlinks.sdk.server.commons.cmd.QueryPagerCommand;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+public interface QueryCommandHandler<T, PK> {
+
+    ReactiveCrudService<T, PK> getService();
+
+    @CommandHandler
+    @QueryAction
+    default Flux<T> queryById(QueryByIdCommand<T> command) {
+        return getService()
+            .findById(
+                Collections2.transform(command.getIdList(),
+                                       v -> (PK) v)
+            );
+    }
+
+    @CommandHandler
+    @QueryAction
+    default Flux<T> queryList(QueryListCommand<T> command) {
+        return getService().query(command.asQueryParam());
+    }
+
+    @CommandHandler
+    @QueryAction
+    default Mono<PagerResult<T>> queryPager(QueryPagerCommand<T> command) {
+        return getService().queryPager(command.asQueryParam());
+    }
+
+    @CommandHandler
+    @QueryAction
+    default Mono<Integer> count(CountCommand command) {
+        return getService().count(command.asQueryParam());
+    }
+}

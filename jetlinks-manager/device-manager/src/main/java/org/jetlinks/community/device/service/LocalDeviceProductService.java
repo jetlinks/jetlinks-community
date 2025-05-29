@@ -26,8 +26,10 @@ import org.hswebframework.web.crud.events.EntityEventHelper;
 import org.hswebframework.web.crud.events.EntityPrepareSaveEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.exception.BusinessException;
+import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.community.device.entity.*;
 import org.jetlinks.community.device.enums.DeviceProductState;
@@ -338,5 +340,19 @@ public class LocalDeviceProductService extends GenericReactiveCrudService<Device
             //重新排序
             .sort(Comparator.comparingLong(Tuple2::getT1))
             .map(Tuple2::getT2);
+    }
+
+
+    public Mono<DeviceMetadata> getMetadata(String productId) {
+        return registry
+            .getProduct(productId)
+            .flatMap(DeviceProductOperator::getMetadata)
+            .switchIfEmpty(
+                this
+                    .findById(productId)
+                    .flatMap(product -> JetLinksDeviceMetadataCodec
+                        .getInstance()
+                        .decode(product.getMetadata()))
+            );
     }
 }

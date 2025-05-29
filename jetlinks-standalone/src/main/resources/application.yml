@@ -41,10 +41,12 @@ spring:
     reactor:
         debug-agent:
             enabled: false
-#  elasticsearch:
-#    uris: 127.0.0.1:9200
-#    socket-timeout: 10s
-#    connection-timeout: 15s
+    elasticsearch:
+        uris: 127.0.0.1:9200
+        socket-timeout: 10s
+        connection-timeout: 15s
+#        password:
+#        username:
 easyorm:
     default-schema: public # 数据库默认的schema
     dialect: postgres #数据库方言
