@@ -78,6 +78,7 @@ public class DefaultPluginDeviceManager implements PluginDeviceManager {
                             Query<?, QueryParamEntity> query) {
         query
             .select("id")
+            .noPaging()
             .accept("productId",
                     "product-info",
                     QueryParamEntity
