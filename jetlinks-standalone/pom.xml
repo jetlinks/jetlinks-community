@@ -93,6 +93,22 @@
             </dependencies>
         </profile>
 
+        <!-- mvn package -Ptimescaledb -->
+        <profile>
+            <id>timescaledb</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+
+                <!-- 默认使用 timescaledb 来存储时序数据 -->
+                <dependency>
+                    <groupId>org.jetlinks.community</groupId>
+                    <artifactId>timescaledb-component</artifactId>
+                </dependency>
+
+            </dependencies>
+        </profile>
     </profiles>
 
     <dependencies>
@@ -100,14 +116,6 @@
             <groupId>org.jetlinks.community</groupId>
             <artifactId>common-component</artifactId>
         </dependency>
-
-
-        <!-- 默认使用 timescaledb 来存储时序数据 -->
-        <dependency>
-            <groupId>org.jetlinks.community</groupId>
-            <artifactId>timescaledb-component</artifactId>
-        </dependency>
-
 
         <!--UI 相关依赖-->
         <dependency>
