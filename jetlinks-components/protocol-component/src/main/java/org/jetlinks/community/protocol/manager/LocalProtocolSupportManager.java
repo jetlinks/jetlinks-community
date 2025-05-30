@@ -18,10 +18,7 @@ package org.jetlinks.community.protocol.manager;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
-import org.hswebframework.web.crud.events.EntityBeforeCreateEvent;
-import org.hswebframework.web.crud.events.EntityBeforeDeleteEvent;
-import org.hswebframework.web.crud.events.EntityBeforeModifyEvent;
-import org.hswebframework.web.crud.events.EntityBeforeSaveEvent;
+import org.hswebframework.web.crud.events.*;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.ProtocolSupport;
@@ -98,6 +95,43 @@ public class LocalProtocolSupportManager
     //修改协议前，判断协议是否能正常运行
     @EventListener
     public void checkProtocol(EntityBeforeModifyEvent<ProtocolSupportEntity> event) {
+        event.async(
+            Flux.fromIterable(event.getAfter())
+                .flatMap(entity -> checkProtocol(entity.toDefinition()))
+        );
+    }
+
+    //删除协议前,判断协议是否已被引用。已被引用的协不能删除
+    @EventListener
+    public void handleProtocolDelete(EntityDeletedEvent<ProtocolSupportEntity> event) {
+        event.async(
+            Flux.fromIterable(event.getEntity())
+                .doOnNext(entity -> remove(entity.toDefinition()))
+        );
+    }
+
+    //保存协议前，判断协议是否能正常运行
+    @EventListener
+    public void checkProtocol(EntitySavedEvent<ProtocolSupportEntity> event) {
+        event.async(
+            Flux.fromIterable(event.getEntity())
+                .flatMap(entity -> init(entity.toDefinition()))
+        );
+    }
+
+    //创建协议前，判断协议是否能正常运行
+    @EventListener
+    public void checkProtocol(EntityCreatedEvent<ProtocolSupportEntity> event) {
+        event.async(
+            Flux.fromIterable(event.getEntity())
+                .flatMap(entity -> init(entity.toDefinition()))
+        );
+    }
+
+
+    //修改协议前，判断协议是否能正常运行
+    @EventListener
+    public void checkProtocol(EntityModifyEvent<ProtocolSupportEntity> event) {
         event.async(
             Flux.fromIterable(event.getAfter())
                 .flatMap(entity -> checkProtocol(entity.toDefinition()))
