@@ -106,6 +106,12 @@
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.jetlinks.community</groupId>
+            <artifactId>plugin-component</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

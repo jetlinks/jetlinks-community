@@ -34,8 +34,10 @@ import org.jetlinks.community.network.manager.web.response.DeviceGatewayDetail;
 import org.jetlinks.community.network.manager.web.response.DeviceGatewayProviderInfo;
 import org.jetlinks.community.utils.ReactorUtils;
 import org.jetlinks.core.ProtocolSupports;
+import org.jetlinks.core.command.CommandSupport;
 import org.jetlinks.core.device.session.DeviceSessionInfo;
 import org.jetlinks.core.device.session.DeviceSessionManager;
+import org.jetlinks.core.metadata.FunctionMetadata;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,6 +45,7 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.util.Comparator;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/gateway/device")
@@ -179,6 +182,37 @@ public class DeviceGatewayController implements ReactiveServiceCrudController<De
     @SaveAction
     public Mono<Long> removeSession(@PathVariable String deviceId) {
         return sessionManager.remove(deviceId, false);
+    }
+
+
+    @GetMapping(value = "/{gatewayId}/commands")
+    @Operation(summary = "获取网关支持的命令")
+    @QueryAction
+    public Flux<FunctionMetadata> getEntityCommands(@PathVariable String gatewayId) {
+        return this.gatewayManager
+            .getGateway(gatewayId)
+            .filter(gateway -> gateway.isWrapperFor(CommandSupport.class))
+            .flatMapMany(gateway -> gateway.unwrap(CommandSupport.class).getCommandMetadata());
+    }
+
+    @PostMapping(value = "/{gatewayId}/command/QueryDevicePage")
+    @Operation(summary = "查询网关支持的设备列表")
+    @Resource(id = "device-instance", name = "设备实例", merge = false)
+    @QueryAction
+    public Mono<PagerResult<Object>> queryInGatewayDevice(@PathVariable String gatewayId,
+                                                          @RequestBody Mono<Map<String, Object>> body) {
+        return this
+            .gatewayManager
+            .executeCommand(gatewayId, "QueryDevicePage", body);
+    }
+
+    @PostMapping(value = "/{gatewayId}/command/{commandId}")
+    @Operation(summary = "执行网关命令")
+    @SaveAction
+    public Mono<Object> getEntityCommands(@PathVariable String gatewayId,
+                                          @PathVariable String commandId,
+                                          @RequestBody Mono<Map<String, Object>> body) {
+        return this.gatewayManager.executeCommand(gatewayId, commandId, body);
     }
 
 

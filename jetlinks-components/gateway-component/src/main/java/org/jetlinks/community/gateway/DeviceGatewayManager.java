@@ -18,9 +18,12 @@ package org.jetlinks.community.gateway;
 import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
 import org.jetlinks.community.network.channel.ChannelInfo;
 import org.jetlinks.community.network.channel.ChannelProvider;
+import org.jetlinks.core.command.CommandSupport;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -100,4 +103,35 @@ public interface DeviceGatewayManager {
      * @return DeviceGatewayProvider
      */
     Optional<DeviceGatewayProvider> getProvider(String provider);
+
+    /**
+     * 执行指定网关的指定命令,网关需要实现{@link CommandSupport}.
+     *
+     * @param gatewayId 网关ID
+     * @param commandId 命令ID {@link CommandSupport}
+     * @param body      命令参数
+     * @return 执行结果
+     */
+    @SuppressWarnings("all")
+    default <T> Mono<T> executeCommand(String gatewayId,
+                                       String commandId,
+                                       Mono<Map<String, Object>> body) {
+        return (Mono)Mono
+            .zip(
+                this.getGateway(gatewayId)
+                    .filter(gateway -> gateway.isWrapperFor(CommandSupport.class))
+                    .cast(CommandSupport.class),
+                body,
+                (cmd, param) -> cmd.execute(cmd.createCommand(commandId).with(param))
+            )
+            .flatMap(val -> {
+                if (val instanceof Mono) {
+                    return ((Mono<?>) val);
+                }
+                if (val instanceof Flux) {
+                    return ((Flux<?>) val).collectList();
+                }
+                return Mono.just(val);
+            });
+    }
 }
