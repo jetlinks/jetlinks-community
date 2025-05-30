@@ -18,9 +18,13 @@ package org.jetlinks.community.device.message.writer;
 import lombok.AllArgsConstructor;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
+import org.jetlinks.community.things.data.ThingsDataWriter;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.community.device.service.data.DeviceDataService;
 import org.jetlinks.community.gateway.annotation.Subscribe;
+import org.jetlinks.core.message.property.Property;
+import org.jetlinks.core.message.property.PropertyMessage;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -36,16 +40,31 @@ public class TimeSeriesMessageWriterConnector {
 
     private final DeviceDataService dataService;
 
+    private final ThingsDataWriter thingsDataWriter;
 
-    @Subscribe(topics = "/device/**", id = "device-message-ts-writer")
+    @Subscribe(topics = "/device/**", id = "device-message-ts-writer", priority = 100)
     @Generated
     public Mono<Void> writeDeviceMessageToTs(DeviceMessage message) {
         return dataService
             .saveDeviceMessage(message)
+            .then(writeToThingsDataWriter(message))
             .onErrorResume(err -> {
                 log.warn("write device message error {}", message, err);
                 return Mono.empty();
             });
+    }
+
+    private Mono<Void> writeToThingsDataWriter(DeviceMessage message) {
+        if (message instanceof PropertyMessage) {
+            return Flux
+                .fromIterable(((PropertyMessage) message).getCompleteProperties())
+                .concatMap(prop -> thingsDataWriter
+                    .updateProperty(message.getThingType(),
+                                    message.getThingId(),
+                                    prop))
+                .then();
+        }
+        return Mono.empty();
     }
 
 

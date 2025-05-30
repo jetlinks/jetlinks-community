@@ -89,6 +89,7 @@ public abstract class TemplateElasticSearchIndexStrategy extends AbstractElastic
 
         builder.template(template -> {
             template.aliases(getAlias(index), a -> a);
+            template.settings(properties::toSettings);
             template.mappings(mapping -> {
                 mapping.dynamicTemplates(createDynamicTemplates());
                 mapping.properties(createElasticProperties(metadata.getProperties()));

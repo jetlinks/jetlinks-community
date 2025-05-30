@@ -26,6 +26,7 @@ import org.jetlinks.community.device.message.writer.TimeSeriesMessageWriterConne
 import org.jetlinks.community.device.service.data.*;
 import org.jetlinks.community.rule.engine.executor.DeviceSelectorBuilder;
 import org.jetlinks.community.rule.engine.executor.device.DeviceSelectorProvider;
+import org.jetlinks.community.things.data.ThingsDataWriter;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.event.EventBus;
@@ -70,8 +71,9 @@ public class DeviceManagerConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "device.message.writer.time-series", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public TimeSeriesMessageWriterConnector timeSeriesMessageWriterConnector(DeviceDataService dataService) {
-        return new TimeSeriesMessageWriterConnector(dataService);
+    public TimeSeriesMessageWriterConnector timeSeriesMessageWriterConnector(DeviceDataService dataService,
+                                                                             ThingsDataWriter writer) {
+        return new TimeSeriesMessageWriterConnector(dataService,writer);
     }
 
     @AutoConfiguration
