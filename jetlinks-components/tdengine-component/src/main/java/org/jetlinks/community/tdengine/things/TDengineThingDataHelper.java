@@ -14,6 +14,7 @@ import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.tdengine.TDEngineUtils;
 import org.jetlinks.community.tdengine.term.TDengineQueryConditionBuilder;
 import org.jetlinks.community.things.data.ThingsDataConstants;
+import org.jetlinks.community.things.utils.ThingsDatabaseUtils;
 import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.community.Interval;
@@ -100,11 +101,7 @@ class TDengineThingDataHelper implements Disposable {
                     .getColumn(metric, term.getColumn())
                     .ifPresent(meta -> {
                         DataType type = meta.getValueType();
-                        if (isArrayTerm(type, term)) {
-                            term.setValue(tryConvertList(type, term));
-                        } else if (type instanceof Converter) {
-                            term.setValue(((Converter<?>) type).convert(term.getValue()));
-                        }
+                        ThingsDatabaseUtils.tryConvertTermValue(type, term);
                     });
             }
 

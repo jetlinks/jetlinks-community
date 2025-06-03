@@ -10,6 +10,8 @@ import org.hswebframework.ezorm.rdb.codec.NumberValueCodec;
 import org.hswebframework.ezorm.rdb.metadata.RDBColumnMetadata;
 import org.jetlinks.community.ConfigMetadataConstants;
 import org.jetlinks.community.utils.ConverterUtils;
+import org.jetlinks.community.utils.TimeUtils;
+import org.jetlinks.core.metadata.Converter;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.types.*;
@@ -207,6 +209,33 @@ public class ThingsDatabaseUtils {
             }
         }
     }
+
+    public static void tryConvertTermValue(DataType type,
+                                           Term term,
+                                           BiFunction<DataType, Object, Object> tryConvertTermValue) {
+        tryConvertTermValue(type,
+                            term,
+                            ThingsDatabaseUtils::isDoNotConvertValue,
+                            ThingsDatabaseUtils::maybeList,
+                            tryConvertTermValue);
+    }
+
+    public static void tryConvertTermValue(DataType type,
+                                           Term term) {
+        tryConvertTermValue(type,
+                            term,
+                            ThingsDatabaseUtils::tryConvertTermValue);
+    }
+
+    public static Object tryConvertTermValue(DataType type, Object value) {
+        if (type instanceof DateTimeType) {
+            return TimeUtils.convertToDate(value).getTime();
+        } else if (type instanceof Converter) {
+            return ((Converter<?>) type).convert(value);
+        }
+        return value;
+    }
+
 
     public static void tryConvertTermValue(DataType type,
                                            Term term,
