@@ -95,6 +95,9 @@ class TDengineThingDataHelper implements Disposable {
             if (("timestamp".equals(term.getColumn()) || "_ts".equals(term.getColumn())) && term.getValue() != null) {
                 term.setColumn("_ts");
                 term.setValue(prepareTimestampValue(term.getValue(), term.getTermType()));
+            } else if ("createTime".equals(term.getColumn())) {
+                term.setColumn("createTime");
+                term.setValue(prepareTimestampLongValue(term.getValue()));
             } else {
                 metadataManager
                     .getColumn(metric, term.getColumn())
@@ -120,6 +123,10 @@ class TDengineThingDataHelper implements Disposable {
             Date date = CastUtils.castDate(v);
             return TDEngineUtils.formatTime(date.getTime());
         });
+    }
+
+    public static Object prepareTimestampLongValue(Object value) {
+        return ConverterUtils.tryConvertToList(value, v -> CastUtils.castDate(v).getTime());
     }
 
     public String buildOrderBy(String metric, QueryParamEntity param) {
