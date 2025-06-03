@@ -133,7 +133,7 @@ public abstract class AbstractDDLOperations implements DDLOperations {
         } else {
             event = Flux
                 .fromIterable(metadata.getEvents())
-                .flatMap(e -> handler.apply(MetricType.event,
+                .concatMap(e -> handler.apply(MetricType.event,
                                             metricBuilder.createEventMetric(thingType, templateId, thingId, e.getId()),
                                             createEventProperties(e)))
                 .then();
