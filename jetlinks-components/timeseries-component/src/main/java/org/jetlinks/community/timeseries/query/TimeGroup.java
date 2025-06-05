@@ -20,10 +20,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jetlinks.community.Interval;
 
+import java.time.Duration;
+
 @Getter
 @Setter
 @NoArgsConstructor
 public class TimeGroup extends Group{
+
 
     /**
      * 时间分组间隔,如: 1d , 30s
@@ -35,9 +38,23 @@ public class TimeGroup extends Group{
      */
     private String format;
 
+    /**
+     * 时间分组偏移量，部分实现支持偏移量分组.
+     */
+    private long offset;
+
     public TimeGroup(Interval interval, String alias, String format) {
-        super("timestamp",alias);
+        super("timestamp", alias);
         this.interval = interval;
         this.format = format;
+    }
+
+    public static TimeGroup of(Interval interval, String alias, String format) {
+        return new TimeGroup(interval, alias, format);
+    }
+
+    public TimeGroup offset(Duration duration) {
+        offset = duration.toMillis();
+        return this;
     }
 }

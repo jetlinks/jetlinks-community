@@ -1,23 +1,8 @@
-/*
- * Copyright 2025 JetLinks https://www.jetlinks.cn
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.jetlinks.community.elastic.search.service.reactive;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.ScoreSort;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch._types.aggregations.*;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.json.JsonData;
@@ -26,9 +11,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.ezorm.core.param.QueryParam;
-import org.hswebframework.ezorm.core.param.Sort;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
@@ -86,6 +69,9 @@ public class ReactiveAggregationService implements AggregationService {
                     his.order(Collections.singletonList(
                         NamedValue.of("_key", SortOrder.Desc)
                     ));
+                    if(timeGroup.getOffset()>0){
+                        his.offset(Time.of(b->b.offset((int)timeGroup.getOffset())));
+                    }
                     if (StringUtils.hasText(timeGroup.getFormat())) {
                         String format = timeGroup.getFormat();
                         if (format.startsWith("yyyy")) {
@@ -231,9 +217,9 @@ public class ReactiveAggregationService implements AggregationService {
                                .search(search -> search
                                    .index(tps.getT2())
                                    .query(q -> QueryParamTranslator.applyQueryBuilder(q, param, metadata))
-                                   .size(0)
                                    .ignoreUnavailable(true)
                                    .allowNoIndices(true)
+                                   .size(0)
                                    .aggregations(createAggregations(metadata, aggregationQueryParam)), Map.class))
                            .flatMapMany(resp -> Flux
                                .fromIterable(resp.aggregations().entrySet())
@@ -386,15 +372,12 @@ public class ReactiveAggregationService implements AggregationService {
 
 
     private Object parseBucket(Object bucket) {
-        if (bucket instanceof LongTermsBucket) {
-            return ((LongTermsBucket) bucket).key();
+        if (bucket instanceof MultiBucketBase base) {
+            return ElasticSearchSupport
+                .current()
+                .getBucketKey(base);
         }
-        if (bucket instanceof DoubleTermsBucket) {
-            return ((DoubleTermsBucket) bucket).key();
-        }
-        if (bucket instanceof StringTermsBucket) {
-            return ((StringTermsBucket) bucket).key()._get();
-        }
+
         return null;
     }
 
