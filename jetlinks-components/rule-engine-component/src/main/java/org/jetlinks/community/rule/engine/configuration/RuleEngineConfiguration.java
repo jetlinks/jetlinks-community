@@ -44,6 +44,7 @@ import org.jetlinks.rule.engine.cluster.RuleInstanceRepository;
 import org.jetlinks.rule.engine.cluster.SchedulerRegistry;
 import org.jetlinks.rule.engine.cluster.TaskSnapshotRepository;
 import org.jetlinks.rule.engine.cluster.scheduler.ClusterRpcSchedulerRegistry;
+import org.jetlinks.rule.engine.condition.ConditionEvaluatorStrategy;
 import org.jetlinks.rule.engine.condition.DefaultConditionEvaluator;
 import org.jetlinks.rule.engine.condition.supports.DefaultScriptEvaluator;
 import org.jetlinks.rule.engine.condition.supports.ScriptConditionEvaluatorStrategy;
@@ -74,14 +75,17 @@ public class RuleEngineConfiguration {
     }
 
     @Bean
-    public DefaultConditionEvaluator defaultConditionEvaluator() {
-        return new DefaultConditionEvaluator();
-    }
-
-    @Bean
     public TermsConditionEvaluator termsConditionEvaluator() {
         return new TermsConditionEvaluator();
     }
+
+    @Bean
+    public DefaultConditionEvaluator defaultConditionEvaluator(ObjectProvider<ConditionEvaluatorStrategy> strategies) {
+        DefaultConditionEvaluator evaluator =  new DefaultConditionEvaluator();
+        strategies.forEach(evaluator::register);
+        return evaluator;
+    }
+
 
     @Bean(destroyMethod = "dispose")
     public LocalScheduler ruleScheduler(RuleEngineProperties properties,
