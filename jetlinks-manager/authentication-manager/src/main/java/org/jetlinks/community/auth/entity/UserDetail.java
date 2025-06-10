@@ -28,7 +28,7 @@ import org.hswebframework.web.authorization.DefaultDimensionType;
 import org.hswebframework.web.authorization.Dimension;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
-import org.jetlinks.community.auth.dimension.OrgDimensionType;
+import org.jetlinks.community.authorize.OrgDimensionType;
 import org.jetlinks.community.auth.enums.*;
 import org.jetlinks.community.auth.service.info.UserLoginInfo;
 import org.jetlinks.reactor.ql.utils.CastUtils;
