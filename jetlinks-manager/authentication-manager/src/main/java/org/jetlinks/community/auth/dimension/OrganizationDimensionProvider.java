@@ -25,6 +25,7 @@ import org.hswebframework.web.system.authorization.defaults.service.DefaultDimen
 import org.hswebframework.web.system.authorization.defaults.service.terms.DimensionTerm;
 import org.jetlinks.community.auth.entity.OrganizationEntity;
 import org.jetlinks.community.auth.service.OrganizationService;
+import org.jetlinks.community.authorize.OrgDimensionType;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

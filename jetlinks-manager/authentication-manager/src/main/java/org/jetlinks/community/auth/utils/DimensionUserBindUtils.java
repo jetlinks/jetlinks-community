@@ -20,6 +20,7 @@ import org.hswebframework.ezorm.rdb.mapping.ReactiveDelete;
 import org.hswebframework.web.authorization.DefaultDimensionType;
 import org.hswebframework.web.system.authorization.api.entity.DimensionUserEntity;
 import org.hswebframework.web.system.authorization.defaults.service.DefaultDimensionUserService;
+import org.jetlinks.community.authorize.OrgDimensionType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
