@@ -286,3 +286,15 @@ network:
         - 1883-1890
         - 8800-8810
         - 5060-5061
+trace:
+    # 开启链路追踪
+    enabled: true
+    jaeger: # https://hanta.yuque.com/px7kg1/dev/nn2r53n5w8ttap8a
+        enabled: false # 记录链路数据到jaeger
+        endpoint: "http://127.0.0.1:14250"
+    ignore-spans:
+        - "/device/*/upstream"
+        - "/device/*/decode"
+        - "/java/TimeSeriesMessageWriterConnector/writeDeviceMessageToTs"
+        - "/java/DeviceStatusMeasurementProvider/incrementOnline"
+        - "/java/DeviceMessageMeasurementProvider/incrementMessage"

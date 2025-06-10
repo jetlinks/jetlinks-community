@@ -76,7 +76,7 @@ public class ElasticSearch8xSupport extends ElasticSearchSupport {
     }
 
     @Override
-    protected Object getBucketKey(MultiBucketBase bucket) {
+    public Object getBucketKey(MultiBucketBase bucket) {
         if (bucket instanceof DateHistogramBucket _bucket) {
             return _bucket.key();
         }
