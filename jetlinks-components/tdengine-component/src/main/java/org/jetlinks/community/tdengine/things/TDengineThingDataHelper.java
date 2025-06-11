@@ -21,8 +21,6 @@ import org.hswebframework.ezorm.core.param.Sort;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.ezorm.rdb.executor.wrapper.ResultWrappers;
-import org.hswebframework.utils.time.DateFormatter;
-import org.hswebframework.utils.time.DefaultDateFormatter;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.exception.BusinessException;
@@ -57,10 +55,6 @@ import java.util.regex.Pattern;
 @AllArgsConstructor
 class TDengineThingDataHelper implements Disposable {
 
-    static {
-        DateFormatter.supportFormatter.add(new DefaultDateFormatter(Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.+"), "yyyy-MM-dd'T'HH:mm:ss.SSSZ"));
-
-    }
 
     final TDengineOperations operations;
 
