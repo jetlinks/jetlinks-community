@@ -38,6 +38,8 @@
         <jetlinks.plugin.version>1.0.3</jetlinks.plugin.version>
         <!-- https://github.com/jetlinks/jetlinks-sdk -->
         <jetlinks.sdk.version>1.0.2-SNAPSHOT</jetlinks.sdk.version>
+        <!-- https://github.com/hsweb/hsweb-utils -->
+        <hsweb.utils.version>3.0.5-SNAPSHOT</hsweb.utils.version>
 
         <!-- 第三方依赖版本 -->
         <r2dbc.version>Borca-SR2</r2dbc.version>
@@ -376,6 +378,12 @@
                 <version>${rsocket.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hswebframework</groupId>
+                <artifactId>hsweb-utils</artifactId>
+                <version>${hsweb.utils.version}</version>
             </dependency>
 
             <dependency>
