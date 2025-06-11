@@ -31,7 +31,7 @@ import org.hswebframework.web.crud.generator.Generators;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.auth.constants.AuthConstants;
-import org.jetlinks.community.auth.dimension.OrgDimensionType;
+import org.jetlinks.community.authorize.OrgDimensionType;
 import org.jetlinks.core.things.ThingInfo;
 
 import javax.persistence.Column;

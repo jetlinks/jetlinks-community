@@ -21,7 +21,7 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.BatchSqlFragments
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.SqlFragments;
 import org.hswebframework.ezorm.rdb.operator.builder.fragments.term.AbstractTermFragmentBuilder;
 import org.hswebframework.ezorm.rdb.utils.SqlUtils;
-import org.jetlinks.community.auth.dimension.OrgDimensionType;
+import org.jetlinks.community.authorize.OrgDimensionType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
