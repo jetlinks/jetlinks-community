@@ -169,7 +169,7 @@ public class VariableSource implements Serializable {
     }
 
     public Object resolveStatic(Map<String, Object> context) {
-        validate();
+       // validate();
         if (getSource() == VariableSource.Source.fixed) {
             return value;
         }
