@@ -434,6 +434,8 @@ public class DefaultAlarmRuleHandler implements AlarmRuleHandler, CommandLineRun
     }
 
     @Deprecated
+    @Getter
+    @Setter
     public static class RecordCache implements Externalizable {
 
         static final byte stateNormal = 0x01;

@@ -2,6 +2,7 @@ package org.jetlinks.community.rule.engine.alarm;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
@@ -471,6 +472,8 @@ public class DefaultAlarmHandler implements AlarmHandler {
         }
     }
 
+    @Getter
+    @Setter
     public static class TriggerCache implements Externalizable {
 
         static final byte stateNormal = 0x01;
@@ -530,6 +533,8 @@ public class DefaultAlarmHandler implements AlarmHandler {
         }
     }
 
+    @Getter
+    @Setter
     public static class RelieveCache implements Externalizable {
         private long reliveTime;
 
