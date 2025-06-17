@@ -16,8 +16,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.locales>zh_CN</project.build.locales>
-        <spring.boot.version>3.4.3</spring.boot.version>
-        <spring.framework.version>6.2.3</spring.framework.version>
+        <spring.boot.version>3.4.6</spring.boot.version>
+        <spring.framework.version>6.2.8</spring.framework.version>
         <java.version>17</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
         <maven.compiler.source>${java.version}</maven.compiler.source>
