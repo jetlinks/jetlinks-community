@@ -46,28 +46,28 @@ public class DefaultPluginDataIdMapper implements PluginDataIdMapper {
 
 
     @EventListener
-    public void handleEvent(EntityCreatedEvent<PluginDataIdMappingEntity> event){
+    public void handleEvent(EntityCreatedEvent<PluginDataIdMappingEntity> event) {
         event.async(
             saveMapping(Flux.fromIterable(event.getEntity()))
         );
     }
 
     @EventListener
-    public void handleEvent(EntityModifyEvent<PluginDataIdMappingEntity> event){
+    public void handleEvent(EntityModifyEvent<PluginDataIdMappingEntity> event) {
         event.async(
             saveMapping(Flux.fromIterable(event.getAfter()))
         );
     }
 
     @EventListener
-    public void handleEvent(EntitySavedEvent<PluginDataIdMappingEntity> event){
+    public void handleEvent(EntitySavedEvent<PluginDataIdMappingEntity> event) {
         event.async(
             saveMapping(Flux.fromIterable(event.getEntity()))
         );
     }
 
     @EventListener
-    public void handleEvent(EntityDeletedEvent<PluginDataIdMappingEntity> event){
+    public void handleEvent(EntityDeletedEvent<PluginDataIdMappingEntity> event) {
         event.async(
             removeMapping(Flux.fromIterable(event.getEntity()))
         );
@@ -120,9 +120,16 @@ public class DefaultPluginDataIdMapper implements PluginDataIdMapper {
     public Mono<String> getInternalId(String type,
                                       String pluginId,
                                       String externalId) {
-        Assert.notNull(externalId,"externalId must not be null");
+        Assert.notNull(externalId, "externalId must not be null");
         return doWithStore(store -> store
-            .getConfig(createMappingKey(type, pluginId, externalId))
+            .getConfig(createMappingKey(type, pluginId, externalId),
+                       Mono.defer(() -> repository
+                           .createQuery()
+                           .where(PluginDataIdMappingEntity::getType, type)
+                           .and(PluginDataIdMappingEntity::getPluginId, pluginId)
+                           .and(PluginDataIdMappingEntity::getExternalId, externalId)
+                           .fetchOne()
+                           .map(PluginDataIdMappingEntity::getInternalId)))
             .map(Value::asString))
             .defaultIfEmpty(externalId);
     }
@@ -131,9 +138,16 @@ public class DefaultPluginDataIdMapper implements PluginDataIdMapper {
     public Mono<String> getExternalId(String type,
                                       String pluginId,
                                       String internalId) {
-        Assert.notNull(internalId,"internalId must not be null");
+        Assert.notNull(internalId, "internalId must not be null");
         return doWithStore(store -> store
-            .getConfig(createMappingKey(type, pluginId, internalId))
+            .getConfig(createMappingKey(type, pluginId, internalId),
+                       Mono.defer(() -> repository
+                           .createQuery()
+                           .where(PluginDataIdMappingEntity::getType, type)
+                           .and(PluginDataIdMappingEntity::getPluginId, pluginId)
+                           .and(PluginDataIdMappingEntity::getInternalId, internalId)
+                           .fetchOne()
+                           .map(PluginDataIdMappingEntity::getExternalId)))
             .map(Value::asString))
             .defaultIfEmpty(internalId);
     }
@@ -142,9 +156,9 @@ public class DefaultPluginDataIdMapper implements PluginDataIdMapper {
     public Flux<PluginDataMapping> getMappings(String type, String pluginId) {
         return repository
             .createQuery()
-            .where(PluginDataIdMappingEntity::getType,type)
-            .and(PluginDataIdMappingEntity::getPluginId,pluginId)
+            .where(PluginDataIdMappingEntity::getType, type)
+            .and(PluginDataIdMappingEntity::getPluginId, pluginId)
             .fetch()
-            .map(entity-> new PluginDataMapping(entity.getExternalId(),entity.getInternalId()));
+            .map(entity -> new PluginDataMapping(entity.getExternalId(), entity.getInternalId()));
     }
 }
