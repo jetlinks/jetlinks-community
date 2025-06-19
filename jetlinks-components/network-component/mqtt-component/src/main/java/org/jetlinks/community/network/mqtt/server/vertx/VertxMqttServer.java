@@ -28,6 +28,7 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
+import reactor.util.concurrent.Queues;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
@@ -79,10 +80,10 @@ public class VertxMqttServer implements MqttServer {
         if (sink.currentSubscriberCount() <= 0) {
             return false;
         }
-        try{
-            sink.emitNext(connection,Reactors.emitFailureHandler());
-            return true;
-        }catch (Throwable ignore){}
+        try {
+            return sink.tryEmitNext(connection).isSuccess();
+        } catch (Throwable ignore) {
+        }
         return false;
     }
 
@@ -90,7 +91,7 @@ public class VertxMqttServer implements MqttServer {
         boolean anyHandled = emitNext(sink, connection);
 
         for (List<Sinks.Many<MqttConnection>> value : sinks.values()) {
-            if (value.size() == 0) {
+            if (value.isEmpty()) {
                 continue;
             }
             Sinks.Many<MqttConnection> sink = value.get(ThreadLocalRandom.current().nextInt(value.size()));
@@ -114,7 +115,11 @@ public class VertxMqttServer implements MqttServer {
             .sinks
             .computeIfAbsent(holder, ignore -> new CopyOnWriteArrayList<>());
 
-        Sinks.Many<MqttConnection> sink = Reactors.createMany(Integer.MAX_VALUE,true);
+        Sinks.Many<MqttConnection> sink =
+            Sinks.unsafe()
+                 .many()
+                 .unicast()
+                 .onBackpressureBuffer(Queues.<MqttConnection>unboundedMultiproducer().get());
 
         sinks.add(sink);
 
