@@ -44,6 +44,14 @@ public class TimescaleDBColumnModeDDLOperations extends ColumnModeDDLOperationsB
 
     private final  TimescaleDBThingsDataProperties properties;
 
+    static Set<String> ignoreColumn = Sets.newHashSet(
+        ThingsDataConstants.COLUMN_ID,
+        ThingsDataConstants.COLUMN_MESSAGE_ID,
+        ThingsDataConstants.COLUMN_PROPERTY_GEO_VALUE,
+        ThingsDataConstants.COLUMN_PROPERTY_OBJECT_VALUE,
+        ThingsDataConstants.COLUMN_PROPERTY_ARRAY_VALUE
+    );
+
     public TimescaleDBColumnModeDDLOperations(String thingType,
                                               String templateId,
                                               String thingId,
@@ -70,6 +78,9 @@ public class TimescaleDBColumnModeDDLOperations extends ColumnModeDDLOperationsB
         List<String> partitions = new ArrayList<>();
         partitions.add(ThingsDataConstants.COLUMN_THING_ID);
         for (PropertyMetadata property : properties) {
+            if (ignoreColumn.contains(property.getId())) {
+                continue;
+            }
             builder
                 .addColumn(property.getId())
                 .custom(column -> {
