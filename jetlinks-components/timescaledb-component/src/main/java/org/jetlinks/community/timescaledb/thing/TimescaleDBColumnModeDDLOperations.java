@@ -15,6 +15,7 @@
  */
 package org.jetlinks.community.timescaledb.thing;
 
+import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.ezorm.rdb.codec.DateTimeCodec;
 import org.hswebframework.ezorm.rdb.metadata.RDBIndexMetadata;
@@ -23,7 +24,6 @@ import org.hswebframework.ezorm.rdb.metadata.RDBTableMetadata;
 import org.hswebframework.ezorm.rdb.operator.DatabaseOperator;
 import org.hswebframework.ezorm.rdb.operator.ddl.TableBuilder;
 import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.community.Interval;
 import org.jetlinks.community.things.data.ThingsDataConstants;
 import org.jetlinks.community.things.data.operations.ColumnModeDDLOperationsBase;
 import org.jetlinks.community.things.data.operations.DataSettings;
@@ -43,6 +43,11 @@ public class TimescaleDBColumnModeDDLOperations extends ColumnModeDDLOperationsB
     private final DatabaseOperator database;
 
     private final  TimescaleDBThingsDataProperties properties;
+
+    static Set<String> ignoreColumn = Sets.newHashSet(
+        ThingsDataConstants.COLUMN_ID,
+        ThingsDataConstants.COLUMN_MESSAGE_ID
+    );
 
     public TimescaleDBColumnModeDDLOperations(String thingType,
                                               String templateId,
@@ -70,6 +75,9 @@ public class TimescaleDBColumnModeDDLOperations extends ColumnModeDDLOperationsB
         List<String> partitions = new ArrayList<>();
         partitions.add(ThingsDataConstants.COLUMN_THING_ID);
         for (PropertyMetadata property : properties) {
+            if (ignoreColumn.contains(property.getId())) {
+                continue;
+            }
             builder
                 .addColumn(property.getId())
                 .custom(column -> {
