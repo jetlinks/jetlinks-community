@@ -46,10 +46,7 @@ public class TimescaleDBColumnModeDDLOperations extends ColumnModeDDLOperationsB
 
     static Set<String> ignoreColumn = Sets.newHashSet(
         ThingsDataConstants.COLUMN_ID,
-        ThingsDataConstants.COLUMN_MESSAGE_ID,
-        ThingsDataConstants.COLUMN_PROPERTY_GEO_VALUE,
-        ThingsDataConstants.COLUMN_PROPERTY_OBJECT_VALUE,
-        ThingsDataConstants.COLUMN_PROPERTY_ARRAY_VALUE
+        ThingsDataConstants.COLUMN_MESSAGE_ID
     );
 
     public TimescaleDBColumnModeDDLOperations(String thingType,
