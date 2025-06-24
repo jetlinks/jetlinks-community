@@ -15,16 +15,15 @@
  */
 package org.jetlinks.community.rule.engine.measurement;
 
-import org.jetlinks.community.dashboard.*;
-import org.jetlinks.community.dashboard.supports.StaticMeasurement;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.DefaultConfigMetadata;
 import org.jetlinks.core.metadata.types.IntType;
 import org.jetlinks.core.metadata.types.StringType;
-import org.springframework.util.StringUtils;
+import org.jetlinks.community.dashboard.*;
+import org.jetlinks.community.dashboard.supports.StaticMeasurement;
+import org.jetlinks.community.rule.engine.service.AlarmHistoryService;
+import org.jetlinks.community.timeseries.query.AggregationQueryParam;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
@@ -36,23 +35,23 @@ import java.util.Date;
  */
 public class AlarmRecordTrendMeasurement extends StaticMeasurement {
 
-    TimeSeriesManager timeSeriesManager;
+    AlarmHistoryService historyService;
 
-    public AlarmRecordTrendMeasurement(TimeSeriesManager timeSeriesManager) {
+    public AlarmRecordTrendMeasurement(AlarmHistoryService historyService) {
         super(MeasurementDefinition.of("trend", "告警记录趋势"));
-        this.timeSeriesManager = timeSeriesManager;
+        this.historyService = historyService;
         addDimension(new AggRecordTrendDimension());
     }
 
 
     static ConfigMetadata aggConfigMetadata = new DefaultConfigMetadata()
-        .add("alarmConfigId", "告警配置Id", "", StringType.GLOBAL)
-        .add("time", "周期", "例如: 1h,10m,30s", StringType.GLOBAL)
-        .add("agg", "聚合类型", "count,sum,avg,max,min", StringType.GLOBAL)
-        .add("format", "时间格式", "如: MM-dd:HH", StringType.GLOBAL)
-        .add("limit", "最大数据量", "", StringType.GLOBAL)
-        .add("from", "时间从", "", StringType.GLOBAL)
-        .add("to", "时间至", "", StringType.GLOBAL);
+            .add("alarmConfigId", "告警配置Id", "", StringType.GLOBAL)
+            .add("time", "周期", "例如: 1h,10m,30s", StringType.GLOBAL)
+            .add("agg", "聚合类型", "count,sum,avg,max,min", StringType.GLOBAL)
+            .add("format", "时间格式", "如: MM-dd:HH", StringType.GLOBAL)
+            .add("limit", "最大数据量", "", StringType.GLOBAL)
+            .add("from", "时间从", "", StringType.GLOBAL)
+            .add("to", "时间至", "", StringType.GLOBAL);
 
 
     class AggRecordTrendDimension implements MeasurementDimension {
@@ -78,39 +77,34 @@ public class AlarmRecordTrendMeasurement extends StaticMeasurement {
         }
 
         public AggregationQueryParam createQueryParam(MeasurementParameter parameter) {
-            String targetType = parameter.getString("targetType").orElse(null);
-            String targetId = parameter.getString("targetId").orElse(null);
             return AggregationQueryParam
-                .of()
-                .groupBy(parameter.getInterval("time", null),
-                         parameter.getString("format").orElse("MM月dd日 HH时"))
-                .sum("count", "count")
-                .filter(query -> query
-                    .when(StringUtils.hasText(targetType), q -> q.and("targetType", targetType))
-                    .when(StringUtils.hasText(targetId), q -> q.and("targetId",targetId))
-                )
-                .limit(parameter.getInt("limit").orElse(1))
-                .from(parameter
-                          .getDate("from")
-                          .orElseGet(() -> Date
-                              .from(LocalDateTime
-                                        .now()
-                                        .plusDays(-1)
-                                        .atZone(ZoneId.systemDefault())
-                                        .toInstant())))
-                .to(parameter.getDate("to").orElse(new Date()));
+                    .of()
+                    .groupBy(parameter.getInterval("time", null),
+                             parameter.getString("format").orElse("MM月dd日 HH时"))
+                    .count("targetId", "count")
+                    .limit(parameter.getInt("limit").orElse(1))
+                    .from(parameter
+                                  .getDate("from")
+                                  .orElseGet(() -> Date
+                                          .from(LocalDateTime
+                                                        .now()
+                                                        .plusDays(-1)
+                                                        .atZone(ZoneId.systemDefault())
+                                                        .toInstant())))
+                    .to(parameter.getDate("to").orElse(new Date()));
         }
 
         @Override
         public Flux<SimpleMeasurementValue> getValue(MeasurementParameter parameter) {
             AggregationQueryParam param = createQueryParam(parameter);
-            return Flux.defer(()-> param
-                           .execute(timeSeriesManager.getService(AlarmTimeSeriesMetric.alarmStreamMetrics())::aggregation)
-                           .index((index, data) -> SimpleMeasurementValue.of(
-                               data.getLong("count",0),
-                               data.getString("time",""),
-                               index)))
-                       .take(param.getLimit());
+            return param
+                    .execute(historyService::aggregation)
+                    .index((index, data) -> SimpleMeasurementValue.of(
+                            data.getLong("count", 0),
+                            data.getString("time", ""),
+                            index))
+                    .take(param.getLimit());
         }
+
     }
 }

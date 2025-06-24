@@ -53,7 +53,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 @AllArgsConstructor
-class TDengineThingDataHelper implements Disposable {
+public class TDengineThingDataHelper implements Disposable {
 
 
     final TDengineOperations operations;
