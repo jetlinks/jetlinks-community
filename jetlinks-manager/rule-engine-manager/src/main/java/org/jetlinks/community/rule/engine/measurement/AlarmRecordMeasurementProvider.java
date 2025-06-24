@@ -1,33 +1,8 @@
-/*
- * Copyright 2025 JetLinks https://www.jetlinks.cn
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.jetlinks.community.rule.engine.measurement;
 
-import com.google.common.collect.Maps;
-import io.micrometer.core.instrument.MeterRegistry;
-import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.community.dashboard.supports.StaticMeasurementProvider;
-import org.jetlinks.community.micrometer.MeterRegistryManager;
-import org.jetlinks.community.rule.engine.alarm.AlarmConstants;
-import org.jetlinks.community.rule.engine.entity.AlarmHistoryInfo;
-import org.jetlinks.community.timeseries.TimeSeriesManager;
-import org.jetlinks.community.utils.ConverterUtils;
-import org.springframework.context.event.EventListener;
+import org.jetlinks.community.rule.engine.service.AlarmHistoryService;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 /**
  * @author bestfeng
@@ -35,36 +10,24 @@ import java.util.Map;
 @Component
 public class AlarmRecordMeasurementProvider extends StaticMeasurementProvider {
 
-    MeterRegistry registry;
+//    MeterRegistry registry;
 
-    public AlarmRecordMeasurementProvider(MeterRegistryManager registryManager,
-                                          TimeSeriesManager timeSeriesManager) {
+    public AlarmRecordMeasurementProvider(AlarmHistoryService historyService) {
         super(AlarmDashboardDefinition.alarm, AlarmObjectDefinition.record);
 
-        registry = registryManager.getMeterRegister(AlarmTimeSeriesMetric.alarmStreamMetrics().getId());
-        addMeasurement(new AlarmRecordTrendMeasurement(timeSeriesManager));
-        addMeasurement(new AlarmRecordRankMeasurement(timeSeriesManager));
+//        registry = registryManager.getMeterRegister(AlarmTimeSeriesMetric.alarmStreamMetrics().getId());
+        addMeasurement(new AlarmRecordTrendMeasurement(historyService));
+        addMeasurement(new AlarmRecordRankMeasurement(historyService));
 
     }
 
-    @EventListener
-    public void aggAlarmRecord(AlarmHistoryInfo info) {
-        registry
-            .counter("record-agg", getTags(info))
-            .increment();
-    }
+//    @EventListener
+//    public void aggAlarmRecord(AlarmHistoryInfo info) {
+//        registry
+//            .counter("record-agg", getTags(info))
+//            .increment();
+//    }
 
 
 
-    public String[] getTags(AlarmHistoryInfo info) {
-        Map<String, Object> tagMap = Maps.newLinkedHashMap();
-
-      //  tagMap.put(AlarmConstants.ConfigKey.targetId, info.getTargetId());
-        //只需要记录targetType,用于统计 设备，产品等告警数量.
-        tagMap.put(AlarmConstants.ConfigKey.targetType, info.getTargetType());
-        //tagMap.put(AlarmConstants.ConfigKey.targetName, info.getTargetName());
-//        tagMap.put(AlarmConstants.ConfigKey.alarmConfigId, info.getAlarmConfigId());
-        tagMap.put(PropertyConstants.creatorId.getKey(), info.getCreatorId());
-        return ConverterUtils.convertMapToTags(tagMap);
-    }
 }
