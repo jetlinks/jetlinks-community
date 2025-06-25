@@ -97,6 +97,28 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.7</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                            <configuration>
+                                <propertyName>jacocoArgLine</propertyName>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
                     <version>2.4</version>
@@ -110,11 +132,6 @@
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <version>2.8.2</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
                     <version>3.3.1</version>
                 </plugin>
@@ -122,12 +139,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
                     <version>3.1.4</version>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>${spring.boot.version}</version>
                 </plugin>
 
                 <plugin>
@@ -176,6 +187,7 @@
                             <include>**/*Tests.java</include>
                             <include>**/*TestCase.java</include>
                         </includes>
+                        <!--suppress UnresolvedMavenProperty -->
                         <argLine>-Dfile.encoding=UTF-8 ${jacocoArgLine}</argLine>
                     </configuration>
                 </plugin>
@@ -201,146 +213,90 @@
                         </compilerArgs>
                     </configuration>
                 </plugin>
-
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>4.6</version>
+                    <configuration>
+                        <!-- 使用Maven多模块项目根目录属性，确保在任何子模块中都能找到许可证头文件 -->
+                        <header>${maven.multiModuleProjectDirectory}/licenses/license-header.txt</header>
+                        <!-- 文件包含配置 -->
+                        <includes>
+                            <include>**/*.java</include>
+                        </includes>
+                        <!-- 文件排除配置 -->
+                        <excludes>
+                            <exclude>target/**</exclude>
+                            <exclude>*.log</exclude>
+                            <exclude>.git/**</exclude>
+                            <exclude>.idea/**</exclude>
+                            <exclude>logs/**</exclude>
+                        </excludes>
+                        <!-- 编码设置 -->
+                        <encoding>UTF-8</encoding>
+                        <!-- 严格模式：缺失许可证头时失败 -->
+                        <strictCheck>true</strictCheck>
+                        <!-- 启用映射功能 -->
+                        <mapping>
+                            <java>SLASHSTAR_STYLE</java>
+                        </mapping>
+                        <!-- 属性配置，用于许可证头中的变量替换 -->
+                        <properties>
+                            <owner>JetLinks https://www.jetlinks.cn</owner>
+                            <year>2025</year>
+                        </properties>
+                    </configuration>
+                    <executions>
+                        <!-- 在validate阶段自动检查许可证头 -->
+                        <execution>
+                            <id>check-license</id>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <phase>validate</phase>
+                        </execution>
+                        <!-- 手动执行更新许可证头 -->
+                        <execution>
+                            <id>format-license</id>
+                            <goals>
+                                <goal>format</goal>
+                            </goals>
+                            <!-- 不绑定到任何阶段，手动执行 -->
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
 
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-
-            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.7</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                        <configuration>
-                            <propertyName>jacocoArgLine</propertyName>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.4</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
-                <version>1.6.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>addTestSources</goal>
-                            <goal>compile</goal>
-                            <goal>compileTests</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.0</version>
-                <configuration>
-                    <includes>
-                        <include>**/*Test.java</include>
-                        <include>**/*Tests.java</include>
-                        <include>**/*TestCase.java</include>
-                    </includes>
-                    <argLine>-Dfile.encoding=UTF-8 ${jacocoArgLine}</argLine>
-                </configuration>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
-                <configuration>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                    </compilerArgs>
-                    <source>${project.build.jdk}</source>
-                    <target>${project.build.jdk}</target>
-                </configuration>
             </plugin>
 
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>4.6</version>
-                <configuration>
-                    <!-- 使用Maven多模块项目根目录属性，确保在任何子模块中都能找到许可证头文件 -->
-                    <header>${maven.multiModuleProjectDirectory}/licenses/license-header.txt</header>
-                    <!-- 文件包含配置 -->
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                    <!-- 文件排除配置 -->
-                    <excludes>
-                        <exclude>target/**</exclude>
-                        <exclude>*.log</exclude>
-                        <exclude>.git/**</exclude>
-                        <exclude>.idea/**</exclude>
-                        <exclude>logs/**</exclude>
-                    </excludes>
-                    <!-- 编码设置 -->
-                    <encoding>UTF-8</encoding>
-                    <!-- 严格模式：缺失许可证头时失败 -->
-                    <strictCheck>true</strictCheck>
-                    <!-- 启用映射功能 -->
-                    <mapping>
-                        <java>SLASHSTAR_STYLE</java>
-                    </mapping>
-                    <!-- 属性配置，用于许可证头中的变量替换 -->
-                    <properties>
-                        <owner>JetLinks https://www.jetlinks.cn</owner>
-                        <year>2025</year>
-                    </properties>
-                </configuration>
-                <executions>
-                    <!-- 在validate阶段自动检查许可证头 -->
-                    <execution>
-                        <id>check-license</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>validate</phase>
-                    </execution>
-                    <!-- 手动执行更新许可证头 -->
-                    <execution>
-                        <id>format-license</id>
-                        <goals>
-                            <goal>format</goal>
-                        </goals>
-                        <!-- 不绑定到任何阶段，手动执行 -->
-                    </execution>
-                </executions>
             </plugin>
 
         </plugins>
@@ -977,11 +933,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
         </dependency>
 
         <dependency>
