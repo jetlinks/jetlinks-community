@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.hswebframework.web.dict.Dict;
 import org.hswebframework.web.dict.EnumDict;
+import org.hswebframework.web.i18n.LocaleUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -68,6 +69,11 @@ public enum DefaultNetworkType implements NetworkType, EnumDict<String> {
     @Override
     public String getValue() {
         return name();
+    }
+
+    @Override
+    public String getName() {
+        return getI18nMessage(LocaleUtils.current());
     }
 
     @Override
