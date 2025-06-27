@@ -115,29 +115,31 @@ public class TimeSeriesAlarmHistoryService implements AlarmHistoryService {
                 TimeSeriesMetric.of(ALARM_HISTORY_METRIC),
                 SimplePropertyMetadata.of("id", "ID", StringType.GLOBAL),
 
-                SimplePropertyMetadata.of("alarmConfigId", "ID", StringType.GLOBAL),
-                SimplePropertyMetadata.of("alarmConfigName", "ID", StringType.GLOBAL),
-                SimplePropertyMetadata.of("alarmRecordId", "ID", StringType.GLOBAL),
+                SimplePropertyMetadata.of("alarmConfigId", "告警配置ID", StringType.GLOBAL),
+                SimplePropertyMetadata.of("alarmConfigName", "告警配置名称", StringType.GLOBAL),
+                SimplePropertyMetadata.of("alarmConfigSource", "告警配置来源", StringType.GLOBAL),
 
-                SimplePropertyMetadata.of("level", "level", IntType.GLOBAL),
-                SimplePropertyMetadata.of("description", "description", StringType.GLOBAL),
-                SimplePropertyMetadata.of("alarmTime", "alarmTime", DateTimeType.GLOBAL),
+                SimplePropertyMetadata.of("alarmRecordId", "告警记录ID", StringType.GLOBAL),
 
-                SimplePropertyMetadata.of("targetType", "targetType", StringType.GLOBAL),
-                SimplePropertyMetadata.of("targetName", "targetName", StringType.GLOBAL),
-                SimplePropertyMetadata.of("targetId", "targetId", StringType.GLOBAL),
+                SimplePropertyMetadata.of("level", "告警级别", IntType.GLOBAL),
+                SimplePropertyMetadata.of("description", "说明", StringType.GLOBAL),
+                SimplePropertyMetadata.of("alarmTime", "告警时间", DateTimeType.GLOBAL),
 
-                SimplePropertyMetadata.of("sourceType", "sourceType", StringType.GLOBAL),
-                SimplePropertyMetadata.of("sourceName", "sourceName", StringType.GLOBAL),
-                SimplePropertyMetadata.of("sourceId", "sourceId", StringType.GLOBAL),
+                SimplePropertyMetadata.of("targetType", "告警目标类型", StringType.GLOBAL),
+                SimplePropertyMetadata.of("targetName", "告警目标名称", StringType.GLOBAL),
+                SimplePropertyMetadata.of("targetId", "告警目标ID", StringType.GLOBAL),
 
-                SimplePropertyMetadata.of("alarmInfo", "alarmInfo", longStringType),
-                SimplePropertyMetadata.of("creatorId", "creatorId", StringType.GLOBAL),
-                SimplePropertyMetadata.of("termSpec", "termSpec", longStringType),
-                SimplePropertyMetadata.of("triggerDesc", "triggerDesc", longStringType),
-                SimplePropertyMetadata.of("actualDesc", "actualDesc", longStringType),
-                SimplePropertyMetadata.of("alarmConfigSource", "alarmConfigSource", StringType.GLOBAL),
-                SimplePropertyMetadata.of("bindings", "bindings", new ArrayType().elementType(StringType.GLOBAL))
+                SimplePropertyMetadata.of("sourceType", "告警来源类型", StringType.GLOBAL),
+                SimplePropertyMetadata.of("sourceName", "告警来源名称", StringType.GLOBAL),
+                SimplePropertyMetadata.of("sourceId", "告警来源ID", StringType.GLOBAL),
+
+                SimplePropertyMetadata.of("alarmInfo", "告警信息", longStringType),
+                SimplePropertyMetadata.of("creatorId", "创建人ID", StringType.GLOBAL),
+                SimplePropertyMetadata.of("termSpec", "告警条件描述", longStringType),
+                SimplePropertyMetadata.of("triggerDesc", "告警触发描述", longStringType),
+                SimplePropertyMetadata.of("actualDesc", "实际触发描述", longStringType),
+                SimplePropertyMetadata.of("bindings", "绑定信息", new ArrayType().elementType(StringType.GLOBAL))
+
 
             )).block(Duration.ofSeconds(10));
     }
