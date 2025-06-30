@@ -155,43 +155,51 @@
 
             </dependencies>
         </profile>
+
+        <profile>
+            <id>ui</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <!--UI 相关依赖-->
+                <dependency>
+                    <groupId>org.jetlinks.ui</groupId>
+                    <artifactId>jetlinks-ui-resource</artifactId>
+                    <version>${jetlinks.ui.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.jetlinks.ui</groupId>
+                    <artifactId>device-manager</artifactId>
+                    <version>${jetlinks.ui.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.jetlinks.ui</groupId>
+                    <artifactId>notify-manager</artifactId>
+                    <version>${jetlinks.ui.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.jetlinks.ui</groupId>
+                    <artifactId>rule-engine-manager</artifactId>
+                    <version>${jetlinks.ui.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.jetlinks.ui</groupId>
+                    <artifactId>authentication-manager</artifactId>
+                    <version>${jetlinks.ui.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 
     <dependencies>
         <dependency>
             <groupId>org.jetlinks.community</groupId>
             <artifactId>common-component</artifactId>
-        </dependency>
-
-        <!--UI 相关依赖-->
-        <dependency>
-            <groupId>org.jetlinks.ui</groupId>
-            <artifactId>jetlinks-ui-resource</artifactId>
-            <version>${jetlinks.ui.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetlinks.ui</groupId>
-            <artifactId>device-manager</artifactId>
-            <version>${jetlinks.ui.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetlinks.ui</groupId>
-            <artifactId>notify-manager</artifactId>
-            <version>${jetlinks.ui.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetlinks.ui</groupId>
-            <artifactId>rule-engine-manager</artifactId>
-            <version>${jetlinks.ui.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetlinks.ui</groupId>
-            <artifactId>authentication-manager</artifactId>
-            <version>${jetlinks.ui.version}</version>
         </dependency>
 
         <dependency>
