@@ -1,23 +1,7 @@
-/*
- * Copyright 2025 JetLinks https://www.jetlinks.cn
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.jetlinks.community.plugin.device;
 
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.community.plugin.context.*;
 import org.jetlinks.core.defaults.CompositeProtocolSupport;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -186,18 +170,18 @@ public class PluginDeviceGatewayProvider extends CompositeProtocolSupport
 
         return driver
             .createPlugin(
-                    properties.getId(),
-                    DefaultPluginContext.of(
+                properties.getId(),
+                DefaultPluginContext.of(
                     registry,
                     new CompositeServiceRegistry(
                         Arrays.asList(
-                                //在插件中获取注册中心时自动转换ID
-                                new SingleServiceRegistry("deviceRegistry",
-                                                          new ExternalDeviceRegistry(properties.getId(), idMapper, deviceRegistry)),
-                                //命令服务
-                                CommandServiceRegistry.instance(),
-                                //获取其他服务时使用默认的服务注册中心
-                                serviceRegistry
+                            //在插件中获取注册中心时自动转换ID
+                            new SingleServiceRegistry("deviceRegistry",
+                                                      new ExternalDeviceRegistry(properties.getId(), idMapper, deviceRegistry)),
+                            //命令服务
+                            CommandServiceRegistry.instance(),
+                            //获取其他服务时使用默认的服务注册中心
+                            serviceRegistry
                         )
                     ),
                     new SimplePluginEnvironment(properties),
@@ -247,7 +231,7 @@ public class PluginDeviceGatewayProvider extends CompositeProtocolSupport
                 try (ObjectInput input = Serializers
                     .getDefault()
                     .createInput(new ByteArrayInputStream(sessionData))) {
-                    return PluginDeviceSession.read(input, registry, plugins::get);
+                    return PluginDeviceSession.read(input, registry, idMapper,plugins::get);
                 }
             })
             .flatMap(Function.identity());

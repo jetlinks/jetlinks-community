@@ -1,30 +1,21 @@
-/*
- * Copyright 2025 JetLinks https://www.jetlinks.cn
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.jetlinks.community.plugin.device;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.jetlinks.community.plugin.utils.PluginUtils;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.enums.ErrorCode;
+import org.jetlinks.core.exception.DeviceOperationException;
+import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.ToDeviceMessageContext;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.PersistentSession;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.core.utils.SerializeUtils;
+import org.jetlinks.plugin.internal.PluginDataIdMapper;
 import org.jetlinks.plugin.internal.device.DeviceGatewayPlugin;
 import reactor.core.publisher.Mono;
 
@@ -39,6 +30,10 @@ public class PluginDeviceSession implements PersistentSession {
     @Setter
     @Getter
     private DeviceGatewayPlugin plugin;
+
+    @Getter
+    @Setter
+    private PluginDataIdMapper idMapper;
 
     private long connectTime = System.currentTimeMillis();
 
@@ -123,6 +118,26 @@ public class PluginDeviceSession implements PersistentSession {
     }
 
     @Override
+    public Mono<Boolean> send(ToDeviceMessageContext context) {
+        DeviceGatewayPlugin plugin = this.plugin;
+        PluginDataIdMapper idMapper = this.idMapper;
+        if (plugin == null || idMapper == null) {
+            return Mono.error(
+                new DeviceOperationException
+                    .NoStackTrace(ErrorCode.SERVER_NOT_AVAILABLE, "error.plugin_not_found")
+            );
+        }
+        return context
+            .reply(
+                PluginUtils
+                    .transformToExternalMessage(idMapper, plugin, ((DeviceMessage) context.getMessage()).copy())
+                    .flatMapMany(plugin::execute)
+                    .flatMap(reply -> PluginUtils.transformToInternalMessage(idMapper, plugin, reply.copy()))
+            )
+            .then(Reactors.ALWAYS_TRUE);
+    }
+
+    @Override
     public String getProvider() {
         return PluginDeviceGatewayProvider.PROVIDER;
     }
@@ -141,6 +156,7 @@ public class PluginDeviceSession implements PersistentSession {
     @SuppressWarnings("all")
     static Mono<PluginDeviceSession> read(ObjectInput input,
                                           DeviceRegistry registry,
+                                          PluginDataIdMapper idMapper,
                                           Function<String, DeviceGatewayPlugin> pluginLoader) {
         String deviceId = input.readUTF();
         long connectTime = input.readLong();
@@ -154,6 +170,7 @@ public class PluginDeviceSession implements PersistentSession {
                 PluginDeviceSession session = new PluginDeviceSession(device);
                 session.connectTime = connectTime;
                 session.pingTime = pingTime;
+                session.idMapper = idMapper;
                 session.timeout = timeout;
                 if (pluginId != null) {
                     session.plugin = pluginLoader.apply(pluginId);
