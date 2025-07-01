@@ -441,9 +441,12 @@ public class DeviceMessageBusinessHandler implements CommandLineRunner {
 
         buffer.init();
 
-        disposable.add(eventBus
-                           .subscribe(subscription, DeviceMessage.class)
-                           .subscribe(msg -> buffer.write(new StateBuf(msg.getDeviceId(), msg.getTimestamp()))));
+        disposable.add(
+            eventBus
+                .subscribe(subscription, payload -> {
+                    DeviceMessage msg = payload.decode(DeviceMessage.class);
+                    return buffer.writeAsync(new StateBuf(msg.getDeviceId(), msg.getTimestamp()));
+                }));
 
         disposable.add(buffer);
 
