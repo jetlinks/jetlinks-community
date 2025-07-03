@@ -35,6 +35,8 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.List;
 
+import static org.jetlinks.community.network.manager.enums.DeviceGatewayState.enabled;
+
 /**
  * @author wangzheng
  * @since 1.0
@@ -77,7 +79,7 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
     @EventListener
     public void handlePrepareUpdate(EntityPrepareModifyEvent<DeviceGatewayEntity> event) {
         putGatewayInfo(event.getAfter());
-        event.async(gatewayConfigValidate(event.getBefore()));
+        event.async(gatewayConfigValidate(event.getAfter()));
     }
 
     @EventListener
@@ -95,7 +97,7 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
         event.async(
             reloadGateway(Flux
                               .fromIterable(event.getEntity())
-                              .filter(gateway -> gateway.getState() == DeviceGatewayState.enabled))
+                              .filter(gateway -> gateway.getState() == enabled))
         );
     }
 
@@ -104,7 +106,7 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
         event.async(
             reloadGateway(Flux
                               .fromIterable(event.getEntity())
-                              .filter(gateway -> gateway.getState() == DeviceGatewayState.enabled))
+                              .filter(gateway -> gateway.getState() == enabled))
         );
     }
 
@@ -118,7 +120,7 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
                 }
                 return reloadGateway(Flux
                                          .fromIterable(event.getAfter())
-                                         .filter(gateway -> gateway.getState() == DeviceGatewayState.enabled));
+                                         .filter(gateway -> gateway.getState() == enabled));
             })
         );
     }
@@ -162,7 +164,7 @@ public class DeviceGatewayEventHandler implements CommandLineRunner {
     // 检验网关配置参数
     private Mono<Void> gatewayConfigValidate(List<DeviceGatewayEntity> entityList) {
         return Flux.fromIterable(entityList)
-                   .filter(entity -> entity.getConfiguration() != null)
+                   .filter(entity -> entity.getConfiguration() != null && entity.getState() == enabled)
                    .flatMap(entity ->
                                 Mono.justOrEmpty(deviceGatewayManager.getProvider(entity.getProvider()))
                                     //当分布式部署时,每个服务支持的网关可能不同.
