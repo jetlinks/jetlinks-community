@@ -30,6 +30,9 @@ spring:
     r2dbc:
         # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
         url: r2dbc:postgresql://127.0.0.1:5432/jetlinks
+        # 如果需要切换为mysql,请同时禁用timescaledb.enabled=false或者单独配置timescaledb.r2dbc.url
+        # 并且需要使用elasticsearch,请勾选es7x profile或者手动引入es依赖,具体在pom.xml搜索es7x.并配置elasticsearch相关配置
+        # 数据库说明: https://hanta.yuque.com/px7kg1/dev/tw77qae6b08bcdfh
         #    url: r2dbc:mysql://127.0.0.1:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
         username: postgres
         password: jetlinks
@@ -41,6 +44,7 @@ spring:
     reactor:
         debug-agent:
             enabled: false
+    # 引入elasticsearch相关模块后使用elasticsearch来存储设备、时序、日志等数据
     elasticsearch:
         uris: 127.0.0.1:9200
         socket-timeout: 10s
@@ -51,6 +55,7 @@ easyorm:
     default-schema: public # 数据库默认的schema
     dialect: postgres #数据库方言
 timescaledb:
+    # 默认使用timescaledb来存储设备数据,如果使用mysql,需要设置为false或配置shared-spring为false以及r2dbc相关配置.
     enabled: true
     shared-spring: true # 默认共享spring的连接
     #    r2dbc:
