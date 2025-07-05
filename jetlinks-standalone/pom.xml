@@ -57,6 +57,16 @@
     <profiles>
 
         <profile>
+            <id>oracle</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.oracle.database.r2dbc</groupId>
+                    <artifactId>oracle-r2dbc</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
             <id>osx-x86_64</id>
             <activation>
                 <os>
