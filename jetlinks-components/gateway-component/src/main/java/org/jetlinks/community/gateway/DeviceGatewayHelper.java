@@ -141,6 +141,7 @@ public class DeviceGatewayHelper {
                         }
                     })
                     .then()
+                    .contextWrite(Context.of(DeviceMessage.class, children))
             );
         } else {
             //子设备上线
@@ -172,7 +173,8 @@ public class DeviceGatewayHelper {
                                 childrenSession.replaceWith(parentSession);
                             }
                         }
-                    }));
+                    }))
+                   .contextWrite(Context.of(DeviceMessage.class, children));
 
 
             //子设备注册
