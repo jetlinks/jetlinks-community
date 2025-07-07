@@ -62,6 +62,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
 public class DefaultRDBDataSource extends AbstractDataSource<RDBDataSourceProperties> implements RDBDataSource {
 
@@ -247,6 +248,7 @@ public class DefaultRDBDataSource extends AbstractDataSource<RDBDataSourceProper
                     .as(transactionalOperator::transactional);
             }
         };
+        executor.setDefaultFactory(connectionPool);
         executor.setBindSymbol(dialect.getBindSymbol());
         executor.setBindCustomSymbol(!executor.getBindSymbol().equals("?"));
         RDBDatabaseMetadata database = new RDBDatabaseMetadata(dialect.getDialect());
