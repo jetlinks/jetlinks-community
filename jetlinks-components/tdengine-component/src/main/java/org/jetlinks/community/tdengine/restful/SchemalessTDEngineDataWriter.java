@@ -77,9 +77,8 @@ public class SchemalessTDEngineDataWriter implements TDEngineDataWriter, Disposa
         if (buffer == null) {
             return writeNow(Flux.just(convertToLine(point)));
         }
-        buffer.write(convertToLine(point));
 
-        return Mono.empty();
+        return  buffer.writeAsync(convertToLine(point));
     }
 
     @Override

@@ -269,7 +269,7 @@ public class DatabaseDeviceLatestDataService implements DeviceLatestDataService,
             prob.put("deviceName", deviceName);
 
             Buffer buffer = Buffer.of(tableName, message.getDeviceId(), deviceName, prob, message.getTimestamp());
-            writer.write(buffer);
+            return writer.writeAsync(buffer);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

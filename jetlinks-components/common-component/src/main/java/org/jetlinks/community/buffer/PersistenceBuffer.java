@@ -399,6 +399,7 @@ public class PersistenceBuffer<T extends Serializable> implements EvictionContex
         return Mono
             .fromRunnable(() -> data.forEach(this::write))
             .subscribeOn(writer)
+            .publishOn(Schedulers.parallel())
             .then();
     }
 

@@ -3,7 +3,7 @@ server:
 
 spring:
     profiles:
-        active: dev
+        active: default,dev,local
     application:
         name: jetlinks-platform
     jackson:
@@ -19,23 +19,21 @@ spring:
             static-locations: file:./static/,/,classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/, classpath:/public/
     data:
         redis:
-            host: 127.0.0.1
-            port: 6379
-            lettuce:
-                pool:
-                    max-active: 1024
+            host: ${REDIS_HOST:127.0.0.1}
+            port: ${REDIS_PORT}
             timeout: 20s
-        #    database: 3
-    #        max-wait: 10s
+            database: ${REDIS_DATABASE}
+            password: ${REDIS_PASSWORD:""}
     r2dbc:
         # 需要手动创建数据库,启动会自动创建表,修改了配置easyorm相关配置也要修改
-        url: r2dbc:postgresql://127.0.0.1:5432/jetlinks
+        url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_DATABASE:jetlinks}
         # 如果需要切换为mysql,请同时禁用timescaledb.enabled=false或者单独配置timescaledb.r2dbc.url
-        # 并且需要使用elasticsearch,请勾选es7x profile或者手动引入es依赖,具体在pom.xml搜索es7x.并配置elasticsearch相关配置
+        # 如果需要使用elasticsearch,请勾选es7x profile或者手动引入es依赖,具体在pom.xml搜索es7x.并配置elasticsearch相关配置
         # 数据库说明: https://hanta.yuque.com/px7kg1/dev/tw77qae6b08bcdfh
-        #    url: r2dbc:mysql://127.0.0.1:3306/jetlinks?ssl=false&serverZoneId=Asia/Shanghai # 修改了配置easyorm相关配置也要修改
-        username: postgres
-        password: jetlinks
+        # 注意:切换了数据库easyorm相关配置也要修改
+        # url: r2dbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_DATABASE}?ssl=false&serverZoneId=Asia/Shanghai
+        username: ${DB_USERNAME:postgres}
+        password: ${DB_PASSWORD:jetlinks}
         pool:
             max-size: 128
             max-idle-time: 2m # 值不能大于mysql server的wait_timeout配置
@@ -46,14 +44,14 @@ spring:
             enabled: false
     # 引入elasticsearch相关模块后使用elasticsearch来存储设备、时序、日志等数据
     elasticsearch:
-        uris: 127.0.0.1:9200
+        uris: ${ES_URIS:127.0.0.1:9200}
         socket-timeout: 10s
         connection-timeout: 15s
-#        password:
-#        username:
+        password: ${ES_USERNAME:""}
+        username: ${ES_PASSWORD:""}
 easyorm:
-    default-schema: public # 数据库默认的schema
-    dialect: postgres #数据库方言
+    default-schema: ${DB_SCHEMA:public} # 数据库默认的schema,mysql时则为数据库名.(注意大小写,请勿使用-等特殊字符)
+    dialect: ${DB_DIALECT:postgres} #数据库方言
 timescaledb:
     # 默认使用timescaledb来存储设备数据,如果使用mysql,需要设置为false或配置shared-spring为false以及r2dbc相关配置.
     enabled: true
@@ -62,7 +60,7 @@ timescaledb:
     #        url: r2dbc:postgresql://localhost:15432/jetlinks
     #        username: postgres
     #        password: p@ssw0rd
-    schema: ${easyorm.default-schema}
+    schema: ${TIMESCALEDB_SCHEMA:${easyorm.default-schema}} # timescaledb的schema,默认public
     time-series:
         enabled: true
         retention-policies:
@@ -190,7 +188,19 @@ logging:
         "org.jetlinks.community.timescaledb.impl.DefaultTimescaleDBDataWriter": warn
         "io.scalecube": warn
         "org.jetlinks.community.things.data": warn
-    config: classpath:logback-spring.xml
+        "org.hswebframework.web.starter.i18n": warn
+    logback:
+        rollingpolicy:
+            max-file-size: 100MB
+            max-history: 7
+            total-size-cap: 10GB
+    file:
+        name: ./data/logs/${spring.application.name}_${server.port}.log
+        path: ./data/logs
+    threshold:
+        file: INFO # 文件只记录INFO以上的日志
+        console: TRACE
+        event: WARN # 只记录WARN以上的日志到系统日志中
 vertx:
     max-event-loop-execute-time-unit: seconds
     max-event-loop-execute-time: 30

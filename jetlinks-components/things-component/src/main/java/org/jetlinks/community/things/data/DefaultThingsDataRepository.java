@@ -61,7 +61,7 @@ public class DefaultThingsDataRepository implements ThingsDataRepository, Things
     private ThingsDataRepositoryStrategy getPolicyNow(String policy) {
         ThingsDataRepositoryStrategy dataPolicy = policies.get(policy);
         if (dataPolicy == null) {
-            throw new I18nSupportException("error.thing_data_policy_unsupported", policy);
+            throw new I18nSupportException.NoStackTrace("error.thing_data_policy_unsupported", policy);
         }
         return dataPolicy;
     }
