@@ -96,7 +96,7 @@ public abstract class BaseDimensionProvider<T extends GenericEntity<String>> imp
     }
 
     protected Flux<? extends Dimension> convertToDimension(Publisher<T> source) {
-        return Flux.from(source).flatMap(this::convertToDimension);
+        return Flux.from(source).flatMap(this::convertToDimension,8);
     }
 
     @Override

@@ -1,42 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <configuration>
-    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 
-    <conversionRule conversionWord="shortened"
-                    class="org.jetlinks.community.logging.logback.ShortenedThrowableConverter"/>
+    <!-- 过滤掉不重要的栈信息 -->
+    <conversionRule conversionWord="shortened" class="org.jetlinks.community.logging.logback.ShortenedThrowableConverter"/>
     <property name="LOG_EXCEPTION_CONVERSION_WORD" value="%shortened"/>
 
-    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
-    <property name="LOG_FILE" value="./data/logs/jetlinks-community.log"/>
+    <springProperty scope="context" name="LOG_EVENT_THRESHOLD" source="logging.threshold.event" defaultValue="WARN" />
 
-    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
-
-    <appender name="LOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender"/>
-    <logger name="org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker" level="ERROR" />
-
-    <appender name="ErrorLOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender">
+    <!-- 记录到 系统日志 功能中 可通过配置 logging.threshold.event=WARN 来指定记录的日志级别 -->
+    <appender name="LOGEventPublisher" class="org.jetlinks.community.logging.logback.SystemLoggingAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>WARN</level>
+            <level>${LOG_EVENT_THRESHOLD}</level>
         </filter>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
-            <charset>${FILE_LOG_CHARSET}</charset>
-        </encoder>
-        <file>${LOG_FILE}</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOGBACK_ROLLINGPOLICY_FILE_NAME_PATTERN:-${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz}</fileNamePattern>
-            <cleanHistoryOnStart>${LOGBACK_ROLLINGPOLICY_CLEAN_HISTORY_ON_START:-false}</cleanHistoryOnStart>
-            <maxFileSize>${LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE:-10MB}</maxFileSize>
-            <totalSizeCap>${LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP:-0}</totalSizeCap>
-            <maxHistory>${LOGBACK_ROLLINGPOLICY_MAX_HISTORY:-7}</maxHistory>
-        </rollingPolicy>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>WARN</level>
-        </filter>
-    </appender>
+    <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/spring.log}"/>
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+
+    <logger name="org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker" level="ERROR"/>
+    <logger name="org.jetlinks.pro.timescaledb.impl.DefaultTimescaleDBDataWriter" level="WARN"/>
 
     <!--控制台使用异步打印，防止阻塞-->
     <appender name="AsyncConsoleAppender" class="ch.qos.logback.classic.AsyncAppender">
@@ -54,31 +40,10 @@
         <appender-ref ref="CONSOLE"/>
     </appender>
 
-    <springProfile name="dev">
-
-        <logger name="system" level="debug">
-            <appender-ref ref="LOGEventPublisher"/>
-        </logger>
-
-        <root level="INFO">
-            <appender-ref ref="AsyncConsoleAppender"/>
-            <appender-ref ref="ErrorLOGEventPublisher"/>
-        </root>
-    </springProfile>
-
-    <springProfile name="test">
-        <root level="INFO">
-            <appender-ref ref="AsyncConsoleAppender"/>
-            <appender-ref ref="FILE"/>
-        </root>
-    </springProfile>
-
-    <springProfile name="prod">
-        <root level="INFO">
-            <appender-ref ref="AsyncConsoleAppender"/>
-            <appender-ref ref="LOGEventPublisher"/>
-            <appender-ref ref="FILE"/>
-        </root>
-    </springProfile>
+    <root level="INFO">
+        <appender-ref ref="AsyncConsoleAppender"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="LOGEventPublisher"/>
+    </root>
 
 </configuration>

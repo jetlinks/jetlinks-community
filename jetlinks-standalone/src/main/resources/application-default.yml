@@ -1,0 +1,24 @@
+# 注意!!!,本地开发时,请创建application-local.yml文件进行配置,不要随意修改application-default.yml文件并提交到git.
+
+# 数据库相关配置
+DB_HOST: 127.0.0.1 # postgresql 数据库地址
+DB_PORT: 5432 # postgresql 数据库端口
+DB_DATABASE: jetlinks # postgresql 数据库名
+DB_USERNAME: postgres # postgresql 数据库用户名
+DB_PASSWORD: jetlinks # postgresql 数据库密码
+DB_SCHEMA: public # postgresql 数据库schema,默认public
+DB_DIALECT: postgres # 数据库方言,默认postgres. 支持postgres,mysql,oracle,sqlserver等.
+# redis 相关配置
+REDIS_HOST: 127.0.0.1
+REDIS_PORT: 6379 # redis 数据库地址
+REDIS_PASSWORD: "" # redis 密码
+REDIS_DATABASE: 0 # redis 数据库索引
+
+# timescalbedb相关配置
+TIMESCALEDB_SCHEMA: public # timescaledb 数据库schema,默认public
+
+
+# elasticsearch相关配置
+ES_URIS: 127.0.0.1:9200
+ES_USERNAME: "" # elasticsearch 用户名
+ES_PASSWORD: "" # elasticsearch 密码
