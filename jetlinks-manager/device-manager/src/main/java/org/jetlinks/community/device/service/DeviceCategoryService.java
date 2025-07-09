@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -79,7 +80,8 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
     private Mono<Void> initDefaultData() {
         return Mono
             .fromCallable(() -> {
-                ClassPathResource resource = new ClassPathResource("device-category.json");
+                ClassPathResource resource = new ClassPathResource("device-category.json",
+                                                                   DeviceCategoryService.class.getClassLoader());
 
                 try (InputStream stream = resource.getInputStream()) {
                     String json = StreamUtils.copyToString(stream, StandardCharsets.UTF_8);
@@ -103,6 +105,7 @@ public class DeviceCategoryService extends GenericReactiveTreeSupportCrudService
                 }
 
             })
+            .subscribeOn(Schedulers.boundedElastic())
             .flatMap(all -> save(Flux.fromIterable(all)))
             .then();
     }
