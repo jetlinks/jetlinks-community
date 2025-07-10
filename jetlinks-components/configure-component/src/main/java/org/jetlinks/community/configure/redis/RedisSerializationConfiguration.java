@@ -59,7 +59,7 @@ public class RedisSerializationConfiguration {
             .hashValue(serializer)
             .build();
 
-        return new ReactiveRedisTemplate<>(reactiveRedisConnectionFactory, serializationContext);
+        return new PublishOnReactiveRedisTemplate<>(reactiveRedisConnectionFactory, serializationContext);
     }
 
 }
