@@ -28,6 +28,7 @@ import reactor.core.scheduler.Schedulers;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.function.Function;
 
 @AllArgsConstructor
 @Slf4j
@@ -35,6 +36,7 @@ public class RDBJdbcReactiveSqlExecutor extends JdbcReactiveSqlExecutor {
     private final DataSource dataSource;
 
     @Override
+    @Deprecated
     public Mono<Connection> getConnection() {
         return Mono
             .using(dataSource::getConnection,
@@ -51,23 +53,17 @@ public class RDBJdbcReactiveSqlExecutor extends JdbcReactiveSqlExecutor {
     }
 
     @Override
-    public Mono<Void> execute(Publisher<SqlRequest> request) {
-        return super
-            .execute(request)
-            .subscribeOn(Schedulers.boundedElastic());
+    protected <T> Flux<T> doInConnection(Function<Connection, Publisher<T>> handler) {
+        return Flux.using(
+            dataSource::getConnection,
+            handler,
+            conn -> {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    log.error(e.getMessage(), e);
+                }
+            });
     }
 
-    @Override
-    public Mono<Integer> update(Publisher<SqlRequest> request) {
-        return super
-            .update(request)
-            .subscribeOn(Schedulers.boundedElastic());
-    }
-
-    @Override
-    public <E> Flux<E> select(Publisher<SqlRequest> request, ResultWrapper<E, ?> wrapper) {
-        return super
-            .select(request, wrapper)
-            .subscribeOn(Schedulers.boundedElastic());
-    }
 }
