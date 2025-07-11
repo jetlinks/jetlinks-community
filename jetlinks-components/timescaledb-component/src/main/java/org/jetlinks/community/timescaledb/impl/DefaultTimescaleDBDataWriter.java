@@ -17,6 +17,7 @@ package org.jetlinks.community.timescaledb.impl;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
+import io.r2dbc.spi.R2dbcBadGrammarException;
 import io.r2dbc.spi.R2dbcException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -155,6 +156,10 @@ public class DefaultTimescaleDBDataWriter implements TimescaleDBDataWriter, Comm
     }
 
     private boolean needRetry(Throwable err) {
+        // 数据库语法错误?
+        if (ErrorUtils.hasException(err, R2dbcBadGrammarException.class)) {
+            return false;
+        }
         return ErrorUtils.hasException(
             err,
             R2dbcException.class,
