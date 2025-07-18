@@ -131,7 +131,7 @@ public class DeviceProductDeployHandler implements CommandLineRunner {
         productService
             .createQuery()
             .fetch()
-            .filter(product -> new Byte((byte) 1).equals(product.getState()))
+            .filter(product -> Byte.valueOf((byte) 1).equals(product.getState()))
             .flatMap(deviceProductEntity -> this
                 .doRegisterMetadata(deviceProductEntity.getId(), deviceProductEntity.getMetadata())
                 .onErrorResume(err -> {

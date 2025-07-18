@@ -48,7 +48,7 @@ public class ThirdPartyUserTermBuilder extends AbstractTermFragmentBuilder {
             sqlFragments.addSql("not");
         }
         sqlFragments
-            .addSql("exists(select 1 from ",getTableName("s_third_party_user_bind",column)," _bind where _bind.user_id =", columnFullName);
+            .addSql("exists(select 1 from ",getTableName("s_third_party_user_bind",column)," bind_ where bind_.user_id =", columnFullName);
 
         if (CollectionUtils.isEmpty(term.getOptions())) {
             throw new I18nSupportException("error.query_conditions_are_not_specified", column.getName()+"$user-third$type");
@@ -60,7 +60,7 @@ public class ThirdPartyUserTermBuilder extends AbstractTermFragmentBuilder {
         Arrays.fill(args, "?");
         sqlFragments
             .addSql(
-                "and _bind.type = ? and _bind.provider in (", String.join(",", args), ")")
+                "and bind_.type = ? and bind_.provider in (", String.join(",", args), ")")
             .addParameter(type)
             .addParameter(idList);
 

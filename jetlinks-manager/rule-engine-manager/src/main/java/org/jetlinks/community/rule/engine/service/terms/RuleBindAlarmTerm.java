@@ -78,11 +78,11 @@ public class RuleBindAlarmTerm extends AbstractTermFragmentBuilder {
             sqlFragments.addSql("not");
         }
         sqlFragments
-            .addSql("exists(select 1 from ", getTableName("s_alarm_rule_bind", column), " _bind where _bind.alarm_id =", columnFullName);
+            .addSql("exists(select 1 from ", getTableName("s_alarm_rule_bind", column), " bind_ where bind_.alarm_id =", columnFullName);
 
         sqlFragments
             .addSql(
-                "and _bind.rule_id in (",
+                "and bind_.rule_id in (",
                 bindTerm.ruleId.stream().map(r -> "?").collect(Collectors.joining(",")),
                 ")")
             .addParameter(bindTerm.ruleId);
@@ -90,7 +90,7 @@ public class RuleBindAlarmTerm extends AbstractTermFragmentBuilder {
         if (CollectionUtils.isNotEmpty(bindTerm.branchId)) {
             sqlFragments
                 .addSql(
-                    "and _bind.branch_index in (",
+                    "and bind_.branch_index in (",
                     bindTerm.branchId.stream().map(r -> "?").collect(Collectors.joining(",")),
                     ")")
                 .addParameter(bindTerm.branchId);

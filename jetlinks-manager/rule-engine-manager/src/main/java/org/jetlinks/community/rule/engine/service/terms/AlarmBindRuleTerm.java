@@ -59,11 +59,11 @@ public class AlarmBindRuleTerm extends AbstractTermFragmentBuilder {
         }
 
         sqlFragments
-            .addSql("exists(select 1 from ", getTableName("s_alarm_rule_bind", column), " _bind where _bind.rule_id =", columnFullName);
+            .addSql("exists(select 1 from ", getTableName("s_alarm_rule_bind", column), " bind_ where bind_.rule_id =", columnFullName);
 
         List<Object> alarmId = convertList(column, term);
         sqlFragments
-            .addSql("and _bind.alarm_id in (")
+            .addSql("and bind_.alarm_id in (")
             .add(SqlUtils.createQuestionMarks(alarmId.size()))
             //  )
             .add(SqlFragments.RIGHT_BRACKET)
