@@ -22,11 +22,11 @@
         <project.build.jdk>${java.version}</project.build.jdk>
         <!--  基础通用模块依赖,快照版本表示正在持续迭代.发布后将同步到maven中央仓库 -->
         <!-- https://github.com/hs-web/hsweb-framework -->
-        <hsweb.framework.version>4.0.19</hsweb.framework.version>
+        <hsweb.framework.version>4.0.20-SNAPSHOT</hsweb.framework.version>
         <!-- https://github.com/hs-web/hsweb-easy-orm -->
-        <easyorm.version>4.1.4</easyorm.version>
+        <easyorm.version>4.1.5-SNAPSHOT</easyorm.version>
         <!-- https://github.com/jetlinks/jetlinks -->
-        <jetlinks.version>1.2.4</jetlinks.version>
+        <jetlinks.version>1.2.5-SNAPSHOT</jetlinks.version>
         <!-- https://github.com/hs-web/reactor-excel -->
         <reactor.excel.version>1.0.6</reactor.excel.version>
         <!-- https://github.com/jetlinks/reactor-ql -->
