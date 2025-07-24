@@ -22,11 +22,8 @@ import org.jetlinks.community.utils.ConverterUtils;
 
 import java.util.List;
 
-/**
- * @since 2.1
- */
 @AllArgsConstructor
-public class ArrayConverter implements ConverterExcelOption{
+public class ArrayConverter implements ConverterExcelOption {
 
     private boolean array;
 
@@ -38,12 +35,12 @@ public class ArrayConverter implements ConverterExcelOption{
     @Override
     public Object convertForWrite(Object val, ExcelHeader header) {
         return String.join(",",
-            ConverterUtils.convertToList(val, v -> {
-                if (converter == null) {
-                    return String.valueOf(v);
-                }
-                return String.valueOf(converter.convertForWrite(v, header));
-            }));
+                           ConverterUtils.convertToList(val, v -> {
+                               if (converter == null) {
+                                   return String.valueOf(v);
+                               }
+                               return String.valueOf(converter.convertForWrite(v, header));
+                           }));
     }
 
     @Override

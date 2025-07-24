@@ -19,6 +19,10 @@ import org.hswebframework.reactor.excel.ExcelHeader;
 import org.hswebframework.reactor.excel.ExcelOption;
 
 /**
+ * excel数据转换操作,用于自定义数据转换.
+ *
+ * @author zhouhao
+ * @see org.jetlinks.community.io.excel.annotation.ExcelHeader#converter()
  * @since 2.1
  */
 public interface ConverterExcelOption extends ExcelOption {

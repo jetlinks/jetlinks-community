@@ -20,6 +20,7 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.hswebframework.reactor.excel.ExcelHeader;
 import org.hswebframework.reactor.excel.WritableCell;
+import org.hswebframework.reactor.excel.context.Context;
 import org.hswebframework.reactor.excel.poi.options.CellOption;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.joda.time.DateTime;
@@ -67,10 +68,39 @@ public class DateConverter implements ConverterExcelOption, CellOption {
         return date;
     }
 
+    public void cell(org.apache.poi.ss.usermodel.Cell poiCell, WritableCell cell, Context context) {
+
+        short fmt = context
+            .computeIfAbsent("fmt_" + format, (ignore) -> {
+                DataFormat dataFormat = poiCell
+                    .getRow()
+                    .getSheet()
+                    .getWorkbook()
+                    .createDataFormat();
+                return dataFormat.getFormat(format);
+            });
+
+        CellStyle style = poiCell.getCellStyle();
+
+        if (style.getIndex() == 0) {
+            style = context
+                .computeIfAbsent("fmt_s_" + format + ":" + cell.getColumnIndex(), (ignore) -> poiCell
+                    .getRow()
+                    .getSheet()
+                    .getWorkbook()
+                    .createCellStyle());
+            poiCell.setCellStyle(style);
+        }
+
+        style.setDataFormat(fmt);
+
+
+    }
+
     @Override
     public void cell(org.apache.poi.ss.usermodel.Cell poiCell, WritableCell cell) {
         CellStyle style = poiCell.getCellStyle();
-        if (style == null) {
+        if (style.getIndex() == 0) {
             style = poiCell.getRow()
                            .getSheet()
                            .getWorkbook()
