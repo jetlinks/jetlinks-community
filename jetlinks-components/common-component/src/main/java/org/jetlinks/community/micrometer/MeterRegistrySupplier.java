@@ -16,9 +16,14 @@
 package org.jetlinks.community.micrometer;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.jetlinks.core.metadata.DataType;
+
+import java.util.Map;
 
 public interface MeterRegistrySupplier {
 
     MeterRegistry getMeterRegistry(String metric, String... tagKeys);
+
+    MeterRegistry getMeterRegistry(String metric, Map<String, DataType> tagDefine);
 
 }

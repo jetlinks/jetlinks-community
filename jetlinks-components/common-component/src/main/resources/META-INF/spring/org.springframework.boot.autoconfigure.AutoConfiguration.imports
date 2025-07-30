@@ -1,3 +1,4 @@
 org.jetlinks.community.configuration.CommonConfiguration
 org.jetlinks.community.dictionary.DictionaryConfiguration
 org.jetlinks.community.configuration.UiResourceConfiguration
+org.jetlinks.community.micrometer.MeterRegistryConfiguration

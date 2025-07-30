@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.jetlinks.community.timeseries.TimeSeriesMetadata;
 import org.jetlinks.community.timeseries.TimeSeriesMetric;
+import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.core.metadata.SimplePropertyMetadata;
 import org.jetlinks.core.metadata.types.DoubleType;
@@ -26,14 +27,13 @@ import org.jetlinks.core.metadata.types.StringType;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Map;
+@Getter
 @AllArgsConstructor(staticName = "of")
 class MeterTimeSeriesMetadata implements TimeSeriesMetadata {
-    @Getter
     private TimeSeriesMetric metric;
 
-    @Getter
-    private List<String> keys;
+    private Map<String, DataType> keys;
 
     static final List<PropertyMetadata> properties = new ArrayList<>();
 
@@ -133,11 +133,11 @@ class MeterTimeSeriesMetadata implements TimeSeriesMetadata {
     public List<PropertyMetadata> getProperties() {
 
         List<PropertyMetadata> metadata = new ArrayList<>(properties);
-        for (String key : keys) {
+        for (Map.Entry<String,DataType> key : keys.entrySet()) {
             SimplePropertyMetadata property = new SimplePropertyMetadata();
-            property.setId(key);
-            property.setName(key);
-            property.setValueType(new StringType());
+            property.setId(key.getKey());
+            property.setName(key.getKey());
+            property.setValueType(key.getValue());
             metadata.add(property);
         }
         return metadata;

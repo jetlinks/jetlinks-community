@@ -18,68 +18,107 @@ package org.jetlinks.community.timeseries.micrometer;
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.step.StepMeterRegistry;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
+import io.netty.util.concurrent.FastThreadLocalThread;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.community.timeseries.TimeSeriesManager;
 import org.jetlinks.community.timeseries.TimeSeriesMetric;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.types.StringType;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
-public class TimeSeriesMeterRegistry extends StepMeterRegistry {
+public class TimeSeriesMeterRegistry extends StepMeterRegistry implements ThreadFactory  {
 
     TimeSeriesManager timeSeriesManager;
 
     TimeSeriesMetric metric;
 
-    private static final ThreadFactory DEFAULT_THREAD_FACTORY = new NamedThreadFactory("time-series-metrics-publisher");
+    AtomicInteger count = new AtomicInteger();
 
-    private Map<String, String> customTags;
+    private final Map<String, String> customTags;
 
-    private List<String> keys = new ArrayList<>();
+    private final Map<String, DataType> tagDefine;
 
     public TimeSeriesMeterRegistry(TimeSeriesManager timeSeriesManager,
                                    TimeSeriesMetric metric,
                                    TimeSeriesRegistryProperties config,
-                                   Map<String, String> customTags,String ...tagKeys) {
+                                   Map<String, String> customTags,
+                                   String... tagKeys) {
+        this(timeSeriesManager,
+             metric,
+             config,
+             customTags,
+             Arrays
+                 .stream(tagKeys)
+                 .collect(Collectors.toMap(Function.identity(), ignore -> StringType.GLOBAL)));
+    }
+
+    public TimeSeriesMeterRegistry(TimeSeriesManager timeSeriesManager,
+                                   TimeSeriesMetric metric,
+                                   TimeSeriesRegistryProperties config,
+                                   Map<String, String> customTags,
+                                   Map<String, DataType> tagDefine) {
         super(new TimeSeriesPropertiesPropertiesConfigAdapter(config), Clock.SYSTEM);
         this.timeSeriesManager = timeSeriesManager;
         this.metric = metric;
         this.customTags = customTags;
-        keys.addAll(customTags.keySet());
-        keys.addAll(Arrays.asList(tagKeys));
-        keys.addAll(config.getCustomTagKeys());
-        start(DEFAULT_THREAD_FACTORY);
+
+        this.tagDefine = new HashMap<>(tagDefine);
+        start(this);
+    }
+
+
+    @Override
+    @SuppressWarnings("all")
+    public Thread newThread(@Nonnull Runnable r) {
+        return new FastThreadLocalThread(
+            r,
+            "time-series-metric-" + metric.getId() + (count.getAndIncrement() == 0 ? "" : ("-" + count.get())));
+    }
+
+    public void reload() {
+        timeSeriesManager
+            .registerMetadata(MeterTimeSeriesMetadata.of(metric, tagDefine))
+            .subscribe(ignore -> {
+                       },
+                       error -> log.error("register metric[{}] metadata error", metric.getId(), error));
     }
 
     @Override
     public void start(ThreadFactory threadFactory) {
         super.start(threadFactory);
-        timeSeriesManager.registerMetadata(MeterTimeSeriesMetadata.of(metric,keys))
-            .doOnError(e -> log.error("register metric [{}] metadata error", metric.getId(), e))
-            .subscribe((r) -> log.error("register metric [{}] metadata success", metric.getId()));
+        reload();
     }
 
     @Override
+    @SneakyThrows
     protected void publish() {
-        timeSeriesManager
-            .getService(metric)
-            .save(Flux.fromIterable(this.getMeters())
-                .map(meter -> MeterTimeSeriesData.of(meter)
-                    .name(getConventionName(meter.getId()))
-                    .write(customTags)
-                    .write(getConventionTags(meter.getId()))))
-            .doOnError(e -> log.error("failed to send metrics [{}]",metric.getId(), e))
-            .doOnSuccess(nil -> log.debug("success send metrics [{}]",metric.getId()))
-            .subscribe();
+        Flux.fromIterable(this.getMeters())
+            .map(meter -> MeterTimeSeriesData
+                .of(meter)
+                .name(getConventionName(meter.getId()))
+                .write(customTags)
+                .write(getConventionTags(meter.getId()), (key) -> tagDefine.getOrDefault(key, StringType.GLOBAL)))
+            .flatMap(timeSeriesManager.getService(metric)::commit)
+            .then()
+            .toFuture()
+            .get();
     }
 
+    @Override
+    public void close() {
+        log.info("close micrometer metric [{}]", metric.getId());
+        super.close();
+    }
 
     @Override
     @Nonnull

@@ -16,18 +16,22 @@
 package org.jetlinks.community.timeseries.micrometer;
 
 import io.micrometer.core.instrument.*;
+import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.timeseries.TimeSeriesData;
+import org.jetlinks.core.metadata.Converter;
+import org.jetlinks.core.metadata.DataType;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public class MeterTimeSeriesData implements TimeSeriesData {
 
-    private Map<String, Object> data = new HashMap<>();
+    private final Map<String, Object> data = new HashMap<>(24);
 
-    private long timestamp = System.currentTimeMillis();
+    private final long timestamp = System.currentTimeMillis();
 
     @Override
     public long getTimestamp() {
@@ -52,9 +56,14 @@ public class MeterTimeSeriesData implements TimeSeriesData {
         return this;
     }
 
-    public MeterTimeSeriesData write(List<Tag> tags) {
+    public MeterTimeSeriesData write(List<Tag> tags, Function<String, DataType> typeGetter) {
         for (Tag tag : tags) {
-            data.put(tag.getKey(), tag.getValue());
+            DataType type = typeGetter.apply(tag.getKey());
+            Object value = tag.getValue();
+            if (type instanceof Converter) {
+                value = ((Converter<?>) type).convert(value);
+            }
+            data.put(tag.getKey(), value);
         }
         return this;
     }
@@ -84,7 +93,6 @@ public class MeterTimeSeriesData implements TimeSeriesData {
     }
 
     public MeterTimeSeriesData write(FunctionTimer timer) {
-
         data.put("count", timer.count());
         data.put("sum", timer.totalTime(TimeUnit.MILLISECONDS));
         data.put("mean", timer.mean(TimeUnit.MILLISECONDS));
@@ -126,6 +134,7 @@ public class MeterTimeSeriesData implements TimeSeriesData {
 
     public static MeterTimeSeriesData of(Meter meter) {
         MeterTimeSeriesData data = new MeterTimeSeriesData();
+        data.data.put("id", IDGenerator.RANDOM.generate());
         data.write(meter);
         meter.match(
             data::write,
