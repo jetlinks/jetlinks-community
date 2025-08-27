@@ -23,6 +23,12 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.ddl.CommonCreateT
 
 public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilder {
 
+    private String schema;
+
+    public TimescaleDBCreateTableSqlBuilder(String schema) {
+        this.schema = schema;
+    }
+
     @Override
     public SqlRequest build(RDBTableMetadata table) {
         DefaultBatchSqlRequest sqlRequest = (DefaultBatchSqlRequest) super.build(table);
@@ -43,7 +49,7 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
             + createHypertable.getInterval().getUnit().name().toLowerCase();
 
         return SqlRequests.of(
-            "SELECT add_retention_policy( ? , INTERVAL '" + interval + "')",
+            "SELECT "+ schema +".add_retention_policy( ? , INTERVAL '" + interval + "')",
             table.getFullName()
         );
     }
@@ -54,7 +60,7 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
             + createHypertable.getChunkTimeInterval().getUnit().name().toLowerCase();
 
         return SqlRequests.of(
-            "SELECT create_hypertable( ? , ? , chunk_time_interval => INTERVAL '" + interval + "')",
+            "SELECT "+ schema +".create_hypertable( ? , ? , chunk_time_interval => INTERVAL '" + interval + "')",
             table.getFullName(),
             table.getColumnNow(createHypertable.getColumn()).getName()
         );
