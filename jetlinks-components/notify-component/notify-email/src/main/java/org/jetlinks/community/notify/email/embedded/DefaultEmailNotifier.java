@@ -125,6 +125,7 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
         mailSender.setJavaMailProperties(properties.createJavaMailProperties());
         this.notifierId = id;
         this.sender = properties.getSender();
+        this.username = properties.getUsername();
         this.javaMailSender = mailSender;
         this.fileManager = fileManager;
         this.webClient = builder.build();
