@@ -145,10 +145,9 @@ public class AliyunVoiceNotifier extends AbstractNotifier<AliyunVoiceTemplate> {
             });
     }
 
-    Mono<CommonRequest> convertTtsRequest(AliyunVoiceTemplate template, Values context){
+    Flux<CommonRequest> convertTtsRequest(AliyunVoiceTemplate template, Values context){
         return template
             .getCalledNumber(context.getAllValues())
-            .next()
             .map(calledNumber -> {
                 CommonRequest request = convert(template);
                 request.putQueryParameter("CalledNumber", calledNumber);
