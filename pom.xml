@@ -65,7 +65,7 @@
         <spring.cloud.version>2024.0.0</spring.cloud.version>
         <spring.cloud.k8s.version>2.1.9</spring.cloud.k8s.version>
         <fst.version>2.57</fst.version>
-        <grpc.version>1.65.0</grpc.version>
+        <grpc.version>1.75.0</grpc.version>
         <rsocket.version>1.1.4</rsocket.version>
         <micrometer.version>1.14.1</micrometer.version>
         <alibaba.cloud.version>2023.0.3.2</alibaba.cloud.version>
