@@ -56,6 +56,9 @@ public class TermColumn {
     @Schema(description = "名称")
     private String name;
 
+    @Schema(description = "分组名称")
+    private String groupName;
+
     @Schema(description = "全名")
     private String fullName;
 
@@ -180,6 +183,7 @@ public class TermColumn {
     public TermColumn with(PropertyMetadata metadata) {
         setColumn(metadata.getId());
         setName(metadata.getName());
+        setGroupName(metadata.getExpand("groupName").orElse("").toString());
         setDataType(metadata.getValueType().getId());
         withMetrics(metadata);
         setTermTypes(TermTypes.lookup(metadata.getValueType()));
