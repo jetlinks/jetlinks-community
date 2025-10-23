@@ -23,6 +23,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.core.config.ConfigKey;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.MetadataConstants;
 import org.jetlinks.core.metadata.PropertyMetadata;
@@ -55,9 +56,6 @@ public class TermColumn {
 
     @Schema(description = "名称")
     private String name;
-
-    @Schema(description = "分组名称")
-    private String groupName;
 
     @Schema(description = "全名")
     private String fullName;
@@ -183,7 +181,6 @@ public class TermColumn {
     public TermColumn with(PropertyMetadata metadata) {
         setColumn(metadata.getId());
         setName(metadata.getName());
-        setGroupName(metadata.getExpand("groupName").orElse("").toString());
         setDataType(metadata.getValueType().getId());
         withMetrics(metadata);
         setTermTypes(TermTypes.lookup(metadata.getValueType()));
@@ -193,6 +190,8 @@ public class TermColumn {
             setFullNameCode(I18nSpec.of(null, localeName));
             setFullName(fullNameCode.resolveI18nMessage());
         }
+        ConfigKey<String> groupName = ConfigKey.of("groupName", "分组名称", String.class);
+        others.put(groupName.getKey(), metadata.getExpand(groupName).orElse(""));
         return this;
     }
 
