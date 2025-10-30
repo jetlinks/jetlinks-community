@@ -23,7 +23,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.ezorm.core.param.Term;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
-import org.jetlinks.core.config.ConfigKey;
 import org.jetlinks.core.metadata.DataType;
 import org.jetlinks.core.metadata.MetadataConstants;
 import org.jetlinks.core.metadata.PropertyMetadata;
@@ -190,8 +189,8 @@ public class TermColumn {
             setFullNameCode(I18nSpec.of(null, localeName));
             setFullName(fullNameCode.resolveI18nMessage());
         }
-        ConfigKey<String> groupName = ConfigKey.of("groupName", "分组名称", String.class);
-        others.put(groupName.getKey(), metadata.getExpand(groupName).orElse(""));
+        others.put(PropertyMetadataConstants.Group.id.getKey(), PropertyMetadataConstants.Group.getGroupId(metadata));
+        others.put(PropertyMetadataConstants.Group.name.getKey(), PropertyMetadataConstants.Group.getGroupsName(metadata));
         return this;
     }
 
