@@ -142,14 +142,16 @@ public interface PropertyMetadataConstants {
         ConfigKey<String> name = ConfigKey.of("groupName", "分组名称", String.class);
 
 
-        static Optional<String> getGroupId(PropertyMetadata metadata) {
+        static String getId(PropertyMetadata metadata) {
             return metadata
-                .getExpand(id);
+                .getExpand(id)
+                .orElse("");
         }
 
-        static Optional<String> getGroupsName(PropertyMetadata metadata) {
+        static String getName(PropertyMetadata metadata) {
             return metadata
-                .getExpand(name);
+                .getExpand(name)
+                .orElse("");
         }
     }
 }
