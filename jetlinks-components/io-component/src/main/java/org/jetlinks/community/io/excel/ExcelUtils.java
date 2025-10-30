@@ -298,11 +298,15 @@ public class ExcelUtils {
             return new DateConverter(format, type);
         }
 
+        if (type == Boolean.class) {
+            return BooleanConverter.INSTANCE;
+        }
+
         if (type == String.class) {
             return StringConverter.INSTANCE;
         }
 
-        org.jetlinks.community.dictionary.Dictionary dictionary = field.getAnnotation( org.jetlinks.community.dictionary.Dictionary.class);
+        org.jetlinks.community.dictionary.Dictionary dictionary = field.getAnnotation(org.jetlinks.community.dictionary.Dictionary.class);
         if (dictionary != null) {
             return new DictionaryConverter(dictionary.value(), type);
         }
