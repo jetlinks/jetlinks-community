@@ -29,6 +29,7 @@ import org.hswebframework.reactor.excel.*;
 import org.hswebframework.reactor.excel.poi.options.CellOption;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.io.excel.annotation.ExcelBooleanMapping;
 import org.jetlinks.community.io.excel.converter.*;
 import org.jetlinks.community.utils.ObjectMappers;
 import org.jetlinks.core.metadata.Jsonable;
@@ -299,7 +300,8 @@ public class ExcelUtils {
         }
 
         if (type == Boolean.class) {
-            return BooleanConverter.INSTANCE;
+            ExcelBooleanMapping mapping = field.getAnnotation(ExcelBooleanMapping.class);
+            return new  BooleanConverter(mapping);
         }
 
         if (type == String.class) {
