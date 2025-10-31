@@ -6,6 +6,9 @@ import org.jetlinks.community.io.excel.annotation.ExcelBooleanMapping;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 
 public class BooleanConverter implements ConverterExcelOption {
+
+    public static final BooleanConverter INSTANCE = new BooleanConverter(null);
+
     private final ExcelBooleanMapping mapping;
 
     public BooleanConverter(ExcelBooleanMapping mapping) {

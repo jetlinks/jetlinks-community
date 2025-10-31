@@ -299,9 +299,13 @@ public class ExcelUtils {
             return new DateConverter(format, type);
         }
 
-        if (type == Boolean.class) {
+        if (type == Boolean.class || type == boolean.class) {
             ExcelBooleanMapping mapping = field.getAnnotation(ExcelBooleanMapping.class);
-            return new  BooleanConverter(mapping);
+            if (mapping == null) {
+                return BooleanConverter.INSTANCE;
+            } else {
+                return new BooleanConverter(mapping);
+            }
         }
 
         if (type == String.class) {
