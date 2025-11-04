@@ -15,13 +15,13 @@
  */
 package org.jetlinks.community.timescaledb.thing;
 
-import org.jetlinks.community.things.data.TableSafeMetricBuilder;
-import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.community.things.data.AbstractThingDataRepositoryStrategy;
+import org.jetlinks.community.things.data.TableSafeMetricBuilder;
 import org.jetlinks.community.things.data.operations.DDLOperations;
 import org.jetlinks.community.things.data.operations.QueryOperations;
 import org.jetlinks.community.things.data.operations.SaveOperations;
 import org.jetlinks.community.timescaledb.TimescaleDBOperations;
+import org.jetlinks.core.things.ThingsRegistry;
 
 public class TimescaleDBColumnModeStrategy extends AbstractThingDataRepositoryStrategy {
 
@@ -70,7 +70,8 @@ public class TimescaleDBColumnModeStrategy extends AbstractThingDataRepositorySt
             TableSafeMetricBuilder.of(context.getMetricBuilder()),
             context.getSettings(),
             registry,
-            operations.database());
+            operations.database(),
+            operations.schema());
     }
 
     @Override

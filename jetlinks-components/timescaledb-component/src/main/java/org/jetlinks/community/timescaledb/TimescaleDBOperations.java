@@ -21,6 +21,8 @@ public interface TimescaleDBOperations {
 
     DatabaseOperator database();
 
+    String schema();
+
     TimescaleDBDataWriter writer();
 
 }

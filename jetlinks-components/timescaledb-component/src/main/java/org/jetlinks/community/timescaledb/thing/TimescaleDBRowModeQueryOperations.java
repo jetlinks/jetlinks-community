@@ -28,8 +28,6 @@ import org.hswebframework.ezorm.rdb.operator.dml.query.SelectColumn;
 import org.hswebframework.web.api.crud.entity.PagerResult;
 import org.hswebframework.web.api.crud.entity.QueryParamEntity;
 import org.hswebframework.web.crud.query.QueryHelper;
-import org.jetlinks.core.metadata.EventMetadata;
-import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.community.things.data.AggregationRequest;
 import org.jetlinks.community.things.data.PropertyAggregation;
 import org.jetlinks.community.things.data.ThingsDataConstants;
@@ -41,6 +39,7 @@ import org.jetlinks.community.timescaledb.TimescaleDBUtils;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.core.things.ThingsRegistry;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
@@ -49,21 +48,21 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 import java.util.function.Function;
 
-import static org.jetlinks.community.timescaledb.thing.TimescaleDBColumnModeQueryOperations.doAggregation0;
-
 @Slf4j
 public class TimescaleDBRowModeQueryOperations extends RowModeQueryOperationsBase {
     private final DatabaseOperator database;
-
+    private final String schema;
     public TimescaleDBRowModeQueryOperations(String thingType,
                                              String thingTemplateId,
                                              String thingId,
                                              MetricBuilder metricBuilder,
                                              DataSettings settings,
                                              ThingsRegistry registry,
-                                             DatabaseOperator database) {
+                                             DatabaseOperator database,
+                                             String schema) {
         super(thingType, thingTemplateId, thingId, metricBuilder, settings, registry);
         this.database = database;
+        this.schema=schema;
     }
 
     @Override
@@ -117,7 +116,8 @@ public class TimescaleDBRowModeQueryOperations extends RowModeQueryOperationsBas
         if (request.getInterval() != null) {
             NativeSelectColumn column = TimescaleDBUtils.createTimeGroupColumn(
                 request.getFrom().getTime(),
-                request.getInterval()
+                request.getInterval(),
+                schema
             );
 
             query.groupBy(column);

@@ -20,17 +20,16 @@ import org.hswebframework.ezorm.rdb.metadata.RDBColumnMetadata;
 import org.hswebframework.ezorm.rdb.operator.dml.query.NativeSelectColumn;
 import org.hswebframework.ezorm.rdb.operator.dml.query.SelectColumn;
 import org.hswebframework.ezorm.rdb.supports.postgres.JsonbType;
-import org.jetlinks.core.metadata.DataType;
-import org.jetlinks.core.metadata.PropertyMetadata;
-import org.jetlinks.core.metadata.types.ArrayType;
-import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.things.data.ThingsDataConstants;
 import org.jetlinks.community.things.utils.ThingsDatabaseUtils;
 import org.jetlinks.community.timescaledb.metadata.JsonbValueCodec;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.query.Aggregation;
-import org.jetlinks.community.utils.ObjectMappers;
+import org.jetlinks.core.metadata.DataType;
+import org.jetlinks.core.metadata.PropertyMetadata;
+import org.jetlinks.core.metadata.types.ArrayType;
+import org.jetlinks.core.metadata.types.ObjectType;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 
 public class TimescaleDBUtils {
@@ -40,7 +39,7 @@ public class TimescaleDBUtils {
         return ThingsDatabaseUtils.createTableName(name);
     }
 
-    public static NativeSelectColumn createTimeGroupColumn(long startWith, Interval interval) {
+    public static NativeSelectColumn createTimeGroupColumn(long startWith, Interval interval, String schema) {
 
         String unit = interval.getNumber().intValue() + " " + interval
             .getUnit()
@@ -48,7 +47,7 @@ public class TimescaleDBUtils {
             .toLowerCase();
 
         return NativeSelectColumn
-            .of("time_bucket('" + unit + "',timestamp)");
+            .of(schema + "." + "time_bucket('" + unit + "',timestamp)");
     }
 
     public static TimeSeriesData convertToTimeSeriesData(Record record) {

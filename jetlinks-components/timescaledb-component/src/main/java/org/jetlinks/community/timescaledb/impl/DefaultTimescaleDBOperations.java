@@ -103,6 +103,11 @@ public class DefaultTimescaleDBOperations implements TimescaleDBOperations, Appl
     }
 
     @Override
+    public String schema() {
+        return properties.getSchema();
+    }
+
+    @Override
     public TimescaleDBDataWriter writer() {
         return writer;
     }
