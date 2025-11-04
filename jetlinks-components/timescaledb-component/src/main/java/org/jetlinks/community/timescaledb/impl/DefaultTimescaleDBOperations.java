@@ -65,7 +65,7 @@ public class DefaultTimescaleDBOperations implements TimescaleDBOperations, Appl
             database.addFeature(sqlExecutor);
             database.addFeature(ReactiveSyncSqlExecutor.of(sqlExecutor));
 
-            RDBSchemaMetadata schema = TimescaleDBDialectProvider.GLOBAL.createSchema(properties.getSchema());
+            RDBSchemaMetadata schema = TimescaleDBDialectProvider.GLOBAL.createSchema(properties.getFunctionSchema());
             database.addSchema(schema);
             database.setCurrentSchema(schema);
             this.database = DefaultDatabaseOperator.of(database);
@@ -75,7 +75,7 @@ public class DefaultTimescaleDBOperations implements TimescaleDBOperations, Appl
             }
             RDBDataSourceProperties datasource = new RDBDataSourceProperties();
             datasource.setType(RDBDataSourceProperties.Type.r2dbc);
-            datasource.setSchema(properties.getSchema());
+            datasource.setSchema(properties.getFunctionSchema());
             datasource.setUsername(properties.getR2dbc().getUsername());
             datasource.setPassword(properties.getR2dbc().getPassword());
             datasource.setUrl(properties.getR2dbc().getUrl());
@@ -103,8 +103,8 @@ public class DefaultTimescaleDBOperations implements TimescaleDBOperations, Appl
     }
 
     @Override
-    public String schema() {
-        return properties.getSchema();
+    public String functionSchema() {
+        return properties.getFunctionSchema();
     }
 
     @Override

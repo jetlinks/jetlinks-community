@@ -66,7 +66,7 @@ public class TimescaleDBRowModeStrategy extends AbstractThingDataRepositoryStrat
             context.getSettings(),
             registry,
             operations.database(),
-            operations.schema());
+            operations.functionSchema());
     }
 
     @Override

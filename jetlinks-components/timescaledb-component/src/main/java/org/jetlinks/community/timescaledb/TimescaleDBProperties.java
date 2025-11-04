@@ -36,8 +36,8 @@ public class TimescaleDBProperties {
     //当sharedSpring未false时,使用此连接配置.
     private R2dbcProperties r2dbc = new R2dbcProperties();
 
-    //数据库的schema
-    private String schema = "public";
+    //数据函数的schema
+    private String functionSchema = "public";
 
     /**
      * 写入缓冲区配置

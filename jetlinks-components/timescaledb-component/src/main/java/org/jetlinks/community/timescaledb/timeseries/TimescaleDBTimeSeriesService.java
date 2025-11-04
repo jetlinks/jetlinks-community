@@ -113,7 +113,7 @@ public class TimescaleDBTimeSeriesService implements TimeSeriesService {
         for (Group group : groups) {
             if (group instanceof TimeGroup) {
                 _timeGroup = ((TimeGroup) group);
-                NativeSelectColumn column = TimescaleDBUtils.createTimeGroupColumn(startWith, _timeGroup.getInterval(), operations.schema());
+                NativeSelectColumn column = TimescaleDBUtils.createTimeGroupColumn(startWith, _timeGroup.getInterval(), operations.functionSchema());
                 column.setColumn(ThingsDataConstants.COLUMN_TIMESTAMP);
                 column.setAlias(group.getAlias());
                 query.select(column);

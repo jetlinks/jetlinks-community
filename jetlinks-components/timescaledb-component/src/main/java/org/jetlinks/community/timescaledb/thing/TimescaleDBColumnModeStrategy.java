@@ -71,7 +71,7 @@ public class TimescaleDBColumnModeStrategy extends AbstractThingDataRepositorySt
             context.getSettings(),
             registry,
             operations.database(),
-            operations.schema());
+            operations.functionSchema());
     }
 
     @Override
