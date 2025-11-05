@@ -42,9 +42,7 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
 
         String interval = createHypertable.getInterval().getNumber().intValue() + " "
             + createHypertable.getInterval().getUnit().name().toLowerCase();
-        String functionSchema = table.getSchema()
-                                     .getDatabase()
-                                     .getFeatureNow(TimescaleDBPropertiesFeature.ID)
+        String functionSchema = table.findFeatureNow(TimescaleDBPropertiesFeature.ID)
                                      .getProperties()
                                      .getFunctionSchema();
 
@@ -58,9 +56,7 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
 
         String interval = createHypertable.getChunkTimeInterval().getNumber().intValue() + " "
             + createHypertable.getChunkTimeInterval().getUnit().name().toLowerCase();
-        String functionSchema = table.getSchema()
-                                     .getDatabase()
-                                     .getFeatureNow(TimescaleDBPropertiesFeature.ID)
+        String functionSchema = table.findFeatureNow(TimescaleDBPropertiesFeature.ID)
                                      .getProperties()
                                      .getFunctionSchema();
         return SqlRequests.of(
