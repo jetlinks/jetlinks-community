@@ -31,6 +31,7 @@ import org.jetlinks.community.timescaledb.TimescaleDBDataWriter;
 import org.jetlinks.community.timescaledb.TimescaleDBOperations;
 import org.jetlinks.community.timescaledb.TimescaleDBProperties;
 import org.jetlinks.community.timescaledb.metadata.TimescaleDBDialectProvider;
+import org.jetlinks.community.timescaledb.metadata.TimescaleDBPropertiesFeature;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -64,7 +65,7 @@ public class DefaultTimescaleDBOperations implements TimescaleDBOperations, Appl
             RDBDatabaseMetadata database = new RDBDatabaseMetadata(Dialect.POSTGRES);
             database.addFeature(sqlExecutor);
             database.addFeature(ReactiveSyncSqlExecutor.of(sqlExecutor));
-
+            database.addFeature(TimescaleDBPropertiesFeature.of(properties));
             RDBSchemaMetadata schema = TimescaleDBDialectProvider.GLOBAL.createSchema(properties.getSchema());
             database.addSchema(schema);
             database.setCurrentSchema(schema);
@@ -91,6 +92,7 @@ public class DefaultTimescaleDBOperations implements TimescaleDBOperations, Appl
                 .create("TimescaleDB", datasource);
             disposable.add(dataSource);
             database = dataSource.operator();
+            database.getMetadata().addFeature(TimescaleDBPropertiesFeature.of(properties));
         }
         writer = new DefaultTimescaleDBDataWriter(database, properties.getWriteBuffer());
         writer.init();

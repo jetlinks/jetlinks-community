@@ -48,7 +48,7 @@ public class TimescaleDBUtils {
             .toLowerCase();
 
         return NativeSelectColumn
-            .of(functionSchema + ".time_bucket('" + unit + "',timestamp)");
+            .of("\"" + functionSchema + "\"" + ".time_bucket('" + unit + "',timestamp)");
     }
 
     public static TimeSeriesData convertToTimeSeriesData(Record record) {

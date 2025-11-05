@@ -5,14 +5,15 @@ import lombok.Getter;
 import org.hswebframework.ezorm.core.FeatureId;
 import org.hswebframework.ezorm.core.FeatureType;
 import org.hswebframework.ezorm.core.meta.Feature;
+import org.jetlinks.community.timescaledb.TimescaleDBProperties;
 
 @AllArgsConstructor(staticName = "of")
 @Getter
-public class FunctionSchema implements Feature, FeatureType {
+public class TimescaleDBPropertiesFeature implements Feature, FeatureType {
 
-    public static final FeatureId<FunctionSchema> ID = FeatureId.of("FunctionSchema");
+    public static final FeatureId<TimescaleDBPropertiesFeature> ID = FeatureId.of("TimescaleDBPropertiesFeature");
 
-    private final String functionSchema;
+    private final TimescaleDBProperties properties;
 
     @Override
     public String getId() {
@@ -21,7 +22,7 @@ public class FunctionSchema implements Feature, FeatureType {
 
     @Override
     public String getName() {
-        return "FunctionSchema";
+        return "TimescaleDBPropertiesFeature";
     }
 
     @Override

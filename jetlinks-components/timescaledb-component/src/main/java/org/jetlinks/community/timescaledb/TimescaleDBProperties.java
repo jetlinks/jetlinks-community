@@ -42,7 +42,7 @@ public class TimescaleDBProperties {
     /**
      * TimescaleDB超表函数所在的位置
      */
-    private String functionSchema = "public";
+    private String functionSchema = this.schema;
 
     /**
      * 写入缓冲区配置

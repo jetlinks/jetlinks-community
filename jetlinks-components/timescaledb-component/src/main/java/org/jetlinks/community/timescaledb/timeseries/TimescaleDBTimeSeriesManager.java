@@ -21,7 +21,6 @@ import org.hswebframework.ezorm.rdb.codec.DateTimeCodec;
 import org.hswebframework.ezorm.rdb.metadata.RDBIndexMetadata;
 import org.hswebframework.ezorm.rdb.operator.ddl.TableBuilder;
 import org.jetlinks.community.timescaledb.TimescaleDBProperties;
-import org.jetlinks.community.timescaledb.metadata.FunctionSchema;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.things.data.ThingsDataConstants;
@@ -86,7 +85,6 @@ public class TimescaleDBTimeSeriesManager implements TimeSeriesManager {
             .ddl()
             .createOrAlter(tableName)
             .custom(table -> {
-                table.addFeature(FunctionSchema.of(timescaleDBProperties.getFunctionSchema()));
                 table.addFeature(new CreateHypertable(ThingsDataConstants.COLUMN_TIMESTAMP, properties.getChunkTimeInterval()));
                 Interval interval = properties.getRetentionPolicy(tableName);
                 if (interval != null && interval.getNumber().longValue() > 0) {

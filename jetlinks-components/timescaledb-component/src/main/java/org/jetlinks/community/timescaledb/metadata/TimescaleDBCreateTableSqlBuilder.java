@@ -42,11 +42,14 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
 
         String interval = createHypertable.getInterval().getNumber().intValue() + " "
             + createHypertable.getInterval().getUnit().name().toLowerCase();
-        String functionSchema = table.getFeatureNow(FunctionSchema.ID)
+        String functionSchema = table.getSchema()
+                                     .getDatabase()
+                                     .getFeatureNow(TimescaleDBPropertiesFeature.ID)
+                                     .getProperties()
                                      .getFunctionSchema();
 
         return SqlRequests.of(
-            "SELECT " + functionSchema + ".add_retention_policy( ? , INTERVAL '" + interval + "')",
+            "SELECT " + "\"" + functionSchema + "\"" + ".add_retention_policy( ? , INTERVAL '" + interval + "')",
             table.getFullName()
         );
     }
@@ -55,10 +58,13 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
 
         String interval = createHypertable.getChunkTimeInterval().getNumber().intValue() + " "
             + createHypertable.getChunkTimeInterval().getUnit().name().toLowerCase();
-        String functionSchema = table.getFeatureNow(FunctionSchema.ID)
+        String functionSchema = table.getSchema()
+                                     .getDatabase()
+                                     .getFeatureNow(TimescaleDBPropertiesFeature.ID)
+                                     .getProperties()
                                      .getFunctionSchema();
         return SqlRequests.of(
-            "SELECT " + functionSchema + ".create_hypertable( ? , ? , chunk_time_interval => INTERVAL '" + interval + "')",
+            "SELECT " + "\"" + functionSchema + "\"" + ".create_hypertable( ? , ? , chunk_time_interval => INTERVAL '" + interval + "')",
             table.getFullName(),
             table.getColumnNow(createHypertable.getColumn()).getName()
         );
