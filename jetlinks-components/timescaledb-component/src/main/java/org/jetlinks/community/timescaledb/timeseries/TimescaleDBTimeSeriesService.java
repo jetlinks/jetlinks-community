@@ -24,6 +24,7 @@ import org.hswebframework.ezorm.rdb.operator.dml.query.NativeSelectColumn;
 import org.hswebframework.ezorm.rdb.operator.dml.query.SelectColumn;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.id.IDGenerator;
+import org.jetlinks.community.timescaledb.metadata.FunctionSchema;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.things.data.ThingsDataConstants;
 import org.jetlinks.community.timescaledb.TimescaleDBOperations;
@@ -113,7 +114,7 @@ public class TimescaleDBTimeSeriesService implements TimeSeriesService {
         for (Group group : groups) {
             if (group instanceof TimeGroup) {
                 _timeGroup = ((TimeGroup) group);
-                NativeSelectColumn column = TimescaleDBUtils.createTimeGroupColumn(startWith, _timeGroup.getInterval());
+                NativeSelectColumn column = TimescaleDBUtils.createTimeGroupColumn(startWith, _timeGroup.getInterval(),operations.database().getMetadata().getTable(metric).get().getFeatureNow(FunctionSchema.ID).getFunctionSchema());
                 column.setColumn(ThingsDataConstants.COLUMN_TIMESTAMP);
                 column.setAlias(group.getAlias());
                 query.select(column);

@@ -23,15 +23,10 @@ import org.hswebframework.ezorm.rdb.operator.builder.fragments.ddl.CommonCreateT
 
 public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilder {
 
-    private String schema;
-
-    public TimescaleDBCreateTableSqlBuilder(String schema) {
-        this.schema = schema;
-    }
-
     @Override
     public SqlRequest build(RDBTableMetadata table) {
         DefaultBatchSqlRequest sqlRequest = (DefaultBatchSqlRequest) super.build(table);
+
 
         table.getFeature(CreateHypertable.ID)
              .ifPresent(createHypertable -> sqlRequest.addBatch(createCreateHypertableSQL(table, createHypertable)));
@@ -47,9 +42,11 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
 
         String interval = createHypertable.getInterval().getNumber().intValue() + " "
             + createHypertable.getInterval().getUnit().name().toLowerCase();
+        String functionSchema = table.getFeatureNow(FunctionSchema.ID)
+                                     .getFunctionSchema();
 
         return SqlRequests.of(
-            "SELECT "+ schema +".add_retention_policy( ? , INTERVAL '" + interval + "')",
+            "SELECT " + functionSchema + ".add_retention_policy( ? , INTERVAL '" + interval + "')",
             table.getFullName()
         );
     }
@@ -58,9 +55,10 @@ public class TimescaleDBCreateTableSqlBuilder extends CommonCreateTableSqlBuilde
 
         String interval = createHypertable.getChunkTimeInterval().getNumber().intValue() + " "
             + createHypertable.getChunkTimeInterval().getUnit().name().toLowerCase();
-
+        String functionSchema = table.getFeatureNow(FunctionSchema.ID)
+                                     .getFunctionSchema();
         return SqlRequests.of(
-            "SELECT "+ schema +".create_hypertable( ? , ? , chunk_time_interval => INTERVAL '" + interval + "')",
+            "SELECT " + functionSchema + ".create_hypertable( ? , ? , chunk_time_interval => INTERVAL '" + interval + "')",
             table.getFullName(),
             table.getColumnNow(createHypertable.getColumn()).getName()
         );

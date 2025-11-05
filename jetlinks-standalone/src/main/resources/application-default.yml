@@ -16,6 +16,7 @@ REDIS_DATABASE: 0 # redis 数据库索引
 
 # timescalbedb相关配置
 TIMESCALEDB_SCHEMA: public # timescaledb 数据库schema,默认public
+TIMESCALEDB_FUNCTION_SCHEMA: public # 时序数据所用到相关函数所在的schema
 
 
 # elasticsearch相关配置

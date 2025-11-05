@@ -40,6 +40,11 @@ public class TimescaleDBProperties {
     private String schema = "public";
 
     /**
+     * TimescaleDB超表函数所在的位置
+     */
+    private String functionSchema = "public";
+
+    /**
      * 写入缓冲区配置
      *
      * @see DefaultTimescaleDBDataWriter

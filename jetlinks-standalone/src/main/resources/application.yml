@@ -61,6 +61,7 @@ timescaledb:
     #        username: postgres
     #        password: p@ssw0rd
     schema: ${TIMESCALEDB_SCHEMA:${easyorm.default-schema}} # timescaledb的schema,默认public
+    function-schema: ${TIMESCALEDB_FUNCTION_SCHEMA:${timescaledb.schema}} #时序数据所用到相关函数所在的schema
     time-series:
         enabled: true
         retention-policies:

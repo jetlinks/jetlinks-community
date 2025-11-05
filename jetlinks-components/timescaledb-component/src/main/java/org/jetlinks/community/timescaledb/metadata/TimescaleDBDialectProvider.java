@@ -49,7 +49,7 @@ public class TimescaleDBDialectProvider implements DialectProvider {
     @Override
     public RDBSchemaMetadata createSchema(String name) {
         PostgresqlSchemaMetadata schema = new PostgresqlSchemaMetadata(name);
-        schema.addFeature(new TimescaleDBCreateTableSqlBuilder(name));
+        schema.addFeature(new TimescaleDBCreateTableSqlBuilder());
         schema.addFeature(new TimescaleDBAlterTableSqlBuilder());
         DefaultValueCodecFactory codecFactory = new DefaultValueCodecFactory();
         codecFactory

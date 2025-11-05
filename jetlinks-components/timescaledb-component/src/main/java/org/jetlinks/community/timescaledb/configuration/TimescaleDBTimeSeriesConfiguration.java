@@ -16,6 +16,7 @@
 package org.jetlinks.community.timescaledb.configuration;
 
 import org.jetlinks.community.timescaledb.TimescaleDBOperations;
+import org.jetlinks.community.timescaledb.TimescaleDBProperties;
 import org.jetlinks.community.timescaledb.timeseries.TimescaleDBTimeSeriesManager;
 import org.jetlinks.community.timescaledb.timeseries.TimescaleDBTimeSeriesProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -35,8 +36,9 @@ public class TimescaleDBTimeSeriesConfiguration {
     @Bean
     @Primary
     public TimescaleDBTimeSeriesManager timescaleDBTimeSeriesManager(TimescaleDBOperations operations,
-                                                                     TimescaleDBTimeSeriesProperties properties) {
-        return new TimescaleDBTimeSeriesManager(properties, operations);
+                                                                     TimescaleDBTimeSeriesProperties properties,
+                                                                     TimescaleDBProperties timescaleDBProperties) {
+        return new TimescaleDBTimeSeriesManager(properties, operations,timescaleDBProperties);
     }
 
 

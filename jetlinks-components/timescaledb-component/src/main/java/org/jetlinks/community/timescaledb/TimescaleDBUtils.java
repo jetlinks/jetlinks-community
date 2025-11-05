@@ -40,7 +40,7 @@ public class TimescaleDBUtils {
         return ThingsDatabaseUtils.createTableName(name);
     }
 
-    public static NativeSelectColumn createTimeGroupColumn(long startWith, Interval interval) {
+    public static NativeSelectColumn createTimeGroupColumn(long startWith, Interval interval, String functionSchema) {
 
         String unit = interval.getNumber().intValue() + " " + interval
             .getUnit()
@@ -48,7 +48,7 @@ public class TimescaleDBUtils {
             .toLowerCase();
 
         return NativeSelectColumn
-            .of("time_bucket('" + unit + "',timestamp)");
+            .of(functionSchema + ".time_bucket('" + unit + "',timestamp)");
     }
 
     public static TimeSeriesData convertToTimeSeriesData(Record record) {
