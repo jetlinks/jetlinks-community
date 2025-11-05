@@ -72,38 +72,34 @@ public interface PropertyMetadataConstants {
      * 属性读写模式
      */
     interface AccessMode {
-        String id = "accessMode";
+        String id = "type";
 
         //读
-        String read = "r";
+        String read = "read";
         //写
-        String write = "w";
+        String write = "write";
         //上报
-        String report = "u";
+        String report = "report";
 
         static boolean isRead(PropertyMetadata property) {
             return property
                 .getExpand(id)
                 .map(val -> val.toString().contains(read))
-                .orElse(true);
+                .orElse(false);
         }
 
         static boolean isWrite(PropertyMetadata property) {
             return property
                 .getExpand(id)
                 .map(val -> val.toString().contains(write))
-                .orElseGet(() -> property
-                    .getExpand("readOnly")
-                    .map(readOnly -> !CastUtils.castBoolean(readOnly))
-                    .orElse(true)
-                );
+                .orElse(false);
         }
 
         static boolean isReport(PropertyMetadata property) {
             return property
                 .getExpand(id)
                 .map(val -> val.toString().contains(report))
-                .orElse(true);
+                .orElse(false);
         }
     }
 
