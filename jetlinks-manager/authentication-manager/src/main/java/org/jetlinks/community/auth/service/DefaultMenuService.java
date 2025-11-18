@@ -15,7 +15,7 @@
  */
 package org.jetlinks.community.auth.service;
 
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -164,7 +164,7 @@ public class DefaultMenuService
     }
 
     final Map<List<String>, Flux<MenuView>> grantedCaching =
-        CacheBuilder
+        Caffeine
             .newBuilder()
             .expireAfterAccess(Duration.ofSeconds(10))
             .<List<String>, Flux<MenuView>>build()
