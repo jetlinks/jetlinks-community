@@ -51,7 +51,7 @@
         <fastjson.version>1.2.83</fastjson.version>
         <reactor.version>2024.0.11</reactor.version>
         <vertx.version>4.5.16</vertx.version>
-        <log4j.version>2.25.1</log4j.version>
+        <log4j.version>2.25.3</log4j.version>
         <slf4j.version>2.0.17</slf4j.version>
         <logback.version>1.5.19</logback.version>
         <springdoc.version>2.8.13</springdoc.version>
