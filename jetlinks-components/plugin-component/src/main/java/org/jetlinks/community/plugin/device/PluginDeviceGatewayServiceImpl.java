@@ -59,10 +59,7 @@ public class PluginDeviceGatewayServiceImpl implements PluginDeviceGatewayServic
                     if (session.isWrapFrom(PluginDeviceSession.class)) {
                         session
                             .unwrap(PluginDeviceSession.class)
-                            .setIdMapper(dataIdMapper);
-                        session
-                            .unwrap(PluginDeviceSession.class)
-                            .setPlugin(deviceGatewayPlugin);
+                            .setPluginId(deviceGatewayPlugin.getId());
                     }
 
                 }, () -> {

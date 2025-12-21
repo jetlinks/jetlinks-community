@@ -18,23 +18,21 @@ package org.jetlinks.community.plugin.device;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
-import org.jetlinks.community.plugin.utils.PluginUtils;
+import org.jetlinks.community.plugin.device.PluginDeviceGatewayProvider;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
-import org.jetlinks.core.enums.ErrorCode;
-import org.jetlinks.core.exception.DeviceOperationException;
-import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.ToDeviceMessageContext;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.PersistentSession;
 import org.jetlinks.core.utils.Reactors;
+import org.jetlinks.core.utils.RecyclerUtils;
 import org.jetlinks.core.utils.SerializeUtils;
 import org.jetlinks.plugin.internal.PluginDataIdMapper;
 import org.jetlinks.plugin.internal.device.DeviceGatewayPlugin;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.time.Duration;
@@ -44,11 +42,7 @@ public class PluginDeviceSession implements PersistentSession {
     private final DeviceOperator device;
     @Setter
     @Getter
-    private DeviceGatewayPlugin plugin;
-
-    @Getter
-    @Setter
-    private PluginDataIdMapper idMapper;
+    private String pluginId;
 
     private long connectTime = System.currentTimeMillis();
 
@@ -102,6 +96,11 @@ public class PluginDeviceSession implements PersistentSession {
     }
 
     @Override
+    public void keepAlive(long time) {
+        pingTime = time;
+    }
+
+    @Override
     public void keepAlive() {
         pingTime = System.currentTimeMillis();
     }
@@ -128,28 +127,17 @@ public class PluginDeviceSession implements PersistentSession {
     }
 
     @Override
-    public void onClose(Runnable call) {
-
+    public Mono<Boolean> send(ToDeviceMessageContext context) {
+        return PersistentSession
+            .super
+            .send(context)
+            .then(Reactors.ALWAYS_TRUE);
     }
 
+
     @Override
-    public Mono<Boolean> send(ToDeviceMessageContext context) {
-        DeviceGatewayPlugin plugin = this.plugin;
-        PluginDataIdMapper idMapper = this.idMapper;
-        if (plugin == null || idMapper == null) {
-            return Mono.error(
-                new DeviceOperationException
-                    .NoStackTrace(ErrorCode.SERVER_NOT_AVAILABLE, "error.plugin_not_found")
-            );
-        }
-        return context
-            .reply(
-                PluginUtils
-                    .transformToExternalMessage(idMapper, plugin, ((DeviceMessage) context.getMessage()).copy())
-                    .flatMapMany(plugin::execute)
-                    .flatMap(reply -> PluginUtils.transformToInternalMessage(idMapper, plugin, reply.copy()))
-            )
-            .then(Reactors.ALWAYS_TRUE);
+    public void onClose(Runnable call) {
+
     }
 
     @Override
@@ -164,20 +152,19 @@ public class PluginDeviceSession implements PersistentSession {
         out.writeLong(connectTime);
         out.writeLong(pingTime);
         out.writeLong(timeout);
-        SerializeUtils.writeNullableUTF(plugin == null ? null : plugin.getId(), out);
+        SerializeUtils.writeNullableUTF(pluginId == null ? null : pluginId, out);
     }
 
     @SneakyThrows
     @SuppressWarnings("all")
     static Mono<PluginDeviceSession> read(ObjectInput input,
                                           DeviceRegistry registry,
-                                          PluginDataIdMapper idMapper,
                                           Function<String, DeviceGatewayPlugin> pluginLoader) {
         String deviceId = input.readUTF();
         long connectTime = input.readLong();
         long pingTime = input.readLong();
         long timeout = input.readLong();
-        String pluginId = SerializeUtils.readNullableUTF(input);
+        String pluginId = RecyclerUtils.intern(SerializeUtils.readNullableUTF(input));
 
         return registry
             .getDevice(deviceId)
@@ -185,11 +172,8 @@ public class PluginDeviceSession implements PersistentSession {
                 PluginDeviceSession session = new PluginDeviceSession(device);
                 session.connectTime = connectTime;
                 session.pingTime = pingTime;
-                session.idMapper = idMapper;
                 session.timeout = timeout;
-                if (pluginId != null) {
-                    session.plugin = pluginLoader.apply(pluginId);
-                }
+                session.pluginId = pluginId;
                 return session;
             });
     }

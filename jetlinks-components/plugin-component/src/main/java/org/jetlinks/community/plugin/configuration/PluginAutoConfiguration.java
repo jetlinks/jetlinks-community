@@ -137,14 +137,16 @@ public class PluginAutoConfiguration {
                                                                        PluginDataIdMapper idMapper,
                                                                        DeviceRegistry deviceRegistry,
                                                                        PluginDeviceGatewayService gatewayService,
-                                                                       EventBus eventBus) {
+                                                                       EventBus eventBus,
+                                                                       DeviceSessionManager sessionManager) {
             return new PluginDeviceGatewayProvider(registry,
                                                    driverManager,
                                                    serviceRegistry,
                                                    idMapper,
                                                    deviceRegistry,
                                                    gatewayService,
-                                                   eventBus);
+                                                   eventBus,
+                                                   sessionManager);
         }
 
         @Bean

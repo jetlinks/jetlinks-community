@@ -20,10 +20,13 @@ import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.core.defaults.CompositeProtocolSupport;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
+import org.jetlinks.core.device.DeviceState;
+import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.enums.ErrorCode;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.exception.DeviceOperationException;
 import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.DeviceOnlineMessage;
 import org.jetlinks.core.message.Message;
 import org.jetlinks.core.message.codec.*;
 import org.jetlinks.core.monitor.Monitor;
@@ -47,11 +50,13 @@ import org.jetlinks.community.plugin.monitor.PluginMonitorHelper;
 import org.jetlinks.community.plugin.utils.PluginUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -79,7 +84,8 @@ public class PluginDeviceGatewayProvider extends CompositeProtocolSupport
                                        PluginDataIdMapper idMapper,
                                        DeviceRegistry deviceRegistry,
                                        PluginDeviceGatewayService gatewayService,
-                                       EventBus eventBus) {
+                                       EventBus eventBus,
+                                       DeviceSessionManager sessionManager) {
         this.registry = registry;
         this.deviceRegistry = deviceRegistry;
         this.driverManager = driverManager;
@@ -101,7 +107,30 @@ public class PluginDeviceGatewayProvider extends CompositeProtocolSupport
                     //转换为插件侧的设备操作接口
                     return PluginUtils
                         .transformToExternalDevice(idMapper, plugin, device)
-                        .flatMap(plugin::getDeviceState);
+                        .flatMap(plugin::getDeviceState)
+                        .flatMap(state -> {
+                            if (Objects.equals(state, DeviceState.online)) {
+                                // 尝试自动上线
+                                DeviceOnlineMessage msg = new DeviceOnlineMessage();
+                                msg.setDeviceId(device.getDeviceId());
+                                msg.addHeader("from", "state-check");
+                                return sessionManager
+                                    .compute(
+                                        device.getDeviceId(),
+                                        Mono.fromSupplier(() -> {
+                                            PluginDeviceSession session = new PluginDeviceSession(device);
+                                            session.setPluginId(plugin.getId());
+                                            return session;
+                                        }),
+                                        null)
+                                    .thenReturn(state)
+                                    .contextWrite(Context.of(DeviceOnlineMessage.class, msg));
+                            }
+                            // 注销会话
+                            return sessionManager
+                                .remove(device.getDeviceId(), false)
+                                .thenReturn(state);
+                        });
                 })
         );
 
@@ -246,7 +275,7 @@ public class PluginDeviceGatewayProvider extends CompositeProtocolSupport
                 try (ObjectInput input = Serializers
                     .getDefault()
                     .createInput(new ByteArrayInputStream(sessionData))) {
-                    return PluginDeviceSession.read(input, registry, idMapper,plugins::get);
+                    return PluginDeviceSession.read(input, registry, plugins::get);
                 }
             })
             .flatMap(Function.identity());
