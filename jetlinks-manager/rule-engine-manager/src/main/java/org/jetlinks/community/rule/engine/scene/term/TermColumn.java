@@ -108,10 +108,10 @@ public class TermColumn {
 
         if (CollectionUtils.isNotEmpty(children)) {
             copy.setChildren(
-                    children.stream()
-                            .filter(child -> childrenPredicate.test(child.getColumn()))
-                            .map(child -> child.copyColumn(childrenPredicate))
-                            .collect(Collectors.toList())
+                children.stream()
+                        .filter(child -> childrenPredicate.test(child.getColumn()))
+                        .map(child -> child.copyColumn(childrenPredicate))
+                        .collect(Collectors.toList())
             );
         }
 
@@ -146,7 +146,7 @@ public class TermColumn {
         if (column == null) {
             return null;
         }
-        String[] arr = column.split("[.]",2);
+        String[] arr = column.split("[.]", 2);
         if (arr.length == 1) {
             return arr[0];
         }
@@ -189,8 +189,8 @@ public class TermColumn {
             setFullNameCode(I18nSpec.of(null, localeName));
             setFullName(fullNameCode.resolveI18nMessage());
         }
-        others.put(PropertyMetadataConstants.Group.id.getKey(), PropertyMetadataConstants.Group.getId(metadata));
-        others.put(PropertyMetadataConstants.Group.name.getKey(), PropertyMetadataConstants.Group.getName(metadata));
+        withOther(PropertyMetadataConstants.Group.id.getKey(), PropertyMetadataConstants.Group.getId(metadata));
+        withOther(PropertyMetadataConstants.Group.name.getKey(), PropertyMetadataConstants.Group.getName(metadata));
         return this;
     }
 
@@ -259,8 +259,8 @@ public class TermColumn {
 
     public static List<TermColumn> refactorTermsInfo(String perText, List<TermColumn> terms) {
         Map<String, TermColumn> allColumn = terms
-                .stream()
-                .collect(Collectors.toMap(TermColumn::getColumn, Function.identity(), (a, b) -> a));
+            .stream()
+            .collect(Collectors.toMap(TermColumn::getColumn, Function.identity(), (a, b) -> a));
         for (TermColumn term : terms) {
 
             term.refactorDescription(perText, allColumn::get);
@@ -292,16 +292,16 @@ public class TermColumn {
                 //类型,report,recent,latest
                 String type = arr[arr.length - 1];
                 setDescription(
-                        DeviceOperation.PropertyValueType
-                                .valueOf(type)
-                                .getNestDescription(column.name)
+                    DeviceOperation.PropertyValueType
+                        .valueOf(type)
+                        .getNestDescription(column.name)
                 );
             } else {
                 String type = arr[arr.length - 1];
                 setDescription(
-                        DeviceOperation.PropertyValueType
-                                .valueOf(type)
-                                .getDescription()
+                    DeviceOperation.PropertyValueType
+                        .valueOf(type)
+                        .getDescription()
                 );
             }
         }
@@ -312,8 +312,8 @@ public class TermColumn {
             //code不为空，表示当前termColumn需要国际化
             if (StringUtils.hasText(code)) {
                 this.fullNameCode = I18nSpec
-                        .of("message.scene_term_column_full_name", null, parentName)
-                        .withArgs(code, name);
+                    .of("message.scene_term_column_full_name", null, parentName)
+                    .withArgs(code, name);
             } else {
                 this.fullNameCode = I18nSpec
                     .of("message.scene_term_column_full_name", null, parentName, name);

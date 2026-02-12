@@ -43,6 +43,7 @@ public class ThingMessageLog implements Serializable {
     public static ThingMessageLog of(TimeSeriesData data, String thingIdProperty) {
         ThingMessageLog log = data.as(ThingMessageLog.class);
         log.thingId = data.getString(thingIdProperty, log.thingId);
+        log.timestamp = data.getTimestamp();
         return log;
     }
 

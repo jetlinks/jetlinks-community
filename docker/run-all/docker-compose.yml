@@ -11,15 +11,15 @@ services:
         environment:
             - TZ=Asia/Shanghai
         healthcheck:
-            test: ["CMD", "redis-cli", "-h", "localhost", "-p", "6379", "-a", "JetLinks@redis", "ping"]
+            test: [ "CMD", "redis-cli", "-h", "localhost", "-p", "6379", "-a", "JetLinks@redis", "ping" ]
             interval: 10s
             timeout: 5s
             retries: 3
     postgres:
         image: timescale/timescaledb:latest-pg16
         container_name: jetlinks-ce-postgres
-#        ports:
-#            - "5432:5432"  # 仅供jetlinks-ce访问
+        #        ports:
+        #            - "5432:5432"  # 仅供jetlinks-ce访问
         volumes:
             - "./data/postgres:/var/lib/postgresql/data"
         environment:
@@ -28,7 +28,7 @@ services:
             POSTGRES_HOST_AUTH_METHOD: trust
             TZ: Asia/Shanghai
         healthcheck:
-            test: ["CMD", "pg_isready", "-U", "postgres"]
+            test: [ "CMD", "pg_isready", "-U", "postgres" ]
             interval: 10s
             timeout: 5s
             retries: 5
@@ -78,7 +78,15 @@ services:
             - redis:redis
             - postgres:postgres
         depends_on:
-             postgres:
-                 condition: service_healthy
-             redis:
-                 condition: service_healthy
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+#    ui:  # 如果通过访问内嵌的前端存在问题,可以使用这个镜像
+#        image: registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-ui-vue:2.11.0
+#        ports:
+#            - "9000:9000"
+#        environment:
+#            API_BASE_PATH: "http://jetlinks:8848/"
+#            TZ: Asia/Shanghai
+
