@@ -63,7 +63,7 @@ public class NotificationController {
     public NotificationController(NotificationService notificationService,
                                   NotifySubscriberService subscriberService,
                                   NotifySubscriberProviderService providerService,
-                                  NotifySubscriberProperties properties) {
+                                  NotifySubscriberProperties properties ) {
         this.notificationService = notificationService;
         this.subscriberService = subscriberService;
         this.providerService = providerService;
@@ -75,13 +75,13 @@ public class NotificationController {
     @QueryOperation(summary = "查询当前用户订阅信息")
     public Mono<PagerResult<NotifySubscriberEntity>> querySubscription(@Parameter(hidden = true) QueryParamEntity query) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> query
-                .toNestQuery(q -> q
-                    .where(NotifySubscriberEntity::getSubscriberType, "user")
-                    .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId()))
-                .execute(subscriberService::queryPager));
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMap(auth -> query
+                        .toNestQuery(q -> q
+                                .where(NotifySubscriberEntity::getSubscriberType, "user")
+                                .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId()))
+                        .execute(subscriberService::queryPager));
 
     }
 
@@ -97,17 +97,17 @@ public class NotificationController {
     @Operation(summary = "修改通知订阅状态")
     public Mono<Void> changeSubscribeState(@PathVariable String id, @PathVariable SubscribeState state) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> subscriberService
-                .createUpdate()
-                .set(NotifySubscriberEntity::getState, state)
-                .where(NotifySubscriberEntity::getId, id)
-                .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId())
-                .and(NotifySubscriberEntity::getSubscriberType, "user")
-                .execute()
-                .then()
-            );
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMap(auth -> subscriberService
+                        .createUpdate()
+                        .set(NotifySubscriberEntity::getState, state)
+                        .where(NotifySubscriberEntity::getId, id)
+                        .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId())
+                        .and(NotifySubscriberEntity::getSubscriberType, "user")
+                        .execute()
+                        .then()
+                );
     }
 
     @DeleteMapping("/subscription/{id}")
@@ -115,16 +115,16 @@ public class NotificationController {
     @Operation(summary = "删除订阅")
     public Mono<Void> deleteSubscription(@PathVariable String id) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> subscriberService
-                .createDelete()
-                .where(NotifySubscriberEntity::getId, id)
-                .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId())
-                .and(NotifySubscriberEntity::getSubscriberType, "user")
-                .execute()
-                .then()
-            );
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMap(auth -> subscriberService
+                        .createDelete()
+                        .where(NotifySubscriberEntity::getId, id)
+                        .and(NotifySubscriberEntity::getSubscriber, auth.getUser().getId())
+                        .and(NotifySubscriberEntity::getSubscriberType, "user")
+                        .execute()
+                        .then()
+                );
     }
 
     @PatchMapping("/subscribe")
@@ -132,16 +132,16 @@ public class NotificationController {
     @Operation(summary = "订阅通知")
     public Flux<NotifySubscriberEntity> doSubscribe(@RequestBody Flux<NotifySubscriberEntity> subscribe) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMapMany(auth -> subscribe
-                .doOnNext(e -> {
-                    e.setSubscriberType("user");
-                    e.setSubscriber(auth.getUser().getId());
-                })
-                .flatMap(e -> subscriberService
-                    .doSubscribe(e)
-                    .thenReturn(e)));
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMapMany(auth -> subscribe
+                        .doOnNext(e -> {
+                            e.setSubscriberType("user");
+                            e.setSubscriber(auth.getUser().getId());
+                        })
+                        .flatMap(e -> subscriberService
+                                .doSubscribe(e)
+                                .thenReturn(e)));
     }
 
     /**
@@ -153,8 +153,8 @@ public class NotificationController {
     @Operation(summary = "获取全部订阅支持")
     public Flux<SubscriberProviderInfo> getProviders() {
         return Flux
-            .fromIterable(SubscriberProviders.getProviders())
-            .map(SubscriberProviderInfo::of);
+                .fromIterable(SubscriberProviders.getProviders())
+                .map(SubscriberProviderInfo::of);
     }
 
     /**
@@ -166,18 +166,18 @@ public class NotificationController {
     @Operation(summary = "获取当前用户可用的订阅支持")
     public Flux<SubscriberProviderInfo> getCurrentProviders() {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMapMany(auth -> providerService
-                .channels()
-                .mapNotNull(info -> info.copyToProvidedUser(auth, properties)))
-            .filter(p -> CollectionUtils.isNotEmpty(p.getChannels()))
-            .map(NotifyChannelController.SubscriberProviderInfo::getProvider)
-            .collectList()
-            .flatMapMany(providers -> Flux
-                .fromIterable(SubscriberProviders.getProviders())
-                .filter(provider -> providers.contains(provider.getId()))
-                .map(SubscriberProviderInfo::of));
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMapMany(auth -> providerService
+                        .channels()
+                        .mapNotNull(info -> info.copyToProvidedUser(auth, properties)))
+                .filter(p -> CollectionUtils.isNotEmpty(p.getChannels()))
+                .map(NotifyChannelController.SubscriberProviderInfo::getProvider)
+                .collectList()
+                .flatMapMany(providers -> Flux
+                        .fromIterable(SubscriberProviders.getProviders())
+                        .filter(provider -> providers.contains(provider.getId()))
+                        .map(SubscriberProviderInfo::of));
     }
 
     /**
@@ -189,19 +189,19 @@ public class NotificationController {
     @Operation(summary = "根据订阅类型获取当前用户可用的订阅支持")
     public Flux<SubscriberProviderInfo> getCurrentProviders(@PathVariable String type) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMapMany(auth -> providerService
-                .channels()
-                .mapNotNull(info -> info.copyToProvidedUser(auth, properties)))
-            .filter(p -> CollectionUtils.isNotEmpty(p.getChannels()))
-            .map(NotifyChannelController.SubscriberProviderInfo::getProvider)
-            .collectList()
-            .flatMapMany(providers -> Flux
-                .fromIterable(SubscriberProviders.getProviders())
-                .filter(provider -> provider.getType().getId().equals(type) && providers.contains(provider.getId()))
-                .sort(Comparator.comparing(SubscriberProvider::getOrder))
-                .map(SubscriberProviderInfo::of));
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMapMany(auth -> providerService
+                        .channels()
+                        .mapNotNull(info -> info.copyToProvidedUser(auth, properties)))
+                .filter(p -> CollectionUtils.isNotEmpty(p.getChannels()))
+                .map(NotifyChannelController.SubscriberProviderInfo::getProvider)
+                .collectList()
+                .flatMapMany(providers -> Flux
+                        .fromIterable(SubscriberProviders.getProviders())
+                        .filter(provider -> provider.getType().getId().equals(type) && providers.contains(provider.getId()))
+                        .sort(Comparator.comparing(SubscriberProvider::getOrder))
+                        .map(SubscriberProviderInfo::of));
     }
 
     @GetMapping("/_query")
@@ -209,14 +209,14 @@ public class NotificationController {
     @QueryOperation(summary = "查询通知记录")
     public Mono<PagerResult<NotificationEntity>> queryMyNotifications(@Parameter(hidden = true) QueryParamEntity query) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> query
-                .toNestQuery(q -> q
-                    .where(NotificationEntity::getSubscriberType, "user")
-                    .and(NotificationEntity::getSubscriber, auth.getUser().getId()))
-                .execute(notificationService::queryPager)
-                .defaultIfEmpty(PagerResult.empty()));
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMap(auth -> query
+                        .toNestQuery(q -> q
+                                .where(NotificationEntity::getSubscriberType, "user")
+                                .and(NotificationEntity::getSubscriber, auth.getUser().getId()))
+                        .execute(notificationService::queryPager)
+                        .defaultIfEmpty(PagerResult.empty()));
 
     }
 
@@ -232,16 +232,16 @@ public class NotificationController {
     @QueryOperation(summary = "获取通知记录")
     public Mono<NotificationEntity> readNotification(@PathVariable String id) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> QueryParamEntity
-                .newQuery()
-                .where(NotificationEntity::getSubscriberType, "user")
-                .and(NotificationEntity::getSubscriber, auth.getUser().getId())
-                .and(NotificationEntity::getId, id)
-                .execute(notificationService::findAndMarkRead)
-                .singleOrEmpty()
-            );
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMap(auth -> QueryParamEntity
+                        .newQuery()
+                        .where(NotificationEntity::getSubscriberType, "user")
+                        .and(NotificationEntity::getSubscriber, auth.getUser().getId())
+                        .and(NotificationEntity::getId, id)
+                        .execute(notificationService::findAndMarkRead)
+                        .singleOrEmpty()
+                );
     }
 
     @PostMapping("/_{state}")
@@ -250,18 +250,18 @@ public class NotificationController {
     public Mono<Integer> readNotification(@RequestBody Mono<List<String>> idList,
                                           @PathVariable NotificationState state) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> idList
-                .filter(CollectionUtils::isNotEmpty)
-                .flatMap(list -> notificationService
-                    .createUpdate()
-                    .set(NotificationEntity::getState, state)
-                    .where(NotificationEntity::getSubscriberType, "user")
-                    .and(NotificationEntity::getSubscriber, auth.getUser().getId())
-                    .in(NotificationEntity::getId, list)
-                    .execute())
-            );
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMap(auth -> idList
+                        .filter(CollectionUtils::isNotEmpty)
+                        .flatMap(list -> notificationService
+                                .createUpdate()
+                                .set(NotificationEntity::getState, state)
+                                .where(NotificationEntity::getSubscriberType, "user")
+                                .and(NotificationEntity::getSubscriber, auth.getUser().getId())
+                                .in(NotificationEntity::getId, list)
+                                .execute())
+                );
     }
 
     @PostMapping("/_{state}/provider")
@@ -270,18 +270,18 @@ public class NotificationController {
     public Mono<Integer> readNotificationByType(@RequestBody Mono<List<String>> providerList,
                                                 @PathVariable NotificationState state) {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMap(auth -> providerList
-                .filter(CollectionUtils::isNotEmpty)
-                .flatMap(list -> notificationService
-                    .createUpdate()
-                    .set(NotificationEntity::getState, state)
-                    .where(NotificationEntity::getSubscriberType, "user")
-                    .and(NotificationEntity::getSubscriber, auth.getUser().getId())
-                    .in(NotificationEntity::getTopicProvider, list)
-                    .execute())
-            );
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .flatMap(auth -> providerList
+                        .filter(CollectionUtils::isNotEmpty)
+                        .flatMap(list -> notificationService
+                                .createUpdate()
+                                .set(NotificationEntity::getState, state)
+                                .where(NotificationEntity::getSubscriberType, "user")
+                                .and(NotificationEntity::getSubscriber, auth.getUser().getId())
+                                .in(NotificationEntity::getTopicProvider, list)
+                                .execute())
+                );
     }
 
     @Getter

@@ -30,6 +30,7 @@ import org.hswebframework.web.authorization.annotation.DeleteAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.authorization.exception.UnAuthorizedException;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
 import org.jetlinks.community.authorize.AuthenticationSpec;
 import org.jetlinks.community.notify.manager.configuration.NotifySubscriberProperties;
@@ -70,8 +71,8 @@ public class NotifyChannelController {
     @Operation(summary = "获取通知通道提供商信息")
     public Flux<NotifyChannelProviderInfo> getChannelProviders() {
         return Flux
-            .fromIterable(channelProviders)
-            .map(NotifyChannelProviderInfo::of);
+                .fromIterable(channelProviders)
+                .map(NotifyChannelProviderInfo::of);
     }
 
 
@@ -88,8 +89,8 @@ public class NotifyChannelController {
     public Mono<Void> saveChannel(@PathVariable String providerId,
                                   @RequestBody Flux<NotifySubscriberChannelEntity> channels) {
         return repository
-            .save(channels.doOnNext(c -> c.setProviderId(providerId)))
-            .then();
+                .save(channels.doOnNext(c -> c.setProviderId(providerId)))
+                .then();
     }
 
     @DeleteMapping("/{channelId}")
@@ -97,8 +98,8 @@ public class NotifyChannelController {
     @Operation(summary = "删除通道")
     public Mono<Void> saveChannel(@PathVariable String channelId) {
         return repository
-            .deleteById(channelId)
-            .then();
+                .deleteById(channelId)
+                .then();
     }
 
     @PostMapping("/{providerId}/enable")
@@ -106,12 +107,12 @@ public class NotifyChannelController {
     @SaveAction
     public Mono<Void> enableProvider(@PathVariable String providerId) {
         return providerService
-            .findById(providerId)
-            .flatMap(provider -> {
-                provider.setState(NotifyChannelState.enabled);
-                return providerService.updateById(providerId, provider);
-            })
-            .then();
+                .findById(providerId)
+                .flatMap(provider -> {
+                    provider.setState(NotifyChannelState.enabled);
+                    return providerService.updateById(providerId, provider);
+                })
+                .then();
     }
 
     @PostMapping("/{providerId}/disable")
@@ -119,12 +120,12 @@ public class NotifyChannelController {
     @SaveAction
     public Mono<Void> disableProvider(@PathVariable String providerId) {
         return providerService
-            .findById(providerId)
-            .flatMap(provider -> {
-                provider.setState(NotifyChannelState.disabled);
-                return providerService.updateById(providerId, provider);
-            })
-            .then();
+                .findById(providerId)
+                .flatMap(provider -> {
+                    provider.setState(NotifyChannelState.disabled);
+                    return providerService.updateById(providerId, provider);
+                })
+                .then();
     }
 
     @PutMapping("/{providerId}")
@@ -133,8 +134,8 @@ public class NotifyChannelController {
     public Mono<Void> updateProvider(@PathVariable String providerId,
                                      @RequestBody Mono<NotifySubscriberProviderEntity> provider) {
         return providerService
-            .updateById(providerId, provider)
-            .then();
+                .updateById(providerId, provider)
+                .then();
     }
 
     @GetMapping("/all-for-save")
@@ -149,10 +150,11 @@ public class NotifyChannelController {
     @Operation(summary = "获取当前用户可访问的通道配置")
     public Flux<SubscriberProviderInfo> accessibleChannels() {
         return Authentication
-            .currentReactive()
-            .switchIfEmpty(Mono.error(UnAuthorizedException::new))
-            .flatMapMany(auth -> channels().mapNotNull(info -> info.copyToProvidedUser(auth, properties)))
-            .filter(p -> CollectionUtils.isNotEmpty(p.getChannels()));
+                .currentReactive()
+                .switchIfEmpty(Mono.error(UnAuthorizedException::new))
+                .as(LocaleUtils::transform)
+                .flatMapMany(auth -> channels().mapNotNull(info -> info.copyToProvidedUser(auth, properties)))
+                .filter(p -> CollectionUtils.isNotEmpty(p.getChannels()));
     }
 
     @GetMapping("/{providerId}/variables")
@@ -160,10 +162,10 @@ public class NotifyChannelController {
     @Operation(summary = "获取通知的内置参数")
     public Flux<PropertyMetadata> notifyVariables(@PathVariable String providerId) {
         return providerService
-            .findById(providerId)
-            .flatMapMany(entity -> Mono
-                .justOrEmpty(SubscriberProviders.getProvider(entity.getProvider()))
-                .flatMapMany(provider -> provider.getDetailProperties(entity.getConfiguration())));
+                .findById(providerId)
+                .flatMapMany(entity -> Mono
+                        .justOrEmpty(SubscriberProviders.getProvider(entity.getProvider()))
+                        .flatMapMany(provider -> provider.getDetailProperties(entity.getConfiguration())));
     }
 
     @Getter
@@ -175,6 +177,13 @@ public class NotifyChannelController {
         private String id;
 
         private String name;
+
+        public String getI18nName() {
+            return SubscriberProviders
+                    .getProvider(provider)
+                    .map(SubscriberProvider::getName)
+                    .orElse(name);
+        }
 
         private String provider;
 
@@ -210,8 +219,8 @@ public class NotifyChannelController {
 
         public SubscriberProviderInfo copyToProvidedUser(Authentication auth, NotifySubscriberProperties properties) {
             if (id == null
-                || (state == null || state == NotifyChannelState.disabled)
-                || (!properties.isAllowAllNotify(auth) && grant != null && !grant.isGranted(auth))) {
+                    || (state == null || state == NotifyChannelState.disabled)
+                    || (!properties.isAllowAllNotify(auth) && grant != null && !grant.isGranted(auth))) {
                 return null;
             }
 
@@ -221,31 +230,31 @@ public class NotifyChannelController {
             info.setProvider(provider);
             info.setType(type);
             info.setChannels(
-                channels
-                    .stream()
-                    .filter(channel -> (
-                        (channel.getId() != null)
-                            && (
-                            properties.isAllowAllNotify(auth)
-                                || (channel.getGrant() != null && channel.getGrant().isGranted(auth))
-                        )
-                    ))
-                    .collect(Collectors.toList())
+                    channels
+                            .stream()
+                            .filter(channel -> (
+                                    (channel.getId() != null)
+                                            && (
+                                            properties.isAllowAllNotify(auth)
+                                                    || (channel.getGrant() != null && channel.getGrant().isGranted(auth))
+                                    )
+                            ))
+                            .collect(Collectors.toList())
             );
             return info;
         }
 
         public static SubscriberProviderInfo of(SubscriberProvider info) {
             return new SubscriberProviderInfo(
-                IDGenerator.RANDOM.generate(),
-                info.getName(),
-                info.getId(),
-                SubscribeTypeInfo.of(info.getType()),
-                null,
-                null,
-                NotifyChannelState.disabled,
-                new ArrayList<>(),
-                info.getOrder()
+                    IDGenerator.RANDOM.generate(),
+                    info.getName(),
+                    info.getId(),
+                    SubscribeTypeInfo.of(info.getType()),
+                    null,
+                    null,
+                    NotifyChannelState.disabled,
+                    new ArrayList<>(),
+                    info.getOrder()
             );
         }
 
@@ -264,7 +273,7 @@ public class NotifyChannelController {
             boolean matched = false;
             for (NotifySubscriberChannelEntity entity : channels) {
                 if (Objects.equals(entity.getChannelProvider(), channel.getChannelProvider())
-                    && entity.getId() == null) {
+                        && entity.getId() == null) {
                     matched = true;
                     channel.copyTo(entity);
                 }
@@ -277,6 +286,10 @@ public class NotifyChannelController {
 
         public SubscriberProviderInfo with(NotifySubscriberProviderEntity provider) {
             this.id = provider.getId();
+
+            //这里用翻译后的
+            this.name = provider.getI18nName();
+
             this.grant = provider.getGrant();
             this.provider = provider.getProvider();
             this.configuration = provider.getConfiguration();

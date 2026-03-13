@@ -25,6 +25,8 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.JsonCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
+import org.hswebframework.web.i18n.I18nSupportUtils;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.i18n.MultipleI18nSupportEntity;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.authorize.AuthenticationSpec;
@@ -33,8 +35,12 @@ import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannelPro
 
 import javax.persistence.Column;
 import javax.persistence.Table;
+
 import jakarta.validation.constraints.NotBlank;
+
 import java.sql.JDBCType;
+import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -113,5 +119,17 @@ public class NotifySubscriberChannelEntity extends GenericEntity<String> impleme
 
     public String getI18nName() {
         return getI18nMessage("name", name);
+    }
+
+    public void putI18nName(String i18nKey) {
+        putI18nName(i18nKey, LocaleUtils.getSupportLocales());
+    }
+
+    public void putI18nName(String i18nKey,
+                            Collection<Locale> locales) {
+        this.i18nMessages = I18nSupportUtils
+                .putI18nMessages(
+                        i18nKey, "name", locales, null, this.i18nMessages
+                );
     }
 }

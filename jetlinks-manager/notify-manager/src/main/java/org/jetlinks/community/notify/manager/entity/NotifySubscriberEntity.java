@@ -24,6 +24,8 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.*;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.jetlinks.community.notify.manager.enums.SubscribeState;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 import org.springframework.util.StringUtils;
 
 import javax.persistence.Column;
@@ -40,7 +42,7 @@ import java.util.Map;
  * @since 1.3
  */
 @Table(name = "notify_subscribers",
-    indexes = @Index(name = "idx_nfy_subs_subscriber", columnList = "subscriber")
+        indexes = @Index(name = "idx_nfy_subs_subscriber", columnList = "subscriber")
 )
 @Getter
 @Setter
@@ -74,9 +76,23 @@ public class NotifySubscriberEntity extends GenericEntity<String> {
     @Schema(description = "订阅名称")
     private String subscribeName;
 
+    public String getI18nSubscribeName() {
+        return SubscriberProviders
+                .getProvider(subscriber)
+                .map(SubscriberProvider::getName)
+                .orElse(subscribeName);
+    }
+
     @Column(length = 64, nullable = false)
     @Schema(description = "主题名称")
     private String topicName;
+
+    public String getI18nTopicName() {
+        return SubscriberProviders
+                .getProvider(topicProvider)
+                .map(SubscriberProvider::getName)
+                .orElse(topicName);
+    }
 
     @Column(length = 3000)
     @JsonCodec
@@ -111,9 +127,9 @@ public class NotifySubscriberEntity extends GenericEntity<String> {
 
     public String generateId() {
         if (super.getId() == null
-            && StringUtils.hasText(subscriberType)
-            && StringUtils.hasText(subscriber)
-            && StringUtils.hasText(topicProvider)) {
+                && StringUtils.hasText(subscriberType)
+                && StringUtils.hasText(subscriber)
+                && StringUtils.hasText(topicProvider)) {
             return DigestUtils.md5Hex(String.join(":", subscriberType, subscriber, topicProvider));
         }
         return null;
