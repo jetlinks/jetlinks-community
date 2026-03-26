@@ -5,7 +5,7 @@ name: Pull Request 2.10 with java17
 
 on:
   pull_request:
-    branches: [ "2.10","2.11"  ]
+    branches: [ "2.10","2.11","2.12"  ]
 
 jobs:
   build:

@@ -146,7 +146,7 @@ jetlinks:
                 server: ${spring.application.name}
     device:
         storage:
-            default-policy: timescaledb-row # 默认设备数据存储策略
+            default-policy: timescaledb-row # 默认设备数据存储策略 es使用: default-row
             enable-last-data-in-db: false # 是否将设备最新到数据存储到数据库
     authentication:
         defaults:
