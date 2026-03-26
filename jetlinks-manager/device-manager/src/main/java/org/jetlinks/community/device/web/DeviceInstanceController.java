@@ -1149,6 +1149,16 @@ public class DeviceInstanceController implements
             .getPropertyMetrics(DeviceThingType.device.getId(), deviceId, property);
     }
 
+    @PostMapping("/{deviceId}/metric/properties")
+    @Operation(summary = "批量获取设备属性指标数据")
+    @QueryAction
+    public Flux<DefaultPropertyMetricManager.DevicePropertyMetricInfo> getPropertyMetrics(@PathVariable String deviceId,
+                                                                                          @RequestBody Mono<List<String>> payload) {
+        return payload
+            .flatMapMany(properties -> metricManager
+                .getPropertyMetrics(DeviceThingType.device.getId(), deviceId, properties));
+    }
+
     //仅解析文件为属性物模型
     @PostMapping(value = "/{productId}/property-metadata/file/analyze")
     @SaveAction

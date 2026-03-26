@@ -16,6 +16,7 @@
 package org.jetlinks.community.notify.manager.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
@@ -29,10 +30,11 @@ import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.authorize.AuthenticationSpec;
 import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 
 import javax.persistence.Column;
 import javax.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
 import java.sql.JDBCType;
 import java.util.Map;
 
@@ -54,6 +56,13 @@ public class NotifySubscriberProviderEntity extends GenericEntity<String> implem
     @NotBlank(groups = CreateGroup.class)
     @Schema(description = "名称")
     private String name;
+
+    public String getI18nName() {
+        return SubscriberProviders
+                .getProvider(provider)
+                .map(SubscriberProvider::getName)
+                .orElse(name);
+    }
 
     /**
      * @see org.jetlinks.pro.notify.subscription.SubscriberProvider#getId()

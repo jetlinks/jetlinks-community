@@ -49,7 +49,9 @@ import java.util.Objects;
 @Slf4j
 public class AlarmProvider implements SubscriberProvider {
 
-    private final EventBus eventBus;
+    public static final String provider = "alarm";
+
+    protected final EventBus eventBus;
 
     public AlarmProvider(EventBus eventBus) {
         this.eventBus = eventBus;
@@ -57,7 +59,7 @@ public class AlarmProvider implements SubscriberProvider {
 
     @Override
     public String getId() {
-        return "alarm";
+        return provider;
     }
 
     @Override
@@ -80,10 +82,10 @@ public class AlarmProvider implements SubscriberProvider {
     @Override
     public ConfigMetadata getConfigMetadata() {
         return new DefaultConfigMetadata()
-            .add("alarmConfigId", "告警规则", "告警规则,支持通配符:*", StringType.GLOBAL);
+                .add("alarmConfigId", "告警规则", "告警规则,支持通配符:*", StringType.GLOBAL);
     }
 
-    protected String getAlarmId(Map<String, Object> config) {
+    protected String getAlarmId( Map<String, Object> config) {
         ValueObject configs = ValueObject.of(config);
         return configs.getString("alarmConfigId").orElse("*");
     }
@@ -92,8 +94,8 @@ public class AlarmProvider implements SubscriberProvider {
                                                   Authentication authentication,
                                                   String topic) {
         return Mono.just(locale -> createSubscribe(locale, id, new String[]{topic})
-            //有效期内去重,防止同一个用户所在多个部门推送同一个告警
-            .as(FluxUtils.distinct(Notify::getDataId, Duration.ofSeconds(10))));
+                //有效期内去重,防止同一个用户所在多个部门推送同一个告警
+                .as(FluxUtils.distinct(Notify::getDataId, Duration.ofSeconds(10))));
     }
 
     private Flux<Notify> createSubscribe(Locale locale,

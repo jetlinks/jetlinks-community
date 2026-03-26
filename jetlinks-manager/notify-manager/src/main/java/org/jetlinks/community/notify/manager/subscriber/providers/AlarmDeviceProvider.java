@@ -18,6 +18,7 @@ package org.jetlinks.community.notify.manager.subscriber.providers;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.community.topic.Topics;
 import org.jetlinks.core.event.EventBus;
@@ -34,24 +35,31 @@ import java.util.Map;
 @Slf4j
 public class AlarmDeviceProvider extends AlarmProvider {
 
+    public static final String provider = "alarm-device";
+
     public AlarmDeviceProvider(EventBus eventBus) {
         super(eventBus);
     }
 
     @Override
     public String getId() {
-        return "alarm-device";
+        return provider;
     }
 
     @Override
     public String getName() {
         return LocaleUtils
-            .resolveMessage("message.subscriber.provider.alarm-device", "设备告警");
+                .resolveMessage("message.subscriber.provider.alarm-device", "设备告警");
     }
 
     @Override
     public Integer getOrder() {
         return 100;
+    }
+
+    @Override
+    public NotifyChannelState getDefaultState() {
+        return NotifyChannelState.enabled;
     }
 
     @Override
@@ -63,10 +71,10 @@ public class AlarmDeviceProvider extends AlarmProvider {
     @Override
     public Flux<PropertyMetadata> getDetailProperties(Map<String, Object> config) {
         return super.getDetailProperties(config)
-            .concatWith(Flux.just(
-                SimplePropertyMetadata.of("targetId", "设备ID", StringType.GLOBAL),
-                SimplePropertyMetadata.of("targetName", "设备名称", StringType.GLOBAL)
-            ));
+                    .concatWith(Flux.just(
+                            SimplePropertyMetadata.of("targetId", "设备ID", StringType.GLOBAL),
+                            SimplePropertyMetadata.of("targetName", "设备名称", StringType.GLOBAL)
+                    ));
     }
 
 }

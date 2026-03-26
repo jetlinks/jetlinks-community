@@ -90,9 +90,8 @@ public class PluginAutoConfiguration {
 
 
     @Bean
-    @ConditionalOnMissingBean(PluginRegistry.class)
-    public NonePluginRegistry nonePluginRegistry() {
-        return new NonePluginRegistry();
+    public PluginRegistryImpl pluginRegistry(ApplicationContext context) {
+        return new PluginRegistryImpl(context);
     }
 
     @Bean

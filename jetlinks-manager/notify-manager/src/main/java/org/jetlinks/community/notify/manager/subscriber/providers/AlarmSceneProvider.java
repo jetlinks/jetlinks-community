@@ -18,6 +18,8 @@ package org.jetlinks.community.notify.manager.subscriber.providers;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.jetlinks.community.notify.manager.subscriber.Subscriber;
 import org.jetlinks.community.topic.Topics;
 import org.jetlinks.core.event.EventBus;
@@ -30,13 +32,15 @@ import java.util.Map;
 @Slf4j
 public class AlarmSceneProvider extends AlarmProvider {
 
+    public static final String provider = "alarm-other";
+
     public AlarmSceneProvider(EventBus eventBus) {
         super(eventBus);
     }
 
     @Override
     public String getId() {
-        return "alarm-other";
+        return provider;
     }
 
     @Override
@@ -48,6 +52,11 @@ public class AlarmSceneProvider extends AlarmProvider {
     @Override
     public Integer getOrder() {
         return 300;
+    }
+
+    @Override
+    public NotifyChannelState getDefaultState() {
+        return NotifyChannelState.enabled;
     }
 
     @Override
