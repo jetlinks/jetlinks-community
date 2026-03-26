@@ -27,6 +27,8 @@ import org.hswebframework.ezorm.rdb.mapping.annotation.EnumCodec;
 import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.jetlinks.community.notify.manager.enums.NotificationState;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProvider;
+import org.jetlinks.community.notify.manager.subscriber.SubscriberProviders;
 import org.jetlinks.community.utils.ObjectMappers;
 
 import javax.persistence.Column;
@@ -37,9 +39,10 @@ import java.sql.JDBCType;
 @Getter
 @Setter
 @Table(name = "notify_notifications",
-    indexes = @Index(
-        name = "idx_ntfc_subscribe", columnList = "subscriber_type,subscriber"
-    ))
+        indexes = {
+                @Index(name = "idx_ntfc_subscribe", columnList = "subscriber_type,subscriber"),
+                @Index(name = "idx_ntfc_tp", columnList = "topic_provider")
+        })
 @Comment("消息通知信息表")
 public class NotificationEntity extends GenericEntity<String> {
     private static final long serialVersionUID = -1L;
@@ -66,6 +69,13 @@ public class NotificationEntity extends GenericEntity<String> {
     @Column(length = 64, nullable = false, updatable = false)
     @Schema(description = "主题名称")
     private String topicName;
+
+    public String getI18nTopicName() {
+        return SubscriberProviders
+                .getProvider(topicProvider)
+                .map(SubscriberProvider::getName)
+                .orElse(topicName);
+    }
 
     @Column
     @ColumnType(jdbcType = JDBCType.CLOB, javaType = String.class)

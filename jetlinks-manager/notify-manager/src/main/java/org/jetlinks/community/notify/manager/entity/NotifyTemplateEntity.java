@@ -16,6 +16,8 @@
 package org.jetlinks.community.notify.manager.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.annotation.ColumnType;
@@ -26,6 +28,7 @@ import org.hswebframework.web.api.crud.entity.GenericEntity;
 import org.hswebframework.web.api.crud.entity.RecordCreationEntity;
 import org.hswebframework.web.crud.annotation.EnableEntityEvent;
 import org.hswebframework.web.crud.generator.Generators;
+import org.hswebframework.web.i18n.MultipleI18nSupportEntity;
 import org.hswebframework.web.validator.CreateGroup;
 import org.jetlinks.community.notify.template.TemplateProperties;
 import org.jetlinks.community.notify.template.VariableDefinition;
@@ -33,8 +36,6 @@ import org.jetlinks.community.notify.template.VariableDefinition;
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import java.sql.JDBCType;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,7 @@ import java.util.Map;
 @Table(name = "notify_template")
 @Comment("消息通知模板表")
 @EnableEntityEvent
-public class NotifyTemplateEntity extends GenericEntity<String> implements RecordCreationEntity {
+public class NotifyTemplateEntity extends GenericEntity<String> implements RecordCreationEntity, MultipleI18nSupportEntity {
     private static final long serialVersionUID = -6849794470754667710L;
 
     @Override
@@ -75,23 +76,23 @@ public class NotifyTemplateEntity extends GenericEntity<String> implements Recor
     private String name;
 
     @Column
-    @ColumnType(jdbcType = JDBCType.LONGVARCHAR,javaType = String.class)
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
     @JsonCodec
     @Schema(description = "模版内容(根据服务商不同而不同)")
-    private Map<String,Object> template;
+    private Map<String, Object> template;
 
     @Column(updatable = false)
     @Schema(
-        description = "创建者ID(只读)"
-        , accessMode = Schema.AccessMode.READ_ONLY
+            description = "创建者ID(只读)"
+            , accessMode = Schema.AccessMode.READ_ONLY
     )
     private String creatorId;
 
     @Column(updatable = false)
     @DefaultValue(generator = Generators.CURRENT_TIME)
     @Schema(
-        description = "创建时间(只读)"
-        , accessMode = Schema.AccessMode.READ_ONLY
+            description = "创建时间(只读)"
+            , accessMode = Schema.AccessMode.READ_ONLY
     )
     private Long createTime;
 
@@ -121,5 +122,15 @@ public class NotifyTemplateEntity extends GenericEntity<String> implements Recor
         properties.setVariableDefinitions(variableDefinitions);
         properties.setDescription(description);
         return properties;
+    }
+
+    @Schema(title = "国际化信息定义")
+    @Column
+    @JsonCodec
+    @ColumnType(jdbcType = JDBCType.LONGVARCHAR, javaType = String.class)
+    private Map<String, Map<String, String>> i18nMessages;
+
+    public String getI18nName() {
+        return getI18nMessage("name", name);
     }
 }

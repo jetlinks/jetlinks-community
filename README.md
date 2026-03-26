@@ -115,7 +115,10 @@ TCP/UDP/MQTT/HTTP、TLS/DTLS、不同厂商、不同设备、不同报文、统�
 
 ### **付费**服务支持或商务合作请联系
 
-![qrCode.jpg](./qrCode.png)
+<div style="display: flex; gap: 10px;">
+  <img src="./qrCode2.png" alt="商务支持" width="45%">
+</div>
+
 
 ## 文档
 

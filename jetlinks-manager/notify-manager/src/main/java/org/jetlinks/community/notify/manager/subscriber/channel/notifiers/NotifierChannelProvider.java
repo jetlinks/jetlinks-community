@@ -17,21 +17,22 @@ package org.jetlinks.community.notify.manager.subscriber.channel.notifiers;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.collections4.MapUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
+import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.core.Values;
 import org.jetlinks.community.notify.NotifierManager;
 import org.jetlinks.community.notify.NotifyType;
 import org.jetlinks.community.notify.manager.entity.Notification;
 import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannel;
 import org.jetlinks.community.notify.manager.subscriber.channel.NotifyChannelProvider;
+import org.jetlinks.core.Values;
 import reactor.core.publisher.Mono;
 
-import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 
 @AllArgsConstructor
@@ -48,7 +49,8 @@ public abstract class NotifierChannelProvider implements NotifyChannelProvider {
 
     @Override
     public String getName() {
-        return getNotifyType().getName();
+        return LocaleUtils
+                .resolveMessage("org.jetlinks.community.notify.DefaultNotifyType." + getNotifyType().getId(), getNotifyType().getName());
     }
 
     @Override
@@ -121,8 +123,8 @@ public abstract class NotifierChannelProvider implements NotifyChannelProvider {
         @Override
         public Mono<Void> sendNotify(Notification notification) {
             return notifierManager
-                .getNotifier(getNotifyType(), config.notifierId)
-                .flatMap(notifier -> notifier.send(config.templateId, Values.of(createVariable(notification))));
+                    .getNotifier(getNotifyType(), config.notifierId)
+                    .flatMap(notifier -> notifier.send(config.templateId, Values.of(createVariable(notification))));
         }
 
         @Override

@@ -17,6 +17,7 @@ package org.jetlinks.community.plugin.device;
 
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
+import org.jetlinks.community.plugin.InternalPluginRegistry;
 import org.jetlinks.core.defaults.CompositeProtocolSupport;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -33,9 +34,11 @@ import org.jetlinks.core.monitor.Monitor;
 import org.jetlinks.core.server.session.DeviceSessionProvider;
 import org.jetlinks.core.server.session.DeviceSessionProviders;
 import org.jetlinks.core.server.session.PersistentSession;
+import org.jetlinks.plugin.core.Plugin;
 import org.jetlinks.plugin.core.PluginDriver;
 import org.jetlinks.plugin.core.PluginRegistry;
 import org.jetlinks.plugin.core.ServiceRegistry;
+import org.jetlinks.plugin.internal.InternalPluginType;
 import org.jetlinks.plugin.internal.PluginDataIdMapper;
 import org.jetlinks.plugin.internal.device.DeviceGatewayPlugin;
 import org.jetlinks.plugin.internal.device.PluginDeviceGatewayService;
@@ -49,6 +52,7 @@ import org.jetlinks.community.plugin.context.*;
 import org.jetlinks.community.plugin.monitor.PluginMonitorHelper;
 import org.jetlinks.community.plugin.utils.PluginUtils;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
@@ -61,7 +65,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class PluginDeviceGatewayProvider extends CompositeProtocolSupport
-    implements DeviceGatewayProvider, DeviceSessionProvider {
+    implements DeviceGatewayProvider, DeviceSessionProvider, InternalPluginRegistry {
 
     public static final String CHANNEL_PLUGIN = PluginTransport.plugin.getId();
 
@@ -297,6 +301,25 @@ public class PluginDeviceGatewayProvider extends CompositeProtocolSupport
             return out.toByteArray();
         });
     }
+
+    @Override
+    public Mono<Plugin> getPlugin(String type, String pluginId) {
+        return InternalPluginType.deviceGateway.getId().equals(type) ?
+            Mono.justOrEmpty(plugins.get(pluginId))
+            : Mono.empty();
+    }
+
+    @Override
+    public Flux<Plugin> getPlugins(String type) {
+        return InternalPluginType.deviceGateway.getId().equals(type) ?
+            getPlugins() : Flux.empty();
+    }
+
+    @Override
+    public Flux<Plugin> getPlugins() {
+        return Flux.fromIterable(plugins.values());
+    }
+
 
     class PluginMessageCodec implements DeviceMessageCodec {
 

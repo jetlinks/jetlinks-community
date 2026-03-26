@@ -19,6 +19,7 @@ import org.hswebframework.web.authorization.Authentication;
 import org.jetlinks.community.notify.enums.SubscriberTypeEnum;
 import org.jetlinks.community.notify.subscription.SubscribeType;
 import org.jetlinks.core.Wrapper;
+import org.jetlinks.community.notify.manager.enums.NotifyChannelState;
 import org.jetlinks.core.metadata.ConfigMetadata;
 import org.jetlinks.core.metadata.PropertyMetadata;
 import reactor.core.publisher.Flux;
@@ -42,6 +43,14 @@ public interface SubscriberProvider extends Wrapper {
      * @return 名称
      */
     String getName();
+
+    default NotifyChannelState getState(NotifyChannelState state) {
+        return state == null ? getDefaultState() : state;
+    }
+
+    default NotifyChannelState getDefaultState() {
+        return NotifyChannelState.disabled;
+    }
 
     /**
      * return 排序
