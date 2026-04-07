@@ -28,6 +28,8 @@ import org.jetlinks.core.server.session.ChildrenDeviceSession;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.server.session.KeepOnlineSession;
 import org.jetlinks.core.server.session.LostDeviceSession;
+import org.jetlinks.core.trace.DeviceTracer;
+import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.PropertyConstants;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
@@ -154,40 +156,42 @@ public class DeviceGatewayHelper {
             //子设备会话处理
             Mono<DeviceSession> sessionHandler = children.getHeaderOrDefault(Headers.ignoreSession)
                 ? Mono.empty()
-                : sessionManager
-                .getSession(deviceId)
-                .flatMap(parentSession -> this
-                    .createOrUpdateSession(
-                        childrenId,
-                        children,
-                        child -> {
-                            //新创建了的会话?
-                            return Mono.just(new ChildrenDeviceSession(childrenId, parentSession, child));
-                        },
-                        Mono::empty)
-                    .doOnNext(session -> {
-                        if (session.isWrapFrom(ChildrenDeviceSession.class)) {
-                            ChildrenDeviceSession childrenSession = session.unwrap(ChildrenDeviceSession.class);
-                            //网关发生变化,替换新的上级会话
-                            if (!Objects.equals(deviceId, childrenSession.getParent().getDeviceId())) {
-                                childrenSession.replaceWith(parentSession);
-                            }
-                        }
-                    }))
-                   .contextWrite(Context.of(DeviceMessage.class, children));
+                : Mono.defer(() -> sessionManager
+                                   .getSession(deviceId)
+                                   .flatMap(parentSession -> this
+                                                             .createOrUpdateSession(
+                                                                 childrenId,
+                                                                 children,
+                                                                 child -> {
+                                                                     //新创建了的会话?
+                                                                     return Mono.just(new ChildrenDeviceSession(childrenId, parentSession, child));
+                                                                 },
+                                                                 Mono::empty)
+                                                             .doOnNext(session -> {
+                                                                 if (session.isWrapFrom(ChildrenDeviceSession.class)) {
+                                                                     ChildrenDeviceSession childrenSession = session.unwrap(ChildrenDeviceSession.class);
+                                                                     //网关发生变化,替换新的上级会话
+                                                                     if (!Objects.equals(deviceId, childrenSession
+                                                                                                   .getParent()
+                                                                                                   .getDeviceId())) {
+                                                                         childrenSession.replaceWith(parentSession);
+                                                                     }
+                                                                 }
+                                                             }))
+                                   .contextWrite(Context.of(DeviceMessage.class, children))
+            );
 
 
             //子设备注册
             if (isDoRegister(children)) {
                 ctx.after(
-                    this
-                        .getDeviceForRegister(children.getDeviceId())
+                    registry
+                        .getDevice(deviceId)
                         .flatMap(device -> device
-                            //没有配置状态自管理才自动上线
-                            .getSelfConfig(DeviceConfigKey.selfManageState)
-                            .defaultIfEmpty(false)
-                            .filter(Boolean.FALSE::equals))
-                        .flatMap(ignore -> sessionHandler)
+                            .getSelfConfig(DeviceConfigKey.selfManageState))
+                        // 没有配置状态自管理或者设备不存在,尝试自动上线
+                        .defaultIfEmpty(false)
+                        .flatMap(self -> self ? Mono.empty() : sessionHandler)
                         .then()
                 );
             } else {
@@ -205,6 +209,14 @@ public class DeviceGatewayHelper {
         if (!StringUtils.hasText(deviceId)) {
             return Mono.empty();
         }
+
+        // 链路追踪
+        MonoTracer<DeviceOperator> tracer = MonoTracer.create(
+            DeviceTracer.SpanName.handle(deviceId),
+            span -> span.setAttributeLazy(
+                DeviceTracer.SpanKey.message,
+                () -> message.toJson().toString()));
+
         HandlerContext ctx = new HandlerContext();
 
         boolean doHandle = true;
@@ -232,6 +244,7 @@ public class DeviceGatewayHelper {
                     return Mono.empty();
                 })
                 .then(registry.getDevice(deviceId))
+                .as(tracer)
                 .contextWrite(context);
         }
         //设备上线消息,不发送到messageHandler,防止设备上线存在重复消息
@@ -247,6 +260,7 @@ public class DeviceGatewayHelper {
             return ctx
                 .execute(handleMessage(null, message))
                 .then(registry.getDevice(deviceId))
+                .as(tracer)
                 .contextWrite(context);
 //            }
 //            return ctx
@@ -266,6 +280,7 @@ public class DeviceGatewayHelper {
                     .flatMap(sessionConsumer)
             )
             .then(registry.getDevice(deviceId))
+            .as(tracer)
             .contextWrite(context);
 //        return this
 //            .createOrUpdateSession(deviceId, message, sessionBuilder, deviceNotFoundCallback)
@@ -310,10 +325,18 @@ public class DeviceGatewayHelper {
                                  //设备注册
                                  if (isDoRegister(message)) {
                                      return this
-                                         .handleMessage(null, message)
-                                         //延迟2秒后尝试重新获取设备并上线
-                                         .then(Mono.delay(Duration.ofSeconds(2)))
-                                         .then(registry.getDevice(deviceId));
+                                         .handleMessage(null, message
+                                             .copy()
+                                             // 这条消息忽略日志存储,
+                                             .addHeader(Headers.ignoreLog, true))
+                                         .then(getDeviceForRegister(deviceId))
+                                         // 发送了注册消息给平台,但是设备依旧不存在
+                                         .switchIfEmpty(Mono.defer(() -> {
+                                             if (deviceNotFoundCallback != null) {
+                                                 return deviceNotFoundCallback.get();
+                                             }
+                                             return Mono.empty();
+                                         }));
                                  }
                                  if (deviceNotFoundCallback != null) {
                                      return deviceNotFoundCallback.get();
@@ -326,12 +349,12 @@ public class DeviceGatewayHelper {
     }
 
     private Mono<DeviceOperator> getDeviceForRegister(String deviceId) {
-        return registry
-            .getDevice(deviceId)
+        return Mono
+            .defer(() -> registry.getDevice(deviceId))
             .switchIfEmpty(Mono.defer(() -> Mono
                 //延迟2秒，因为自动注册是异步的,收到消息后并不能保证马上可以注册成功.
-                .delay(Duration.ofSeconds(2))
-                .then(registry.getDevice(deviceId))));
+                .delay(Duration.ofSeconds(1))
+                .then(Mono.defer(() -> registry.getDevice(deviceId)))));
     }
 
     private Mono<DeviceSession> createNewSession(String deviceId,
@@ -348,6 +371,8 @@ public class DeviceGatewayHelper {
                     if (message.getHeader(Headers.keepOnline).orElse(false)) {
                         int timeout = message.getHeaderOrDefault(Headers.keepOnlineTimeoutSeconds);
                         newSession = new KeepOnlineSession(newSession, Duration.ofSeconds(timeout));
+                    } else {
+                        applySessionKeepaliveTimeout(message, newSession);
                     }
                     return newSession;
                 }));
