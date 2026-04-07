@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 JetLinks https://www.jetlinks.cn
+ * Copyright 2026 JetLinks https://www.jetlinks.cn
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package org.jetlinks.community.device.message.transparent;
 
+import org.hswebframework.web.i18n.LocaleUtils;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -22,6 +23,10 @@ import java.util.Map;
 public interface TransparentMessageCodecProvider {
 
     String getProvider();
+
+    default String getName() {
+        return LocaleUtils.resolveMessage("device.transparent.codec." + getProvider(), getProvider(), getProvider());
+    }
 
     Mono<TransparentMessageCodec> createCodec(Map<String,Object> configuration);
 

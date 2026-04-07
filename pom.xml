@@ -250,7 +250,7 @@
                         <!-- 属性配置，用于许可证头中的变量替换 -->
                         <properties>
                             <owner>JetLinks https://www.jetlinks.cn</owner>
-                            <year>2025</year>
+                            <year>2026</year>
                         </properties>
                     </configuration>
                     <executions>

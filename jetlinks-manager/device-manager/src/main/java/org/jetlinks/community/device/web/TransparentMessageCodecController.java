@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 JetLinks https://www.jetlinks.cn
+ * Copyright 2026 JetLinks https://www.jetlinks.cn
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,21 @@ package org.jetlinks.community.device.web;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
 import org.hswebframework.web.authorization.annotation.QueryAction;
 import org.hswebframework.web.authorization.annotation.Resource;
 import org.hswebframework.web.authorization.annotation.SaveAction;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.jetlinks.community.device.entity.TransparentMessageCodecEntity;
+import org.jetlinks.community.device.message.transparent.TransparentMessageCodecProvider;
 import org.jetlinks.community.device.message.transparent.TransparentMessageCodecProviders;
 import org.jetlinks.community.device.web.request.TransparentMessageCodecRequest;
 import org.jetlinks.community.device.web.request.TransparentMessageDecodeRequest;
+import org.jetlinks.community.device.web.request.TransparentMessageEncodeRequest;
 import org.jetlinks.community.device.web.response.TransparentMessageDecodeResponse;
+import org.jetlinks.community.device.web.response.TransparentMessageEncodeResponse;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
@@ -35,6 +40,7 @@ import org.jetlinks.core.metadata.DeviceMetadata;
 import org.jetlinks.core.utils.TypeScriptUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -48,6 +54,14 @@ public class TransparentMessageCodecController {
 
     private final DeviceRegistry registry;
 
+
+    @PostMapping("/supports")
+    @Operation(summary = "获取支持的解析提供商")
+    public Flux<TransparentMessageCodecProviderInfo> getCodecs() {
+        return Flux
+            .fromIterable(TransparentMessageCodecProviders.getProviders())
+            .map(TransparentMessageCodecProviderInfo::of);
+    }
 
     @PostMapping("/decode-test")
     @QueryAction
@@ -64,6 +78,26 @@ public class TransparentMessageCodecController {
                 err,
                 Throwable::getLocalizedMessage,
                 (e, msg) -> TransparentMessageDecodeResponse.error(msg)));
+    }
+
+    @PostMapping("/encode-test")
+    @QueryAction
+    @Operation(summary = "测试编码（模拟平台下行 → Modbus 帧字节）")
+    public Mono<TransparentMessageEncodeResponse> encodeTest(@RequestBody Mono<TransparentMessageEncodeRequest> requestMono) {
+        return requestMono
+            .flatMap(req -> TransparentMessageCodecProviders
+                .getProviderNow(req.getProvider())
+                .createCodec(req.getConfiguration())
+                .flatMap(codec -> codec.encode(req.toDeviceMessage())))
+            .map(msg -> {
+                byte[] payload = msg.getPayload();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < payload.length; i++) {
+                    if (i > 0) sb.append(' ');
+                    sb.append(String.format("%02X", payload[i] & 0xFF));
+                }
+                return TransparentMessageEncodeResponse.of(java.util.List.of(sb.toString()));
+            });
     }
 
     @GetMapping("/{productId}/{deviceId}.d.ts")
@@ -95,7 +129,7 @@ public class TransparentMessageCodecController {
                                                         @PathVariable String deviceId) {
 
 
-        return repository
+        return  repository
             .findById(TransparentMessageCodecEntity.createId(productId, deviceId))
             //设备没有则获取产品的
             .switchIfEmpty(Mono.defer(() -> {
@@ -124,7 +158,7 @@ public class TransparentMessageCodecController {
 
 
         return requestMono
-            .flatMap(request-> {
+            .flatMap(request -> {
                 TransparentMessageCodecEntity codec = new TransparentMessageCodecEntity();
                 codec.setProductId(productId);
                 codec.setDeviceId(deviceId);
@@ -149,7 +183,7 @@ public class TransparentMessageCodecController {
                                   @PathVariable String deviceId) {
 
 
-        return repository
+        return  repository
             .deleteById(TransparentMessageCodecEntity.createId(productId, deviceId))
             .then();
     }
@@ -169,6 +203,21 @@ public class TransparentMessageCodecController {
         TypeScriptUtils.loadDeclare("transparent-codec", builder);
 
         return Mono.just(builder.toString());
+    }
+
+    @Getter
+    @Setter
+    public static class TransparentMessageCodecProviderInfo {
+        private String id;
+        private String name;
+
+        public static TransparentMessageCodecProviderInfo of(TransparentMessageCodecProvider provider) {
+            TransparentMessageCodecProviderInfo info = new TransparentMessageCodecProviderInfo();
+
+            info.setId(provider.getProvider());
+            info.setName(provider.getName());
+            return info;
+        }
     }
 
 }
