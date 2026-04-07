@@ -92,8 +92,7 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
                 registry,
                 sessionManager,
                 mqttServer,
-                messageHandler,
-                Mono.empty()
+                messageHandler
             ));
     }
 
@@ -108,8 +107,8 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
             return gateway
                 .shutdown()
                 .then(this
-                    .createDeviceGateway(properties)
-                    .flatMap(gate -> gate.startup().thenReturn(gate)));
+                          .createDeviceGateway(properties)
+                          .flatMap(gate -> gate.startup().thenReturn(gate)));
         }
         return Mono.just(gateway);
     }

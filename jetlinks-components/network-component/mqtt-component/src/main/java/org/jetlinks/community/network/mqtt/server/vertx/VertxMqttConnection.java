@@ -21,6 +21,7 @@ import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttProperties;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttVersion;
 import io.netty.util.ReferenceCountUtil;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.SocketAddress;
@@ -29,6 +30,7 @@ import io.vertx.mqtt.MqttTopicSubscription;
 import io.vertx.mqtt.messages.MqttPublishMessage;
 import io.vertx.mqtt.messages.MqttSubscribeMessage;
 import io.vertx.mqtt.messages.MqttUnsubscribeMessage;
+import io.vertx.mqtt.messages.codes.MqttPubAckReasonCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -449,6 +451,23 @@ class VertxMqttConnection implements MqttConnection {
                 endpoint.publishReceived(message.messageId());
             }
         }
+        @Override
+        public void acknowledge(MqttProperties properties) {
+            try {
+                if (acknowledged) {
+                    return;
+                }
+                acknowledged = true;
+                // 只有mqtt5才应答错误信息
+                if (endpoint.protocolVersion() == MqttVersion.MQTT_5.protocolLevel()) {
+                    endpoint.publishAcknowledge(message.messageId(), MqttPubAckReasonCode.PAYLOAD_FORMAT_INVALID, properties);
+                }
+
+            } catch (Throwable ignore) {
+
+            }
+        }
+
     }
 
     @AllArgsConstructor

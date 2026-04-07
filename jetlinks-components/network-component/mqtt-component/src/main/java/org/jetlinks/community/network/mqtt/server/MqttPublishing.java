@@ -15,6 +15,7 @@
  */
 package org.jetlinks.community.network.mqtt.server;
 
+import io.netty.handler.codec.mqtt.MqttProperties;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.server.mqtt.MqttPublishingMessage;
 
@@ -23,4 +24,6 @@ public interface MqttPublishing extends MqttPublishingMessage {
     MqttMessage getMessage();
 
     void acknowledge();
+
+    void acknowledge(MqttProperties properties);
 }

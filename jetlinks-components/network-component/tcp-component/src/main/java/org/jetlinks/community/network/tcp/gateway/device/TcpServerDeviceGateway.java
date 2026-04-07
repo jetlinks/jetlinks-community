@@ -25,12 +25,11 @@ import org.jetlinks.core.device.DeviceProductOperator;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.message.DeviceMessage;
-import org.jetlinks.core.message.codec.DefaultTransport;
-import org.jetlinks.core.message.codec.FromDeviceMessageContext;
-import org.jetlinks.core.message.codec.Transport;
+import org.jetlinks.core.message.codec.*;
 import org.jetlinks.core.server.DeviceGatewayContext;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.jetlinks.core.trace.DeviceTracer;
+import org.jetlinks.core.trace.FluxTracer;
 import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.community.gateway.AbstractDeviceGateway;
 import org.jetlinks.community.gateway.DeviceGateway;
@@ -43,15 +42,23 @@ import org.jetlinks.community.network.tcp.server.TcpServer;
 import org.jetlinks.community.gateway.DeviceGatewayHelper;
 import org.jetlinks.community.utils.TimeUtils;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
+import org.reactivestreams.Subscription;
+import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
+import reactor.core.Disposables;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Operators;
 import reactor.core.scheduler.Schedulers;
 
+import javax.annotation.Nonnull;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.concurrent.atomic.LongAdder;
 
 @Slf4j
@@ -67,8 +74,6 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
     private final DeviceSessionManager sessionManager;
 
     private final LongAdder counter = new LongAdder();
-
-    private final AtomicBoolean started = new AtomicBoolean();
 
     private Disposable disposable;
 
@@ -97,42 +102,48 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
         return counter.sum();
     }
 
+    public Transport getTransport() {
+        return DefaultTransport.TCP;
+    }
 
-    class TcpConnection implements DeviceGatewayContext {
+    public NetworkType getNetworkType() {
+        return DefaultNetworkType.TCP_SERVER;
+    }
+
+
+    static class TcpConnection extends Mono<Void> implements DeviceGatewayContext, Runnable, Subscription {
+
+        final TcpServerDeviceGateway parent;
         final TcpClient client;
-        final AtomicReference<DeviceSession> sessionRef = new AtomicReference<>();
+
+        static final AtomicReferenceFieldUpdater<TcpConnection, DeviceSession>
+            SESSION = AtomicReferenceFieldUpdater.newUpdater(TcpConnection.class, DeviceSession.class, "session");
+        volatile DeviceSession session;
+
         final InetSocketAddress address;
         Disposable legalityChecker;
+        final Disposable.Composite disposable = Disposables.composite();
+        MessageParser parser;
 
-        TcpConnection(TcpClient client) {
+        CoreSubscriber<? super Void> subscriber;
+
+        TcpConnection(TcpServerDeviceGateway parent, TcpClient client) {
             this.client = client;
+            this.parent = parent;
             this.address = client.getRemoteAddress();
-            monitor.totalConnection(counter.sum());
-            client.onDisconnect(() -> {
-                counter.decrement();
-                monitor.disconnected();
-                monitor.totalConnection(counter.sum());
-                //check session
-                DeviceSession session = sessionRef.get();
-                if (session.getDeviceId() != null) {
-                    sessionManager
-                        .getSession(session.getDeviceId())
-                        .subscribe();
-                }
-
-            });
-            monitor.connected();
-
-            sessionRef.set(new UnknownTcpDeviceSession(client.getId(), client, DefaultTransport.TCP, monitor));
+            parent.monitor.totalConnection(parent.counter.sum());
+            parent.monitor.connected();
+            client.onDisconnect(this);
 
             legalityChecker = Schedulers
                 .parallel()
-                .schedule(this::checkLegality, connectCheckTimeout.toMillis(), TimeUnit.MILLISECONDS);
+                .schedule(this::checkLegality, parent.connectCheckTimeout.toMillis(), TimeUnit.MILLISECONDS);
+            accept();
         }
 
         public void checkLegality() {
             //超过时间还未获取到任何设备则认为连接不合法，自动断开连接
-            if ((sessionRef.get() instanceof UnknownTcpDeviceSession)) {
+            if (session == null) {
                 log.info("tcp [{}] connection is illegal, close it.", address);
                 try {
                     client.disconnect();
@@ -141,37 +152,74 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             }
         }
 
-        Mono<Void> accept() {
-            return getProtocol()
-                .flatMap(protocol -> protocol.onClientConnect(DefaultTransport.TCP, client, this))
-                .then(
-                    client
-                        .subscribe()
-                        .filter(tcp -> started.get())
-                        .concatMap(this::handleTcpMessage)
-                        .onErrorResume((err) -> {
-                            log.error(err.getMessage(), err);
-                            client.shutdown();
-                            return Mono.empty();
+        DeviceSession session() {
+            return session == null
+                ? new UnknownTcpDeviceSession(client.getId(), client, parent.getTransport(), parent.monitor)
+                : session;
+        }
+
+        void accept() {
+            disposable.add(
+                parent
+                    .getProtocol()
+                    .flatMap(protocol -> protocol
+                        .getMessageParser(parent.getTransport())
+                        .flatMap(factory -> factory.create(client))
+                        .doOnNext(parser -> {
+                            this.parser = parser;
+                            this.disposable.add(parser);
                         })
-                        .then()
-                )
-                .doOnCancel(client::shutdown);
+                        .then(protocol.onClientConnect(parent.getTransport(), client, this)))
+                    .thenMany(client.subscribe().concatMap(this::handleTcpMessage, 0))
+                    .subscribe()
+            );
         }
 
         Mono<Void> handleTcpMessage(TcpMessage message) {
-            return getProtocol()
-                .flatMap(pt -> pt.getMessageCodec(DefaultTransport.TCP))
-                .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
-                    sessionRef.get(), message, registry, msg -> handleDeviceMessage(msg).then())))
+            // 协议包自定义了报文解析
+            if (parser != null) {
+                List<? extends EncodedMessage> messages = parser.handle(message);
+                if (messages == null || messages.isEmpty()) {
+                    return Mono.empty();
+                }
+                if (messages.size() == 1) {
+                    return handleTcpMessage0(messages.get(0));
+                }
+                return Flux
+                    .fromIterable(messages)
+                    .concatMap(this::handleTcpMessage0)
+                    .then();
+            }
+            return handleTcpMessage0(message);
+        }
+
+        Mono<Void> handleTcpMessage0(EncodedMessage message) {
+            if (!parent.isStarted()) {
+                return Mono.empty();
+            }
+            return parent
+                .getProtocol()
+                .flatMap(pt -> pt.getMessageCodec(parent.getTransport()))
+                .flatMapMany(codec -> codec
+                    .decode(FromDeviceMessageContext.of(
+                        session(),
+                        message,
+                        parent.registry,
+                        client,
+                        msg -> handleDeviceMessage(msg).then())))
                 .cast(DeviceMessage.class)
-                .concatMap(msg -> this
-                    .handleDeviceMessage(msg)
-                    .as(MonoTracer.create(
-                        DeviceTracer.SpanName.decode(msg.getDeviceId()),
-                        (span, _msg) -> span.setAttributeLazy(DeviceTracer.SpanKey.message, _msg::toString))))
+                .concatMap(this::handleDeviceMessage, 0)
+                .as(FluxTracer.create(
+                    DeviceTracer.SpanName.decode0(session == null ? "unknown" : session.getDeviceId()),
+                    builder -> builder
+                        .setAttributeLazy(
+                            DeviceTracer.SpanKey.message,
+                            message,
+                            (m) -> message.toString())
+                ))
                 .onErrorResume((err) -> {
-                    log.error("Handle TCP[{}] message failed:\n{}",
+                    log.error("{} Handle TCP[{}] message failed:\n{}",
+                              parent.getId(),
                               address,
                               message
                         , err);
@@ -187,15 +235,18 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                 checker.dispose();
                 legalityChecker = null;
             }
-            monitor.receivedMessage();
-            return helper
+            parent.monitor.receivedMessage();
+            return parent
+                .helper
                 .handleDeviceMessage(
                     message,
-                    device -> new TcpDeviceSession(device, client,DefaultTransport.TCP, monitor),
+                    device -> new TcpDeviceSession(device, parent.getTransport(), parent.monitor, parent.sessionManager),
                     session -> {
-                        TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
-                        deviceSession.setClient(client);
-                        sessionRef.set(deviceSession);
+                        if (session.isWrapFrom(TcpDeviceSession.class)) {
+                            TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
+                            deviceSession.registerConnection(client);
+                            SESSION.set(this, session);
+                        }
                     },
                     () -> log.warn("TCP{}: The device[{}] in the message body does not exist:{}", address, message.getDeviceId(), message)
                 )
@@ -204,48 +255,105 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
 
         @Override
         public Mono<DeviceOperator> getDevice(String deviceId) {
-            return registry.getDevice(deviceId);
+            return parent.registry.getDevice(deviceId);
         }
 
         @Override
         public Mono<DeviceProductOperator> getProduct(String productId) {
-            return registry.getProduct(productId);
+            return parent.registry.getProduct(productId);
         }
 
         @Override
         public Mono<Void> onMessage(DeviceMessage message) {
             return handleDeviceMessage(message).then();
         }
-    }
+
+        @Override
+        public void subscribe(@Nonnull CoreSubscriber<? super Void> actual) {
+            try {
+                synchronized (disposable) {
+                    if (disposable.isDisposed()) {
+                        Operators.complete(actual);
+                        return;
+                    }
+                    if (subscriber != null) {
+                        Operators.complete(actual);
+//                    actual.onError(Exceptions.duplicateOnSubscribeException());
+                        return;
+                    }
+
+                    this.subscriber = actual;
+                    this.subscriber.onSubscribe(this);
+                }
+            } catch (Throwable error) {
+                Operators.complete(actual);
+                log.warn("{} handle tcp client {} failed", parent.getId(), client.getRemoteAddress(), error);
+                client.disconnect();
+            }
+        }
+
+        @Override
+        public void run() {
+            cancel();
+        }
+
+        @Override
+        public void request(long n) {
+
+        }
 
 
-    private void closeClient(TcpClient client) {
-        try {
-            client.shutdown();
-        } catch (Throwable ignore) {
+        @Override
+        public void cancel() {
+            synchronized (disposable) {
+                if (disposable.isDisposed()) {
+                    return;
+                }
+                disposable.dispose();
+            }
+            parent.counter.decrement();
+            parent.monitor.disconnected();
+            parent.monitor.totalConnection(parent.counter.sum());
+            if (this.subscriber != null) {
+                this.subscriber.onComplete();
+            }
+            try {
+                client.shutdown();
+            } catch (Throwable ignore) {
 
+            }
+            //check session
+            DeviceSession session = this.session;
+            if (session != null && session.getDeviceId() != null) {
+                parent
+                    .sessionManager
+                    .getSession(session.getDeviceId())
+                    .subscribe();
+            }
         }
     }
 
+
     private void doStart() {
-        if (started.getAndSet(true) || disposable != null) {
+        if (isStarted() || disposable != null) {
             return;
         }
         disposable = tcpServer
             .handleConnection()
-//            .onBackpressureBuffer(maxConcurrency, client -> {
-//                log.warn("tcp server [{}] connection buffer is full, close it.", client.getRemoteAddress());
-//                closeClient(client);
-//            })
             .publishOn(Schedulers.parallel())
-            .flatMap(client -> new TcpConnection(client)
-                         .accept()
-                         .onErrorResume(err -> {
-                             log.error("handle tcp client[{}] error", client.getRemoteAddress(), err);
-                             return Mono.empty();
-                         })
-                , Integer.MAX_VALUE)
-            .contextWrite(ReactiveLogger.start("network", tcpServer.getId()))
+            .flatMap(client -> {
+                try {
+                    return new TcpConnection(this, client);
+                } catch (Throwable e) {
+                    try {
+                        client.disconnect();
+                    } catch (Throwable ignore) {
+                    }
+                    log.warn("{} handle tcp client {} failed", getId(), client.getRemoteAddress(), e);
+                    return Mono.empty();
+                }
+            }, Integer.MAX_VALUE)
+            .contextWrite(ctx -> ctx.put(DeviceGateway.class, this))
             .subscribe(
                 ignore -> {
                 },
