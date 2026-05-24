@@ -78,6 +78,7 @@ import reactor.core.publisher.Hooks;
 import javax.annotation.Nonnull;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Map;
 
@@ -140,6 +141,37 @@ public class CommonConfiguration {
                 return (T) TimeUtils.parseUnit(String.valueOf(value));
             }
         }, ChronoUnit.class);
+
+        BeanUtilsBean.getInstance().getConvertUtils().register(new Converter() {
+            @Override
+            @Generated
+            public <T> T convert(Class<T> type, Object value) {
+                if (value instanceof Timestamp) {
+                    return (T) value;
+                }
+                if (value instanceof Date) {
+                    return (T) new Timestamp(((Date) value).getTime());
+                }
+                if (value instanceof Long) {
+                    return (T) new Timestamp((Long) value);
+                }
+                if (value instanceof Integer) {
+                    return (T) new Timestamp(((Integer) value).longValue());
+                }
+                if (value instanceof String) {
+                    try {
+                        return (T) Timestamp.valueOf((String) value);
+                    } catch (Exception e) {
+                        try {
+                            return (T) new Timestamp(Long.parseLong((String) value));
+                        } catch (Exception ex) {
+                            return null;
+                        }
+                    }
+                }
+                return null;
+            }
+        }, Timestamp.class);
 
         BeanUtilsBean.getInstance().getConvertUtils().register(new Converter() {
             @Override
