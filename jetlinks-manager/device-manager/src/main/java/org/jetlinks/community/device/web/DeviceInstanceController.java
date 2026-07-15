@@ -62,11 +62,14 @@ import org.jetlinks.community.relation.service.RelationService;
 import org.jetlinks.community.relation.service.request.SaveRelationRequest;
 import org.jetlinks.community.things.impl.metric.DefaultPropertyMetricManager;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.utils.ReactorUtils;
 import org.jetlinks.community.web.response.ValidationResult;
 import org.jetlinks.core.Values;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.device.manager.DeviceBindHolder;
 import org.jetlinks.core.device.manager.DeviceBindProvider;
+import org.jetlinks.core.device.session.DeviceSessionInfo;
+import org.jetlinks.core.device.session.DeviceSessionManager;
 import org.jetlinks.core.exception.DeviceOperationException;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.Message;
@@ -144,6 +147,9 @@ public class DeviceInstanceController implements
 
     private final QueryHelper queryHelper;
 
+
+    private final DeviceSessionManager sessionManager;
+
     @SuppressWarnings("all")
     public DeviceInstanceController(LocalDeviceInstanceService service,
                                     DeviceRegistry registry,
@@ -158,7 +164,7 @@ public class DeviceInstanceController implements
                                     WebClient.Builder builder,
                                     DeviceExcelFilterColumns filterColumns,
                                     DefaultPropertyMetricManager metricManager,
-                                    QueryHelper queryHelper) {
+                                    QueryHelper queryHelper, DeviceSessionManager sessionManager) {
         this.service = service;
         this.registry = registry;
         this.productService = productService;
@@ -173,6 +179,7 @@ public class DeviceInstanceController implements
         this.filterColumns = filterColumns;
         this.metricManager = metricManager;
         this.queryHelper = queryHelper;
+        this.sessionManager = sessionManager;
     }
 
 
@@ -1188,5 +1195,11 @@ public class DeviceInstanceController implements
                         return JetLinksDeviceMetadataCodec.getInstance().doEncode(metadata);
                     }))
             );
+    }
+
+    @GetMapping("/{deviceId}/sessions")
+    @Operation(summary = "获取设备会话信息")
+    public Flux<DeviceSessionInfo> sessions(@PathVariable String deviceId) {
+        return sessionManager.getDeviceSessionInfo(deviceId);
     }
 }
