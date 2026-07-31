@@ -35,6 +35,8 @@ import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.event.Subscription;
 import org.jetlinks.core.message.*;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
+import org.jetlinks.core.trace.DeviceTracer;
+import org.jetlinks.core.trace.MonoTracer;
 import org.jetlinks.community.OperationSource;
 import org.jetlinks.community.device.entity.TransparentMessageCodecEntity;
 import org.jetlinks.community.gateway.DeviceGatewayHelper;
@@ -105,7 +107,12 @@ public class TransparentDeviceMessageConnector implements CommandLineRunner, Dev
                 .then();
         }
 
-        return messageHandler.handleMessage(null, msg).then();
+        return messageHandler
+            .handleMessage(null, msg)
+            .as(MonoTracer.create(
+                DeviceTracer.SpanName.handle(msg.getDeviceId()),
+                span -> span.setAttributeLazy(DeviceTracer.SpanKey.message, msg::toString)))
+            .then();
     }
 
     private TransparentMessageCodec getCodecOrNull(String productId, String deviceId) {

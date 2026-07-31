@@ -30,6 +30,9 @@ import org.jetlinks.core.message.event.EventMessage;
 import org.jetlinks.core.server.MessageHandler;
 import org.jetlinks.core.server.session.ChildrenDeviceSession;
 import org.jetlinks.core.server.session.DeviceSession;
+import org.jetlinks.core.trace.DeviceTracer;
+import org.jetlinks.core.trace.MonoTracer;
+import org.jetlinks.core.trace.TraceHolder;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -363,8 +366,10 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
         } else {
             then = Mono.just(true);
         }
-        return this
-                .onMessage(message)
+        // 发布前将当前链路写入消息头，确保跨异步消息边界后仍可恢复父上下文。
+        return TraceHolder
+                .writeContextTo(message, Message::addHeader)
+                .flatMap(this::onMessage)
                 .then(then)
                 .defaultIfEmpty(false);
 
@@ -384,6 +389,12 @@ public class DeviceMessageConnector implements DecodedClientMessageHandler {
                 .reply(reply)
                 .thenReturn(true)
                 .doOnError((error) -> log.error("reply message error", error))
+                .as(MonoTracer.create(
+                        DeviceTracer.SpanName.response(reply.getDeviceId()),
+                        builder -> builder.setAttributeLazy(
+                                DeviceTracer.SpanKey.message,
+                                reply::toString)))
+                .as(MonoTracer.createWith(reply.getHeaders()))
                 ;
     }
 }
