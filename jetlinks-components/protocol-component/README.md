@@ -21,3 +21,5 @@ mvn -pl jetlinks-components/protocol-component,jetlinks-manager/device-manager -
 ```
 
 验证结果：`ProtocolMonitorHelperTest` 4 个用例通过，相关 Reactor 模块全部构建成功。
+
+交付记录：实现提交 `dbb96410`，异常恢复测试提交 `d80628b3`，Pull Request [#761](https://github.com/jetlinks/jetlinks-community/pull/761)。
