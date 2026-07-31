@@ -18,6 +18,8 @@ package org.jetlinks.community.logging.logback;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.id.IDGenerator;
@@ -82,6 +84,11 @@ public class SystemLoggingAppender extends UnsynchronizedAppenderBase<ILoggingEv
             .threadId(String.valueOf(Thread.currentThread().getId()))
             .build();
 
+        SpanContext spanContext = Span.current().getSpanContext();
+        if (spanContext.isValid()) {
+            info.setTraceId(spanContext.getTraceId());
+            info.setSpanId(spanContext.getSpanId());
+        }
         return info;
 
     }

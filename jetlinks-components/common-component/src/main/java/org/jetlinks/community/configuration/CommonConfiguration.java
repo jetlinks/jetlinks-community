@@ -61,6 +61,7 @@ import org.jetlinks.supports.official.JetLinksDataTypeCodecs;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
@@ -84,7 +85,7 @@ import java.util.Map;
 @AutoConfiguration
 @SuppressWarnings("all")
 @EnableConfigurationProperties({ConfigScopeProperties.class})
-public class CommonConfiguration {
+public class CommonConfiguration implements InitializingBean {
 
     static {
         InternalAggregationSupports.register();
@@ -203,6 +204,13 @@ public class CommonConfiguration {
             }
             return err;
         });
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        // Restore all registered thread-local contexts around Reactor operators. OpenTelemetry
+        // and protocol Monitor accessors are responsible for restoring their previous values.
+        Hooks.enableAutomaticContextPropagation();
     }
 
     @Bean

@@ -16,18 +16,31 @@
 package org.jetlinks.community.protocol.monitor;
 
 import io.micrometer.context.ThreadLocalAccessor;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
+import io.opentelemetry.context.Context;
+import org.jetlinks.community.configuration.CommonConfiguration;
+import org.jetlinks.community.log.LogRecord;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.monitor.Monitor;
 import org.jetlinks.core.monitor.logger.Logger;
 import org.jetlinks.supports.event.InternalEventBus;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.util.ServiceLoader;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,6 +49,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ProtocolMonitorHelperTest {
+
+    private static final String TRACE_ID = "0123456789abcdef0123456789abcdef";
+
+    private static final String SPAN_ID = "0123456789abcdef";
+
+    @BeforeAll
+    static void enableAutomaticContextPropagation() {
+        new CommonConfiguration().afterPropertiesSet();
+    }
+
+    @AfterAll
+    static void disableAutomaticContextPropagation() {
+        Hooks.disableAutomaticContextPropagation();
+    }
 
     @AfterEach
     void resetCurrentMonitor() {
@@ -123,5 +150,42 @@ class ProtocolMonitorHelperTest {
             .anyMatch(provider -> provider.type() == ProtocolMonitorThreadLocalAccessor.class);
 
         assertTrue(registered);
+    }
+
+    @Test
+    void shouldAttachTraceIdToProtocolLogAcrossScheduler() {
+        EventBus eventBus = new InternalEventBus();
+        ProtocolMonitorHelper helper = new ProtocolMonitorHelper(eventBus);
+        Monitor monitor = helper.createMonitorNoProxy("test-protocol", "device-1");
+        Scheduler scheduler = Schedulers.newSingle("protocol-log-test");
+        Context traceContext = Context.root().with(Span.wrap(SpanContext.create(
+            TRACE_ID,
+            SPAN_ID,
+            TraceFlags.getSampled(),
+            TraceState.getDefault()
+        )));
+
+        Flux<LogRecord> logs = helper
+            .subscribeDeviceLog("device-1", "INFO")
+            .take(1);
+        Flux<LogRecord> trigger = Mono
+            .just("decoded")
+            .publishOn(scheduler)
+            .doOnNext(ignored -> monitor.logger().info("device message decoded"))
+            .thenMany(Flux.empty());
+
+        try {
+            StepVerifier
+                .create(Flux
+                            .merge(logs, trigger)
+                            .contextWrite(context -> context.put(Context.class, traceContext)))
+                .assertNext(record -> {
+                    assertEquals(TRACE_ID, record.getTraceId());
+                    assertEquals(SPAN_ID, record.getSpanId());
+                })
+                .verifyComplete();
+        } finally {
+            scheduler.dispose();
+        }
     }
 }
