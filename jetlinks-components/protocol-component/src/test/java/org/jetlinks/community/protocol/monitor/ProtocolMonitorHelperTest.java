@@ -30,6 +30,7 @@ import java.util.ServiceLoader;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -86,6 +87,31 @@ class ProtocolMonitorHelperTest {
             .expectNext(current, current)
             .verifyComplete();
 
+        assertNull(ProtocolMonitorHelper.getCurrentMonitor());
+    }
+
+    @Test
+    void shouldRestoreMonitorAfterFailure() {
+        Monitor current = mock(Monitor.class);
+        IllegalStateException expected = new IllegalStateException("test");
+
+        IllegalStateException syncError = assertThrows(
+            IllegalStateException.class,
+            () -> ProtocolMonitorHelper.executeWith(current, () -> {
+                throw expected;
+            })
+        );
+        assertSame(expected, syncError);
+        assertNull(ProtocolMonitorHelper.getCurrentMonitor());
+
+        Mono<Void> failed = Mono.defer(() -> {
+            assertSame(current, ProtocolMonitorHelper.getCurrentMonitor());
+            return Mono.error(expected);
+        });
+        StepVerifier
+            .create(ProtocolMonitorHelper.executeWithMono(current, failed))
+            .expectErrorSatisfies(error -> assertSame(expected, error))
+            .verify();
         assertNull(ProtocolMonitorHelper.getCurrentMonitor());
     }
 

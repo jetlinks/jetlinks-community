@@ -20,4 +20,4 @@ mvn -pl jetlinks-components/protocol-component,jetlinks-manager/device-manager -
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-验证结果：`ProtocolMonitorHelperTest` 3 个用例通过，相关 Reactor 模块全部构建成功。
+验证结果：`ProtocolMonitorHelperTest` 4 个用例通过，相关 Reactor 模块全部构建成功。
