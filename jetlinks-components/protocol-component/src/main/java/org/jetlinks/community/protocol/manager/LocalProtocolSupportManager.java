@@ -134,7 +134,7 @@ public class LocalProtocolSupportManager
     public void checkProtocol(EntityModifyEvent<ProtocolSupportEntity> event) {
         event.async(
             Flux.fromIterable(event.getAfter())
-                .flatMap(entity -> checkProtocol(entity.toDefinition()))
+                .flatMap(entity -> init(entity.toDefinition()))
         );
     }
 
