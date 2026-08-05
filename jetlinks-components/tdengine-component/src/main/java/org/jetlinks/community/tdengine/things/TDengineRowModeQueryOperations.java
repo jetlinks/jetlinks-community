@@ -32,6 +32,7 @@ import org.jetlinks.community.things.data.operations.RowModeQueryOperationsBase;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.utils.SqlSecurityUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -90,15 +91,14 @@ class TDengineRowModeQueryOperations extends RowModeQueryOperationsBase {
         StringJoiner agg = new StringJoiner("");
         agg.add("property,last(`_ts`) _ts");
 
+        // SQL 只使用服务端生成的别名，查询后再映射回请求 alias。
+        Map<String, String> aliases = new LinkedHashMap<>();
+        int index = 0;
         for (PropertyAggregation property : properties) {
-            agg.add(",");
-            agg.add(TDengineThingDataHelper.convertAggFunction(property));
-            if(property.getAgg()== Aggregation.COUNT){
-                agg .add("(`value`)");
-            }else {
-                agg .add("(`numberValue`)");
-            }
-            agg.add(" `").add("value_" + property.getAlias()).add("`");
+            String alias = property.getAlias();
+            String internalAlias = SqlSecurityUtils.aggregationAlias(index++);
+            aliases.put(alias, internalAlias);
+            agg.add(",").add(createAggregationColumn(property, internalAlias));
         }
 
         String sql = String.join(
@@ -121,7 +121,8 @@ class TDengineRowModeQueryOperations extends RowModeQueryOperationsBase {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
 
         if (properties.length == 1) {
-            String key = "value_" + properties[0].getAlias();
+            String alias = properties[0].getAlias();
+            String key = aliases.get(alias);
             return helper
                 .query(dataSql)
                 .sort(Comparator.comparing(TimeSeriesData::getTimestamp).reversed())
@@ -130,7 +131,7 @@ class TDengineRowModeQueryOperations extends RowModeQueryOperationsBase {
                     Map<String, Object> newData = new HashMap<>();
                     newData.put("time", formatter.format(LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneId
                         .systemDefault())));
-                    newData.put(properties[0].getAlias(), timeSeriesData.get(key).orElse(properties[0].getDefaultValue()));
+                    newData.put(alias, timeSeriesData.get(key).orElse(properties[0].getDefaultValue()));
 
                     return AggregationData.of(newData);
                 })
@@ -155,8 +156,9 @@ class TDengineRowModeQueryOperations extends RowModeQueryOperationsBase {
                 .map(map -> {
                     Map<String, Object> newResult = new HashMap<>();
                     for (PropertyAggregation property : properties) {
-                        String key = "value_" + property.getAlias();
-                        newResult.put(property.getAlias(), Optional.ofNullable(map.get(key)).orElse(property.getDefaultValue()));
+                        String alias = property.getAlias();
+                        String key = aliases.get(alias);
+                        newResult.put(alias, Optional.ofNullable(map.get(key)).orElse(property.getDefaultValue()));
                     }
                     newResult.put("time", group.key());
                     newResult.put("_time", map.getOrDefault("_time", new Date()));
@@ -167,5 +169,12 @@ class TDengineRowModeQueryOperations extends RowModeQueryOperationsBase {
                       .reversed())
             .doOnNext(data -> data.values().remove("_time"))
             .take(request.getLimit());
+    }
+
+    static String createAggregationColumn(PropertyAggregation property, String internalAlias) {
+        String valueColumn = property.getAgg() == Aggregation.COUNT ? "value" : "numberValue";
+        return TDengineThingDataHelper.convertAggFunction(property)
+            + "(" + SqlSecurityUtils.quoteBacktick(valueColumn) + ") "
+            + SqlSecurityUtils.quoteBacktick(internalAlias);
     }
 }
