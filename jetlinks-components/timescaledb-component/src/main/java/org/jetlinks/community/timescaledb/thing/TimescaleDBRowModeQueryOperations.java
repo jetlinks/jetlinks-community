@@ -41,6 +41,7 @@ import org.jetlinks.community.timescaledb.TimescaleDBUtils;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.utils.SqlSecurityUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
@@ -130,19 +131,28 @@ public class TimescaleDBRowModeQueryOperations extends RowModeQueryOperationsBas
         query.select(propertyColumn);
 
         Set<String> propertyId = new HashSet<>();
+        // SQL 只使用服务端生成的别名，查询后再映射回请求 alias。
+        Map<String, String> aliases = new LinkedHashMap<>();
 
         if (context.getProperties().length > 1) {
+            int index = 0;
             for (PropertyAggregation property : context.getProperties()) {
+                String alias = property.getAlias();
+                String internalAlias = SqlSecurityUtils.aggregationAlias(index++);
+                aliases.put(alias, internalAlias);
                 NativeSelectColumn column = new NativeSelectColumn(
                     "case when property = ? then " + createAggFunction(property.getAgg()) +
-                        " end as \"" + property.getAlias() + "\"");
+                        " end as " + SqlSecurityUtils.quoteDouble(internalAlias));
                 column.setParameters(new Object[]{property.getProperty()});
                 query.select(column);
                 propertyId.add(property.getProperty());
             }
         } else {
             PropertyAggregation property = context.getProperties()[0];
-            String sql = createAggFunction(property.getAgg()) + " as \"" + property.getAlias() + "\"";
+            String alias = property.getAlias();
+            String internalAlias = SqlSecurityUtils.aggregationAlias(0);
+            aliases.put(alias, internalAlias);
+            String sql = createAggFunction(property.getAgg()) + " as " + SqlSecurityUtils.quoteDouble(internalAlias);
             query.select(NativeSelectColumn.of(sql));
             propertyId.add(property.getProperty());
 
@@ -176,7 +186,7 @@ public class TimescaleDBRowModeQueryOperations extends RowModeQueryOperationsBas
                     .doOnNext(data -> {
                         for (PropertyAggregation property : context.getProperties()) {
                             String alias = property.getAlias();
-                            data.get(alias)
+                            data.get(aliases.get(alias))
                                 .ifPresent(val -> prepare.put(alias, val));
                         }
                     });
