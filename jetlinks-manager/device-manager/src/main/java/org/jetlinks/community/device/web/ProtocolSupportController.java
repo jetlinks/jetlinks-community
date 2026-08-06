@@ -202,7 +202,8 @@ public class ProtocolSupportController
     }
 
     @PostMapping("/convert")
-    @QueryAction
+    // 转换过程会下载并加载协议包，必须使用写权限而不是普通查询权限。
+    @SaveAction
     @Hidden
     public Mono<ProtocolDetail> convertToDetail(@RequestParam(required = false) String transport, @RequestBody Mono<ProtocolSupportEntity> entity) {
         return entity.map(ProtocolSupportEntity::toDeployDefinition)
