@@ -41,7 +41,6 @@ import org.jsoup.nodes.Element;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamSource;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -96,8 +95,6 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
     private final FileManager fileManager;
 
-    private final WebClient webClient;
-
     public DefaultEmailNotifier(NotifierProperties properties,
                                 TemplateManager templateManager,
                                 FileManager fileManager,
@@ -128,7 +125,6 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
         this.username = properties.getUsername();
         this.javaMailSender = mailSender;
         this.fileManager = fileManager;
-        this.webClient = builder.build();
     }
 
     @Nonnull
@@ -212,11 +208,8 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
     protected Mono<? extends InputStreamSource> convertResource(String resource) {
         if (resource.startsWith("http")) {
-            return webClient
-                .get()
-                .uri(resource)
-                .accept(MediaType.APPLICATION_OCTET_STREAM)
-                .exchangeToMono(res -> res.bodyToMono(Resource.class));
+            // 邮件模板属于发送时输入，远程地址不能触发服务端主动下载。
+            return Mono.error(() -> new UnsupportedOperationException("不支持远程附件地址:" + resource));
         } else if (resource.startsWith("data:") && resource.contains(";base64,")) {
             String base64 = resource.substring(resource.indexOf(";base64,") + 8);
             return Mono.just(
