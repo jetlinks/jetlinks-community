@@ -20,17 +20,13 @@ import org.hswebframework.utils.StringUtils;
 import org.jetlinks.community.io.excel.easyexcel.ExcelReadDataListener;
 import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.io.utils.FileUtils;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URI;
 
 import static org.hswebframework.reactor.excel.ReactorExcel.read;
 
@@ -41,13 +37,9 @@ import static org.hswebframework.reactor.excel.ReactorExcel.read;
 @Component
 public class DefaultImportExportService implements ImportExportService {
 
-    private WebClient client;
-
     private final FileManager fileManager;
 
-    public DefaultImportExportService(WebClient.Builder builder,
-                                      FileManager fileManager) {
-        client = builder.build();
+    public DefaultImportExportService(FileManager fileManager) {
         this.fileManager = fileManager;
     }
 
@@ -80,19 +72,29 @@ public class DefaultImportExportService implements ImportExportService {
     }
 
     public Mono<InputStream> getInputStream(String fileUrl) {
+        // 导入入口只接受平台托管文件 ID，避免由请求参数触发任意网络或本地文件访问。
+        return fileManager
+            .read(resolveFileId(fileUrl))
+            .as(DataBufferUtils::join)
+            .map(buffer -> buffer.asInputStream(true));
+    }
 
-        return Mono.defer(() -> {
-            if (fileUrl.startsWith("http")) {
-                return client
-                    .get()
-                    .uri(fileUrl)
-                    .accept(MediaType.APPLICATION_OCTET_STREAM)
-                    .exchangeToMono(clientResponse -> clientResponse.bodyToMono(Resource.class))
-                    .flatMap(resource -> Mono.fromCallable(resource::getInputStream));
-            } else {
-                return Mono.fromCallable(() -> new FileInputStream(fileUrl));
+    static String resolveFileId(String fileUrl) {
+        URI uri = URI.create(fileUrl);
+        if (!uri.isAbsolute()) {
+            if (fileUrl.contains("/") || fileUrl.contains("\\")) {
+                throw new IllegalArgumentException("Only managed file IDs are supported");
             }
-        });
+            return fileUrl;
+        }
 
+        String path = uri.getPath();
+        int filePathIndex = path == null ? -1 : path.lastIndexOf("/file/");
+        if (filePathIndex < 0) {
+            throw new IllegalArgumentException("Only managed file URLs are supported");
+        }
+        String fileName = path.substring(filePathIndex + "/file/".length());
+        int extensionIndex = fileName.indexOf('.');
+        return extensionIndex > 0 ? fileName.substring(0, extensionIndex) : fileName;
     }
 }

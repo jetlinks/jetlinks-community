@@ -1078,7 +1078,7 @@ public class DeviceInstanceController implements
     @SaveAction
     @Operation(summary = "解析文件为属性物模型")
     public Mono<String> importPropertyMetadata(@PathVariable @Parameter(description = "产品ID") String productId,
-                                               @RequestParam @Parameter(description = "文件地址,支持csv,xlsx文件格式") String fileUrl) {
+                                               @RequestParam @Parameter(description = "平台文件ID,支持csv,xlsx文件格式") String fileUrl) {
         return metadataManager
             .getMetadataExpandsConfig(productId, DeviceMetadataType.property, "*", "*", DeviceConfigScope.device)
             .collectList()
