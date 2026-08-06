@@ -26,7 +26,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
-import java.net.URI;
 
 import static org.hswebframework.reactor.excel.ReactorExcel.read;
 
@@ -72,29 +71,6 @@ public class DefaultImportExportService implements ImportExportService {
     }
 
     public Mono<InputStream> getInputStream(String fileUrl) {
-        // 导入入口只接受平台托管文件 ID，避免由请求参数触发任意网络或本地文件访问。
-        return fileManager
-            .read(resolveFileId(fileUrl))
-            .as(DataBufferUtils::join)
-            .map(buffer -> buffer.asInputStream(true));
-    }
-
-    static String resolveFileId(String fileUrl) {
-        URI uri = URI.create(fileUrl);
-        if (!uri.isAbsolute()) {
-            if (fileUrl.contains("/") || fileUrl.contains("\\")) {
-                throw new IllegalArgumentException("Only managed file IDs are supported");
-            }
-            return fileUrl;
-        }
-
-        String path = uri.getPath();
-        int filePathIndex = path == null ? -1 : path.lastIndexOf("/file/");
-        if (filePathIndex < 0) {
-            throw new IllegalArgumentException("Only managed file URLs are supported");
-        }
-        String fileName = path.substring(filePathIndex + "/file/".length());
-        int extensionIndex = fileName.indexOf('.');
-        return extensionIndex > 0 ? fileName.substring(0, extensionIndex) : fileName;
+        return FileUtils.readManagedInputStream(fileManager, fileUrl);
     }
 }

@@ -17,7 +17,9 @@ package org.jetlinks.community.io.utils;
 
 import io.netty.buffer.ByteBufAllocator;
 import org.apache.commons.io.FilenameUtils;
+import org.hswebframework.web.exception.ValidationException;
 import org.jetlinks.core.message.codec.http.HttpUtils;
+import org.jetlinks.community.io.file.FileManager;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
@@ -31,10 +33,18 @@ import reactor.core.publisher.Mono;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 
+/**
+ * 文件读取与媒体类型工具。
+ *
+ * 通用 URL 读取保留既有远程和本地文件能力；来自业务请求的托管文件必须通过
+ * {@link #readManagedInputStream(FileManager, String)} 读取，避免绕过 {@link FileManager}
+ * 直接访问网络或本地文件。
+ */
 public class FileUtils {
 
     public static String getExtension(String url) {
@@ -134,6 +144,77 @@ public class FileUtils {
                       }))
             .map(buffer -> buffer.asInputStream(true));
 
+    }
+
+    /**
+     * 读取平台托管文件。
+     *
+     * 仅接受 {@link FileManager} 文件 ID 或包含 {@code /file/{id}} 的平台文件访问地址。
+     * 访问地址只用于解析文件 ID，不会发起 HTTP 请求或读取本地路径。
+     *
+     * @param fileManager 文件管理器
+     * @param fileUrlOrId 平台文件访问地址或文件 ID
+     * @return 文件输入流，调用方使用完毕后必须关闭
+     */
+    public static Mono<InputStream> readManagedInputStream(FileManager fileManager,
+                                                           String fileUrlOrId) {
+        return Mono.defer(() -> dataBufferToInputStream(
+            fileManager.read(resolveManagedFileId(fileUrlOrId))
+        ));
+    }
+
+    /**
+     * 从平台文件访问地址或文件 ID 中解析托管文件 ID。
+     *
+     * @param fileUrlOrId 平台文件访问地址或文件 ID
+     * @return 托管文件 ID
+     * @throws ValidationException 输入不是托管文件 ID 或平台文件访问地址
+     */
+    public static String resolveManagedFileId(String fileUrlOrId) {
+        if (!StringUtils.hasText(fileUrlOrId)) {
+            throw unsupportedManagedFile();
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(fileUrlOrId);
+        } catch (IllegalArgumentException e) {
+            throw unsupportedManagedFile();
+        }
+
+        String path = uri.getPath();
+        if (!uri.isAbsolute()
+            && !fileUrlOrId.contains("/")
+            && !fileUrlOrId.contains("\\")) {
+            if (uri.getQuery() == null
+                && uri.getFragment() == null
+                && StringUtils.hasText(path)) {
+                return path;
+            }
+            throw unsupportedManagedFile();
+        }
+
+        int filePathIndex = path == null ? -1 : path.lastIndexOf("/file/");
+        if (filePathIndex < 0) {
+            throw unsupportedManagedFile();
+        }
+
+        String fileName = path.substring(filePathIndex + "/file/".length());
+        if (!StringUtils.hasText(fileName)
+            || fileName.contains("/")
+            || fileName.contains("\\")) {
+            throw unsupportedManagedFile();
+        }
+
+        int extensionIndex = fileName.indexOf('.');
+        if (extensionIndex == 0) {
+            throw unsupportedManagedFile();
+        }
+        return extensionIndex > 0 ? fileName.substring(0, extensionIndex) : fileName;
+    }
+
+    private static ValidationException unsupportedManagedFile() {
+        return new ValidationException.NoStackTrace("error.only_managed_file_supported");
     }
 
     public static Flux<DataBuffer> readDataBuffer(WebClient client,
