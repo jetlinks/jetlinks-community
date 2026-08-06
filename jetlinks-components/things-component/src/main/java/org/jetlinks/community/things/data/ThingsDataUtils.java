@@ -15,7 +15,6 @@
  */
 package org.jetlinks.community.things.data;
 
-import org.jetlinks.community.timeseries.utils.TimeSeriesUtils;
 import org.jetlinks.community.Interval;
 import org.jetlinks.community.timeseries.utils.TimeSeriesUtils;
 import org.joda.time.DateTime;
@@ -52,13 +51,13 @@ public class ThingsDataUtils {
     public static NavigableMap<Long, Map<String, Object>> prepareAggregationData(AggregationRequest request,
                                                                                  BiFunction<Long, Interval, Long> timeTruncate,
                                                                                  PropertyAggregation... properties) {
-        NavigableMap<Long, Map<String, Object>> data = new TreeMap<>(Comparator.comparingLong(l -> -l));
+        NavigableMap<Long, Map<String, Object>> data = new TreeMap<>();
         Map<String, Object> valueMap = new HashMap<>();
         for (PropertyAggregation property : properties) {
             valueMap.put(property.getAlias(), property.getDefaultValue());
         }
         if (request.getInterval() == null) {
-            data.put(0L,valueMap);
+            data.put(0L, valueMap);
             return data;
         }
         DateTimeFormatter formatter = DateTimeFormat.forPattern(request.getFormat());
