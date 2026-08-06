@@ -191,7 +191,7 @@ public class TimescaleDBRowModeQueryOperations extends RowModeQueryOperationsBas
                         }
                     });
             })
-            .thenMany(Flux.fromIterable(prepares.values()))
+            .thenMany(Flux.fromIterable(prepares.descendingMap().values()))
             .map(AggregationData::of)
             .take((long) request.getLimit() * propertyId.size())
             .contextWrite(ctx -> ctx.put(Logger.class, log));

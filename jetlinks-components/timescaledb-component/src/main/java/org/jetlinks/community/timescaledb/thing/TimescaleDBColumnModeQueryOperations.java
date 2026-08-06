@@ -177,7 +177,7 @@ public class TimescaleDBColumnModeQueryOperations extends ColumnModeQueryOperati
                         }
                     });
             })
-            .thenMany(Flux.fromIterable(prepares.values()))
+            .thenMany(Flux.fromIterable(prepares.descendingMap().values()))
             .map(AggregationData::of)
             .take((long) request.getLimit() * context.getProperties().length)
             .contextWrite(ctx -> ctx.put(Logger.class, log));

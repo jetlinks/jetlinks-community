@@ -87,15 +87,16 @@ class TDengineSqlSecurityTest {
         PropertyAggregation temperatureCount = new PropertyAggregation(
             "temperature", "temperatureCount", Aggregation.COUNT);
 
+        long timestamp = 1_725_000_000_000L;
         TDengineThingDataHelper helper = mock(TDengineThingDataHelper.class);
         when(helper.query(anyString())).thenReturn(Flux.just(
-            TimeSeriesData.of(0, Map.of(
+            TimeSeriesData.of(timestamp, Map.of(
                 "property", "temperature",
                 "__agg_0", 20D,
                 "__agg_1", 20D,
                 "__agg_2", 2L
             )),
-            TimeSeriesData.of(0, Map.of(
+            TimeSeriesData.of(timestamp, Map.of(
                 "property", "humidity",
                 "__agg_0", 80D,
                 "__agg_1", 80D,
