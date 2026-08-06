@@ -15,8 +15,6 @@
  */
 package org.jetlinks.community.notify.email.embedded;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeUtility;
 import lombok.Getter;
@@ -26,22 +24,22 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.exception.BusinessException;
+import org.hswebframework.web.exception.ValidationException;
 import org.hswebframework.web.id.IDGenerator;
 import org.hswebframework.web.validator.ValidatorUtils;
-import org.jetlinks.community.notify.AbstractNotifier;
-import org.jetlinks.core.Values;
 import org.jetlinks.community.io.file.FileManager;
+import org.jetlinks.community.io.utils.FileUtils;
+import org.jetlinks.community.notify.AbstractNotifier;
 import org.jetlinks.community.notify.*;
 import org.jetlinks.community.notify.email.EmailProvider;
 import org.jetlinks.community.notify.template.TemplateManager;
-import org.jetlinks.sdk.server.utils.ConverterUtils;
+import org.jetlinks.core.Values;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamSource;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -55,6 +53,9 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -207,32 +208,37 @@ public class DefaultEmailNotifier extends AbstractNotifier<EmailTemplate> {
 
 
     protected Mono<? extends InputStreamSource> convertResource(String resource) {
-        if (resource.startsWith("http")) {
-            // 邮件模板属于发送时输入，远程地址不能触发服务端主动下载。
-            return Mono.error(() -> new UnsupportedOperationException("不支持远程附件地址:" + resource));
-        } else if (resource.startsWith("data:") && resource.contains(";base64,")) {
+        if (resource.startsWith("data:") && resource.contains(";base64,")) {
             String base64 = resource.substring(resource.indexOf(";base64,") + 8);
             return Mono.just(
                 new ByteArrayResource(Base64.decodeBase64(base64))
             );
-        } else if (enableFileSystemAttachment && resource.contains("/")) {
-            return Mono.just(
-                new FileSystemResource(resource)
-            );
-        } else {
-            return fileManager
-                .read(resource)
-                .as(DataBufferUtils::join)
-                .map(dataBuffer -> {
-                    try {
-                        ByteBuf buf = ConverterUtils.convertNettyBuffer(dataBuffer);
-                        return new ByteArrayResource(ByteBufUtil.getBytes(buf));
-                    } finally {
-                        DataBufferUtils.release(dataBuffer);
+        }
+        return Mono
+            .defer(() -> {
+                try {
+                    FileUtils.resolveManagedFileId(resource);
+                } catch (ValidationException error) {
+                    if (enableFileSystemAttachment
+                        && !resource.startsWith("http")
+                        && resource.contains("/")) {
+                        return Mono.just(new FileSystemResource(resource));
                     }
-                })
-                .onErrorMap(error -> new UnsupportedOperationException("不支持的文件地址:" + resource, error))
-                .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("不支持的文件地址:" + resource)));
+                    return Mono.error(error);
+                }
+                return FileUtils
+                    .readManagedInputStream(fileManager, resource)
+                    .map(DefaultEmailNotifier::readAttachment);
+            })
+            .onErrorMap(error -> new UnsupportedOperationException("不支持的文件地址:" + resource, error))
+            .switchIfEmpty(Mono.error(() -> new UnsupportedOperationException("不支持的文件地址:" + resource)));
+    }
+
+    private static ByteArrayResource readAttachment(InputStream stream) {
+        try (stream) {
+            return new ByteArrayResource(stream.readAllBytes());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
