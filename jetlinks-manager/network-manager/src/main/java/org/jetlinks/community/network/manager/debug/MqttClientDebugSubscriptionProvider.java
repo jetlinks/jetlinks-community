@@ -23,7 +23,7 @@ import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.manager.web.request.MqttMessageRequest;
 import org.jetlinks.community.network.manager.web.response.MqttMessageResponse;
-import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.community.network.mqtt.client.JetlinksMqttClient;
 import org.jetlinks.core.utils.TopicUtils;
 import org.jetlinks.rule.engine.executor.PayloadType;
 import org.springframework.stereotype.Component;
@@ -69,7 +69,7 @@ public class MqttClientDebugSubscriptionProvider implements SubscriptionProvider
         PayloadType type = PayloadType.valueOf(vars.get("type").toUpperCase());
 
         return networkManager
-            .<MqttClient>getNetwork(DefaultNetworkType.MQTT_CLIENT, clientId)
+            .<JetlinksMqttClient>getNetwork(DefaultNetworkType.MQTT_CLIENT, clientId)
             .flatMapMany(mqtt ->
                 "_subscribe".equals(pubsub)
                     ? mqttClientSubscribe(mqtt, type, request)
@@ -77,7 +77,7 @@ public class MqttClientDebugSubscriptionProvider implements SubscriptionProvider
             ;
     }
 
-    public Flux<Object> mqttClientSubscribe(MqttClient client,
+    public Flux<Object> mqttClientSubscribe(JetlinksMqttClient client,
                                             PayloadType type,
                                             SubscribeRequest request) {
         String topics = request.getString("topics", "/#");
@@ -88,7 +88,7 @@ public class MqttClientDebugSubscriptionProvider implements SubscriptionProvider
 
     }
 
-    public Flux<String> mqttClientPublish(MqttClient client,
+    public Flux<String> mqttClientPublish(JetlinksMqttClient client,
                                           PayloadType type,
                                           SubscribeRequest request) {
         MqttMessageRequest messageRequest = FastBeanCopier.copy(request.values(), new MqttMessageRequest());

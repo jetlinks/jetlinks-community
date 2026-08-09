@@ -19,14 +19,14 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetlinks.community.network.AbstractClientNetworkConfig;
 import org.jetlinks.community.network.resource.NetworkTransport;
-import org.jetlinks.community.network.AbstractClientNetworkConfig;
-import org.jetlinks.community.network.resource.NetworkTransport;
+
+import java.util.Objects;
 
 /**
  * MQTT Client 配置信息
  *
- * @author zhouhao
- * @since 1.0
+ * @author PengyuDeng
+ * @since 2.11
  */
 @Getter
 @Setter
@@ -71,5 +71,26 @@ public class MqttClientProperties extends AbstractClientNetworkConfig {
     @Override
     public String getSchema() {
         return isSecure()?"mqtts":"mqtt";
+    }
+
+    /**
+     * 比较两个配置是否相同（用于判断是否需要重启连接）
+     *
+     * @param other 另一个配置
+     * @return 配置是否相同
+     */
+    public boolean isSameConfig(MqttClientProperties other) {
+        if (other == null) {
+            return false;
+        }
+        return Objects.equals(this.remoteHost, other.remoteHost)
+            && this.remotePort == other.remotePort
+            && Objects.equals(this.clientId, other.clientId)
+            && Objects.equals(this.username, other.username)
+            && Objects.equals(this.password, other.password)
+            && Objects.equals(this.certId, other.certId)
+            && this.maxMessageSize == other.maxMessageSize
+            && Objects.equals(this.topicPrefix, other.topicPrefix)
+            && this.secure == other.secure;
     }
 }

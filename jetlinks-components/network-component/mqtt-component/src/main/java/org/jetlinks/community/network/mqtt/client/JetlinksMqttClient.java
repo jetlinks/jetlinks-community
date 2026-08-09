@@ -23,12 +23,12 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 /**
- * MQTT Client
+ * JetLinks MQTT Client 接口
  *
- * @author zhouhao
- * @since 1.0
+ * @author PengyuDeng
+ * @since 2.11
  */
-public interface MqttClient extends Network {
+public interface JetlinksMqttClient extends Network {
 
     /**
      * 从MQTT Broker订阅Topic

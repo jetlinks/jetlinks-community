@@ -16,9 +16,13 @@
 package org.jetlinks.community.network.mqtt.server;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
+import org.jetlinks.core.device.AuthenticationResponse;
+import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.mqtt.MqttAuth;
+import org.jetlinks.reactor.mqtt.server.MqttSubscription;
+import org.jetlinks.reactor.mqtt.server.MqttUnsubscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,9 +44,8 @@ import java.util.function.Consumer;
  *
  * </pre>
  *
- * @author zhouhao
- * @version 1.0
- * @since 1.0
+ * @author PengyuDeng
+ * @since 2.11
  */
 public interface MqttConnection extends ClientConnection {
 
@@ -100,18 +103,16 @@ public interface MqttConnection extends ClientConnection {
     /**
      * 订阅客户端订阅请求
      *
-     * @param autoAck 是否自动应答
      * @return 订阅请求流
      */
-    Flux<MqttSubscription> handleSubscribe(boolean autoAck);
+    Flux<MqttSubscription> handleSubscribe();
 
     /**
      * 订阅客户端取消订阅请求
      *
-     * @param autoAck 是否自动应答
      * @return 取消订阅请求流
      */
-    Flux<MqttUnSubscription> handleUnSubscribe(boolean autoAck);
+    Flux<MqttUnsubscription> handleUnSubscribe();
 
     /**
      * 监听断开连接
@@ -143,4 +144,24 @@ public interface MqttConnection extends ClientConnection {
     void setKeepAliveTimeout(Duration duration);
 
     InetSocketAddress getClientAddress();
+
+    /**
+     * 获取已认证的设备操作器
+     * <p>
+     * 认证通过后，设备操作器会被存储在连接属性中。
+     * </p>
+     *
+     * @return 可选的设备操作器
+     */
+    Optional<DeviceOperator> getDeviceOperator();
+
+    /**
+     * 获取认证响应
+     * <p>
+     * 认证完成后，认证响应会被存储在连接属性中。
+     * </p>
+     *
+     * @return 可选的认证响应
+     */
+    Optional<AuthenticationResponse> getAuthResponse();
 }
