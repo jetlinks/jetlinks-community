@@ -3,22 +3,26 @@ services:
     redis:
         image: redis:6
         container_name: jetlinks-ce-redis
+        # 仅供本地开发调试，生产环境不得发布 Redis 端口。
         ports:
             - "6379:6379"
         volumes:
             - "./data/redis:/data"
+        # 本地开发默认不设置 Redis 密码，生产环境请使用 docker/run-all 并配置密码。
         command: redis-server --appendonly yes
         environment:
             - TZ=Asia/Shanghai
     postgres:
         image: timescale/timescaledb:latest-pg16
         container_name: jetlinks-postgres-16
+        # 仅供本地开发调试，生产环境不得发布 PostgreSQL 端口。
         ports:
             - "5432:5432"
         volumes:
             - "./data/postgres:/var/lib/postgresql/data"
         environment:
-            POSTGRES_PASSWORD: jetlinks
+            # 未设置 POSTGRES_PASSWORD 时沿用原有默认值，生产环境建议覆盖。
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jetlinks}
             POSTGRES_DB: jetlinks
-            POSTGRES_HOST_AUTH_METHOD: trust
+            POSTGRES_HOST_AUTH_METHOD: scram-sha-256
             TZ: Asia/Shanghai

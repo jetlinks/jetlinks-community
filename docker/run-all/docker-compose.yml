@@ -3,29 +3,35 @@ services:
     redis:
         image: redis:6
         container_name: jetlinks-ce-redis
-        #    ports:
-        #      - "6379:6379" # 仅供jetlinks-ce访问
         volumes:
             - "./data/redis:/data"
-        command: redis-server --appendonly yes --requirepass "JetLinks@redis"
+        # 不发布 Redis 端口，仅允许 Compose 内部服务通过 redis:6379 访问。
+        # 未设置 REDIS_PASSWORD 时沿用原有默认值，生产环境建议覆盖。
+        command:
+            - redis-server
+            - --appendonly
+            - "yes"
+            - --requirepass
+            - "${REDIS_PASSWORD:-JetLinks@redis}"
         environment:
-            - TZ=Asia/Shanghai
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-JetLinks@redis}
+            TZ: Asia/Shanghai
         healthcheck:
-            test: [ "CMD", "redis-cli", "-h", "localhost", "-p", "6379", "-a", "JetLinks@redis", "ping" ]
+            test: [ "CMD-SHELL", "redis-cli -h localhost -p 6379 -a \"$${REDIS_PASSWORD}\" ping" ]
             interval: 10s
             timeout: 5s
             retries: 3
     postgres:
         image: timescale/timescaledb:latest-pg16
         container_name: jetlinks-ce-postgres
-        #        ports:
-        #            - "5432:5432"  # 仅供jetlinks-ce访问
         volumes:
             - "./data/postgres:/var/lib/postgresql/data"
         environment:
-            POSTGRES_PASSWORD: JetLinks@postgres
+            # 不发布 PostgreSQL 端口，仅允许 JetLinks 通过 postgres:5432 访问。
+            # 未设置 POSTGRES_PASSWORD 时沿用原有默认值，生产环境建议覆盖。
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-JetLinks@postgres}
             POSTGRES_DB: jetlinks
-            POSTGRES_HOST_AUTH_METHOD: trust
+            POSTGRES_HOST_AUTH_METHOD: scram-sha-256
             TZ: Asia/Shanghai
         healthcheck:
             test: [ "CMD", "pg_isready", "-U", "postgres" ]
@@ -47,14 +53,14 @@ services:
             - "TZ=Asia/Shanghai"
             - "EXTERNAL_HOST=local-host.cn" # 对外提供访问的域名或者ip地址
             - "EXTERNAL_PORT=8848" # 对外提供访问的端口,修改了端口映射同时也需要修改这里.
-            - "ADMIN_USER_PASSWORD=JetLinks.C0mmVn1ty" # admin用户的初始密码
+            - "ADMIN_USER_PASSWORD=${ADMIN_USER_PASSWORD:-JetLinks.C0mmVn1ty}" # 未设置时沿用原有默认值，生产环境建议覆盖
             - "spring.r2dbc.url=r2dbc:postgresql://postgres:5432/jetlinks" #数据库连接地址
             - "spring.r2dbc.username=postgres"
-            - "spring.r2dbc.password=JetLinks@postgres"
+            - "spring.r2dbc.password=${POSTGRES_PASSWORD:-JetLinks@postgres}"
             - "spring.data.redis.host=redis"
             - "spring.data.redis.port=6379"
             - "file.manager.storage-base-path=/application/data/files"
-            - "spring.data.redis.password=JetLinks@redis"
+            - "spring.data.redis.password=${REDIS_PASSWORD:-JetLinks@redis}"
             - "logging.level.io.r2dbc=warn"
             - "logging.level.org.springframework.data=warn"
             - "logging.level.org.springframework=warn"
@@ -89,4 +95,3 @@ services:
 #        environment:
 #            API_BASE_PATH: "http://jetlinks:8848/"
 #            TZ: Asia/Shanghai
-
