@@ -5,13 +5,13 @@ DB_HOST: 127.0.0.1 # postgresql 数据库地址
 DB_PORT: 5432 # postgresql 数据库端口
 DB_DATABASE: jetlinks # postgresql 数据库名
 DB_USERNAME: postgres # postgresql 数据库用户名
-DB_PASSWORD: JetLinks@postgres-2026 # postgresql 数据库密码,生产环境请覆盖
+DB_PASSWORD: jetlinks # postgresql 数据库密码
 DB_SCHEMA: public # postgresql 数据库schema,默认public
 DB_DIALECT: postgres # 数据库方言,默认postgres. 支持postgres,mysql,oracle,sqlserver等.
 # redis 相关配置
 REDIS_HOST: 127.0.0.1
 REDIS_PORT: 6379 # redis 数据库地址
-REDIS_PASSWORD: JetLinks@redis-2026 # redis 密码,生产环境请覆盖
+REDIS_PASSWORD: "" # redis 密码
 REDIS_DATABASE: 0 # redis 数据库索引
 
 # timescalbedb相关配置

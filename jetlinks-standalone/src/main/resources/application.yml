@@ -33,7 +33,7 @@ spring:
         # 注意:切换了数据库easyorm相关配置也要修改
         # url: r2dbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_DATABASE}?ssl=false&serverZoneId=Asia/Shanghai
         username: ${DB_USERNAME:postgres}
-        password: ${DB_PASSWORD:JetLinks@postgres-2026}
+        password: ${DB_PASSWORD:jetlinks}
         pool:
             max-size: 128
             max-idle-time: 2m # 值不能大于mysql server的wait_timeout配置
@@ -157,7 +157,7 @@ jetlinks:
         enabled: true
         users: # 系统初始用户密码
             -   username: admin
-                password: ${ADMIN_USER_PASSWORD:JetLinks.C0mmVn1ty-2026}
+                password: ${ADMIN_USER_PASSWORD:JetLinks.C0mmVn1ty}
                 name: Administrator
                 type: admin
 rule:

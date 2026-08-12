@@ -109,9 +109,9 @@ cp .env.example .env
 docker compose up -d
 ```
 
-生产 Compose 仅发布 JetLinks 对外服务端口，PostgreSQL 和 Redis 不映射到宿主机，平台通过 Compose 内部的 `postgres:5432` 和 `redis:6379` 访问。未配置密码时 Compose 会使用文件中的演示密码并允许启动，仅用于快速体验；生产环境必须通过 `.env` 或环境变量覆盖数据库、Redis 以及 admin 初始密码，`.env` 不要提交到代码仓库。
+生产 Compose 仅发布 JetLinks 对外服务端口，PostgreSQL 和 Redis 不映射到宿主机，平台通过 Compose 内部的 `postgres:5432` 和 `redis:6379` 访问。未配置密码时 Compose 会沿用原有默认值并可直接启动，便于已有部署升级；生产环境建议通过 `.env` 或环境变量覆盖数据库、Redis 以及 admin 初始密码，`.env` 不要提交到代码仓库。
 
-`docker/dev-env` 仅用于本机开发调试，会保留 PostgreSQL `5432` 和 Redis `6379` 端口映射；不配置密码也可以启动，但会使用演示密码。生产环境不要使用该 Compose 配置，并应填写 `docker/dev-env/.env.example` 覆盖密码。
+`docker/dev-env` 仅用于本机开发调试，会保留 PostgreSQL `5432` 和 Redis `6379` 端口映射；PostgreSQL 未配置密码时沿用原有默认值，Redis 默认不设置密码。生产环境不要使用该 Compose 配置，并应填写 `docker/dev-env/.env.example` 覆盖 PostgreSQL 密码。
 
 已有 PostgreSQL 数据目录不会因为修改 `POSTGRES_PASSWORD` 环境变量自动修改数据库密码；迁移已有部署时，请使用数据库管理工具显式执行 `ALTER ROLE postgres WITH PASSWORD '新密码';`，并同步更新 `.env`。admin 初始密码同样只在首次初始化时生效。
 
