@@ -3,22 +3,32 @@ services:
     redis:
         image: redis:6
         container_name: jetlinks-ce-redis
+        # 仅供本地开发调试，生产环境不得发布 Redis 端口。
         ports:
             - "6379:6379"
         volumes:
             - "./data/redis:/data"
-        command: redis-server --appendonly yes
+        # 未设置 REDIS_PASSWORD 时使用演示密码，仅用于本地快速启动，生产环境请覆盖。
+        command:
+            - redis-server
+            - --appendonly
+            - "yes"
+            - --requirepass
+            - "${REDIS_PASSWORD:-JetLinks@redis-2026}"
         environment:
-            - TZ=Asia/Shanghai
+            REDIS_PASSWORD: ${REDIS_PASSWORD:-JetLinks@redis-2026}
+            TZ: Asia/Shanghai
     postgres:
         image: timescale/timescaledb:latest-pg16
         container_name: jetlinks-postgres-16
+        # 仅供本地开发调试，生产环境不得发布 PostgreSQL 端口。
         ports:
             - "5432:5432"
         volumes:
             - "./data/postgres:/var/lib/postgresql/data"
         environment:
-            POSTGRES_PASSWORD: jetlinks
+            # 未设置 POSTGRES_PASSWORD 时使用演示密码，仅用于本地快速启动，生产环境请覆盖。
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-JetLinks@postgres-2026}
             POSTGRES_DB: jetlinks
-            POSTGRES_HOST_AUTH_METHOD: trust
+            POSTGRES_HOST_AUTH_METHOD: scram-sha-256
             TZ: Asia/Shanghai
