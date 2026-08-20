@@ -41,5 +41,7 @@ jobs:
                     file: ./jetlinks-standalone/Dockerfile
                     platforms: linux/amd64,linux/arm64/v8
                     push: true
+                    # ACR 当前不兼容 BuildKit provenance attestation 的 OCI manifest。
+                    provenance: false
                     tags: |
                         registry.cn-shenzhen.aliyuncs.com/jetlinks/jetlinks-community:${{ steps.maven-version.outputs.version }}
