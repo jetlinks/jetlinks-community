@@ -83,6 +83,16 @@ class VertxMqttConnection implements MqttConnection {
     public VertxMqttConnection(MqttEndpoint endpoint) {
         this.endpoint = endpoint;
         this.keepAliveTimeoutMs = (endpoint.keepAliveTimeSeconds() + 10) * 1000L;
+        //accept(CONNACK)之前 isAlive() 依赖 closed 标志(见 isAlive 注释),提前挂接关闭回调,
+        //保证握手期间对端断开也能立即感知。init() 在 accept 后重复注册为 vertx 替换语义,无副作用。
+        try {
+            this.endpoint
+                .closeHandler(ignore -> this.complete())
+                .disconnectHandler(ignore -> this.complete());
+        } catch (Throwable e) {
+            //endpoint 在构造时已被关闭:直接标记失活
+            this.closed = true;
+        }
     }
 
     private final Consumer<MqttConnection> defaultListener = mqttConnection -> {
@@ -145,11 +155,13 @@ class VertxMqttConnection implements MqttConnection {
             return this;
         }
         log.debug("mqtt client [{}] connected", getClientId());
-        accepted = true;
         try {
             if (!endpoint.isConnected()) {
                 endpoint.accept();
             }
+            //CONNACK 发出后再置位:保证 accepted=true 时 endpoint.isConnected() 必为 true,
+            //isAlive() 在 closed 标志与 isConnected 两种依据间切换时不存在瞬时失活窗口
+            accepted = true;
         } catch (Exception e) {
             close().subscribe();
             log.warn(e.getMessage(), e);
@@ -343,7 +355,12 @@ class VertxMqttConnection implements MqttConnection {
 
     @Override
     public boolean isAlive() {
-        return endpoint.isConnected() && (keepAliveTimeoutMs < 0 || ((System.currentTimeMillis() - lastPingTime) < keepAliveTimeoutMs));
+        //CONNACK(accept)之前 vertx MqttEndpoint.isConnected() 恒为 false,不能作为握手阶段的存活依据:
+        //会话注册发生在 accept 之前,注册过程中会话管理器会触发 getClientAddress -> takeConnection,
+        //若此阶段误报失活,新连接会被 takeConnection 当作死连接 disconnect,导致设备一上线即被断开。
+        //因此 accept 前以 closed 标志判活(构造器已提前挂接关闭回调),accept 后维持原语义。
+        return (accepted ? endpoint.isConnected() : !closed)
+            && (keepAliveTimeoutMs < 0 || ((System.currentTimeMillis() - lastPingTime) < keepAliveTimeoutMs));
     }
 
     @Override
