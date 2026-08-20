@@ -22,10 +22,12 @@ import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.event.EventBus;
 import org.jetlinks.core.message.codec.DeviceMessageCodec;
+import org.jetlinks.core.message.codec.MessageParserFactory;
 import org.jetlinks.core.message.codec.TraceDeviceMessageCodec;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
 import org.jetlinks.core.metadata.*;
+import org.jetlinks.core.principal.PrincipalMetadata;
 import org.jetlinks.core.route.Route;
 import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.DeviceGatewayContext;
@@ -157,6 +159,11 @@ public class RenameProtocolSupport implements ProtocolSupport {
     }
 
     @Override
+    public Flux<ConfigMetadata> getAllConfigMetadata(Transport transport) {
+        return target.getAllConfigMetadata(transport);
+    }
+
+    @Override
     public void init(Map<String, Object> configuration) {
         target.init(configuration);
     }
@@ -242,6 +249,16 @@ public class RenameProtocolSupport implements ProtocolSupport {
     @Override
     public Mono<DeviceInfo> doBeforeDeviceCreate(Transport transport, DeviceInfo deviceInfo) {
         return target.doBeforeDeviceCreate(transport, deviceInfo);
+    }
+
+    @Override
+    public Flux<PrincipalMetadata> getDevicePrincipalMetadata(Transport transport, DeviceInfo deviceInfo) {
+        return target.getDevicePrincipalMetadata(transport, deviceInfo);
+    }
+
+    @Override
+    public Mono<MessageParserFactory> getMessageParser(Transport transport) {
+        return target.getMessageParser(transport);
     }
 
     @Override

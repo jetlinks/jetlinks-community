@@ -22,14 +22,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetlinks.core.ProtocolSupport;
 import org.jetlinks.core.device.*;
 import org.jetlinks.core.message.codec.DeviceMessageCodec;
+import org.jetlinks.core.message.codec.MessageParserFactory;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.message.interceptor.DeviceMessageSenderInterceptor;
 import org.jetlinks.core.metadata.*;
+import org.jetlinks.core.principal.PrincipalMetadata;
 import org.jetlinks.core.route.Route;
 import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.DeviceGatewayContext;
 import org.jetlinks.core.spi.ProtocolSupportProvider;
 import org.jetlinks.core.spi.ServiceContext;
+import org.jetlinks.core.things.ThingRpcSupportChain;
 import org.jetlinks.supports.protocol.management.jar.ProtocolClassLoader;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
@@ -232,6 +235,11 @@ public class LocalFileProtocolSupport implements ProtocolSupport {
     }
 
     @Override
+    public Flux<ConfigMetadata> getAllConfigMetadata(Transport transport) {
+        return loaded.getAllConfigMetadata(transport);
+    }
+
+    @Override
     public Mono<ConfigMetadata> getInitConfigMetadata() {
         return loaded.getInitConfigMetadata();
     }
@@ -326,6 +334,21 @@ public class LocalFileProtocolSupport implements ProtocolSupport {
     }
 
     @Override
+    public Flux<PrincipalMetadata> getDevicePrincipalMetadata(Transport transport, DeviceInfo deviceInfo) {
+        return loaded.getDevicePrincipalMetadata(transport, deviceInfo);
+    }
+
+    @Override
+    public ThingRpcSupportChain getRpcChain() {
+        return loaded.getRpcChain();
+    }
+
+    @Override
+    public Mono<MessageParserFactory> getMessageParser(Transport transport) {
+        return loaded.getMessageParser(transport);
+    }
+
+    @Override
     public int getOrder() {
         return loaded.getOrder();
     }
@@ -348,5 +371,18 @@ public class LocalFileProtocolSupport implements ProtocolSupport {
     @Override
     public boolean isEmbedded() {
         return loaded.isEmbedded();
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> type) {
+        return type.isInstance(this) || loaded.isWrapperFor(type);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> type) {
+        if (type.isInstance(this)) {
+            return type.cast(this);
+        }
+        return loaded.unwrap(type);
     }
 }
