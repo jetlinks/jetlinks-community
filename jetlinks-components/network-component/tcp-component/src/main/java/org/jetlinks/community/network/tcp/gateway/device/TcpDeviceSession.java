@@ -24,7 +24,6 @@ import org.jetlinks.core.exception.DeviceOperationException;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSession;
-import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.client.TcpClient;
 import org.jetlinks.core.server.session.MultiConnectionDeviceSession;
 import reactor.core.publisher.Mono;
@@ -70,7 +69,9 @@ class TcpDeviceSession extends MultiConnectionDeviceSession<TcpClient> {
             if (client == null) {
                 return Mono.error(new DeviceOperationException.NoStackTrace(ErrorCode.CONNECTION_LOST));
             }
-            return client.send(new TcpMessage(encodedMessage.getPayload()));
+            return monitor
+                .downstream(client, this, encodedMessage, client.sendMessage(encodedMessage))
+                .thenReturn(true);
         });
     }
 

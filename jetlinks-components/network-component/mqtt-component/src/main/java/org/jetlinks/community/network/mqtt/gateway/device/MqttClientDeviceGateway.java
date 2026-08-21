@@ -36,6 +36,7 @@ import org.jetlinks.community.network.mqtt.gateway.device.session.UnknownDeviceM
 import org.jetlinks.community.gateway.DeviceGatewayHelper;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
@@ -151,15 +152,7 @@ public class MqttClientDeviceGateway extends AbstractDeviceGateway {
         return mqttClient
             .subscribe(Collections.singletonList(topic), qos)
             .filter(msg -> isStarted())
-            .flatMap(mqttMessage -> codecMono
-                .flatMapMany(codec -> codec
-                    .decode(FromDeviceMessageContext.of(
-                        new UnknownDeviceMqttClientSession(getId(), mqttClient, monitor),
-                        mqttMessage,
-                        registry,
-                        msg -> handleMessage(mqttMessage, msg).then())))
-                .cast(DeviceMessage.class)
-                .concatMap(message -> handleMessage(mqttMessage, message))
+            .flatMap(mqttMessage -> decodeAndHandleMessage(mqttMessage)
                 .subscribeOn(Schedulers.parallel())
                 .onErrorResume((err) -> {
                     log.error("handle mqtt client message error:{}", mqttMessage, err);
@@ -167,6 +160,30 @@ public class MqttClientDeviceGateway extends AbstractDeviceGateway {
                 }), Integer.MAX_VALUE)
             .contextWrite(ReactiveLogger.start("gatewayId", getId()))
             .subscribe();
+    }
+
+    private Mono<Void> decodeAndHandleMessage(MqttMessage mqttMessage) {
+        if (!monitor.beforeDecode(null, mqttMessage)) {
+            return Mono.empty();
+        }
+        UnknownDeviceMqttClientSession session =
+            new UnknownDeviceMqttClientSession(getId(), mqttClient, monitor);
+        Flux<DeviceMessage> decodeTask = codecMono
+            .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
+                session,
+                mqttMessage,
+                registry,
+                msg -> handleMessage(mqttMessage, msg).then())))
+            .cast(DeviceMessage.class);
+        decodeTask = monitor.decode(null, session, mqttMessage, decodeTask);
+        decodeTask = monitor.beforeSendToPlatform(
+            null,
+            session,
+            mqttMessage,
+            decodeTask.concatMap(message ->
+                handleMessage(mqttMessage, message).thenReturn(message))
+        );
+        return decodeTask.then();
     }
 
     private Mono<Void> handleMessage(MqttMessage mqttMessage, DeviceMessage message) {

@@ -26,7 +26,7 @@ class MicrometerDeviceGatewayMonitor implements DeviceGatewayMonitor {
     String id;
     String[] tags;
 
-    private AtomicReference<Long> totalRef = new AtomicReference<>(0L);
+    private final AtomicReference<Long> totalRef = new AtomicReference<>(0L);
 
     public MicrometerDeviceGatewayMonitor(MeterRegistry registry, String id, String[] tags) {
         this.registry = registry;

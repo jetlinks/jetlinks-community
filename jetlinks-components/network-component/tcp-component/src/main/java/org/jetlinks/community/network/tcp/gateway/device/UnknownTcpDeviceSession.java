@@ -21,8 +21,6 @@ import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSession;
-import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.client.TcpClient;
 import reactor.core.publisher.Mono;
 
@@ -76,8 +74,12 @@ class UnknownTcpDeviceSession implements DeviceSession {
 
     @Override
     public Mono<Boolean> send(EncodedMessage encodedMessage) {
-        return client.send(new TcpMessage(encodedMessage.getPayload()))
-                     .doOnSuccess(ignore -> monitor.sentMessage());
+        Mono<Void> sender = client
+            .sendMessage(encodedMessage)
+            .doOnSuccess(ignore -> monitor.sentMessage());
+        return monitor
+            .downstream(client, this, encodedMessage, sender)
+            .thenReturn(true);
     }
 
     @Override

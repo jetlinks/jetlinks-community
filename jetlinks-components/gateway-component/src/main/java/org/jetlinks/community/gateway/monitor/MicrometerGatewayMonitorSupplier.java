@@ -18,6 +18,14 @@ package org.jetlinks.community.gateway.monitor;
 import org.jetlinks.community.micrometer.MeterRegistryManager;
 import org.springframework.stereotype.Component;
 
+/**
+ * 基于 Micrometer 的设备网关监控供应商。
+ *
+ * <p>由 Spring 创建后注册到 {@link GatewayMonitors}，并为每个网关创建独立监控实例。</p>
+ *
+ * @see MicrometerDeviceGatewayMonitor
+ * @since 1.0
+ */
 @Component
 public class MicrometerGatewayMonitorSupplier implements DeviceGatewayMonitorSupplier {
 
@@ -26,9 +34,7 @@ public class MicrometerGatewayMonitorSupplier implements DeviceGatewayMonitorSup
     public MicrometerGatewayMonitorSupplier(MeterRegistryManager meterRegistryManager) {
         this.meterRegistryManager = meterRegistryManager;
         GatewayMonitors.register(this);
-
     }
-
 
     @Override
     public DeviceGatewayMonitor getDeviceGatewayMonitor(String id, String... tags) {

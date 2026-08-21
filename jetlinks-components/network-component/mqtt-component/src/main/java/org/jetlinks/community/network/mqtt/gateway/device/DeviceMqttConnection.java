@@ -47,6 +47,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 import reactor.core.scheduler.Schedulers;
@@ -84,6 +85,7 @@ public class DeviceMqttConnection extends Mono<Void>
             MqttAuth auth = connection.getAuth().orElse(null);
             if (auth == null || !StringUtils.hasText(connection.getClientId())) {
                 reject(MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED);
+                monitor.rejected(connection, null);
             } else {
                 doAuth(auth);
             }
@@ -214,6 +216,11 @@ public class DeviceMqttConnection extends Mono<Void>
         if (operator == null) {
             return Mono.empty();
         }
+
+        if (!monitor.beforeDecode(connection, message)) {
+            return Mono.empty();
+        }
+
         // 上下文
         FromDeviceMessageContext context =
             FromDeviceMessageContext
@@ -223,18 +230,28 @@ public class DeviceMqttConnection extends Mono<Void>
                     connection,
                     this);
 
-        return operator
+        Flux<DeviceMessage> decodeTask = operator
             .getProtocol()
             .flatMap(protocol -> protocol.getMessageCodec(getTransport()))
             //解码
             .flatMapMany(codec -> codec.decode(context))
-            .cast(DeviceMessage.class)
-            .concatMap(this::handleMessage, 0)
-            .doOnComplete(() -> {
-                if (message instanceof MqttPublishing) {
-                    ((MqttPublishing) message).acknowledge();
-                }
-            })
+            .cast(DeviceMessage.class);
+
+        decodeTask = monitor.decode(connection, session, message, decodeTask);
+
+        return monitor
+            .beforeSendToPlatform(
+                connection,
+                session,
+                message,
+                decodeTask
+                    .concatMap(this::handleMessage, 0)
+                    .doOnComplete(() -> {
+                        if (message instanceof MqttPublishing) {
+                            ((MqttPublishing) message).acknowledge();
+                        }
+                    })
+            )
             .as(FluxTracer
                     .create(DeviceTracer.SpanName.decode0(operator.getDeviceId()),
                             (span) -> span
@@ -355,6 +372,7 @@ public class DeviceMqttConnection extends Mono<Void>
                            if (err instanceof AuthenticationException) {
                                reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD);
                            } else {
+                               monitor.rejected(connection, err);
                                log.warn("MQTT连接认证[{}]失败", connection.getClientId(), err);
                                //应答SERVER_UNAVAILABLE
                                reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
@@ -408,6 +426,7 @@ public class DeviceMqttConnection extends Mono<Void>
             if (actual != null) {
                 actual.onComplete();
             }
+            monitor.disconnected(connection);
         }
 
     }

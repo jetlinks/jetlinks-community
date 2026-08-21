@@ -17,6 +17,7 @@ import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.SimpleMqttMessage;
+import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
@@ -30,6 +31,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -51,6 +54,11 @@ public class MqttConnectionSessionTest {
     private final DeviceGatewayMonitor monitor = GatewayMonitors.getDeviceGatewayMonitor("unit-test");
 
     private MqttConnectionSession newSession(MqttConnection connection) {
+        return newSession(connection, monitor);
+    }
+
+    private MqttConnectionSession newSession(MqttConnection connection,
+                                             DeviceGatewayMonitor monitor) {
         return new MqttConnectionSession(
             "device-1", null, DefaultTransport.MQTT, connection, monitor, new FakeSessionManager());
     }
@@ -145,6 +153,33 @@ public class MqttConnectionSessionTest {
                     .expectNext(true)
                     .verifyComplete();
         assertEquals(1, connection.published.size());
+    }
+
+    @Test
+    public void downstreamMonitorShouldWrapSender() {
+        FakeMqttConnection connection = new FakeMqttConnection(true);
+        RuntimeException error = new RuntimeException("rejected by monitor");
+        AtomicInteger calls = new AtomicInteger();
+        DeviceGatewayMonitor monitor = new DeviceGatewayMonitor() {
+            @Override
+            public Mono<Void> downstream(ClientConnection actualConnection,
+                                         DeviceSession session,
+                                         EncodedMessage origin,
+                                         Mono<Void> sender) {
+                assertSame(connection, actualConnection);
+                calls.incrementAndGet();
+                return Mono.error(error);
+            }
+        };
+        MqttConnectionSession session = newSession(connection, monitor);
+
+        StepVerifier
+            .create(session.send(mqttMessage()))
+            .expectErrorSatisfies(actual -> assertSame(error, actual))
+            .verify();
+
+        assertEquals(1, calls.get());
+        assertTrue(connection.published.isEmpty());
     }
 
     /**

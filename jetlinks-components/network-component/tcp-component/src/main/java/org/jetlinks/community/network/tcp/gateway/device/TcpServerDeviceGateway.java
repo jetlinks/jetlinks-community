@@ -131,8 +131,8 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             this.client = client;
             this.parent = parent;
             this.address = client.getRemoteAddress();
+            parent.counter.increment();
             parent.monitor.totalConnection(parent.counter.sum());
-            parent.monitor.connected();
             client.onDisconnect(this);
 
             legalityChecker = Schedulers
@@ -146,6 +146,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             if (session == null) {
                 log.info("tcp [{}] connection is illegal, close it.", address);
                 try {
+                    parent.monitor.rejected(client, null);
                     client.disconnect();
                 } catch (Throwable ignore) {
                 }
@@ -197,25 +198,40 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             if (!parent.isStarted()) {
                 return Mono.empty();
             }
-            return parent
+
+            if (!parent.monitor.beforeDecode(client, message)) {
+                return Mono.empty();
+            }
+
+            DeviceSession deviceSession = session();
+            Flux<DeviceMessage> decodeTask = parent
                 .getProtocol()
                 .flatMap(pt -> pt.getMessageCodec(parent.getTransport()))
                 .flatMapMany(codec -> codec
                     .decode(FromDeviceMessageContext.of(
-                        session(),
+                        deviceSession,
                         message,
                         parent.registry,
                         client,
                         msg -> handleDeviceMessage(msg).then())))
-                .cast(DeviceMessage.class)
-                .concatMap(this::handleDeviceMessage, 0)
+                .cast(DeviceMessage.class);
+
+            decodeTask = parent.monitor.decode(client, deviceSession, message, decodeTask);
+            decodeTask = parent.monitor.beforeSendToPlatform(
+                client,
+                deviceSession,
+                message,
+                decodeTask.concatMap(this::handleDeviceMessage, 0)
+            );
+
+            return decodeTask
                 .as(FluxTracer.create(
                     DeviceTracer.SpanName.decode0(session == null ? "unknown" : session.getDeviceId()),
                     builder -> builder
                         .setAttributeLazy(
                             DeviceTracer.SpanKey.message,
                             message,
-                            (m) -> message.toString())
+                            Object::toString)
                 ))
                 .onErrorResume((err) -> {
                     log.error("{} Handle TCP[{}] message failed:\n{}",
@@ -312,7 +328,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                 disposable.dispose();
             }
             parent.counter.decrement();
-            parent.monitor.disconnected();
+            parent.monitor.disconnected(client);
             parent.monitor.totalConnection(parent.counter.sum());
             if (this.subscriber != null) {
                 this.subscriber.onComplete();
@@ -343,7 +359,11 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             .publishOn(Schedulers.parallel())
             .flatMap(client -> {
                 try {
-                    return new TcpConnection(this, client);
+                    if (monitor.connected(client)) {
+                        return new TcpConnection(this, client);
+                    }
+                    client.disconnect();
+                    return Mono.empty();
                 } catch (Throwable e) {
                     try {
                         client.disconnect();
