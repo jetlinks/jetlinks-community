@@ -24,6 +24,7 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 class LazyDeviceGatewayMonitor implements DeviceGatewayMonitor {
 
@@ -99,6 +100,15 @@ class LazyDeviceGatewayMonitor implements DeviceGatewayMonitor {
                                       EncodedMessage origin,
                                       Flux<DeviceMessage> decoder) {
         return getTarget().decode(connection, session, origin, decoder);
+    }
+
+    @Override
+    public Flux<DeviceMessage> handleUpstream(@Nullable ClientConnection connection,
+                                              DeviceSession session,
+                                              EncodedMessage origin,
+                                              Flux<DeviceMessage> decoder,
+                                              UnaryOperator<Flux<DeviceMessage>> platformHandler) {
+        return getTarget().handleUpstream(connection, session, origin, decoder, platformHandler);
     }
 
     @Override

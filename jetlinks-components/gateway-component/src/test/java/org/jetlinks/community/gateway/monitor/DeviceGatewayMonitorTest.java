@@ -241,6 +241,107 @@ class DeviceGatewayMonitorTest {
     }
 
     @Test
+    void shouldDelegateCompositeHandleUpstreamWithoutDuplicatingPlatformHandler() {
+        List<String> signals = new ArrayList<>();
+        AtomicInteger platformApplied = new AtomicInteger();
+        AtomicInteger platformHandled = new AtomicInteger();
+        HandleUpstreamRecordingMonitor first = new HandleUpstreamRecordingMonitor("first", signals);
+        HandleUpstreamRecordingMonitor second = new HandleUpstreamRecordingMonitor("second", signals);
+        CompositeDeviceGatewayMonitor monitor = new CompositeDeviceGatewayMonitor()
+            .add(first, second);
+
+        ClientConnection connection = mock(ClientConnection.class);
+        DeviceSession session = mock(DeviceSession.class);
+        EncodedMessage origin = mock(EncodedMessage.class);
+        DeviceMessage message = mock(DeviceMessage.class);
+
+        Flux<DeviceMessage> upstream = monitor.handleUpstream(
+            connection,
+            session,
+            origin,
+            Flux.just(message),
+            decoder -> {
+                platformApplied.incrementAndGet();
+                return decoder.doOnNext(ignore -> {
+                    platformHandled.incrementAndGet();
+                    signals.add("platform");
+                });
+            }
+        );
+
+        assertEquals(1, platformApplied.get());
+        StepVerifier
+            .create(upstream)
+            .expectNext(message)
+            .verifyComplete();
+
+        assertEquals(1, first.handleUpstreamInvocations.get());
+        assertEquals(1, second.handleUpstreamInvocations.get());
+        assertEquals(1, platformHandled.get());
+        assertEquals(Arrays.asList("platform", "first", "second"), signals);
+    }
+
+    @Test
+    void shouldApplyPlatformHandlerOnceForEmptyComposite() {
+        AtomicInteger platformApplied = new AtomicInteger();
+        AtomicInteger platformHandled = new AtomicInteger();
+        DeviceMessage message = mock(DeviceMessage.class);
+
+        Flux<DeviceMessage> upstream = new CompositeDeviceGatewayMonitor()
+            .handleUpstream(
+                mock(ClientConnection.class),
+                mock(DeviceSession.class),
+                mock(EncodedMessage.class),
+                Flux.just(message),
+                decoder -> {
+                    platformApplied.incrementAndGet();
+                    return decoder.doOnNext(ignore -> platformHandled.incrementAndGet());
+                }
+            );
+
+        assertEquals(1, platformApplied.get());
+        StepVerifier
+            .create(upstream)
+            .expectNext(message)
+            .verifyComplete();
+        assertEquals(1, platformHandled.get());
+    }
+
+    @Test
+    void shouldDelegateLazyHandleUpstreamToTarget() {
+        List<String> signals = new ArrayList<>();
+        AtomicInteger resolved = new AtomicInteger();
+        AtomicInteger platformHandled = new AtomicInteger();
+        HandleUpstreamRecordingMonitor target = new HandleUpstreamRecordingMonitor("target", signals);
+        LazyDeviceGatewayMonitor monitor = new LazyDeviceGatewayMonitor(() -> {
+            resolved.incrementAndGet();
+            return target;
+        });
+        DeviceMessage message = mock(DeviceMessage.class);
+
+        Flux<DeviceMessage> upstream = monitor.handleUpstream(
+            mock(ClientConnection.class),
+            mock(DeviceSession.class),
+            mock(EncodedMessage.class),
+            Flux.just(message),
+            decoder -> decoder.doOnNext(ignore -> {
+                platformHandled.incrementAndGet();
+                signals.add("platform");
+            })
+        );
+
+        StepVerifier
+            .create(upstream)
+            .expectNext(message)
+            .verifyComplete();
+
+        assertEquals(1, resolved.get());
+        assertEquals(1, target.handleUpstreamInvocations.get());
+        assertEquals(1, platformHandled.get());
+        assertEquals(Arrays.asList("platform", "target"), signals);
+    }
+
+    @Test
     void shouldComposeAllMonitorDecisionsAndReactiveWrappersInOrder() {
         List<String> signals = new ArrayList<>();
         RecordingMonitor first = new RecordingMonitor("first", true, true, signals);
@@ -418,6 +519,37 @@ class DeviceGatewayMonitorTest {
                                      EncodedMessage origin,
                                      Mono<Void> sender) {
             return sender.doOnSuccess(ignore -> signals.add(id + ":downstream"));
+        }
+    }
+
+    private static class HandleUpstreamRecordingMonitor implements DeviceGatewayMonitor {
+
+        private final String id;
+        private final List<String> signals;
+        private final AtomicInteger handleUpstreamInvocations = new AtomicInteger();
+
+        private HandleUpstreamRecordingMonitor(String id, List<String> signals) {
+            this.id = id;
+            this.signals = signals;
+        }
+
+        @Override
+        public Flux<DeviceMessage> handleUpstream(ClientConnection connection,
+                                                  DeviceSession session,
+                                                  EncodedMessage origin,
+                                                  Flux<DeviceMessage> decoder,
+                                                  UnaryOperator<Flux<DeviceMessage>> platformHandler) {
+            handleUpstreamInvocations.incrementAndGet();
+            return DeviceGatewayMonitor.super
+                .handleUpstream(connection, session, origin, decoder, platformHandler);
+        }
+
+        @Override
+        public Flux<DeviceMessage> beforeSendToPlatform(ClientConnection connection,
+                                                        DeviceSession session,
+                                                        EncodedMessage origin,
+                                                        Flux<DeviceMessage> handler) {
+            return handler.doOnNext(ignore -> signals.add(id));
         }
     }
 }
