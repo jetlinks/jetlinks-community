@@ -16,6 +16,14 @@
 package org.jetlinks.community.gateway.monitor;
 
 
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.server.ClientConnection;
+import org.jetlinks.core.server.session.DeviceSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,7 +32,7 @@ import java.util.function.Consumer;
 
 class CompositeDeviceGatewayMonitor implements DeviceGatewayMonitor {
 
-    private List<DeviceGatewayMonitor> monitors = new ArrayList<>();
+    private final List<DeviceGatewayMonitor> monitors = new ArrayList<>();
 
     public CompositeDeviceGatewayMonitor add(DeviceGatewayMonitor... monitors) {
         return add(Arrays.asList(monitors));
@@ -68,5 +76,70 @@ class CompositeDeviceGatewayMonitor implements DeviceGatewayMonitor {
     @Override
     public void sentMessage() {
         doWith(DeviceGatewayMonitor::sentMessage);
+    }
+
+    @Override
+    public boolean connected(ClientConnection connection) {
+        boolean accepted = true;
+        for (DeviceGatewayMonitor monitor : monitors) {
+            if (!monitor.connected(connection)) {
+                accepted = false;
+            }
+        }
+        return accepted;
+    }
+
+    @Override
+    public void disconnected(ClientConnection connection) {
+        doWith(monitor -> monitor.disconnected(connection));
+    }
+
+    @Override
+    public void rejected(ClientConnection connection, @Nullable Throwable error) {
+        doWith(monitor -> monitor.rejected(connection, error));
+    }
+
+    @Override
+    public boolean beforeDecode(@Nullable ClientConnection connection, EncodedMessage message) {
+        boolean accepted = true;
+        for (DeviceGatewayMonitor monitor : monitors) {
+            if (!monitor.beforeDecode(connection, message)) {
+                accepted = false;
+            }
+        }
+        return accepted;
+    }
+
+    @Override
+    public Flux<DeviceMessage> decode(@Nullable ClientConnection connection,
+                                      DeviceSession session,
+                                      EncodedMessage origin,
+                                      Flux<DeviceMessage> decoder) {
+        for (DeviceGatewayMonitor monitor : monitors) {
+            decoder = monitor.decode(connection, session, origin, decoder);
+        }
+        return decoder;
+    }
+
+    @Override
+    public Flux<DeviceMessage> beforeSendToPlatform(@Nullable ClientConnection connection,
+                                                    DeviceSession session,
+                                                    EncodedMessage origin,
+                                                    Flux<DeviceMessage> handler) {
+        for (DeviceGatewayMonitor monitor : monitors) {
+            handler = monitor.beforeSendToPlatform(connection, session, origin, handler);
+        }
+        return handler;
+    }
+
+    @Override
+    public Mono<Void> downstream(ClientConnection connection,
+                                 DeviceSession session,
+                                 EncodedMessage origin,
+                                 Mono<Void> sender) {
+        for (DeviceGatewayMonitor monitor : monitors) {
+            sender = monitor.downstream(connection, session, origin, sender);
+        }
+        return sender;
     }
 }

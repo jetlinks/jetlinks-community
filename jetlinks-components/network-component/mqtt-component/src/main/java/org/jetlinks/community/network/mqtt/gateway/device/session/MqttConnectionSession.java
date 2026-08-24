@@ -169,9 +169,11 @@ public class MqttConnectionSession extends CopyOnWriteArrayList<MqttConnection>
         if (connection == null) {
             return Mono.error(new DeviceOperationException.NoStackTrace(ErrorCode.CONNECTION_LOST));
         }
-        return Mono
+        Mono<Void> sender = Mono
             .defer(() -> connection.publish(((MqttMessage) encodedMessage)))
-            .doOnSuccess(nil -> monitor.sentMessage())
+            .doOnSuccess(nil -> monitor.sentMessage());
+        return monitor
+            .downstream(connection, this, encodedMessage, sender)
             .thenReturn(true);
     }
 

@@ -18,6 +18,7 @@ package org.jetlinks.community.network.http.device;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.EncodedMessage;
@@ -47,11 +48,16 @@ class WebSocketDeviceSession implements DeviceSession {
     @Setter
     private WebSocketExchange exchange;
 
+    private final DeviceGatewayMonitor monitor;
+
     private final long connectTime = System.currentTimeMillis();
 
     private Duration keepAliveTimeout;
 
-    public WebSocketDeviceSession(DeviceOperator device, WebSocketExchange exchange) {
+    public WebSocketDeviceSession(DeviceGatewayMonitor monitor,
+                                  DeviceOperator device,
+                                  WebSocketExchange exchange) {
+        this.monitor = monitor;
         this.operator = device;
         this.exchange = exchange;
     }
@@ -78,16 +84,17 @@ class WebSocketDeviceSession implements DeviceSession {
 
     @Override
     public Mono<Boolean> send(EncodedMessage encodedMessage) {
+        Mono<Void> sender;
         if (encodedMessage instanceof WebSocketMessage) {
-            return exchange
-                .send(((WebSocketMessage) encodedMessage))
-                .thenReturn(true);
+            sender = exchange.send(((WebSocketMessage) encodedMessage));
         } else {
-            return exchange
-                .send(DefaultWebSocketMessage.of(WebSocketMessage.Type.TEXT, encodedMessage.getPayload()))
-                .thenReturn(true);
+            sender = exchange.send(
+                DefaultWebSocketMessage.of(WebSocketMessage.Type.TEXT, encodedMessage.getPayload()));
         }
-
+        sender = sender.doOnSuccess(ignore -> monitor.sentMessage());
+        return monitor
+            .downstream(exchange, this, encodedMessage, sender)
+            .thenReturn(true);
     }
 
     @Override
@@ -131,7 +138,7 @@ class WebSocketDeviceSession implements DeviceSession {
     }
 
     public WebSocketDeviceSession copy() {
-        WebSocketDeviceSession session = new WebSocketDeviceSession(operator, exchange);
+        WebSocketDeviceSession session = new WebSocketDeviceSession(monitor, operator, exchange);
 
         session.setKeepAliveTimeout(keepAliveTimeout);
         return session;

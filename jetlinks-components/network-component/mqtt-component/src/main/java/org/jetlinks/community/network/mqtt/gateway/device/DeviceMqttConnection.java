@@ -47,6 +47,7 @@ import org.springframework.util.StringUtils;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
 import reactor.core.scheduler.Schedulers;
@@ -55,6 +56,7 @@ import reactor.util.function.Tuples;
 import java.net.InetSocketAddress;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static org.jetlinks.community.network.mqtt.gateway.device.MqttServerDeviceGateway.clientId;
 
@@ -84,6 +86,7 @@ public class DeviceMqttConnection extends Mono<Void>
             MqttAuth auth = connection.getAuth().orElse(null);
             if (auth == null || !StringUtils.hasText(connection.getClientId())) {
                 reject(MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED);
+                monitor.rejected(connection, null);
             } else {
                 doAuth(auth);
             }
@@ -214,6 +217,14 @@ public class DeviceMqttConnection extends Mono<Void>
         if (operator == null) {
             return Mono.empty();
         }
+
+        if (!monitor.beforeDecode(connection, message)) {
+            return Mono.empty();
+        }
+
+        UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+            .concatMap(this::handleMessage, 0);
+
         // 上下文
         FromDeviceMessageContext context =
             FromDeviceMessageContext
@@ -221,20 +232,39 @@ public class DeviceMqttConnection extends Mono<Void>
                     message,
                     helper.getRegistry(),
                     connection,
-                    this);
+                    // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                    deviceMessage -> monitor
+                        .handleUpstream(
+                            connection,
+                            session,
+                            message,
+                            Flux.just(deviceMessage),
+                            platformHandler)
+                        .then());
 
-        return operator
+        Flux<DeviceMessage> decodeTask = operator
             .getProtocol()
             .flatMap(protocol -> protocol.getMessageCodec(getTransport()))
             //解码
             .flatMapMany(codec -> codec.decode(context))
-            .cast(DeviceMessage.class)
-            .concatMap(this::handleMessage, 0)
-            .doOnComplete(() -> {
-                if (message instanceof MqttPublishing) {
-                    ((MqttPublishing) message).acknowledge();
-                }
-            })
+            .cast(DeviceMessage.class);
+
+        decodeTask = monitor.handleUpstream(
+            connection,
+            session,
+            message,
+            decodeTask,
+            task -> platformHandler
+                .apply(task)
+                .doOnComplete(() -> {
+                    if (message instanceof MqttPublishing) {
+                        ((MqttPublishing) message).acknowledge();
+                    }
+                })
+        );
+        decodeTask = monitor.decode(connection, session, message, decodeTask);
+
+        return decodeTask
             .as(FluxTracer
                     .create(DeviceTracer.SpanName.decode0(operator.getDeviceId()),
                             (span) -> span
@@ -257,6 +287,7 @@ public class DeviceMqttConnection extends Mono<Void>
     }
 
     private Mono<DeviceMessage> handleMessage(DeviceMessage message) {
+        monitor.receivedMessage();
 
         DeviceOperator mainDevice = session.getOperator();
 
@@ -355,6 +386,7 @@ public class DeviceMqttConnection extends Mono<Void>
                            if (err instanceof AuthenticationException) {
                                reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD);
                            } else {
+                               monitor.rejected(connection, err);
                                log.warn("MQTT连接认证[{}]失败", connection.getClientId(), err);
                                //应答SERVER_UNAVAILABLE
                                reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
@@ -408,6 +440,7 @@ public class DeviceMqttConnection extends Mono<Void>
             if (actual != null) {
                 actual.onComplete();
             }
+            monitor.disconnected(connection);
         }
 
     }

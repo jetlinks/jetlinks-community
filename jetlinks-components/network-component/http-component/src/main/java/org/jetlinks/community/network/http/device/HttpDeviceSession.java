@@ -16,6 +16,7 @@
 package org.jetlinks.community.network.http.device;
 
 import lombok.Setter;
+import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
 import org.jetlinks.core.device.DeviceOperator;
 import org.jetlinks.core.enums.ErrorCode;
 import org.jetlinks.core.exception.DeviceOperationException;
@@ -49,12 +50,17 @@ class HttpDeviceSession implements DeviceSession {
     @Setter
     private WebSocketExchange websocket;
 
+    private final DeviceGatewayMonitor monitor;
+
     private long lastPingTime = System.currentTimeMillis();
 
     //默认永不超时
     private long keepAliveTimeOutMs = -1;
 
-    public HttpDeviceSession(DeviceOperator deviceOperator, InetSocketAddress address) {
+    public HttpDeviceSession(DeviceGatewayMonitor monitor,
+                             DeviceOperator deviceOperator,
+                             InetSocketAddress address) {
+        this.monitor = monitor;
         this.operator = deviceOperator;
         this.address = address;
     }
@@ -94,15 +100,17 @@ class HttpDeviceSession implements DeviceSession {
         if (!websocket.isAlive()) {
             return Mono.error(new DeviceOperationException.NoStackTrace(ErrorCode.CONNECTION_LOST));
         }
+        Mono<Void> sender;
         if (encodedMessage instanceof WebSocketMessage) {
-            return websocket
-                .send(((WebSocketMessage) encodedMessage))
-                .thenReturn(true);
+            sender = websocket.send(((WebSocketMessage) encodedMessage));
         } else {
-            return websocket
-                .send(DefaultWebSocketMessage.of(WebSocketMessage.Type.TEXT, encodedMessage.getPayload()))
-                .thenReturn(true);
+            sender = websocket.send(
+                DefaultWebSocketMessage.of(WebSocketMessage.Type.TEXT, encodedMessage.getPayload()));
         }
+        sender = sender.doOnSuccess(ignore -> monitor.sentMessage());
+        return monitor
+            .downstream(websocket, this, encodedMessage, sender)
+            .thenReturn(true);
     }
 
     @Override

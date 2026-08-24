@@ -47,6 +47,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
@@ -54,6 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.UnaryOperator;
 
 /**
  * Http 服务设备网关，使用指定的协议包，将网络组件中Http服务的请求处理为设备消息
@@ -112,6 +114,9 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
 
 
     private Mono<Void> handleWebsocketRequest(WebSocketExchange exchange) {
+        if (!monitor.connected(exchange)) {
+            return exchange.close();
+        }
 
         return protocol
             .flatMap(protocol -> protocol
@@ -120,6 +125,7 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                 .flatMap(result -> {
                     if (result.isSuccess()) {
                         String deviceId = result.getDeviceId();
+                        exchange.closeHandler(() -> monitor.disconnected(exchange));
                         if (StringUtils.hasText(deviceId)) {
                             DeviceOnlineMessage message = new DeviceOnlineMessage();
                             message.setDeviceId(deviceId);
@@ -136,6 +142,7 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                                 .then();
                         }
                     } else {
+                        monitor.rejected(exchange, null);
                         log.warn("设备[{}] Websocket 认证失败:{}", exchange
                             .getRemoteAddress()
                             .orElse(null), result.getMessage());
@@ -154,10 +161,19 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                     return Mono.empty();
                 });
         }
-        WebSocketDeviceSession session = new WebSocketDeviceSession(device, exchange);
+        if (!monitor.beforeDecode(exchange, msg)) {
+            return Mono.empty();
+        }
 
-        return protocol
-            .flatMap(protocol -> {
+        WebSocketDeviceSession session = new WebSocketDeviceSession(monitor, device, exchange);
+
+        UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+            .concatMap(deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session)
+                .doOnNext(session::setOperator)
+                .thenReturn(deviceMessage));
+
+        Flux<DeviceMessage> decodeTask = protocol
+            .flatMapMany(protocol -> {
                 if (log.isDebugEnabled()) {
                     log.debug("收到HTTP请求\n{}", msg);
                 }
@@ -165,18 +181,38 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                 return protocol
                     .getMessageCodec(DefaultTransport.WebSocket)
                     .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
-                        session, msg, registry, deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session).then())))
-                    .cast(DeviceMessage.class)
-                    .concatMap(deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session))
-                    .doOnNext(session::setOperator)
-                    .onErrorResume(err -> {
-                        log.error("处理http请求失败:\n{}", msg, err);
-                        return exchange
-                            .close(HttpStatus.BAD_REQUEST)
-                            .then(Mono.empty());
-                    })
-                    .then();
+                        session,
+                        msg,
+                        registry,
+                        // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                        deviceMessage -> monitor
+                            .handleUpstream(
+                                exchange,
+                                session,
+                                msg,
+                                Flux.just(deviceMessage),
+                                platformHandler)
+                            .then())))
+                    .cast(DeviceMessage.class);
+            });
+
+        decodeTask = monitor.handleUpstream(
+            exchange,
+            session,
+            msg,
+            decodeTask,
+            platformHandler
+        );
+        decodeTask = monitor.decode(exchange, session, msg, decodeTask);
+
+        return decodeTask
+            .onErrorResume(err -> {
+                log.error("处理http请求失败:\n{}", msg, err);
+                return exchange
+                    .close(HttpStatus.BAD_REQUEST)
+                    .then(Mono.empty());
             })
+            .then()
             .as(MonoTracer.create("http-device-gateway/" + getId() + exchange.getPath()))
             .onErrorResume((error) -> {
                 log.error(error.getMessage(), error);
@@ -198,7 +234,7 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
         return helper
             .handleDeviceMessage(
                 message,
-                device -> new WebSocketDeviceSession(device, exchange),
+                device -> new WebSocketDeviceSession(monitor, device, exchange),
                 deviceSession -> {
                     if (deviceSession.isWrapFrom(WebSocketDeviceSession.class)) {
                         deviceSession
@@ -231,22 +267,41 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                     if (log.isDebugEnabled()) {
                         log.debug("收到HTTP请求\n{}", httpMessage);
                     }
-                    InetSocketAddress address = exchange.request().getClientAddress();
                     UnknownHttpDeviceSession session = new UnknownHttpDeviceSession(exchange);
+                    if (!monitor.beforeDecode(null, httpMessage)) {
+                        return completeHttpRequest(exchange);
+                    }
+                    UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+                        .concatMap(deviceMessage ->
+                            handleMessage(deviceMessage, exchange, httpMessage)
+                                .thenReturn(deviceMessage));
                     //调用协议执行解码
-                    return protocol
+                    Flux<DeviceMessage> decodeTask = protocol
                         .getMessageCodec(getTransport())
                         .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
-                            session, httpMessage, registry, msg -> handleMessage(msg, exchange, httpMessage))))
-                        .cast(DeviceMessage.class)
-                        .concatMap(deviceMessage -> handleMessage(deviceMessage, exchange, httpMessage))
-                        .then(Mono.defer(() -> {
-                            //如果协议包里没有回复，那就响应200
-                            if (!exchange.isClosed()) {
-                                return exchange.ok();
-                            }
-                            return Mono.empty();
-                        }))
+                            session,
+                            httpMessage,
+                            registry,
+                            // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                            deviceMessage -> monitor
+                                .handleUpstream(
+                                    null,
+                                    session,
+                                    httpMessage,
+                                    Flux.just(deviceMessage),
+                                    platformHandler)
+                                .then())))
+                        .cast(DeviceMessage.class);
+                    decodeTask = monitor.handleUpstream(
+                        null,
+                        session,
+                        httpMessage,
+                        decodeTask,
+                        platformHandler
+                    );
+                    decodeTask = monitor.decode(null, session, httpMessage, decodeTask);
+                    return decodeTask
+                        .then(completeHttpRequest(exchange))
                         .onErrorResume(err -> {
                             log.error("处理http请求失败:\n{}", httpMessage, err);
                             return response500Error(exchange, err);
@@ -260,6 +315,16 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
             });
     }
 
+    private Mono<Void> completeHttpRequest(HttpExchange exchange) {
+        return Mono.defer(() -> {
+            // 如果协议包没有主动响应，则使用 200 结束本次短连接请求。
+            if (!exchange.isClosed()) {
+                return exchange.ok();
+            }
+            return Mono.empty();
+        });
+    }
+
     private Mono<Void> handleMessage(DeviceMessage deviceMessage,
                                      HttpExchange exchange,
                                      HttpExchangeMessage message) {
@@ -269,7 +334,7 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
         monitor.receivedMessage();
         return helper
             .handleDeviceMessage(deviceMessage,
-                                 device -> new HttpDeviceSession(device, address),
+                                 device -> new HttpDeviceSession(monitor, device, address),
                                  ignore -> {
                                  },
                                  () -> {

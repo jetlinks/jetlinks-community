@@ -17,11 +17,23 @@ package org.jetlinks.community.gateway.monitor;
 
 import org.jetlinks.community.timeseries.TimeSeriesMetric;
 
+/**
+ * 网关监控使用的时序指标定义。
+ *
+ * <p>统一设备网关监控数据的时序存储名称，不负责指标采集和查询。</p>
+ *
+ * @see DeviceGatewayMonitor
+ * @since 1.0
+ */
 public interface GatewayTimeSeriesMetric {
 
     String deviceGatewayMetric = "device_gateway_monitor";
 
-    static TimeSeriesMetric deviceGatewayMetric(){
+    /**
+     * @return 网关设备监控指标
+     * @see DeviceGatewayMonitor
+     */
+    static TimeSeriesMetric deviceGatewayMetric() {
         return TimeSeriesMetric.of(deviceGatewayMetric);
     }
 }

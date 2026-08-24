@@ -38,13 +38,13 @@ import java.util.Date;
 
 class DeviceGatewayMeasurement extends StaticMeasurement {
 
-        private TimeSeriesManager timeSeriesManager;
+    private final TimeSeriesManager timeSeriesManager;
 
-        private String type;
+    private final String type;
 
-        private Aggregation defaultAgg;
+    private final Aggregation defaultAgg;
 
-        private String property;
+    private final String property;
 
     public DeviceGatewayMeasurement(MeasurementDefinition definition,
                                     String property,
