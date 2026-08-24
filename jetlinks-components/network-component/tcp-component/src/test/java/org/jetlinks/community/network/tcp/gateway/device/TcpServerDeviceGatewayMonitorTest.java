@@ -53,6 +53,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -132,6 +133,7 @@ class TcpServerDeviceGatewayMonitorTest {
 
         assertEquals(1, monitor.beforeDecode.get());
         assertEquals(1, monitor.decode.get());
+        assertEquals(2, monitor.handleUpstream.get());
         assertEquals(2, monitor.beforeSend.get());
         assertEquals(2, monitor.received.get());
         assertEquals(1, Collections.frequency(monitor.monitored, manualMessage));
@@ -146,6 +148,7 @@ class TcpServerDeviceGatewayMonitorTest {
     private static class RecordingMonitor implements DeviceGatewayMonitor {
         private final AtomicInteger beforeDecode = new AtomicInteger();
         private final AtomicInteger decode = new AtomicInteger();
+        private final AtomicInteger handleUpstream = new AtomicInteger();
         private final AtomicInteger beforeSend = new AtomicInteger();
         private final AtomicInteger received = new AtomicInteger();
         private final CountDownLatch completed = new CountDownLatch(2);
@@ -171,6 +174,17 @@ class TcpServerDeviceGatewayMonitorTest {
                                           Flux<DeviceMessage> decoder) {
             decode.incrementAndGet();
             return decoder;
+        }
+
+        @Override
+        public Flux<DeviceMessage> handleUpstream(ClientConnection connection,
+                                                  DeviceSession session,
+                                                  EncodedMessage origin,
+                                                  Flux<DeviceMessage> decoder,
+                                                  UnaryOperator<Flux<DeviceMessage>> platformHandler) {
+            handleUpstream.incrementAndGet();
+            return DeviceGatewayMonitor.super
+                .handleUpstream(connection, session, origin, decoder, platformHandler);
         }
 
         @Override

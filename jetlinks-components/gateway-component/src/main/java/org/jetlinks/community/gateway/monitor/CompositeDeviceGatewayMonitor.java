@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 class CompositeDeviceGatewayMonitor implements DeviceGatewayMonitor {
 
@@ -119,6 +120,21 @@ class CompositeDeviceGatewayMonitor implements DeviceGatewayMonitor {
             decoder = monitor.decode(connection, session, origin, decoder);
         }
         return decoder;
+    }
+
+    @Override
+    public Flux<DeviceMessage> handleUpstream(@Nullable ClientConnection connection,
+                                              DeviceSession session,
+                                              EncodedMessage origin,
+                                              Flux<DeviceMessage> decoder,
+                                              UnaryOperator<Flux<DeviceMessage>> platformHandler) {
+        // 平台处理器作为链尾只组合一次，同时保留 beforeSendToPlatform 的注册顺序。
+        UnaryOperator<Flux<DeviceMessage>> handler = platformHandler;
+        for (DeviceGatewayMonitor monitor : monitors) {
+            UnaryOperator<Flux<DeviceMessage>> next = handler;
+            handler = source -> monitor.handleUpstream(connection, session, origin, source, next);
+        }
+        return handler.apply(decoder);
     }
 
     @Override
