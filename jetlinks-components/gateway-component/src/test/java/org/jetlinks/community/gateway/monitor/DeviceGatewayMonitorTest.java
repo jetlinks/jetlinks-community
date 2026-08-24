@@ -15,8 +15,10 @@
  */
 package org.jetlinks.community.gateway.monitor;
 
+import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.session.DeviceSession;
 import org.junit.jupiter.api.Test;
@@ -36,6 +38,161 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class DeviceGatewayMonitorTest {
+
+    @Test
+    void shouldWrapWholeUpstreamWithDecodeAndKeepPlatformHandlerLazy() {
+        List<String> signals = new ArrayList<>();
+        AtomicInteger platformHandled = new AtomicInteger();
+        DeviceGatewayMonitor monitor = new DeviceGatewayMonitor() {
+            @Override
+            public Flux<DeviceMessage> decode(ClientConnection connection,
+                                              DeviceSession session,
+                                              EncodedMessage origin,
+                                              Flux<DeviceMessage> decoder) {
+                signals.add("decode");
+                return decoder.doOnNext(current -> {
+                    signals.add("decodeOnNext");
+                    assertEquals(1, platformHandled.get());
+                });
+            }
+
+            @Override
+            public Flux<DeviceMessage> beforeSendToPlatform(ClientConnection connection,
+                                                            DeviceSession session,
+                                                            EncodedMessage origin,
+                                                            Flux<DeviceMessage> handler) {
+                signals.add("beforeSend");
+                return handler;
+            }
+        };
+
+        ClientConnection connection = mock(ClientConnection.class);
+        DeviceSession session = mock(DeviceSession.class);
+        EncodedMessage origin = mock(EncodedMessage.class);
+        DeviceMessage message = mock(DeviceMessage.class);
+
+        Flux<DeviceMessage> upstream = monitor.decode(
+            connection,
+            session,
+            origin,
+            monitor.handleUpstream(
+                connection,
+                session,
+                origin,
+                Flux.defer(() -> {
+                    signals.add("decoder");
+                    return Flux.just(message);
+                }),
+                decoded -> {
+                    signals.add("platformHandler");
+                    return decoded.concatMap(current -> Mono
+                        .fromRunnable(() -> {
+                            signals.add("platform");
+                            platformHandled.incrementAndGet();
+                        })
+                        .thenReturn(current));
+                }
+            )
+        );
+
+        assertEquals(Arrays.asList("platformHandler", "beforeSend", "decode"), signals);
+        assertEquals(0, platformHandled.get());
+
+        StepVerifier
+            .create(upstream)
+            .expectNext(message)
+            .verifyComplete();
+
+        assertEquals(1, platformHandled.get());
+        assertEquals(
+            Arrays.asList(
+                "platformHandler",
+                "beforeSend",
+                "decode",
+                "decoder",
+                "platform",
+                "decodeOnNext"),
+            signals
+        );
+    }
+
+    @Test
+    void shouldWrapManualProtocolOutputWithExistingMonitorMethods() {
+        String monitorContextKey = DeviceGatewayMonitorTest.class.getName();
+        AtomicInteger decode = new AtomicInteger();
+        AtomicInteger beforeSend = new AtomicInteger();
+        AtomicInteger received = new AtomicInteger();
+        AtomicInteger manualHandled = new AtomicInteger();
+        AtomicInteger returnedHandled = new AtomicInteger();
+        DeviceGatewayMonitor monitor = new DeviceGatewayMonitor() {
+            @Override
+            public void receivedMessage() {
+                received.incrementAndGet();
+            }
+
+            @Override
+            public Flux<DeviceMessage> decode(ClientConnection connection,
+                                              DeviceSession session,
+                                              EncodedMessage origin,
+                                              Flux<DeviceMessage> decoder) {
+                decode.incrementAndGet();
+                return decoder;
+            }
+
+            @Override
+            public Flux<DeviceMessage> beforeSendToPlatform(ClientConnection connection,
+                                                            DeviceSession session,
+                                                            EncodedMessage origin,
+                                                            Flux<DeviceMessage> handler) {
+                beforeSend.incrementAndGet();
+                return handler.contextWrite(context -> context.put(monitorContextKey, true));
+            }
+        };
+
+        ClientConnection connection = mock(ClientConnection.class);
+        DeviceSession session = mock(DeviceSession.class);
+        EncodedMessage origin = mock(EncodedMessage.class);
+        DeviceRegistry registry = mock(DeviceRegistry.class);
+        DeviceMessage message = mock(DeviceMessage.class);
+        FromDeviceMessageContext context = FromDeviceMessageContext.of(
+            session,
+            origin,
+            registry,
+            connection,
+            current -> Mono.deferContextual(ctx -> {
+                assertTrue(ctx.getOrDefault(monitorContextKey, false));
+                assertSame(message, current);
+                monitor.receivedMessage();
+                manualHandled.incrementAndGet();
+                return Mono.empty();
+            })
+        );
+
+        Flux<DeviceMessage> upstream = monitor.decode(
+            connection,
+            session,
+            origin,
+            monitor.handleUpstream(
+                connection,
+                session,
+                origin,
+                Flux.defer(() -> context.handleMessage(message).thenMany(Flux.empty())),
+                decoded -> decoded.concatMap(current -> Mono
+                    .fromRunnable(returnedHandled::incrementAndGet)
+                    .thenReturn(current))
+            )
+        );
+
+        StepVerifier
+            .create(upstream)
+            .verifyComplete();
+
+        assertEquals(1, decode.get());
+        assertEquals(1, beforeSend.get());
+        assertEquals(1, received.get());
+        assertEquals(1, manualHandled.get());
+        assertEquals(0, returnedHandled.get());
+    }
 
     @Test
     void shouldKeepDefaultMonitorCompatibleAndTransparent() {

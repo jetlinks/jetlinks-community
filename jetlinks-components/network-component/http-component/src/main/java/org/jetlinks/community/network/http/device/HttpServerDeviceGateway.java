@@ -179,15 +179,16 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                     .cast(DeviceMessage.class);
             });
 
-        decodeTask = monitor.decode(exchange, session, msg, decodeTask);
-        decodeTask = monitor.beforeSendToPlatform(
+        decodeTask = monitor.handleUpstream(
             exchange,
             session,
             msg,
-            decodeTask.concatMap(deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session)
+            decodeTask,
+            task -> task.concatMap(deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session)
                 .doOnNext(session::setOperator)
                 .thenReturn(deviceMessage))
         );
+        decodeTask = monitor.decode(exchange, session, msg, decodeTask);
 
         return decodeTask
             .onErrorResume(err -> {
@@ -261,15 +262,16 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                         .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
                             session, httpMessage, registry, msg -> handleMessage(msg, exchange, httpMessage))))
                         .cast(DeviceMessage.class);
-                    decodeTask = monitor.decode(null, session, httpMessage, decodeTask);
-                    decodeTask = monitor.beforeSendToPlatform(
+                    decodeTask = monitor.handleUpstream(
                         null,
                         session,
                         httpMessage,
-                        decodeTask.concatMap(deviceMessage ->
+                        decodeTask,
+                        task -> task.concatMap(deviceMessage ->
                             handleMessage(deviceMessage, exchange, httpMessage)
                                 .thenReturn(deviceMessage))
                     );
+                    decodeTask = monitor.decode(null, session, httpMessage, decodeTask);
                     return decodeTask
                         .then(completeHttpRequest(exchange))
                         .onErrorResume(err -> {

@@ -237,21 +237,22 @@ public class DeviceMqttConnection extends Mono<Void>
             .flatMapMany(codec -> codec.decode(context))
             .cast(DeviceMessage.class);
 
+        decodeTask = monitor.handleUpstream(
+            connection,
+            session,
+            message,
+            decodeTask,
+            task -> task
+                .concatMap(this::handleMessage, 0)
+                .doOnComplete(() -> {
+                    if (message instanceof MqttPublishing) {
+                        ((MqttPublishing) message).acknowledge();
+                    }
+                })
+        );
         decodeTask = monitor.decode(connection, session, message, decodeTask);
 
-        return monitor
-            .beforeSendToPlatform(
-                connection,
-                session,
-                message,
-                decodeTask
-                    .concatMap(this::handleMessage, 0)
-                    .doOnComplete(() -> {
-                        if (message instanceof MqttPublishing) {
-                            ((MqttPublishing) message).acknowledge();
-                        }
-                    })
-            )
+        return decodeTask
             .as(FluxTracer
                     .create(DeviceTracer.SpanName.decode0(operator.getDeviceId()),
                             (span) -> span
@@ -274,6 +275,7 @@ public class DeviceMqttConnection extends Mono<Void>
     }
 
     private Mono<DeviceMessage> handleMessage(DeviceMessage message) {
+        monitor.receivedMessage();
 
         DeviceOperator mainDevice = session.getOperator();
 

@@ -216,13 +216,14 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                         msg -> handleDeviceMessage(msg).then())))
                 .cast(DeviceMessage.class);
 
-            decodeTask = parent.monitor.decode(client, deviceSession, message, decodeTask);
-            decodeTask = parent.monitor.beforeSendToPlatform(
+            decodeTask = parent.monitor.handleUpstream(
                 client,
                 deviceSession,
                 message,
-                decodeTask.concatMap(this::handleDeviceMessage, 0)
+                decodeTask,
+                task -> task.concatMap(this::handleDeviceMessage, 0)
             );
+            decodeTask = parent.monitor.decode(client, deviceSession, message, decodeTask);
 
             return decodeTask
                 .as(FluxTracer.create(

@@ -175,14 +175,15 @@ public class MqttClientDeviceGateway extends AbstractDeviceGateway {
                 registry,
                 msg -> handleMessage(mqttMessage, msg).then())))
             .cast(DeviceMessage.class);
-        decodeTask = monitor.decode(null, session, mqttMessage, decodeTask);
-        decodeTask = monitor.beforeSendToPlatform(
+        decodeTask = monitor.handleUpstream(
             null,
             session,
             mqttMessage,
-            decodeTask.concatMap(message ->
+            decodeTask,
+            task -> task.concatMap(message ->
                 handleMessage(mqttMessage, message).thenReturn(message))
         );
+        decodeTask = monitor.decode(null, session, mqttMessage, decodeTask);
         return decodeTask.then();
     }
 

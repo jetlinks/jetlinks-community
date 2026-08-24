@@ -17,12 +17,14 @@ package org.jetlinks.community.gateway.monitor;
 
 import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.server.ClientConnection;
 import org.jetlinks.core.server.session.DeviceSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
+import java.util.function.UnaryOperator;
 
 /**
  * 设备网关监控扩展点。
@@ -151,6 +153,36 @@ public interface DeviceGatewayMonitor {
                                        EncodedMessage origin,
                                        Flux<DeviceMessage> decoder) {
         return decoder;
+    }
+
+    /**
+     * 组装平台上行处理任务。
+     *
+     * <p>本方法固定按 {@code platformHandler}、
+     * {@link #beforeSendToPlatform(ClientConnection, DeviceSession, EncodedMessage, Flux)} 的顺序组装处理链。
+     * 调用方应再使用 {@link #decode(ClientConnection, DeviceSession, EncodedMessage, Flux)} 包装返回任务，
+     * 使解码监控覆盖协议解码、平台处理和发送前处理的完整链路。
+     * {@code platformHandler} 只能组合传入的解码任务，不得主动订阅。</p>
+     *
+     * <p>{@link FromDeviceMessageContext#handleMessage(DeviceMessage)} 在协议解码任务中手动处理消息时，
+     * 仍会继承发送前监控写入的 Reactor Context；协议随后返回空流表示没有额外的返回值消息。</p>
+     *
+     * @param connection      客户端连接，短连接场景可能为 {@code null}
+     * @param session         当前设备会话
+     * @param origin          原始报文
+     * @param decoder         协议解码任务
+     * @param platformHandler 将解码任务转换为包含平台消息处理逻辑的任务
+     * @return 待解码监控包装的上行处理任务
+     * @since 2.12
+     * @see FromDeviceMessageContext
+     */
+    default Flux<DeviceMessage> handleUpstream(@Nullable ClientConnection connection,
+                                               DeviceSession session,
+                                               EncodedMessage origin,
+                                               Flux<DeviceMessage> decoder,
+                                               UnaryOperator<Flux<DeviceMessage>> platformHandler) {
+        Flux<DeviceMessage> handler = platformHandler.apply(decoder);
+        return beforeSendToPlatform(connection, session, origin, handler);
     }
 
     /**
