@@ -44,6 +44,7 @@ import reactor.util.function.Tuples;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.UnaryOperator;
 
 /**
  * MQTT Client 设备网关，使用网络组件中的MQTT Client来处理设备数据
@@ -168,20 +169,29 @@ public class MqttClientDeviceGateway extends AbstractDeviceGateway {
         }
         UnknownDeviceMqttClientSession session =
             new UnknownDeviceMqttClientSession(getId(), mqttClient, monitor);
+        UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+            .concatMap(message -> handleMessage(mqttMessage, message).thenReturn(message));
         Flux<DeviceMessage> decodeTask = codecMono
             .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
                 session,
                 mqttMessage,
                 registry,
-                msg -> handleMessage(mqttMessage, msg).then())))
+                // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                message -> monitor
+                    .handleUpstream(
+                        null,
+                        session,
+                        mqttMessage,
+                        Flux.just(message),
+                        platformHandler)
+                    .then())))
             .cast(DeviceMessage.class);
         decodeTask = monitor.handleUpstream(
             null,
             session,
             mqttMessage,
             decodeTask,
-            task -> task.concatMap(message ->
-                handleMessage(mqttMessage, message).thenReturn(message))
+            platformHandler
         );
         decodeTask = monitor.decode(null, session, mqttMessage, decodeTask);
         return decodeTask.then();

@@ -27,6 +27,7 @@ import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.DeviceMessageCodec;
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.message.codec.http.HttpExchangeMessage;
 import org.jetlinks.core.route.HttpRoute;
 import org.jetlinks.core.server.ClientConnection;
@@ -40,7 +41,9 @@ import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,7 +57,7 @@ import static org.mockito.Mockito.when;
 class HttpServerDeviceGatewayTest {
 
     @Test
-    void httpUpstreamShouldUseDecodeMonitors() throws InterruptedException {
+    void manualHttpUpstreamShouldUseMonitorChain() throws InterruptedException {
         String gatewayId = "http-monitor-test";
         RecordingMonitor monitor = new RecordingMonitor();
         GatewayMonitors.register((id, tags) -> gatewayId.equals(id) ? monitor : null);
@@ -68,6 +71,7 @@ class HttpServerDeviceGatewayTest {
         HttpRoute route = mock(HttpRoute.class);
         HttpExchange exchange = mock(HttpExchange.class);
         HttpExchangeMessage message = mock(HttpExchangeMessage.class);
+        DeviceMessage deviceMessage = mock(DeviceMessage.class);
         HttpRequest request = mock(HttpRequest.class);
         Sinks.Many<HttpExchange> requests = Sinks.many().unicast().onBackpressureBuffer();
 
@@ -77,7 +81,12 @@ class HttpServerDeviceGatewayTest {
         when(protocol.getRoutes(DefaultTransport.WebSocket)).thenReturn(Flux.empty());
         when(protocol.getMessageCodec(DefaultTransport.HTTP))
             .thenAnswer(ignore -> Mono.just(codec));
-        when(codec.decode(any())).thenReturn(Flux.empty());
+        when(codec.decode(any())).thenAnswer(invocation -> {
+            FromDeviceMessageContext context = invocation.getArgument(0);
+            return context
+                .handleMessage(deviceMessage)
+                .thenMany(Flux.empty());
+        });
         when(server.handleRequest(HttpMethod.POST, "/test")).thenReturn(requests.asFlux());
         when(exchange.toExchangeMessage()).thenReturn(Mono.just(message));
         when(exchange.request()).thenReturn(request);
@@ -99,7 +108,9 @@ class HttpServerDeviceGatewayTest {
 
         assertEquals(1, monitor.beforeDecode.get());
         assertEquals(1, monitor.decode.get());
-        assertEquals(1, monitor.beforeSend.get());
+        assertEquals(2, monitor.beforeSend.get());
+        assertEquals(1, monitor.received.get());
+        assertEquals(List.of(deviceMessage), monitor.monitored);
         assertSame(message, monitor.origin);
 
         StepVerifier.create(gateway.shutdown()).verifyComplete();
@@ -109,8 +120,15 @@ class HttpServerDeviceGatewayTest {
         private final AtomicInteger beforeDecode = new AtomicInteger();
         private final AtomicInteger decode = new AtomicInteger();
         private final AtomicInteger beforeSend = new AtomicInteger();
+        private final AtomicInteger received = new AtomicInteger();
         private final CountDownLatch completed = new CountDownLatch(1);
+        private final List<DeviceMessage> monitored = new CopyOnWriteArrayList<>();
         private EncodedMessage origin;
+
+        @Override
+        public void receivedMessage() {
+            received.incrementAndGet();
+        }
 
         @Override
         public boolean beforeDecode(ClientConnection connection, EncodedMessage message) {
@@ -137,8 +155,10 @@ class HttpServerDeviceGatewayTest {
                                                         Flux<DeviceMessage> handler) {
             assertNull(connection);
             beforeSend.incrementAndGet();
-            completed.countDown();
-            return handler;
+            return handler.doOnNext(message -> {
+                monitored.add(message);
+                completed.countDown();
+            });
         }
     }
 }

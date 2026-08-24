@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -121,15 +122,10 @@ class DeviceGatewayMonitorTest {
         String monitorContextKey = DeviceGatewayMonitorTest.class.getName();
         AtomicInteger decode = new AtomicInteger();
         AtomicInteger beforeSend = new AtomicInteger();
-        AtomicInteger received = new AtomicInteger();
+        AtomicInteger monitored = new AtomicInteger();
         AtomicInteger manualHandled = new AtomicInteger();
         AtomicInteger returnedHandled = new AtomicInteger();
         DeviceGatewayMonitor monitor = new DeviceGatewayMonitor() {
-            @Override
-            public void receivedMessage() {
-                received.incrementAndGet();
-            }
-
             @Override
             public Flux<DeviceMessage> decode(ClientConnection connection,
                                               DeviceSession session,
@@ -145,7 +141,9 @@ class DeviceGatewayMonitorTest {
                                                             EncodedMessage origin,
                                                             Flux<DeviceMessage> handler) {
                 beforeSend.incrementAndGet();
-                return handler.contextWrite(context -> context.put(monitorContextKey, true));
+                return handler
+                    .doOnNext(ignore -> monitored.incrementAndGet())
+                    .contextWrite(context -> context.put(monitorContextKey, true));
             }
         };
 
@@ -154,18 +152,26 @@ class DeviceGatewayMonitorTest {
         EncodedMessage origin = mock(EncodedMessage.class);
         DeviceRegistry registry = mock(DeviceRegistry.class);
         DeviceMessage message = mock(DeviceMessage.class);
+        UnaryOperator<Flux<DeviceMessage>> platformHandler = decoded -> decoded
+            .concatMap(current -> Mono.deferContextual(ctx -> {
+                assertTrue(ctx.getOrDefault(monitorContextKey, false));
+                assertSame(message, current);
+                manualHandled.incrementAndGet();
+                return Mono.just(current);
+            }));
         FromDeviceMessageContext context = FromDeviceMessageContext.of(
             session,
             origin,
             registry,
             connection,
-            current -> Mono.deferContextual(ctx -> {
-                assertTrue(ctx.getOrDefault(monitorContextKey, false));
-                assertSame(message, current);
-                monitor.receivedMessage();
-                manualHandled.incrementAndGet();
-                return Mono.empty();
-            })
+            current -> monitor
+                .handleUpstream(
+                    connection,
+                    session,
+                    origin,
+                    Flux.just(current),
+                    platformHandler)
+                .then()
         );
 
         Flux<DeviceMessage> upstream = monitor.decode(
@@ -188,8 +194,8 @@ class DeviceGatewayMonitorTest {
             .verifyComplete();
 
         assertEquals(1, decode.get());
-        assertEquals(1, beforeSend.get());
-        assertEquals(1, received.get());
+        assertEquals(2, beforeSend.get());
+        assertEquals(1, monitored.get());
         assertEquals(1, manualHandled.get());
         assertEquals(0, returnedHandled.get());
     }

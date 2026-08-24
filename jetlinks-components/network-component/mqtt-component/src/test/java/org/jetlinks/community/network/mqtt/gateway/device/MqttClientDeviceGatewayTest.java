@@ -26,6 +26,7 @@ import org.jetlinks.core.message.DeviceMessage;
 import org.jetlinks.core.message.codec.DefaultTransport;
 import org.jetlinks.core.message.codec.DeviceMessageCodec;
 import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.message.codec.FromDeviceMessageContext;
 import org.jetlinks.core.message.codec.SimpleMqttMessage;
 import org.jetlinks.core.route.MqttRoute;
 import org.jetlinks.core.server.ClientConnection;
@@ -39,7 +40,9 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,7 +56,7 @@ import static org.mockito.Mockito.when;
 class MqttClientDeviceGatewayTest {
 
     @Test
-    void mqttClientUpstreamShouldUseDecodeMonitors() throws InterruptedException {
+    void manualAndReturnedMqttUpstreamShouldUseMonitorChainOnce() throws InterruptedException {
         String gatewayId = "mqtt-client-monitor-test";
         RecordingMonitor monitor = new RecordingMonitor();
         GatewayMonitors.register((id, tags) -> gatewayId.equals(id) ? monitor : null);
@@ -64,6 +67,8 @@ class MqttClientDeviceGatewayTest {
         DecodedClientMessageHandler messageHandler = mock(DecodedClientMessageHandler.class);
         ProtocolSupport protocol = mock(ProtocolSupport.class);
         DeviceMessageCodec codec = mock(DeviceMessageCodec.class);
+        DeviceMessage manualMessage = mock(DeviceMessage.class);
+        DeviceMessage returnedMessage = mock(DeviceMessage.class);
         MqttRoute route = mock(MqttRoute.class);
         Sinks.Many<org.jetlinks.core.message.codec.MqttMessage> messages =
             Sinks.many().unicast().onBackpressureBuffer();
@@ -74,7 +79,12 @@ class MqttClientDeviceGatewayTest {
         when(protocol.getRoutes(DefaultTransport.MQTT)).thenReturn(Flux.just(route));
         when(protocol.getMessageCodec(DefaultTransport.MQTT))
             .thenAnswer(ignore -> Mono.just(codec));
-        when(codec.decode(any())).thenReturn(Flux.empty());
+        when(codec.decode(any())).thenAnswer(invocation -> {
+            FromDeviceMessageContext context = invocation.getArgument(0);
+            return context
+                .handleMessage(manualMessage)
+                .thenMany(Flux.just(returnedMessage));
+        });
         when(client.subscribe(Collections.singletonList("/test"), 0)).thenReturn(messages.asFlux());
 
         MqttClientDeviceGateway gateway = new MqttClientDeviceGateway(
@@ -97,7 +107,10 @@ class MqttClientDeviceGatewayTest {
 
         assertEquals(1, monitor.beforeDecode.get());
         assertEquals(1, monitor.decode.get());
-        assertEquals(1, monitor.beforeSend.get());
+        assertEquals(2, monitor.beforeSend.get());
+        assertEquals(2, monitor.received.get());
+        assertEquals(1, Collections.frequency(monitor.monitored, manualMessage));
+        assertEquals(1, Collections.frequency(monitor.monitored, returnedMessage));
         assertSame(message, monitor.origin);
 
         StepVerifier.create(gateway.shutdown()).verifyComplete();
@@ -107,8 +120,15 @@ class MqttClientDeviceGatewayTest {
         private final AtomicInteger beforeDecode = new AtomicInteger();
         private final AtomicInteger decode = new AtomicInteger();
         private final AtomicInteger beforeSend = new AtomicInteger();
-        private final CountDownLatch completed = new CountDownLatch(1);
+        private final AtomicInteger received = new AtomicInteger();
+        private final CountDownLatch completed = new CountDownLatch(2);
+        private final List<DeviceMessage> monitored = new CopyOnWriteArrayList<>();
         private EncodedMessage origin;
+
+        @Override
+        public void receivedMessage() {
+            received.incrementAndGet();
+        }
 
         @Override
         public boolean beforeDecode(ClientConnection connection, EncodedMessage message) {
@@ -135,8 +155,10 @@ class MqttClientDeviceGatewayTest {
                                                         Flux<DeviceMessage> handler) {
             assertNull(connection);
             beforeSend.incrementAndGet();
-            completed.countDown();
-            return handler;
+            return handler.doOnNext(message -> {
+                monitored.add(message);
+                completed.countDown();
+            });
         }
     }
 }

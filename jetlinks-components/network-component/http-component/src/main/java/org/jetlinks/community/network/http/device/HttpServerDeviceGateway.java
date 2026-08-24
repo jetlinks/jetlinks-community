@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.UnaryOperator;
 
 /**
  * Http 服务设备网关，使用指定的协议包，将网络组件中Http服务的请求处理为设备消息
@@ -166,6 +167,11 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
 
         WebSocketDeviceSession session = new WebSocketDeviceSession(monitor, device, exchange);
 
+        UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+            .concatMap(deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session)
+                .doOnNext(session::setOperator)
+                .thenReturn(deviceMessage));
+
         Flux<DeviceMessage> decodeTask = protocol
             .flatMapMany(protocol -> {
                 if (log.isDebugEnabled()) {
@@ -175,7 +181,18 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                 return protocol
                     .getMessageCodec(DefaultTransport.WebSocket)
                     .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
-                        session, msg, registry, deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session).then())))
+                        session,
+                        msg,
+                        registry,
+                        // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                        deviceMessage -> monitor
+                            .handleUpstream(
+                                exchange,
+                                session,
+                                msg,
+                                Flux.just(deviceMessage),
+                                platformHandler)
+                            .then())))
                     .cast(DeviceMessage.class);
             });
 
@@ -184,9 +201,7 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
             session,
             msg,
             decodeTask,
-            task -> task.concatMap(deviceMessage -> handleWebsocketMessage(deviceMessage, exchange, session)
-                .doOnNext(session::setOperator)
-                .thenReturn(deviceMessage))
+            platformHandler
         );
         decodeTask = monitor.decode(exchange, session, msg, decodeTask);
 
@@ -256,20 +271,33 @@ public class HttpServerDeviceGateway extends AbstractDeviceGateway {
                     if (!monitor.beforeDecode(null, httpMessage)) {
                         return completeHttpRequest(exchange);
                     }
+                    UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+                        .concatMap(deviceMessage ->
+                            handleMessage(deviceMessage, exchange, httpMessage)
+                                .thenReturn(deviceMessage));
                     //调用协议执行解码
                     Flux<DeviceMessage> decodeTask = protocol
                         .getMessageCodec(getTransport())
                         .flatMapMany(codec -> codec.decode(FromDeviceMessageContext.of(
-                            session, httpMessage, registry, msg -> handleMessage(msg, exchange, httpMessage))))
+                            session,
+                            httpMessage,
+                            registry,
+                            // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                            deviceMessage -> monitor
+                                .handleUpstream(
+                                    null,
+                                    session,
+                                    httpMessage,
+                                    Flux.just(deviceMessage),
+                                    platformHandler)
+                                .then())))
                         .cast(DeviceMessage.class);
                     decodeTask = monitor.handleUpstream(
                         null,
                         session,
                         httpMessage,
                         decodeTask,
-                        task -> task.concatMap(deviceMessage ->
-                            handleMessage(deviceMessage, exchange, httpMessage)
-                                .thenReturn(deviceMessage))
+                        platformHandler
                     );
                     decodeTask = monitor.decode(null, session, httpMessage, decodeTask);
                     return decodeTask

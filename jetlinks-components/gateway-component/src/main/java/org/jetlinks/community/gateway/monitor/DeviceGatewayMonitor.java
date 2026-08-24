@@ -164,8 +164,9 @@ public interface DeviceGatewayMonitor {
      * 使解码监控覆盖协议解码、平台处理和发送前处理的完整链路。
      * {@code platformHandler} 只能组合传入的解码任务，不得主动订阅。</p>
      *
-     * <p>{@link FromDeviceMessageContext#handleMessage(DeviceMessage)} 在协议解码任务中手动处理消息时，
-     * 仍会继承发送前监控写入的 Reactor Context；协议随后返回空流表示没有额外的返回值消息。</p>
+     * <p>{@link FromDeviceMessageContext#handleMessage(DeviceMessage)} 手动输出的消息不会进入协议返回的
+     * {@code decoder}，调用方应使用本方法单独包装该消息的平台处理任务。协议随后返回空流表示没有额外的
+     * 返回值消息，不能再次处理已经手动输出的消息。</p>
      *
      * @param connection      客户端连接，短连接场景可能为 {@code null}
      * @param session         当前设备会话

@@ -56,6 +56,7 @@ import reactor.util.function.Tuples;
 import java.net.InetSocketAddress;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static org.jetlinks.community.network.mqtt.gateway.device.MqttServerDeviceGateway.clientId;
 
@@ -221,6 +222,9 @@ public class DeviceMqttConnection extends Mono<Void>
             return Mono.empty();
         }
 
+        UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+            .concatMap(this::handleMessage, 0);
+
         // 上下文
         FromDeviceMessageContext context =
             FromDeviceMessageContext
@@ -228,7 +232,15 @@ public class DeviceMqttConnection extends Mono<Void>
                     message,
                     helper.getRegistry(),
                     connection,
-                    this);
+                    // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                    deviceMessage -> monitor
+                        .handleUpstream(
+                            connection,
+                            session,
+                            message,
+                            Flux.just(deviceMessage),
+                            platformHandler)
+                        .then());
 
         Flux<DeviceMessage> decodeTask = operator
             .getProtocol()
@@ -242,8 +254,8 @@ public class DeviceMqttConnection extends Mono<Void>
             session,
             message,
             decodeTask,
-            task -> task
-                .concatMap(this::handleMessage, 0)
+            task -> platformHandler
+                .apply(task)
                 .doOnComplete(() -> {
                     if (message instanceof MqttPublishing) {
                         ((MqttPublishing) message).acknowledge();

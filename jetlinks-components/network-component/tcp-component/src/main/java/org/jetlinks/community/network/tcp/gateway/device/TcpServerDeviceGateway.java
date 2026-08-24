@@ -60,6 +60,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.UnaryOperator;
 
 @Slf4j
 class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGateway, MonitorSupportDeviceGateway {
@@ -204,6 +205,8 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
             }
 
             DeviceSession deviceSession = session();
+            UnaryOperator<Flux<DeviceMessage>> platformHandler = task -> task
+                .concatMap(this::handleDeviceMessage, 0);
             Flux<DeviceMessage> decodeTask = parent
                 .getProtocol()
                 .flatMap(pt -> pt.getMessageCodec(parent.getTransport()))
@@ -213,7 +216,15 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                         message,
                         parent.registry,
                         client,
-                        msg -> handleDeviceMessage(msg).then())))
+                        // 手动输出不进入 codec 返回值，单独复用同一平台处理与发送前监控链。
+                        deviceMessage -> parent.monitor
+                            .handleUpstream(
+                                client,
+                                deviceSession,
+                                message,
+                                Flux.just(deviceMessage),
+                                platformHandler)
+                            .then())))
                 .cast(DeviceMessage.class);
 
             decodeTask = parent.monitor.handleUpstream(
@@ -221,7 +232,7 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                 deviceSession,
                 message,
                 decodeTask,
-                task -> task.concatMap(this::handleDeviceMessage, 0)
+                platformHandler
             );
             decodeTask = parent.monitor.decode(client, deviceSession, message, decodeTask);
 
