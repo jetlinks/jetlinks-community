@@ -29,6 +29,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
+import java.net.URI;
 
 public class HttpWebHookNotifier extends AbstractNotifier<HttpWebHookTemplate> {
     private final String id;
@@ -73,7 +74,7 @@ public class HttpWebHookNotifier extends AbstractNotifier<HttpWebHookTemplate> {
             .method(template.getMethod());
 
         if (StringUtils.hasText(template.getUrl())) {
-            bodyUriSpec.uri(template.getUrl());
+            bodyUriSpec.uri(resolveTemplateUri(template.getUrl()));
         }
         if (method == HttpMethod.POST
             || method == HttpMethod.PUT
@@ -101,6 +102,15 @@ public class HttpWebHookNotifier extends AbstractNotifier<HttpWebHookTemplate> {
         return bodyUriSpec
             .retrieve()
             .bodyToMono(Void.class);
+    }
+
+    URI resolveTemplateUri(String url) {
+        URI uri = URI.create(url);
+        // 模板只能补充相对路径，目标主机始终由具有配置权限的通知器配置决定。
+        if (uri.isAbsolute() || uri.getHost() != null || url.startsWith("//")) {
+            throw new IllegalArgumentException("WebHook template URL must be relative");
+        }
+        return uri;
     }
 
     @Nonnull

@@ -98,9 +98,10 @@ public class MqttConnectionSession extends CopyOnWriteArrayList<MqttConnection>
             connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
             return;
         }
-        if (!connection.isAlive()) {
-            return;
-        }
+        //不能在此以 isAlive() 做准入判断:注册发生在 CONNACK(accept)之前,
+        //该守卫会把握手中的新连接静默丢弃,造成上行正常而全部下行报"设备连接已断开"。
+        //握手期连接的存活语义由 VertxMqttConnection.isAlive()(closed 标志)保证,
+        //失活连接由 takeConnection/onClose 兜底清理。
         this.add(connection);
         connectTime = System.currentTimeMillis();
         connection.onClose(this);
@@ -168,9 +169,11 @@ public class MqttConnectionSession extends CopyOnWriteArrayList<MqttConnection>
         if (connection == null) {
             return Mono.error(new DeviceOperationException.NoStackTrace(ErrorCode.CONNECTION_LOST));
         }
-        return Mono
+        Mono<Void> sender = Mono
             .defer(() -> connection.publish(((MqttMessage) encodedMessage)))
-            .doOnSuccess(nil -> monitor.sentMessage())
+            .doOnSuccess(nil -> monitor.sentMessage());
+        return monitor
+            .downstream(connection, this, encodedMessage, sender)
             .thenReturn(true);
     }
 

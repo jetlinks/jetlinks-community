@@ -27,6 +27,7 @@ import org.jetlinks.community.things.data.operations.DataSettings;
 import org.jetlinks.community.things.data.operations.MetricBuilder;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.utils.SqlSecurityUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
@@ -75,11 +77,14 @@ class TDengineColumnModeQueryOperations extends ColumnModeQueryOperationsBase {
         StringJoiner joiner = new StringJoiner("", "select ", "");
         joiner.add("last(`_ts`) _ts");
 
+        // 聚合列只使用服务端别名，请求 property 按 TDengine 标识符规则转义。
+        Map<String, String> aliases = new LinkedHashMap<>();
+        int index = 0;
         for (PropertyAggregation property : context.getProperties()) {
-            joiner.add(",");
-            joiner.add(TDengineThingDataHelper.convertAggFunction(property))
-                  .add("(`").add(property.getProperty()).add("`)")
-                  .add(" `").add(property.getAlias()).add("`");
+            String alias = property.getAlias();
+            String internalAlias = SqlSecurityUtils.aggregationAlias(index++);
+            aliases.put(alias, internalAlias);
+            joiner.add(",").add(createAggregationColumn(property, internalAlias));
         }
 
         joiner
@@ -106,13 +111,22 @@ class TDengineColumnModeQueryOperations extends ColumnModeQueryOperationsBase {
             .map(map -> {
                 TimeSeriesData timeSeriesData = TDengineThingDataHelper.convertToTsData(map);
                 long ts = timeSeriesData.getTimestamp();
-                Map<String, Object> newData = timeSeriesData.getData();
+                Map<String, Object> newData = new LinkedHashMap<>();
                 for (PropertyAggregation property : context.getProperties()) {
-                    newData.putIfAbsent(property.getAlias(), property.getDefaultValue());
+                    String alias = property.getAlias();
+                    newData.put(alias, timeSeriesData
+                        .get(aliases.get(alias))
+                        .orElse(property.getDefaultValue()));
                 }
                 newData.put("time", formatter.format(LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneId.systemDefault())));
                 return AggregationData.of(newData);
             })
             .take(request.getLimit());
+    }
+
+    static String createAggregationColumn(PropertyAggregation property, String internalAlias) {
+        return TDengineThingDataHelper.convertAggFunction(property)
+            + "(" + SqlSecurityUtils.quoteBacktick(property.getProperty()) + ") "
+            + SqlSecurityUtils.quoteBacktick(internalAlias);
     }
 }

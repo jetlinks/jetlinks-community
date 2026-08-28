@@ -15,13 +15,22 @@
  */
 package org.jetlinks.community.gateway.monitor;
 
+import org.jetlinks.core.message.DeviceMessage;
+import org.jetlinks.core.message.codec.EncodedMessage;
+import org.jetlinks.core.server.ClientConnection;
+import org.jetlinks.core.server.session.DeviceSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import javax.annotation.Nullable;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 class LazyDeviceGatewayMonitor implements DeviceGatewayMonitor {
 
     private volatile DeviceGatewayMonitor target;
 
-    private Supplier<DeviceGatewayMonitor> monitorSupplier;
+    private final Supplier<DeviceGatewayMonitor> monitorSupplier;
 
     public LazyDeviceGatewayMonitor(Supplier<DeviceGatewayMonitor> monitorSupplier) {
         this.monitorSupplier = monitorSupplier;
@@ -63,5 +72,58 @@ class LazyDeviceGatewayMonitor implements DeviceGatewayMonitor {
     @Override
     public void sentMessage() {
         getTarget().sentMessage();
+    }
+
+    @Override
+    public boolean connected(ClientConnection connection) {
+        return getTarget().connected(connection);
+    }
+
+    @Override
+    public void disconnected(ClientConnection connection) {
+        getTarget().disconnected(connection);
+    }
+
+    @Override
+    public void rejected(ClientConnection connection, @Nullable Throwable error) {
+        getTarget().rejected(connection, error);
+    }
+
+    @Override
+    public boolean beforeDecode(@Nullable ClientConnection connection, EncodedMessage message) {
+        return getTarget().beforeDecode(connection, message);
+    }
+
+    @Override
+    public Flux<DeviceMessage> decode(@Nullable ClientConnection connection,
+                                      DeviceSession session,
+                                      EncodedMessage origin,
+                                      Flux<DeviceMessage> decoder) {
+        return getTarget().decode(connection, session, origin, decoder);
+    }
+
+    @Override
+    public Flux<DeviceMessage> handleUpstream(@Nullable ClientConnection connection,
+                                              DeviceSession session,
+                                              EncodedMessage origin,
+                                              Flux<DeviceMessage> decoder,
+                                              UnaryOperator<Flux<DeviceMessage>> platformHandler) {
+        return getTarget().handleUpstream(connection, session, origin, decoder, platformHandler);
+    }
+
+    @Override
+    public Flux<DeviceMessage> beforeSendToPlatform(@Nullable ClientConnection connection,
+                                                    DeviceSession session,
+                                                    EncodedMessage origin,
+                                                    Flux<DeviceMessage> handler) {
+        return getTarget().beforeSendToPlatform(connection, session, origin, handler);
+    }
+
+    @Override
+    public Mono<Void> downstream(ClientConnection connection,
+                                 DeviceSession session,
+                                 EncodedMessage origin,
+                                 Mono<Void> sender) {
+        return getTarget().downstream(connection, session, origin, sender);
     }
 }

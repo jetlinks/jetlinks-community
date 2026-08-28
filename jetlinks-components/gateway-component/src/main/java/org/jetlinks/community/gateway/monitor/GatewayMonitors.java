@@ -20,19 +20,32 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
+/**
+ * 设备网关监控注册与获取入口。
+ *
+ * <p>供应商使用写时复制集合保存，支持在网关运行期间注册。返回的监控会延迟解析供应商，
+ * 以便网关可以早于监控组件创建。</p>
+ *
+ * @see DeviceGatewayMonitor
+ * @see DeviceGatewayMonitorSupplier
+ * @since 1.0
+ */
 public class GatewayMonitors {
-
 
     private static final List<DeviceGatewayMonitorSupplier> deviceGatewayMonitorSuppliers = new CopyOnWriteArrayList<>();
 
-    static final NoneDeviceGatewayMonitor nonDevice = new NoneDeviceGatewayMonitor();
+    /**
+     * 未注册有效供应商时使用的空监控。
+     *
+     * @since 2.12
+     */
+    public static final DeviceGatewayMonitor nonDevice = new NoneDeviceGatewayMonitor();
 
-
-    static {
-
-    }
-
-
+    /**
+     * 注册设备网关监控供应商。
+     *
+     * @param supplier 监控供应商
+     */
     public static void register(DeviceGatewayMonitorSupplier supplier) {
         deviceGatewayMonitorSuppliers.add(supplier);
     }
@@ -54,6 +67,16 @@ public class GatewayMonitors {
         return monitor;
     }
 
+    /**
+     * 获取指定设备网关的延迟监控实例。
+     *
+     * <p>首次调用监控 API 时才解析已注册供应商。多个供应商返回监控时，
+     * 将按注册顺序组合执行。</p>
+     *
+     * @param id   设备网关标识
+     * @param tags 网关附加标签
+     * @return 延迟解析的设备网关监控
+     */
     public static DeviceGatewayMonitor getDeviceGatewayMonitor(String id, String... tags) {
         return new LazyDeviceGatewayMonitor(() -> doGetDeviceGatewayMonitor(id, tags));
     }

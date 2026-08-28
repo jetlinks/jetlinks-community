@@ -19,6 +19,12 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.jetlinks.community.dashboard.ObjectDefinition;
 
+/**
+ * 设备网关监控的 Dashboard 对象类型定义。
+ *
+ * @see DeviceGatewayMeasurementProvider
+ * @since 1.0
+ */
 @AllArgsConstructor
 @Getter
 public enum GatewayObjectDefinition implements ObjectDefinition {
@@ -26,7 +32,7 @@ public enum GatewayObjectDefinition implements ObjectDefinition {
     session("会话")
     ;
 
-    private String name;
+    private final String name;
 
     @Override
     public String getId() {

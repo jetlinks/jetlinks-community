@@ -31,3 +31,5 @@ application-local.yml
 dev/
 .DS_Store
 .java-version
+docker/dev-env/.env
+docker/run-all/.env

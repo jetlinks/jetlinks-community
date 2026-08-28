@@ -41,6 +41,7 @@ import org.jetlinks.community.timescaledb.TimescaleDBUtils;
 import org.jetlinks.community.timeseries.TimeSeriesData;
 import org.jetlinks.community.timeseries.query.Aggregation;
 import org.jetlinks.community.timeseries.query.AggregationData;
+import org.jetlinks.community.utils.SqlSecurityUtils;
 import org.jetlinks.reactor.ql.utils.CastUtils;
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
@@ -132,10 +133,16 @@ public class TimescaleDBColumnModeQueryOperations extends ColumnModeQueryOperati
             column.setAlias(timestampAlias);
         }
 
+        // SQL 只使用服务端生成的别名，查询后再映射回请求 alias。
+        Map<String, String> aliases = new LinkedHashMap<>();
+        int index = 0;
         for (PropertyAggregation property : context.getProperties()) {
+            String alias = property.getAlias();
+            String internalAlias = SqlSecurityUtils.aggregationAlias(index++);
+            aliases.put(alias, internalAlias);
             SelectColumn column = new SelectColumn();
             column.setColumn(property.getProperty());
-            column.setAlias(property.getAlias());
+            column.setAlias(internalAlias);
             TimescaleDBUtils.applyAggColumn(property.getAgg(), column);
 
             query.select(column);
@@ -165,12 +172,12 @@ public class TimescaleDBColumnModeQueryOperations extends ColumnModeQueryOperati
                     .doOnNext(data -> {
                         for (PropertyAggregation property : context.getProperties()) {
                             String alias = property.getAlias();
-                            data.get(alias)
+                            data.get(aliases.get(alias))
                                 .ifPresent(val -> prepare.put(alias, val));
                         }
                     });
             })
-            .thenMany(Flux.fromIterable(prepares.values()))
+            .thenMany(Flux.fromIterable(prepares.descendingMap().values()))
             .map(AggregationData::of)
             .take((long) request.getLimit() * context.getProperties().length)
             .contextWrite(ctx -> ctx.put(Logger.class, log));

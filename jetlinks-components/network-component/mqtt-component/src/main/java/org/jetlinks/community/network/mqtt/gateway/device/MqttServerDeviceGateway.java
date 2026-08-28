@@ -31,6 +31,7 @@ import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.community.gateway.AbstractDeviceGateway;
 import org.jetlinks.community.gateway.DeviceGateway;
 import org.jetlinks.community.gateway.DeviceGatewayHelper;
+import org.jetlinks.community.network.mqtt.server.MqttConnection;
 import org.jetlinks.community.network.mqtt.server.MqttServer;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import reactor.core.Disposable;
@@ -90,7 +91,7 @@ public class MqttServerDeviceGateway extends AbstractDeviceGateway {
                 if (!isStarted()) {
                     //直接响应SERVER_UNAVAILABLE
                     conn.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
-                    monitor.rejected();
+                    monitor.rejected(conn, null);
                 }
                 return true;
             })
@@ -101,8 +102,12 @@ public class MqttServerDeviceGateway extends AbstractDeviceGateway {
 
     }
 
-    protected Mono<Void> handleConnection0(org.jetlinks.community.network.mqtt.server.MqttConnection connection) {
-        return new DeviceMqttConnection(helper,monitor,connection);
+    protected Mono<Void> handleConnection0(MqttConnection connection) {
+        if (!monitor.connected(connection)) {
+            connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
+            return Mono.empty();
+        }
+        return new DeviceMqttConnection(helper, monitor, connection);
     }
 
     @Override

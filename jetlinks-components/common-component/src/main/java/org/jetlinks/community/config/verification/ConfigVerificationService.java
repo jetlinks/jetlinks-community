@@ -27,8 +27,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.net.URI;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Objects;
@@ -74,37 +76,53 @@ public class ConfigVerificationService {
             return Mono.empty();
         }
 
-        URI uri = URI.create(CastUtils.castString(CastUtils.castString(basePath).concat(PATH_VERIFICATION_URI)));
-        if (Objects.equals(uri.getHost(), "127.0.0.1")){
-            return Mono.error(new BusinessException("error.base_path_host_error", 500, "127.0.0.1"));
-        }
-        if (Objects.equals(uri.getHost(), "localhost")){
-            return Mono.error(new BusinessException("error.base_path_host_error", 500, "localhost"));
-        }
+        URI uri = URI.create(CastUtils.castString(basePath).concat(PATH_VERIFICATION_URI));
 
-        return webClient
-            .get()
-            .uri(uri)
-            .exchangeToMono(cr -> {
-                if (cr.statusCode().is2xxSuccessful()) {
-                    return cr.bodyToMono(String.class)
-                             .filter(r-> r.contains("auth:"+PATH_VERIFICATION_URI))
-                             .switchIfEmpty(Mono.error(()-> new BusinessException("error.base_path_error")));
-                }
-                return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_error")));
-            })
-            .timeout(Duration.ofSeconds(3), Mono.error(TimeoutException::new))
-            .onErrorResume(err -> {
-                while (err != null) {
-                    if (err instanceof TimeoutException) {
-                        return Mono.error(() -> new BusinessException("error.base_path_validate_request_timeout"));
-                    } else if (err instanceof UnknownHostException) {
-                        return Mono.error(() -> new BusinessException("error.base_path_DNS_resolution_failed"));
+        return validateHost(uri)
+            .then(
+                webClient
+                    .get()
+                    .uri(uri)
+                    .exchangeToMono(cr -> {
+                        if (cr.statusCode().is2xxSuccessful()) {
+                            return cr.bodyToMono(String.class)
+                                     .filter(r -> r.contains("auth:" + PATH_VERIFICATION_URI))
+                                     .switchIfEmpty(Mono.error(() -> new BusinessException("error.base_path_error")));
+                        }
+                        return Mono.defer(() -> Mono.error(new BusinessException("error.base_path_error")));
+                    })
+                    .timeout(Duration.ofSeconds(3), Mono.error(TimeoutException::new))
+                    .onErrorResume(err -> {
+                        while (err != null) {
+                            if (err instanceof TimeoutException) {
+                                return Mono.error(() -> new BusinessException("error.base_path_validate_request_timeout"));
+                            } else if (err instanceof UnknownHostException) {
+                                return Mono.error(() -> new BusinessException("error.base_path_DNS_resolution_failed"));
+                            }
+                            err = err.getCause();
+                        }
+                        return Mono.error(() -> new BusinessException("error.base_path_error"));
+                    })
+                    .then()
+            );
+    }
+
+    private Mono<Void> validateHost(URI uri) {
+        String host = uri.getHost();
+        if (host == null) {
+            return Mono.error(new BusinessException("error.base_path_host_error", 500, "unknown"));
+        }
+        return Mono
+            .fromCallable(() -> InetAddress.getAllByName(host))
+            .subscribeOn(Schedulers.boundedElastic())
+            .flatMap(addresses -> {
+                for (InetAddress address : addresses) {
+                    // base-path 本身可以指向内网服务，但不能回连当前主机的环回接口。
+                    if (address.isLoopbackAddress()) {
+                        return Mono.error(new BusinessException("error.base_path_host_error", 500, host));
                     }
-                    err = err.getCause();
                 }
-                return Mono.error(() -> new BusinessException("error.base_path_error"));
-            })
-            .then();
+                return Mono.empty();
+            });
     }
 }

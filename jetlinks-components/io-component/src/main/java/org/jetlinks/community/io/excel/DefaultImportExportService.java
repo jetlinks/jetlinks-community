@@ -20,16 +20,11 @@ import org.hswebframework.utils.StringUtils;
 import org.jetlinks.community.io.excel.easyexcel.ExcelReadDataListener;
 import org.jetlinks.community.io.file.FileManager;
 import org.jetlinks.community.io.utils.FileUtils;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 
 import static org.hswebframework.reactor.excel.ReactorExcel.read;
@@ -41,13 +36,9 @@ import static org.hswebframework.reactor.excel.ReactorExcel.read;
 @Component
 public class DefaultImportExportService implements ImportExportService {
 
-    private WebClient client;
-
     private final FileManager fileManager;
 
-    public DefaultImportExportService(WebClient.Builder builder,
-                                      FileManager fileManager) {
-        client = builder.build();
+    public DefaultImportExportService(FileManager fileManager) {
         this.fileManager = fileManager;
     }
 
@@ -80,19 +71,6 @@ public class DefaultImportExportService implements ImportExportService {
     }
 
     public Mono<InputStream> getInputStream(String fileUrl) {
-
-        return Mono.defer(() -> {
-            if (fileUrl.startsWith("http")) {
-                return client
-                    .get()
-                    .uri(fileUrl)
-                    .accept(MediaType.APPLICATION_OCTET_STREAM)
-                    .exchangeToMono(clientResponse -> clientResponse.bodyToMono(Resource.class))
-                    .flatMap(resource -> Mono.fromCallable(resource::getInputStream));
-            } else {
-                return Mono.fromCallable(() -> new FileInputStream(fileUrl));
-            }
-        });
-
+        return FileUtils.readManagedInputStream(fileManager, fileUrl);
     }
 }
