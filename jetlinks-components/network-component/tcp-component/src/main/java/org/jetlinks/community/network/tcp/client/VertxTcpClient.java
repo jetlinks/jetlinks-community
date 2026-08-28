@@ -18,6 +18,7 @@ package org.jetlinks.community.network.tcp.client;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCountUtil;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.buffer.impl.BufferImpl;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetSocket;
 import io.vertx.core.net.SocketAddress;
@@ -25,6 +26,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
+import org.hswebframework.web.exception.BusinessException;
 import org.jetlinks.community.network.tcp.TcpMessage;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.core.message.codec.EncodedMessage;
@@ -90,22 +92,21 @@ public class VertxTcpClient implements TcpClient {
     @Override
     public Mono<Void> sendMessage(EncodedMessage message) {
         return Mono
-            .<Void>create((sink) -> {
+            .create((sink) -> {
                 if (socket == null) {
-                    sink.error(new SocketException("socket closed"));
+                    sink.error(new BusinessException.NoStackTrace("error.socket.closed"));
                     return;
                 }
                 ByteBuf buf = message.getPayload();
-                Buffer buffer = Buffer.buffer(buf);
-                int len = buffer.length();
+                Buffer buffer = BufferImpl.buffer(buf);
                 socket.write(buffer, r -> {
-                    ReferenceCountUtil.safeRelease(buf);
                     if (r.succeeded()) {
                         keepAlive();
                         sink.success();
                     } else {
                         sink.error(r.cause());
                     }
+                    ReferenceCountUtil.safeRelease(buf);
                 });
             });
     }
