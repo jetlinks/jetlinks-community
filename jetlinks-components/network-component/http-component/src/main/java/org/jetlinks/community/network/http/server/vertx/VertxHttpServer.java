@@ -35,11 +35,14 @@ import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -58,7 +61,9 @@ public class VertxHttpServer implements HttpServer {
 
     private static final Map<HttpMethod, SeparatedCharSequence> HTTP_PREFIX_CACHE = new ConcurrentHashMap<>();
 
-    private Collection<io.vertx.core.http.HttpServer> httpServers;
+    private volatile Collection<io.vertx.core.http.HttpServer> httpServers;
+
+    private final AtomicBoolean started = new AtomicBoolean();
 
     private HttpServerConfig config;
 
@@ -91,7 +96,8 @@ public class VertxHttpServer implements HttpServer {
     }
 
     public void setHttpServers(Collection<io.vertx.core.http.HttpServer> httpServers) {
-        if (isAlive()) {
+        started.set(false);
+        if (this.httpServers != null && !this.httpServers.isEmpty()) {
             shutdown();
         }
         this.httpServers = httpServers;
@@ -216,6 +222,29 @@ public class VertxHttpServer implements HttpServer {
         }
     }
 
+    void startupComplete() {
+        started.set(true);
+    }
+
+    Mono<Void> shutdownAsync() {
+        return Flux
+            .fromIterable(clearServers())
+            .flatMap(httpServer -> Mono
+                .fromCompletionStage(httpServer.close().toCompletionStage())
+                .onErrorResume(error -> {
+                    log.warn("close http server error", error);
+                    return Mono.empty();
+                }))
+            .then();
+    }
+
+    private synchronized Collection<io.vertx.core.http.HttpServer> clearServers() {
+        started.set(false);
+        Collection<io.vertx.core.http.HttpServer> servers = httpServers;
+        httpServers = null;
+        return servers == null ? Collections.emptyList() : servers;
+    }
+
     private SeparatedCharSequence parsePath(String url) {
         while (url.charAt(url.length() - 1) == '/') {
             url = url.substring(0, url.length() - 1);
@@ -302,8 +331,9 @@ public class VertxHttpServer implements HttpServer {
 
     @Override
     public void shutdown() {
-        if (httpServers != null) {
-            for (io.vertx.core.http.HttpServer httpServer : httpServers) {
+        Collection<io.vertx.core.http.HttpServer> servers = clearServers();
+        if (!servers.isEmpty()) {
+            for (io.vertx.core.http.HttpServer httpServer : servers) {
                 httpServer.close(res -> {
                     if (res.failed()) {
                         log.error(res.cause().getMessage(), res.cause());
@@ -312,14 +342,16 @@ public class VertxHttpServer implements HttpServer {
                     }
                 });
             }
-            httpServers.clear();
-            httpServers = null;
         }
     }
 
     @Override
     public boolean isAlive() {
-        return httpServers != null && !httpServers.isEmpty();
+        Collection<io.vertx.core.http.HttpServer> servers = httpServers;
+        return started.get() &&
+            servers != null &&
+            !servers.isEmpty() &&
+            servers.stream().allMatch(server -> server.actualPort() > 0);
     }
 
     @Override

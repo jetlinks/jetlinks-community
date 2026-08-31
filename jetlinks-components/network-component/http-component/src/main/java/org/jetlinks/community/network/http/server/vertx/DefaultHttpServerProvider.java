@@ -35,6 +35,7 @@ import org.jetlinks.community.network.security.CertificateManager;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
@@ -123,27 +124,31 @@ public class DefaultHttpServerProvider implements NetworkProvider<HttpServerConf
         int numberOfInstance = Math.max(1, config.getInstance());
         List<HttpServer> instances = new ArrayList<>(numberOfInstance);
         return convert(config)
-            .map(options -> {
+            .flatMap(options -> {
                 //利用多线程处理请求
                 for (int i = 0; i < numberOfInstance; i++) {
                     instances.add(createHttpServer(options));
                 }
                 server.setBindAddress(new InetSocketAddress(config.getHost(), config.getPort()));
+                server.setLastError(null);
                 server.setHttpServers(instances);
-                for (HttpServer httpServer : instances) {
-                    vertx.nettyEventLoopGroup()
-                        .execute(()->{
-                            httpServer.listen(result -> {
-                                if (result.succeeded()) {
-                                    log.debug("startup http server on [{}]", server.getBindAddress());
-                                } else {
-                                    server.setLastError(result.cause().getMessage());
-                                    log.warn("startup http server on [{}] failed", server.getBindAddress(), result.cause());
-                                }
-                            });
-                        });
-                }
-                return server;
+                return Flux
+                    .fromIterable(instances)
+                    .flatMap(httpServer -> Mono
+                        .fromCompletionStage(httpServer.listen().toCompletionStage())
+                        .doOnNext(ignore -> log.debug("startup http server on [{}]", server.getBindAddress())))
+                    .doOnCancel(server::shutdown)
+                    .then(Mono.fromSupplier(() -> {
+                        server.startupComplete();
+                        return server;
+                    }))
+                    .onErrorResume(error -> {
+                        server.setLastError(error.getMessage());
+                        log.warn("startup http server on [{}] failed", server.getBindAddress(), error);
+                        return server
+                            .shutdownAsync()
+                            .then(Mono.error(error));
+                    });
             });
     }
 
