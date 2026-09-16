@@ -93,7 +93,8 @@ public class FileManagerController {
     @Operation(summary = "上传多个文件")
     public Flux<FileInfo> uploadFiles(@RequestPart("file") Flux<FilePart> partFlux,
                                       @RequestParam(required = false) String options) {
-        return partFlux.flatMap(part -> fileManager.saveFile(part, FileOption.parse(options)));
+        return partFlux.flatMap(part -> validatePermission(FileUtils.getExtension(part.filename()), Mono.just(part))
+            .flatMap(validated -> fileManager.saveFile(validated, FileOption.parse(options))));
     }
 
     @PutMapping("/update/{id}")
@@ -210,8 +211,9 @@ public class FileManagerController {
 
                                 HttpHeaders responseHeaders = exchange.getResponse().getHeaders();
 
-                                MediaType mediaType = ctx.info().mediaType();
-                                responseHeaders.setContentType(mediaType);
+                                // 存储型 XSS / CWE-79: 用户文件不得在本源作为文档执行；不要改全局 MIME 映射。
+                                // 安全响应头必须在 range 416 早退之前写完，避免可执行类型漏掉 attachment。
+                                applySecurityReadHeaders(ctx.info(), responseHeaders, attachment);
                                 //支持range
                                 responseHeaders.add(HttpHeaders.ACCEPT_RANGES, "bytes");
                                 if (!thumbnail.get()) {
@@ -242,22 +244,36 @@ public class FileManagerController {
                                 }
                                 responseHeaders.add("Content-MD5", ctx.info().getMd5());
                                 responseHeaders.add("Digest", "sha-256=" + ctx.info().getSha256());
-
-                                //设置下载或文件流时下载文件
-                                if (attachment || mediaType.includes(MediaType.APPLICATION_OCTET_STREAM)) {
-                                    responseHeaders.setContentDisposition(
-                                        ContentDisposition
-                                            .attachment()
-                                            .filename(ctx.info().getName(), StandardCharsets.UTF_8)
-                                            .build()
-                                    );
-                                }
                             })
                         );
                     })
                     .as(flux -> ThumbnailUtils.generateThumbnailFunction(thumb).apply(flux, thumbnail::get))
 
             );
+    }
+
+    /**
+     * 读接口安全响应头：nosniff、可执行类型降级 MIME、强制附件、CSP sandbox。
+     */
+    static void applySecurityReadHeaders(FileInfo info,
+                                         HttpHeaders responseHeaders,
+                                         boolean attachment) {
+        String extension = info.getExtension();
+        MediaType mediaType = FileUtils.safeResponseMediaType(extension, info.mediaType());
+        responseHeaders.setContentType(mediaType);
+        responseHeaders.set("X-Content-Type-Options", "nosniff");
+        if (FileUtils.isActiveContentExtension(extension)) {
+            responseHeaders.set("Content-Security-Policy", "sandbox");
+        }
+        //设置下载或文件流时下载文件；可执行扩展名一律附件，避免内联执行。
+        if (FileUtils.shouldForceAttachment(extension, attachment, mediaType)) {
+            responseHeaders.setContentDisposition(
+                ContentDisposition
+                    .attachment()
+                    .filename(info.getName(), StandardCharsets.UTF_8)
+                    .build()
+            );
+        }
     }
 
 }

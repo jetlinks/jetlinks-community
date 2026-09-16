@@ -37,6 +37,8 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * 文件读取与媒体类型工具。
@@ -46,6 +48,19 @@ import java.security.MessageDigest;
  * 直接访问网络或本地文件。
  */
 public class FileUtils {
+
+    /**
+     * 可脚本化文档/脚本扩展名（不含 svg）。读响应 Content-Type 必须降为 octet-stream。
+     */
+    private static final Set<String> SCRIPTABLE_DOCUMENT_EXTENSIONS = Set.of(
+        "html", "htm", "xhtml", "shtml",
+        "js", "mjs", "cjs",
+        "xml", "xsl", "xslt"
+    );
+
+    private static final Set<String> SVG_EXTENSIONS = Set.of("svg", "svgz");
+
+    private static final MediaType IMAGE_SVG_XML = MediaType.parseMediaType("image/svg+xml");
 
     public static String getExtension(String url) {
         if (UrlCodecUtils.hasEncode(url)) {
@@ -125,6 +140,82 @@ public class FileUtils {
             default:
                 return MediaType.APPLICATION_OCTET_STREAM;
         }
+    }
+
+    /**
+     * 判断扩展名是否可在浏览器中作为文档或脚本执行。
+     *
+     * <p>用于读侧强制附件下载与 CSP sandbox，避免用户文件在本源执行（存储型 XSS / CWE-79）。
+     * 空白或空扩展名视为不可执行。</p>
+     *
+     * @param extension 文件扩展名，可不带点
+     * @return 是否为可执行内容
+     */
+    public static boolean isActiveContentExtension(String extension) {
+        String normalized = normalizeExtension(extension);
+        return SCRIPTABLE_DOCUMENT_EXTENSIONS.contains(normalized) || SVG_EXTENSIONS.contains(normalized);
+    }
+
+    /**
+     * 判断扩展名是否为可脚本化文档（不含 svg/svgz）。
+     *
+     * <p>这类文件必须以降级 MIME {@code application/octet-stream} 返回，避免浏览器当页面执行。
+     * svg 仍保留 {@code image/svg+xml}，以便 {@code <img src>} 显示。</p>
+     *
+     * @param extension 文件扩展名，可不带点
+     * @return 是否为可脚本化文档
+     */
+    public static boolean isScriptableDocumentExtension(String extension) {
+        return SCRIPTABLE_DOCUMENT_EXTENSIONS.contains(normalizeExtension(extension));
+    }
+
+    /**
+     * 将原始探测类型转换为读接口安全响应类型。
+     *
+     * <p>不要改 {@link #getMediaTypeByExtension(String)} 的全局映射：文档生成等内部调用仍需要
+     * html → {@code text/html}。仅文件读响应走本方法。</p>
+     *
+     * @param extension 文件扩展名
+     * @param original  原始 MediaType
+     * @return 安全响应 MediaType
+     */
+    public static MediaType safeResponseMediaType(String extension, MediaType original) {
+        if (isScriptableDocumentExtension(extension)) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+        if (SVG_EXTENSIONS.contains(normalizeExtension(extension))) {
+            // 一律 image/svg+xml：即使原始探测类型异常，也禁止把 svg 当文档执行；<img> 仍可显示。
+            return IMAGE_SVG_XML;
+        }
+        return original == null ? MediaType.APPLICATION_OCTET_STREAM : original;
+    }
+
+    /**
+     * 是否强制以附件方式下载。
+     *
+     * <p>可执行扩展名一律 attachment，阻断顶级导航执行；既有 {@code attachment=true}
+     * 与 {@code application/octet-stream} 下载行为保持不变。</p>
+     *
+     * @param extension         文件扩展名
+     * @param attachmentRequest 请求是否显式要求下载
+     * @param mediaType         即将写出的响应类型
+     * @return 是否设置 Content-Disposition: attachment
+     */
+    public static boolean shouldForceAttachment(String extension,
+                                                boolean attachmentRequest,
+                                                MediaType mediaType) {
+        if (attachmentRequest || isActiveContentExtension(extension)) {
+            return true;
+        }
+        return mediaType != null && mediaType.includes(MediaType.APPLICATION_OCTET_STREAM);
+    }
+
+    private static String normalizeExtension(String extension) {
+        if (!StringUtils.hasText(extension)) {
+            return "";
+        }
+        String normalized = extension.trim().toLowerCase(Locale.ROOT);
+        return normalized.startsWith(".") ? normalized.substring(1) : normalized;
     }
 
     public static Mono<InputStream> dataBufferToInputStream(Flux<DataBuffer> dataBufferFlux) {
