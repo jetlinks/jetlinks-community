@@ -27,7 +27,7 @@ import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.PersistentSession;
 import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.community.network.mqtt.client.JetlinksMqttClient;
 import org.jetlinks.core.utils.Reactors;
 import reactor.core.publisher.Mono;
 
@@ -36,8 +36,8 @@ import java.time.Duration;
 /**
  * MQTT Client设备会话
  *
- * @author zhouhao
- * @since 1.0
+ * @author PengyuDeng
+ * @since 2.11
  */
 public class MqttClientSession implements PersistentSession {
     @Getter
@@ -46,11 +46,11 @@ public class MqttClientSession implements PersistentSession {
     @Getter
     private final DeviceOperator operator;
 
-    private MqttClient clientTemp;
+    private JetlinksMqttClient clientTemp;
 
     @Getter
     @Setter
-    private Mono<MqttClient> client;
+    private Mono<JetlinksMqttClient> client;
 
     @Setter(AccessLevel.PROTECTED)
     private long connectTime = System.currentTimeMillis();
@@ -68,7 +68,7 @@ public class MqttClientSession implements PersistentSession {
 
     public MqttClientSession(String id,
                              DeviceOperator operator,
-                             MqttClient client,
+                             JetlinksMqttClient client,
                              DeviceGatewayMonitor monitor) {
         this(id, operator, Mono.just(client), monitor);
         this.clientTemp = client;
@@ -76,7 +76,7 @@ public class MqttClientSession implements PersistentSession {
 
     public MqttClientSession(String id,
                              DeviceOperator operator,
-                             Mono<MqttClient> client,
+                             Mono<JetlinksMqttClient> client,
                              DeviceGatewayMonitor monitor) {
         this.id = id;
         this.operator = operator;

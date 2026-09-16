@@ -15,12 +15,30 @@
  */
 package org.jetlinks.community.network.mqtt.server;
 
-import io.vertx.mqtt.messages.MqttUnsubscribeMessage;
+import lombok.*;
+import org.jetlinks.community.network.AbstractServerNetworkConfig;
+import org.jetlinks.community.network.resource.NetworkTransport;
 
-public interface MqttUnSubscription {
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class MqttServerProperties extends AbstractServerNetworkConfig {
 
-    MqttUnsubscribeMessage getMessage();
+    //服务实例数量(线程数)
+    private int instance = Runtime.getRuntime().availableProcessors();
 
-    void acknowledge();
+    //最大消息长度
+    private int maxMessageSize = 8096;
 
+    @Override
+    public NetworkTransport getTransport() {
+        return NetworkTransport.TCP;
+    }
+
+    @Override
+    public String getSchema() {
+        return isSecure() ? "mqtts" : "mqtt";
+    }
 }

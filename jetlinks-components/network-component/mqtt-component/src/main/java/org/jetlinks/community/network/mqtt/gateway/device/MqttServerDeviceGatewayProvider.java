@@ -15,7 +15,7 @@
  */
 package org.jetlinks.community.network.mqtt.gateway.device;
 
-import org.jetlinks.community.network.mqtt.server.MqttServer;
+import org.jetlinks.community.network.mqtt.server.DefaultJetlinksMqttServer;
 import org.jetlinks.core.ProtocolSupports;
 import org.jetlinks.core.device.DeviceRegistry;
 import org.jetlinks.core.device.session.DeviceSessionManager;
@@ -86,7 +86,7 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
     public Mono<DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties) {
 
         return networkManager
-            .<MqttServer>getNetwork(getNetworkType(), properties.getChannelId())
+            .<DefaultJetlinksMqttServer>getNetwork(getNetworkType(), properties.getChannelId())
             .map(mqttServer -> new MqttServerDeviceGateway(
                 properties.getId(),
                 registry,
@@ -104,7 +104,7 @@ public class MqttServerDeviceGatewayProvider implements DeviceGatewayProvider {
 
         String networkId = properties.getChannelId();
         //网络组件发生了变化
-        if (!Objects.equals(networkId, deviceGateway.getMqttServer().getId())) {
+        if (!Objects.equals(networkId, deviceGateway.getJetlinksMqttServer().getId())) {
             return gateway
                 .shutdown()
                 .then(this

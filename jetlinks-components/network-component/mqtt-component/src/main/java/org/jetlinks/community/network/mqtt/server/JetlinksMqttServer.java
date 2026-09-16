@@ -21,11 +21,10 @@ import reactor.core.publisher.Flux;
 /**
  * MQTT服务端
  *
- * @author zhouhao
- * @version 1.0
- * @since 1.0
+ * @author PengyuDeng
+ * @since 2.11
  */
-public interface MqttServer extends ServerNetwork {
+public interface JetlinksMqttServer extends ServerNetwork {
 
     /**
      * 订阅客户端连接

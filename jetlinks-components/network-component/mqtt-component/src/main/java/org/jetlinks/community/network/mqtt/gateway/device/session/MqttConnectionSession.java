@@ -36,8 +36,8 @@ import java.util.Optional;
 /**
  * MQTT连接连接会话
  *
- * @author zhouhao
- * @since 1.0
+ * @author PengyuDeng
+ * @since 2.11
  */
 public class MqttConnectionSession implements DeviceSession, ReplaceableDeviceSession {
 
