@@ -58,8 +58,8 @@ public class SyncDeviceGatewayState implements CommandLineRunner {
                     .and(DeviceGatewayEntity::getState, NetworkConfigState.enabled)
                     .fetch()
                     .map(DeviceGatewayEntity::getId)
-                    .flatMap(deviceGatewayManager::getGateway)
-                    .flatMap(DeviceGateway::startup)
+                    .flatMap(deviceGatewayManager::getGateway,8)
+                    .flatMap(DeviceGateway::startup,8)
                     .onErrorContinue((err, obj) -> {
                         log.error(err.getMessage(), err);
                     })
