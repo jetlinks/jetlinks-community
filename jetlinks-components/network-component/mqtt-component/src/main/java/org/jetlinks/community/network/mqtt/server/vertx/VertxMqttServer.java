@@ -31,18 +31,24 @@ import reactor.core.publisher.Sinks;
 import reactor.util.concurrent.Queues;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * 由网络提供器管理的 MQTT 服务端，将连接分发给全局订阅者和各 holder 的一个接收者。
+ * 订阅变更时原子发布不可变快照，分发在同一次快照中选择接收者，不复制订阅集合。
+ * 连接认证和设备会话注册由接收连接的网关负责。
+ */
 @Slf4j
 public class VertxMqttServer implements MqttServer {
 
     private final Sinks.Many<MqttConnection> sink = Reactors.createMany(5 * 1024, false);
 
-    private final Map<String, List<Sinks.Many<MqttConnection>>> sinks =
+    private final ConcurrentMap<String, List<Sinks.Many<MqttConnection>>> sinks =
         new NonBlockingHashMap<>();
 
     private Collection<io.vertx.mqtt.MqttServer> mqttServer;
@@ -90,11 +96,12 @@ public class VertxMqttServer implements MqttServer {
     private void handleConnection(VertxMqttConnection connection) {
         boolean anyHandled = emitNext(sink, connection);
 
-        for (List<Sinks.Many<MqttConnection>> value : sinks.values()) {
-            if (value.isEmpty()) {
+        // 快照只在订阅变更时复制；持有旧快照的分发不受并发取消影响。
+        for (List<Sinks.Many<MqttConnection>> snapshot : sinks.values()) {
+            if (snapshot.isEmpty()) {
                 continue;
             }
-            Sinks.Many<MqttConnection> sink = value.get(ThreadLocalRandom.current().nextInt(value.size()));
+            Sinks.Many<MqttConnection> sink = snapshot.get(ThreadLocalRandom.current().nextInt(snapshot.size()));
             if (emitNext(sink, connection)) {
                 anyHandled = true;
             }
@@ -111,21 +118,35 @@ public class VertxMqttServer implements MqttServer {
 
     @Override
     public Flux<MqttConnection> handleConnection(String holder) {
-        List<Sinks.Many<MqttConnection>> sinks = this
-            .sinks
-            .computeIfAbsent(holder, ignore -> new CopyOnWriteArrayList<>());
-
         Sinks.Many<MqttConnection> sink =
             Sinks.unsafe()
                  .many()
                  .unicast()
                  .onBackpressureBuffer(Queues.<MqttConnection>unboundedMultiproducer().get());
 
-        sinks.add(sink);
+        addConnectionSink(holder, sink);
 
         return sink
             .asFlux()
-            .doOnCancel(() -> sinks.remove(sink));
+            .doOnCancel(() -> removeConnectionSink(holder, sink));
+    }
+
+    private void addConnectionSink(String holder, Sinks.Many<MqttConnection> sink) {
+        // ConcurrentMap 原子替换不可变列表，避免并发注册、取消覆盖其他订阅。
+        sinks.compute(holder, (key, current) -> {
+            List<Sinks.Many<MqttConnection>> snapshot =
+                current == null ? new ArrayList<>(1) : new ArrayList<>(current);
+            snapshot.add(sink);
+            return Collections.unmodifiableList(snapshot);
+        });
+    }
+
+    private void removeConnectionSink(String holder, Sinks.Many<MqttConnection> sink) {
+        sinks.computeIfPresent(holder, (key, current) -> {
+            List<Sinks.Many<MqttConnection>> snapshot = new ArrayList<>(current);
+            snapshot.remove(sink);
+            return snapshot.isEmpty() ? null : Collections.unmodifiableList(snapshot);
+        });
     }
 
     @Override
