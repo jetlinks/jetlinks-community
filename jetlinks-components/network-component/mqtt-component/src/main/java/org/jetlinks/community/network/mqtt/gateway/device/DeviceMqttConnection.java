@@ -54,12 +54,18 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuples;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static org.jetlinks.community.network.mqtt.gateway.device.MqttServerDeviceGateway.clientId;
 
+/**
+ * Device MQTT authentication and connection subscription lifecycle.
+ * Vert.x may invoke close callbacks while holding the socket lock, so authentication
+ * and socket operations must not run under this connection's monitor.
+ */
 @Slf4j
 public class DeviceMqttConnection extends Mono<Void>
     implements Subscription, Consumer<org.jetlinks.community.network.mqtt.server.MqttConnection>, DeviceGatewayContext,
@@ -69,6 +75,10 @@ public class DeviceMqttConnection extends Mono<Void>
     private final DeviceGatewayMonitor monitor;
     private final MqttConnection connection;
     private final Disposable.Composite disposable = Disposables.composite();
+    private static final int NEW = 0, SUBSCRIBING = 1, ACTIVE = 2, CLOSED = 3;
+    private static final AtomicIntegerFieldUpdater<DeviceMqttConnection> STATE =
+        AtomicIntegerFieldUpdater.newUpdater(DeviceMqttConnection.class, "state");
+    private volatile int state = NEW;
     private DeviceSession session;
     private CoreSubscriber<? super Void> actual;
 
@@ -141,10 +151,13 @@ public class DeviceMqttConnection extends Mono<Void>
     }
 
     void handleAuth(DeviceOperator device, AuthenticationResponse response) {
+        if (state != ACTIVE) {
+            return;
+        }
         if (response.isSuccess()) {
             //connection.accept();
             String deviceId = device.getDeviceId();
-            helper
+            subscribeUntilClosed(helper
                 .getSessionManager()
                 .compute(
                     deviceId,
@@ -164,22 +177,25 @@ public class DeviceMqttConnection extends Mono<Void>
                         return Mono.just(session);
                     })
                 //会话empty说明注册会话失败?
-                .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED)))
-                .subscribe(
-                    session -> {
-                        try {
-                            connection.accept();
-                            this.session = session;
-                            handleMessage();
-                        } catch (Throwable ignore) {
-                            cancel();
-                        }
-                    }, error -> {
-                        log.warn("register mqtt session failed {}", connection, error);
-                        reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
-                    },
-                    null,
-                    actual.currentContext());
+                .switchIfEmpty(Mono.fromRunnable(() -> connection.reject(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED))),
+                session -> {
+                    if (state != ACTIVE) {
+                        return;
+                    }
+                    try {
+                        connection.accept();
+                        this.session = session;
+                        handleMessage();
+                    } catch (Throwable ignore) {
+                        cancel();
+                    }
+                }, error -> {
+                    if (state == CLOSED) {
+                        return;
+                    }
+                    log.warn("register mqtt session failed {}", connection, error);
+                    reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
+                });
         } else {
             reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD);
         }
@@ -327,13 +343,17 @@ public class DeviceMqttConnection extends Mono<Void>
     }
 
     void doAuth(MqttAuth auth) {
+        if (state != ACTIVE) {
+            return;
+        }
         MqttAuthenticationRequest request = new MqttAuthenticationRequest(
             connection.getClientId(),
             auth.getUsername(),
             auth.getPassword(),
             DefaultTransport.MQTT);
 
-        helper
+        // Auth and session registration may finish on another thread after the socket closes.
+        subscribeUntilClosed(helper
             .getRegistry()
             .resolveDevice(this)
             .flatMap(principal -> {
@@ -380,24 +400,40 @@ public class DeviceMqttConnection extends Mono<Void>
                                     span.setAttribute(DeviceTracer.SpanKey.address, address.toString());
                                 }
                                 span.setAttribute(clientId, connection.getClientId());
-                            }))
-            .subscribe(tp2 -> handleAuth(tp2.getT2(), tp2.getT1()),
-                       err -> {
-                           if (err instanceof AuthenticationException) {
-                               reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD);
-                           } else {
-                               monitor.rejected(connection, err);
-                               log.warn("MQTT连接认证[{}]失败", connection.getClientId(), err);
-                               //应答SERVER_UNAVAILABLE
-                               reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
-                           }
-                       },
-                       null,
-                       actual.currentContext());
+                            })),
+            tp2 -> handleAuth(tp2.getT2(), tp2.getT1()),
+            err -> {
+                if (state == CLOSED) {
+                    return;
+                }
+                if (err instanceof AuthenticationException) {
+                    reject(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD);
+                } else {
+                    monitor.rejected(connection, err);
+                    log.warn("MQTT连接认证[{}]失败", connection.getClientId(), err);
+                    //应答SERVER_UNAVAILABLE
+                    reject(MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE);
+                }
+            });
+    }
+
+    private <T> void subscribeUntilClosed(Mono<T> source,
+                                          Consumer<T> onNext,
+                                          Consumer<Throwable> onError) {
+        Disposable.Swap inFlight = Disposables.swap();
+        if (!disposable.add(inFlight)) {
+            return;
+        }
+        inFlight.update(source
+            .doFinally(ignore -> {
+                disposable.remove(inFlight);
+                inFlight.dispose();
+            })
+            .subscribe(onNext, onError, null, actual.currentContext()));
     }
 
     private void reject(MqttConnectReturnCode code) {
-        if (disposable.isDisposed()) {
+        if (state == CLOSED) {
             return;
         }
         connection.reject(code);
@@ -406,16 +442,22 @@ public class DeviceMqttConnection extends Mono<Void>
 
     @Override
     public void subscribe(@Nonnull CoreSubscriber<? super Void> actual) {
-        synchronized (this) {
-            if (disposable.isDisposed()) {
+        if (!STATE.compareAndSet(this, NEW, SUBSCRIBING)) {
+            if (state == CLOSED) {
                 Operators.complete(actual);
-                return;
-            }
-            if (this.actual != null) {
+            } else {
                 Operators.error(actual, new IllegalStateException("already subscribed"));
             }
-            this.actual = actual;
-            actual.onSubscribe(this);
+            return;
+        }
+        this.actual = actual;
+        actual.onSubscribe(this);
+        // Cancellation during onSubscribe must terminate only after onSubscribe returns.
+        if (!STATE.compareAndSet(this, SUBSCRIBING, ACTIVE)) {
+            actual.onComplete();
+            return;
+        }
+        if (state == ACTIVE) {
             this.doAuth();
         }
     }
@@ -427,22 +469,20 @@ public class DeviceMqttConnection extends Mono<Void>
 
     @Override
     public void cancel() {
-        synchronized (this) {
-            if (disposable.isDisposed()) {
-                return;
-            }
-            log.debug("close device mqtt connection [{}]", connection.getClientId());
-            disposable.dispose();
-            try {
-                connection.close().subscribe();
-            } catch (Throwable ignore) {
-            }
-            if (actual != null) {
-                actual.onComplete();
-            }
-            monitor.disconnected(connection);
+        int previous = STATE.getAndSet(this, CLOSED);
+        if (previous == CLOSED) {
+            return;
         }
-
+        log.debug("close device mqtt connection [{}]", connection.getClientId());
+        disposable.dispose();
+        try {
+            connection.close().subscribe();
+        } catch (Throwable ignore) {
+        }
+        if (previous == ACTIVE) {
+            actual.onComplete();
+        }
+        monitor.disconnected(connection);
     }
 
     @Override
