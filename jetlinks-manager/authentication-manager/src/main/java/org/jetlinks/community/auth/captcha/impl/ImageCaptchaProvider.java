@@ -71,6 +71,14 @@ public class ImageCaptchaProvider implements CaptchaProvider {
         );
     }
 
+    static int clampWidth(int width) {
+        return Math.max(Math.min(width, 260), 75);
+    }
+
+    static int clampHeight(int height) {
+        return Math.max(Math.min(height, 80), 20);
+    }
+
     protected boolean isLegalKey(String key) {
         return RandomIdGenerator.timestampRangeOf(key, ttl);
     }
@@ -112,7 +120,8 @@ public class ImageCaptchaProvider implements CaptchaProvider {
         if (!enabled) {
             return Mono.empty();
         }
-        SpecCaptcha captcha = new SpecCaptcha(width, height, length);
+        // 限制宽高，避免未认证请求按任意尺寸分配图片内存
+        SpecCaptcha captcha = new SpecCaptcha(clampWidth(width), clampHeight(height), length);
         captcha.setCharType(charType);
 
         String base64 = captcha.toBase64();
