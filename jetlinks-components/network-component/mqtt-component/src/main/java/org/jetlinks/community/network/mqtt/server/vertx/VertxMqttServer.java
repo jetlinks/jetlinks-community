@@ -27,15 +27,18 @@ import org.jetlinks.core.utils.Reactors;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkType;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.util.concurrent.Queues;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 public class VertxMqttServer implements MqttServer {
@@ -45,7 +48,9 @@ public class VertxMqttServer implements MqttServer {
     private final Map<String, List<Sinks.Many<MqttConnection>>> sinks =
         new NonBlockingHashMap<>();
 
-    private Collection<io.vertx.mqtt.MqttServer> mqttServer;
+    private volatile Collection<io.vertx.mqtt.MqttServer> mqttServer;
+
+    private final AtomicBoolean started = new AtomicBoolean();
 
     private final String id;
 
@@ -61,6 +66,7 @@ public class VertxMqttServer implements MqttServer {
     }
 
     public void setMqttServer(Collection<io.vertx.mqtt.MqttServer> mqttServer) {
+        started.set(false);
         if (this.mqttServer != null && !this.mqttServer.isEmpty()) {
             shutdown();
         }
@@ -74,6 +80,29 @@ public class VertxMqttServer implements MqttServer {
                     handleConnection(new VertxMqttConnection(endpoint));
                 });
         }
+    }
+
+    void startupComplete() {
+        started.set(true);
+    }
+
+    Mono<Void> shutdownAsync() {
+        return Flux
+            .fromIterable(clearServers())
+            .flatMap(server -> Mono
+                .fromCompletionStage(server.close().toCompletionStage())
+                .onErrorResume(error -> {
+                    log.warn("close mqtt server error", error);
+                    return Mono.empty();
+                }))
+            .then();
+    }
+
+    private synchronized Collection<io.vertx.mqtt.MqttServer> clearServers() {
+        started.set(false);
+        Collection<io.vertx.mqtt.MqttServer> servers = mqttServer;
+        mqttServer = null;
+        return servers == null ? Collections.emptyList() : servers;
     }
 
     private boolean emitNext(Sinks.Many<MqttConnection> sink, VertxMqttConnection connection){
@@ -130,7 +159,11 @@ public class VertxMqttServer implements MqttServer {
 
     @Override
     public boolean isAlive() {
-        return mqttServer != null && !mqttServer.isEmpty();
+        Collection<io.vertx.mqtt.MqttServer> servers = mqttServer;
+        return started.get() &&
+            servers != null &&
+            !servers.isEmpty() &&
+            servers.stream().allMatch(server -> server.actualPort() > 0);
     }
 
     @Override
@@ -150,8 +183,9 @@ public class VertxMqttServer implements MqttServer {
 
     @Override
     public void shutdown() {
-        if (mqttServer != null) {
-            for (io.vertx.mqtt.MqttServer server : mqttServer) {
+        Collection<io.vertx.mqtt.MqttServer> servers = clearServers();
+        if (!servers.isEmpty()) {
+            for (io.vertx.mqtt.MqttServer server : servers) {
                 server.close(res -> {
                     if (res.failed()) {
                         log.error(res.cause().getMessage(), res.cause());
@@ -160,7 +194,6 @@ public class VertxMqttServer implements MqttServer {
                     }
                 });
             }
-            mqttServer.clear();
         }
 
     }

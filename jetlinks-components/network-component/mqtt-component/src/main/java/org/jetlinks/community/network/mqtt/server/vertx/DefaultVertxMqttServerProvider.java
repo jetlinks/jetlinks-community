@@ -33,6 +33,7 @@ import org.jetlinks.community.network.security.CertificateManager;
 import org.jetlinks.community.network.security.VertxKeyCertTrustOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
@@ -75,30 +76,36 @@ public class DefaultVertxMqttServerProvider implements NetworkProvider<VertxMqtt
     private Mono<Network> initServer(VertxMqttServer server, VertxMqttServerProperties properties) {
         int numberOfInstance = Math.max(1, properties.getInstance());
         return convert(properties)
-            .map(options -> {
+            .flatMap(options -> {
                 List<MqttServer> instances = new ArrayList<>(numberOfInstance);
                 for (int i = 0; i < numberOfInstance; i++) {
                     MqttServer mqttServer = MqttServer.create(vertx, options);
                     instances.add(mqttServer);
                 }
                 server.setBind(new InetSocketAddress(options.getHost(), options.getPort()));
+                server.setLastError(null);
                 server.setMqttServer(instances);
-                for (MqttServer instance : instances) {
-                   vertx.nettyEventLoopGroup()
-                       .execute(()->{
-                           instance.listen(result -> {
-                               if (result.succeeded()) {
-                                   log.debug("startup mqtt server [{}] on port :{} ", properties.getId(), result
-                                       .result()
-                                       .actualPort());
-                               } else {
-                                   server.setLastError(result.cause().getMessage());
-                                   log.warn("startup mqtt server [{}] error ", properties.getId(), result.cause());
-                               }
-                           });
-                       });
-                }
-                return server;
+                return Flux
+                    .fromIterable(instances)
+                    .flatMap(instance -> Mono
+                        .fromCompletionStage(instance.listen().toCompletionStage())
+                        .doOnNext(result -> log.debug(
+                            "startup mqtt server [{}] on port :{} ",
+                            properties.getId(),
+                            result.actualPort()
+                        )))
+                    .doOnCancel(server::shutdown)
+                    .then(Mono.fromSupplier(() -> {
+                        server.startupComplete();
+                        return server;
+                    }))
+                    .onErrorResume(error -> {
+                        server.setLastError(error.getMessage());
+                        log.warn("startup mqtt server [{}] error ", properties.getId(), error);
+                        return server
+                            .shutdownAsync()
+                            .then(Mono.error(error));
+                    });
             });
 
     }

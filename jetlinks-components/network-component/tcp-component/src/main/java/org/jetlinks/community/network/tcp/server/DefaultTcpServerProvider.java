@@ -36,6 +36,7 @@ import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import org.jetlinks.community.network.tcp.parser.PayloadParserBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
@@ -88,7 +89,7 @@ public class DefaultTcpServerProvider implements NetworkProvider<TcpServerProper
 
     private Mono<Network> initTcpServer(VertxTcpServer tcpServer, TcpServerProperties properties) {
         return convert(properties)
-            .map(options -> {
+            .flatMap(options -> {
                 int instance = Math.max(2, properties.getInstance());
                 List<NetServer> instances = new ArrayList<>(instance);
                 for (int i = 0; i < instance; i++) {
@@ -97,26 +98,32 @@ public class DefaultTcpServerProvider implements NetworkProvider<TcpServerProper
                 Supplier<PayloadParser> parserSupplier= payloadParserBuilder.build(properties.getParserType(), properties);
                 parserSupplier.get();
 
+                tcpServer.setLastError(null);
                 tcpServer.setParserSupplier(parserSupplier);
                 tcpServer.setServer(instances);
                 tcpServer.setKeepAliveTimeout(properties.getLong("keepAliveTimeout", Duration
                     .ofMinutes(10)
                     .toMillis()));
                 tcpServer.setBind(new InetSocketAddress(properties.getHost(), properties.getPort()));
-                for (NetServer netServer : instances) {
-                    vertx.nettyEventLoopGroup()
-                        .execute(()->{
-                            netServer.listen(properties.createSocketAddress(), result -> {
-                                if (result.succeeded()) {
-                                    log.info("tcp server startup on {}", result.result().actualPort());
-                                } else {
-                                    tcpServer.setLastError(result.cause().getMessage());
-                                    log.error("startup tcp server error", result.cause());
-                                }
-                            });
-                        });
-                }
-                return tcpServer;
+                return Flux
+                    .fromIterable(instances)
+                    .flatMap(netServer -> Mono
+                        .fromCompletionStage(netServer
+                            .listen(properties.createSocketAddress())
+                            .toCompletionStage())
+                        .doOnNext(server -> log.info("tcp server startup on {}", server.actualPort())))
+                    .doOnCancel(tcpServer::shutdown)
+                    .then(Mono.fromSupplier(() -> {
+                        tcpServer.startupComplete();
+                        return tcpServer;
+                    }))
+                    .onErrorResume(error -> {
+                        tcpServer.setLastError(error.getMessage());
+                        log.error("startup tcp server error", error);
+                        return tcpServer
+                            .shutdownAsync()
+                            .then(Mono.error(error));
+                    });
             });
     }
 

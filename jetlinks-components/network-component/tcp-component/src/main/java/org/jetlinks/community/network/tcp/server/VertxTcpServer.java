@@ -28,11 +28,14 @@ import org.jetlinks.community.network.tcp.client.TcpClient;
 import org.jetlinks.community.network.tcp.client.VertxTcpClient;
 import org.jetlinks.community.network.tcp.parser.PayloadParser;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -42,7 +45,9 @@ import java.util.function.Supplier;
 @Slf4j
 public class VertxTcpServer implements TcpServer {
 
-    Collection<NetServer> tcpServers;
+    private volatile Collection<NetServer> tcpServers;
+
+    private final AtomicBoolean started = new AtomicBoolean();
 
     private Supplier<PayloadParser> parserSupplier;
 
@@ -89,6 +94,7 @@ public class VertxTcpServer implements TcpServer {
     }
 
     public void setServer(Collection<NetServer> servers) {
+        started.set(false);
         if (this.tcpServers != null && !this.tcpServers.isEmpty()) {
             shutdown();
         }
@@ -98,6 +104,29 @@ public class VertxTcpServer implements TcpServer {
             tcpServer.connectHandler(this::acceptTcpConnection);
         }
 
+    }
+
+    void startupComplete() {
+        started.set(true);
+    }
+
+    Mono<Void> shutdownAsync() {
+        return Flux
+            .fromIterable(clearServers())
+            .flatMap(tcpServer -> Mono
+                .fromCompletionStage(tcpServer.close().toCompletionStage())
+                .onErrorResume(error -> {
+                    log.warn("close tcp server error", error);
+                    return Mono.empty();
+                }))
+            .then();
+    }
+
+    private synchronized Collection<NetServer> clearServers() {
+        started.set(false);
+        Collection<NetServer> servers = tcpServers;
+        tcpServers = null;
+        return servers == null ? Collections.emptyList() : servers;
     }
 
     protected void acceptTcpConnection(NetSocket socket) {
@@ -129,18 +158,22 @@ public class VertxTcpServer implements TcpServer {
 
     @Override
     public void shutdown() {
-        if (null != tcpServers) {
+        Collection<NetServer> servers = clearServers();
+        if (!servers.isEmpty()) {
             log.debug("close tcp server :[{}]", id);
-            for (NetServer tcpServer : tcpServers) {
+            for (NetServer tcpServer : servers) {
                 execute(tcpServer::close);
             }
-            tcpServers = null;
         }
     }
 
     @Override
     public boolean isAlive() {
-        return tcpServers != null;
+        Collection<NetServer> servers = tcpServers;
+        return started.get() &&
+            servers != null &&
+            !servers.isEmpty() &&
+            servers.stream().allMatch(server -> server.actualPort() > 0);
     }
 
     @Override
