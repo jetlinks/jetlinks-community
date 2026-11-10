@@ -26,7 +26,7 @@ import org.jetlinks.community.gateway.supports.DeviceGatewayProvider;
 import org.jetlinks.community.network.DefaultNetworkType;
 import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.NetworkType;
-import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.community.network.mqtt.client.JetlinksMqttClient;
 import org.jetlinks.supports.server.DecodedClientMessageHandler;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -79,7 +79,7 @@ public class MqttClientDeviceGatewayProvider implements DeviceGatewayProvider {
     public Mono<DeviceGateway> createDeviceGateway(DeviceGatewayProperties properties) {
 
         return networkManager
-            .<MqttClient>getNetwork(getNetworkType(), properties.getChannelId())
+            .<JetlinksMqttClient>getNetwork(getNetworkType(), properties.getChannelId())
             .map(mqttClient -> {
                 String protocol = properties.getProtocol();
 

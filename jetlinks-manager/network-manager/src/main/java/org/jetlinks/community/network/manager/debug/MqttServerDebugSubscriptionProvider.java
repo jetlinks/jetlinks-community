@@ -26,6 +26,8 @@ import org.jetlinks.community.network.NetworkManager;
 import org.jetlinks.community.network.manager.web.response.MqttMessageResponse;
 import org.jetlinks.community.network.mqtt.server.*;
 import org.jetlinks.core.utils.TopicUtils;
+import org.jetlinks.reactor.mqtt.server.MqttSubscription;
+import org.jetlinks.reactor.mqtt.server.MqttUnsubscription;
 import org.jetlinks.rule.engine.executor.PayloadType;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -70,28 +72,31 @@ public class MqttServerDebugSubscriptionProvider implements SubscriptionProvider
         PayloadType type = PayloadType.valueOf(vars.get("type").toUpperCase());
 
         return Flux.create(sink ->
-            sink.onDispose(networkManager
-                .<MqttServer>getNetwork(DefaultNetworkType.MQTT_SERVER, clientId)
-                .flatMap(mqtt ->
-                    mqtt
-                        .handleConnection()
-                        .doOnNext(conn -> {
-                            sink.next(MqttClientMessage.of(conn.accept()));
-                            conn.onClose(disconnect -> sink.next(MqttClientMessage.ofDisconnect(disconnect)));
-                        })
-                        .flatMap(conn -> Flux.merge(
-                            conn.handleSubscribe(true).map(sub -> MqttClientMessage.of(conn, sub)),
-                            conn.handleUnSubscribe(true).map(sub -> MqttClientMessage.of(conn, sub)),
-                            conn.handleMessage().map(sub -> MqttClientMessage.of(conn, sub, type)))
-                        )
-                        .doOnNext(sink::next)
-                        .then()
-                )
-                .doOnError(sink::error)
-                .doOnSubscribe(sub -> log.debug("start mqtt server[{}] debug", clientId))
-                .doOnCancel(() -> log.debug("stop mqtt server[{}] debug", clientId))
-                .subscribe()
-            ));
+                               sink.onDispose(networkManager
+                                                  .<DefaultJetlinksMqttServer>getNetwork(DefaultNetworkType.MQTT_SERVER, clientId)
+                                                  .flatMap(mqtt ->
+                                                               mqtt
+                                                                   .handleConnection()
+                                                                   .doOnNext(conn -> {
+                                                                       sink.next(MqttClientMessage.of(conn.accept()));
+                                                                       conn.onClose(disconnect -> sink.next(MqttClientMessage.ofDisconnect(disconnect)));
+                                                                   })
+                                                                   .flatMap(conn -> Flux.merge(
+                                                                       conn.handleSubscribe()
+                                                                           .map(sub -> MqttClientMessage.of(conn, sub)),
+                                                                       conn.handleUnSubscribe()
+                                                                           .map(unsub -> MqttClientMessage.of(conn, unsub)),
+                                                                       conn.handleMessage()
+                                                                           .map(sub -> MqttClientMessage.of(conn, sub, type)))
+                                                                   )
+                                                                   .doOnNext(sink::next)
+                                                                   .then()
+                                                  )
+                                                  .doOnError(sink::error)
+                                                  .doOnSubscribe(sub -> log.debug("start mqtt server[{}] debug", clientId))
+                                                  .doOnCancel(() -> log.debug("stop mqtt server[{}] debug", clientId))
+                                                  .subscribe()
+                               ));
     }
 
 
@@ -133,6 +138,7 @@ public class MqttServerDebugSubscriptionProvider implements SubscriptionProvider
             data.put("address", connection.getClientAddress().toString());
             data.put("topics", subscription
                 .getMessage()
+                .payload()
                 .topicSubscriptions()
                 .stream()
                 .map(subs -> "QoS:" + subs.qualityOfService().value() + " Topic:" + subs.topicName())
@@ -140,12 +146,13 @@ public class MqttServerDebugSubscriptionProvider implements SubscriptionProvider
             return MqttClientMessage.of("subscription", "订阅", data);
         }
 
-        public static MqttClientMessage of(MqttConnection connection, MqttUnSubscription subscription) {
+        public static MqttClientMessage of(MqttConnection connection, MqttUnsubscription subscription) {
             Map<String, Object> data = new HashMap<>();
             data.put("clientId", connection.getClientId());
             data.put("address", connection.getClientAddress().toString());
             data.put("topics", subscription
                 .getMessage()
+                .payload()
                 .topics()
             );
             return MqttClientMessage.of("unsubscription", "取消订阅", data);

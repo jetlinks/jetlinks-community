@@ -23,8 +23,7 @@ import org.jetlinks.core.message.codec.EncodedMessage;
 import org.jetlinks.core.message.codec.MqttMessage;
 import org.jetlinks.core.message.codec.Transport;
 import org.jetlinks.core.server.session.DeviceSession;
-import org.jetlinks.community.gateway.monitor.DeviceGatewayMonitor;
-import org.jetlinks.community.network.mqtt.client.MqttClient;
+import org.jetlinks.community.network.mqtt.client.JetlinksMqttClient;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -33,13 +32,13 @@ public class UnknownDeviceMqttClientSession implements DeviceSession {
     @Getter
     private final String id;
 
-    private final MqttClient client;
+    private final JetlinksMqttClient client;
 
     private final DeviceGatewayMonitor monitor;
     private Duration keepAliveTimeout;
 
     public UnknownDeviceMqttClientSession(String id,
-                                          MqttClient client,
+                                          JetlinksMqttClient client,
                                           DeviceGatewayMonitor monitor) {
         this.id = id;
         this.client = client;

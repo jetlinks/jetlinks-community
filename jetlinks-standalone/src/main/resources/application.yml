@@ -166,21 +166,22 @@ rule:
         server-name: ${spring.application.name}
 logging:
     level:
-        org.jetlinks: debug
-        rule.engine: debug
-        org.hswebframework: debug
-        org.springframework.transaction: debug
+        org.jetlinks: warn
+        rule.engine: warn
+        org.hswebframework: warn
+        org.springframework.transaction: warn
         org.springframework.data.r2dbc.connectionfactory: warn
         io.micrometer: warn
         org.hswebframework.expands: error
-        system: debug
+        system: warn
         org.jetlinks.rule.engine: warn
         org.jetlinks.supports.event: warn
         org.springframework: warn
         org.jetlinks.community.device.message.writer: warn
         org.jetlinks.community.timeseries.micrometer: warn
-        org.jetlinks.community.elastic.search.service.reactive: trace
+        org.jetlinks.community.elastic.search.service.reactive: warn
         org.jetlinks.community.network: warn
+        org.jetlinks.community.network.mqtt: debug
         io.vertx.mqtt.impl: warn
         org.jetlinks.supports.scalecube.rpc: warn
         "org.jetlinks.community.buffer": warn
