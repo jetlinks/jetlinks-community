@@ -1,0 +1,29 @@
+services:
+  iotdb:
+    image: apache/iotdb:2.0.11-standalone
+    ports:
+      - "${IOTDB_RPC_PORT:-6667}:6667"
+    environment:
+      - cn_internal_address=127.0.0.1
+      - cn_internal_port=10710
+      - cn_consensus_port=10720
+      - dn_rpc_address=0.0.0.0
+      - dn_rpc_port=6667
+      - dn_internal_address=127.0.0.1
+      - dn_internal_port=10730
+      - dn_mpp_data_exchange_port=10740
+      - dn_schema_region_consensus_port=10750
+      - dn_data_region_consensus_port=10760
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/6667'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    volumes:
+      - iotdb-data:/iotdb/data
+      - iotdb-logs:/iotdb/logs
+
+volumes:
+  iotdb-data:
+  iotdb-logs:

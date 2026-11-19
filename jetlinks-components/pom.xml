@@ -28,6 +28,7 @@
         <module>protocol-component</module>
         <module>relation-component</module>
         <module>tdengine-component</module>
+        <module>iotdb-component</module>
         <module>timescaledb-component</module>
         <module>datasource-component</module>
         <module>plugin-component</module>

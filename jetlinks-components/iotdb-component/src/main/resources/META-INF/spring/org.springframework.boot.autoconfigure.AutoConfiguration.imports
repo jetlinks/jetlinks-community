@@ -1,0 +1,3 @@
+org.jetlinks.community.iotdb.IoTDBConfiguration
+org.jetlinks.community.iotdb.things.IoTDBThingDataConfiguration
+org.jetlinks.community.iotdb.timeseries.IoTDBTimeSeriesConfiguration
