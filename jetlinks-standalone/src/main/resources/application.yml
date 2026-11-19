@@ -83,6 +83,22 @@ tdengine:
             - http://127.0.0.1:6041/
         username: root
         password: taosdata
+iotdb:
+    enabled: false # 使用 IoTDB 表模型存储设备及时序数据
+    database: jetlinks
+    node-urls:
+        - ${IOTDB_ENDPOINT:127.0.0.1:6667}
+    username: ${IOTDB_USERNAME:}
+    password: ${IOTDB_PASSWORD:}
+    max-size: 16
+    query-timeout-in-ms: 10000
+    fetch-size: 1000
+    connection-timeout-in-ms: 5000
+    write-batch-size: 1000
+    time-series:
+        enabled: true
+    things-data:
+        enabled: true
 elasticsearch:
     index:
         default-strategy: time-by-month #默认es的索引按月进行分表, direct则为直接操作索引.
