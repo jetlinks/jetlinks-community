@@ -268,7 +268,12 @@ class TcpServerDeviceGateway extends AbstractDeviceGateway implements DeviceGate
                 .helper
                 .handleDeviceMessage(
                     message,
-                    device -> new TcpDeviceSession(device, parent.getTransport(), parent.monitor, parent.sessionManager),
+                    device -> {
+                        TcpDeviceSession deviceSession = new TcpDeviceSession(device, parent.getTransport(), parent.monitor, parent.sessionManager);
+                        // 上线事件可能立即查询会话，注册前先挂载连接以保证存活。
+                        deviceSession.registerConnection(client);
+                        return deviceSession;
+                    },
                     session -> {
                         if (session.isWrapFrom(TcpDeviceSession.class)) {
                             TcpDeviceSession deviceSession = session.unwrap(TcpDeviceSession.class);
