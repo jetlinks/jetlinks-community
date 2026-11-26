@@ -21,6 +21,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hswebframework.web.authorization.Authentication;
 import org.hswebframework.web.authorization.DimensionProvider;
 import org.hswebframework.web.authorization.DimensionType;
+import org.hswebframework.web.crud.utils.TransactionUtils;
 import org.hswebframework.web.system.authorization.api.entity.AuthorizationSettingEntity;
 import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
 import org.hswebframework.web.system.authorization.defaults.configuration.PermissionProperties;
@@ -59,21 +60,45 @@ public class AuthorizationSettingDetailService {
 
     private final ApplicationEventPublisher eventPublisher;
 
-    public Mono<Void> clearPermissionUserAuth(String type,String id){
+    public Mono<Void> clearPermissionUserAuth(String type, String id) {
+        return resolveAffectedUserIds(type, id)
+            .flatMap(this::publishClearUserAuthCacheAfterCommit);
+    }
+
+    private Mono<Set<String>> resolveAffectedUserIds(String type, String id) {
+        return getTypeProviderMapping()
+            .flatMapMany(mapping -> Mono.justOrEmpty(mapping.get(type))
+                .flatMapMany(provider -> provider.getUserIdByDimensionId(id)))
+            .collect(Collectors.toSet());
+    }
+
+    private Mono<Set<String>> resolveAffectedUserIds(Collection<AuthorizationSettingDetail> details) {
+        return getTypeProviderMapping()
+            .flatMapMany(mapping -> Flux.fromIterable(details)
+                .concatMap(detail -> Mono.justOrEmpty(mapping.get(detail.getTargetType()))
+                    .flatMapMany(provider -> provider.getUserIdByDimensionId(detail.getTargetId()))))
+            .collect(Collectors.toSet());
+    }
+
+    private Mono<Map<String, DimensionProvider>> getTypeProviderMapping() {
         return Flux
             .fromIterable(providers)
-            .flatMap(provider ->
+            .concatMap(provider ->
                          //按维度类型进行映射
                          provider.getAllType()
                                  .map(DimensionType::getId)
                                  .map(t -> Tuples.of(t, provider)))
-            .collectMap(Tuple2::getT1, Tuple2::getT2)
-            .flatMapMany(typeProviderMapping -> Mono
-                .justOrEmpty(typeProviderMapping.get(type))
-                .flatMapMany(provider -> provider.getUserIdByDimensionId(id)))
-            .<Set<String>>collect(HashSet::new, Set::add)
-            .flatMap(lst-> ClearUserAuthorizationCacheEvent.of(lst).publish(eventPublisher))
-            .then();
+            .collectMap(Tuple2::getT1, Tuple2::getT2);
+    }
+
+    private Mono<Void> publishClearUserAuthCacheAfterCommit(Collection<String> userIds) {
+        // of(empty) 表示全量清理，不能把没有受影响用户扩大为全量失效。
+        if (CollectionUtils.isEmpty(userIds)) {
+            return Mono.empty();
+        }
+        return TransactionUtils.afterCommit(
+            Mono.defer(() -> ClearUserAuthorizationCacheEvent.of(userIds).publish(eventPublisher))
+        );
     }
 
     /**
@@ -86,24 +111,24 @@ public class AuthorizationSettingDetailService {
     @Transactional
     public Mono<Void> saveDetail(@Nullable Authentication currentAuthentication,
                                  Flux<AuthorizationSettingDetail> detailFlux) {
-        MultiValueMap<String,String> delDimension=new LinkedMultiValueMap<>();
-        return detailFlux
-                .doOnNext(detail->delDimension.add(detail.getTargetType(),detail.getTargetId()))
-                .then(Mono.defer(()->{
-                    //先删除旧的权限设置
-                   return Flux
-                            .fromIterable(delDimension.entrySet())
-                            .filter(entry->CollectionUtils.isNotEmpty(entry.getValue()))
-                            .flatMap(entry-> settingService
-                                    .getRepository()
-                                    .createDelete()
-                                    .where(AuthorizationSettingEntity::getDimensionType, entry.getKey())
-                                    .in(AuthorizationSettingEntity::getDimensionTarget,entry.getValue())
-                                    .execute())
-                            .then();
+        return detailFlux.collectList()
+            .flatMap(details -> resolveAffectedUserIds(details)
+                .flatMap(userIds -> ClearUserAuthorizationCacheEvent
+                    .disable(saveDetail0(currentAuthentication, details))
+                    .then(publishClearUserAuthCacheAfterCommit(userIds))));
+    }
 
-                }))
-                .then(addDetail(currentAuthentication, detailFlux));
+    private Mono<Void> saveDetail0(@Nullable Authentication currentAuthentication,
+                                   Collection<AuthorizationSettingDetail> details) {
+        MultiValueMap<String, String> delDimension = new LinkedMultiValueMap<>();
+        details.forEach(detail -> delDimension.add(detail.getTargetType(), detail.getTargetId()));
+        return Flux.fromIterable(delDimension.entrySet())
+            .concatMap(entry -> settingService.getRepository()
+                .createDelete()
+                .where(AuthorizationSettingEntity::getDimensionType, entry.getKey())
+                .in(AuthorizationSettingEntity::getDimensionTarget, entry.getValue())
+                .execute())
+            .then(addDetail0(currentAuthentication, details));
     }
 
 
@@ -117,10 +142,19 @@ public class AuthorizationSettingDetailService {
     @Transactional
     public Mono<Void> addDetail(@Nullable Authentication currentAuthentication,
                                    Flux<AuthorizationSettingDetail> detailFlux) {
-        return detailFlux
-            .flatMap(detail -> Flux
+        return detailFlux.collectList()
+            .flatMap(details -> resolveAffectedUserIds(details)
+                .flatMap(userIds -> ClearUserAuthorizationCacheEvent
+                    .disable(addDetail0(currentAuthentication, details))
+                    .then(publishClearUserAuthCacheAfterCommit(userIds))));
+    }
+
+    private Mono<Void> addDetail0(@Nullable Authentication currentAuthentication,
+                                  Collection<AuthorizationSettingDetail> details) {
+        return Flux.fromIterable(details)
+            .concatMap(detail -> Flux
                 .fromIterable(providers)
-                .flatMap(provider -> provider
+                .concatMap(provider -> provider
                     .getAllType()
                     .filter(type -> type.getId().equals(detail.getTargetType()))//过滤掉不同的维度类型
                     .singleOrEmpty()
@@ -186,8 +220,16 @@ public class AuthorizationSettingDetailService {
      */
     @Transactional
     public Mono<Void> deleteDetail(Flux<AuthorizationSettingDetail> detailFlux) {
-        return detailFlux
-            .flatMap(detail -> settingService
+        return detailFlux.collectList()
+            .flatMap(details -> resolveAffectedUserIds(details)
+                .flatMap(userIds -> ClearUserAuthorizationCacheEvent
+                    .disable(deleteDetail0(details))
+                    .then(publishClearUserAuthCacheAfterCommit(userIds))));
+    }
+
+    private Mono<Void> deleteDetail0(Collection<AuthorizationSettingDetail> details) {
+        return Flux.fromIterable(details)
+            .concatMap(detail -> settingService
                 .getRepository()
                 .createDelete()
                 .where(AuthorizationSettingEntity::getDimensionType, detail.getTargetType())

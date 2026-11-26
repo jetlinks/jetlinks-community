@@ -18,6 +18,7 @@ package org.jetlinks.community.auth.service;
 import lombok.AllArgsConstructor;
 import org.hswebframework.ezorm.core.param.TermType;
 import org.hswebframework.ezorm.rdb.mapping.ReactiveRepository;
+import org.hswebframework.web.crud.utils.TransactionUtils;
 import org.jetlinks.community.auth.entity.MenuBindEntity;
 import org.jetlinks.community.auth.entity.MenuEntity;
 import org.jetlinks.community.auth.service.request.MenuGrantRequest;
@@ -37,6 +38,7 @@ public class MenuGrantService {
     private final ReactiveRepository<MenuBindEntity, String> bindRepository;
     private final ReactiveRepository<MenuEntity, String> menuRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final DefaultMenuService menuService;
 
     /**
      * 对菜单进行授权
@@ -52,11 +54,10 @@ public class MenuGrantService {
                 //先删除原已保存的菜单信息
                 deleteMenuBind(request.getTargetType(), request.getTargetId(), owner),
                 //保存菜单信息
-                bindRepository.save(request.toBindEntities()),
-                settingService.clearPermissionUserAuth(request.getTargetType(), request.getTargetId())
+                bindRepository.save(request.toBindEntities())
             )
             .then()
-            ;
+            .then(evictCacheAfterCommit(request.getTargetType(), request.getTargetId()));
     }
 
     /**
@@ -66,10 +67,19 @@ public class MenuGrantService {
      * @param owner 菜单所有者
      * @return void
      */
+    @Transactional
     public Mono<Void> clearGrant(String targetType, String targetId, Set<String> owner) {
         return this
             .deleteMenuBind(targetType, targetId, owner)
-            .then();
+            .then(evictCacheAfterCommit(targetType, targetId));
+    }
+
+    private Mono<Void> evictCacheAfterCommit(String targetType, String targetId) {
+        // 授权快照必须先于用户认证失效，避免重建身份时复用旧的空菜单。
+        return TransactionUtils.afterCommit(
+            menuService.evictGrantedMenuCache()
+                .then(Mono.defer(() -> settingService.clearPermissionUserAuth(targetType, targetId)))
+        );
     }
 
     private Mono<Integer> deleteMenuBind(String targetType, String targetId, Set<String> owner) {

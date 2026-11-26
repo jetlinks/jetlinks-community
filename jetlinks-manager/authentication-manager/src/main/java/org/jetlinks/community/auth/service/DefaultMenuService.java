@@ -33,6 +33,7 @@ import org.hswebframework.web.crud.events.EntityModifyEvent;
 import org.hswebframework.web.crud.events.EntitySavedEvent;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
 import org.hswebframework.web.crud.service.ReactiveTreeSortEntityService;
+import org.hswebframework.web.crud.utils.TransactionUtils;
 import org.hswebframework.web.exception.BusinessException;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.id.IDGenerator;
@@ -305,32 +306,45 @@ public class DefaultMenuService
     @EventListener
     public void handleMenuEntity(EntityModifyEvent<MenuEntity> e) {
         e.async(
-            evictCacheMenus()
-                .then(ClearUserAuthorizationCacheEvent.all().publish(eventPublisher))
+            evictMenuAndAuthorizationCacheAfterCommit()
         );
     }
 
     @EventListener
     public void handleMenuEntity(EntityDeletedEvent<MenuEntity> e) {
         e.async(
-            evictCacheMenus()
-                .then(ClearUserAuthorizationCacheEvent.all().publish(eventPublisher))
+            evictMenuAndAuthorizationCacheAfterCommit()
         );
     }
 
     @EventListener
     public void handleMenuEntity(EntitySavedEvent<MenuEntity> e) {
         e.async(
-            evictCacheMenus()
-                .then(ClearUserAuthorizationCacheEvent.all().publish(eventPublisher))
-
+            evictMenuAndAuthorizationCacheAfterCommit()
         );
     }
 
+    @EventListener
+    public void handleMenuEntity(EntityCreatedEvent<MenuEntity> e) {
+        e.async(TransactionUtils.afterCommit(evictCacheMenus()));
+    }
+
+    private Mono<Void> evictMenuAndAuthorizationCacheAfterCommit() {
+        return TransactionUtils.afterCommit(
+            evictCacheMenus()
+                .then(Mono.defer(() -> ClearUserAuthorizationCacheEvent.all().publish(eventPublisher)))
+        );
+    }
+
+    Mono<Void> evictGrantedMenuCache() {
+        return Mono.fromRunnable(grantedCaching::clear);
+    }
+
     private Mono<Void> evictCacheMenus() {
-        return cacheManager
-            .getCache(MENU_CACHE_KEY)
-            .evict(MENU_CACHE_KEY);
+        return evictGrantedMenuCache()
+            .then(Mono.defer(() -> cacheManager
+                .getCache(MENU_CACHE_KEY)
+                .evict(MENU_CACHE_KEY)));
     }
 
     public Flux<MenuView> getUserMenuAsList(Authentication auth, QueryParamEntity queryParam) {

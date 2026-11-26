@@ -17,6 +17,7 @@ package org.jetlinks.community.auth.dimension;
 
 import lombok.extern.slf4j.Slf4j;
 import org.hswebframework.web.authorization.ReactiveAuthenticationHolder;
+import org.hswebframework.web.crud.utils.TransactionUtils;
 import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
 import org.jetlinks.community.authorize.FastSerializableAuthentication;
 import org.jetlinks.core.event.EventBus;
@@ -74,7 +75,8 @@ public class UserAuthenticationEventPublisher {
         if (event.isAll()) {
             return;
         }
-        event.async(publish(event.getUserId()));
+        // 身份读取和批量入队都等待成员变更提交，避免通知中携带旧权限。
+        event.async(TransactionUtils.afterCommit(Mono.defer(() -> publish(event.getUserId()))));
     }
 
     private Mono<Void> publish0(Collection<String> userIdList) {
