@@ -24,6 +24,7 @@ import org.hswebframework.web.authorization.token.UserTokenManager;
 import org.hswebframework.web.bean.FastBeanCopier;
 import org.hswebframework.web.crud.query.QueryHelper;
 import org.hswebframework.web.crud.service.GenericReactiveCrudService;
+import org.hswebframework.web.crud.utils.TransactionUtils;
 import org.hswebframework.web.i18n.LocaleUtils;
 import org.hswebframework.web.system.authorization.api.entity.UserEntity;
 import org.hswebframework.web.system.authorization.api.event.ClearUserAuthorizationCacheEvent;
@@ -222,7 +223,9 @@ public class UserDetailService extends GenericReactiveCrudService<UserDetailEnti
             //禁用上游产生的清空用户权限事件,因为可能会导致重复执行
             .as(ClearUserAuthorizationCacheEvent::disable)
             //只执行一次清空用户权限事件
-            .flatMap(userId -> ClearUserAuthorizationCacheEvent.of(userId).publish(eventPublisher).thenReturn(userId))
+            .flatMap(userId -> TransactionUtils
+                .afterCommit(Mono.defer(() -> ClearUserAuthorizationCacheEvent.of(userId).publish(eventPublisher)))
+                .thenReturn(userId))
             .as(LocaleUtils::transform);
     }
 
